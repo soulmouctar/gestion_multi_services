@@ -1,0 +1,86 @@
+<div class="subscription-expired-container">
+  <c-row class="justify-content-center">
+    <c-col md="8" lg="6">
+      <c-card class="shadow-lg border-warning">
+        <c-card-header class="text-center bg-warning text-dark">
+          <h4 class="mb-0">
+            <svg cIcon name="cil-warning" class="me-2"></svg>
+            Abonnement Expiré
+          </h4>
+          <p class="mb-0">Votre accès est temporairement suspendu</p>
+        </c-card-header>
+        <c-card-body>
+          <div class="text-center mb-4">
+            <svg cIcon name="cil-lock-locked" size="4xl" class="text-warning mb-3"></svg>
+            <h5>Votre abonnement a expiré</h5>
+            <p class="text-muted">
+              Pour continuer à utiliser l'application, veuillez renouveler votre abonnement.
+            </p>
+          </div>
+          
+          <div class="alert alert-info">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <strong>Entreprise:</strong> {{ tenantInfo.name }}
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <strong>Plan actuel:</strong> {{ tenantInfo.plan }}
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <strong>Expiré depuis:</strong> {{ tenantInfo.daysExpired }} jours
+            </div>
+          </div>
+          
+          <h6 class="mb-3">Choisissez un nouveau plan:</h6>
+          
+          @for (plan of availablePlans; track plan.id) {
+            <c-card class="mb-3" [class.border-primary]="plan.popular">
+              @if (plan.popular) {
+                <div class="text-center bg-primary text-white py-1 rounded-top">
+                  <small class="fw-bold">PLUS POPULAIRE</small>
+                </div>
+              }
+              <c-card-body>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                  <div>
+                    <h6 class="mb-1">{{ plan.name }}</h6>
+                    <h3 class="mb-0 text-primary">${{ plan.price }}/mois</h3>
+                  </div>
+                </div>
+                
+                <ul class="list-unstyled mb-3">
+                  @for (feature of plan.features; track $index) {
+                    <li class="mb-2">
+                      <svg cIcon name="cil-check-circle" class="text-success me-2"></svg>
+                      {{ feature }}
+                    </li>
+                  }
+                </ul>
+                
+                <button 
+                  class="btn btn-{{ plan.color }} w-100"
+                  (click)="selectPlan(plan)">
+                  @if (plan.popular) {
+                    Renouveler - {{ plan.name }}
+                  } @else {
+                    Choisir {{ plan.name }}
+                  }
+                </button>
+              </c-card-body>
+            </c-card>
+          }
+          
+          <div class="text-center mt-4">
+            <button class="btn btn-outline-secondary me-2" (click)="contactSupport()">
+              <svg cIcon name="cil-support" class="me-2"></svg>
+              Contacter le support
+            </button>
+            <button class="btn btn-outline-danger" (click)="logout()">
+              <svg cIcon name="cil-account-logout" class="me-2"></svg>
+              Déconnexion
+            </button>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</div>

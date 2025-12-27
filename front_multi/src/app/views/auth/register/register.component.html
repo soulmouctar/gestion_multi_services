@@ -1,0 +1,261 @@
+<div class="register-container">
+  <c-row class="justify-content-center">
+    <c-col md="8" lg="6">
+      <c-card class="shadow-lg">
+        <c-card-header class="text-center">
+          <h4 class="mb-0">
+            <svg cIcon name="cil-user-plus" class="me-2"></svg>
+            Créer un Compte
+          </h4>
+          <p class="text-muted mb-0">SaaS Management Platform</p>
+        </c-card-header>
+        <c-card-body>
+          @if (errorMessage) {
+            <c-alert color="danger" class="mb-3">
+              {{ errorMessage }}
+            </c-alert>
+          }
+          
+          @if (successMessage) {
+            <c-alert color="success" class="mb-3">
+              {{ successMessage }}
+            </c-alert>
+          }
+          
+          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+            <!-- Informations du Tenant -->
+            <h6 class="mb-3">Informations de l'Entreprise</h6>
+            
+            <c-row class="mb-3">
+              <c-col sm="6">
+                <label cLabel for="tenantName">Nom de l'entreprise *</label>
+                <input 
+                  cFormControl 
+                  type="text" 
+                  id="tenantName" 
+                  formControlName="tenantName"
+                  placeholder="Votre Entreprise SARL"
+                  [class.is-invalid]="submitted && tenantName?.invalid"
+                />
+                @if (submitted && tenantName?.invalid) {
+                  <div class="invalid-feedback">
+                    Le nom de l'entreprise est requis
+                  </div>
+                }
+              </c-col>
+              <c-col sm="6">
+                <label cLabel for="tenantEmail">Email de l'entreprise *</label>
+                <input 
+                  cFormControl 
+                  type="email" 
+                  id="tenantEmail" 
+                  formControlName="tenantEmail"
+                  placeholder="contact@entreprise.com"
+                  [class.is-invalid]="submitted && tenantEmail?.invalid"
+                />
+                @if (submitted && tenantEmail?.invalid) {
+                  <div class="invalid-feedback">
+                    @if (tenantEmail?.errors?.['required']) {
+                      L'email de l'entreprise est requis
+                    }
+                    @if (tenantEmail?.errors?.['email']) {
+                      Format d'email invalide
+                    }
+                  </div>
+                }
+              </c-col>
+            </c-row>
+            
+            <c-row class="mb-3">
+              <c-col sm="6">
+                <label cLabel for="tenantPhone">Téléphone</label>
+                <input 
+                  cFormControl 
+                  type="tel" 
+                  id="tenantPhone" 
+                  formControlName="tenantPhone"
+                  placeholder="+224 622 123 456"
+                />
+              </c-col>
+              <c-col sm="6">
+                <label cLabel for="tenantCity">Ville</label>
+                <input 
+                  cFormControl 
+                  type="text" 
+                  id="tenantCity" 
+                  formControlName="tenantCity"
+                  placeholder="Conakry"
+                />
+              </c-col>
+            </c-row>
+            
+            <div class="mb-3">
+              <label for="tenantAddress" class="form-label">Adresse</label>
+              <textarea 
+                class="form-control"
+                id="tenantAddress" 
+                formControlName="tenantAddress"
+                placeholder="Adresse complète de l'entreprise"
+                rows="2"
+              ></textarea>
+            </div>
+            
+            <hr class="my-4">
+            
+            <!-- Informations de l'Utilisateur -->
+            <h6 class="mb-3">Informations de l'Administrateur</h6>
+            
+            <c-row class="mb-3">
+              <c-col sm="6">
+                <label cLabel for="firstName">Prénom *</label>
+                <input 
+                  cFormControl 
+                  type="text" 
+                  id="firstName" 
+                  formControlName="firstName"
+                  placeholder="Jean"
+                  [class.is-invalid]="submitted && firstName?.invalid"
+                />
+                @if (submitted && firstName?.invalid) {
+                  <div class="invalid-feedback">
+                    Le prénom est requis
+                  </div>
+                }
+              </c-col>
+              <c-col sm="6">
+                <label cLabel for="lastName">Nom *</label>
+                <input 
+                  cFormControl 
+                  type="text" 
+                  id="lastName" 
+                  formControlName="lastName"
+                  placeholder="Dupont"
+                  [class.is-invalid]="submitted && lastName?.invalid"
+                />
+                @if (submitted && lastName?.invalid) {
+                  <div class="invalid-feedback">
+                    Le nom est requis
+                  </div>
+                }
+              </c-col>
+            </c-row>
+            
+            <c-row class="mb-3">
+              <c-col sm="6">
+                <label cLabel for="email">Email personnel *</label>
+                <input 
+                  cFormControl 
+                  type="email" 
+                  id="email" 
+                  formControlName="email"
+                  placeholder="jean.dupont@email.com"
+                  [class.is-invalid]="submitted && email?.invalid"
+                />
+                @if (submitted && email?.invalid) {
+                  <div class="invalid-feedback">
+                    @if (email?.errors?.['required']) {
+                      L'email est requis
+                    }
+                    @if (email?.errors?.['email']) {
+                      Format d'email invalide
+                    }
+                  </div>
+                }
+              </c-col>
+              <c-col sm="6">
+                <label cLabel for="phone">Téléphone personnel</label>
+                <input 
+                  cFormControl 
+                  type="tel" 
+                  id="phone" 
+                  formControlName="phone"
+                  placeholder="+224 622 123 456"
+                />
+              </c-col>
+            </c-row>
+            
+            <c-row class="mb-3">
+              <c-col sm="6">
+                <label cLabel for="password">Mot de passe *</label>
+                <input 
+                  cFormControl 
+                  type="password" 
+                  id="password" 
+                  formControlName="password"
+                  placeholder="Minimum 6 caractères"
+                  [class.is-invalid]="submitted && password?.invalid"
+                />
+                @if (submitted && password?.invalid) {
+                  <div class="invalid-feedback">
+                    @if (password?.errors?.['required']) {
+                      Le mot de passe est requis
+                    }
+                    @if (password?.errors?.['minlength']) {
+                      Minimum 6 caractères
+                    }
+                  </div>
+                }
+              </c-col>
+              <c-col sm="6">
+                <label cLabel for="confirmPassword">Confirmer le mot de passe *</label>
+                <input 
+                  cFormControl 
+                  type="password" 
+                  id="confirmPassword" 
+                  formControlName="confirmPassword"
+                  placeholder="Confirmer le mot de passe"
+                  [class.is-invalid]="submitted && confirmPassword?.invalid"
+                />
+                @if (submitted && confirmPassword?.invalid) {
+                  <div class="invalid-feedback">
+                    @if (confirmPassword?.errors?.['required']) {
+                      La confirmation du mot de passe est requise
+                    }
+                    @if (confirmPassword?.errors?.['passwordMismatch']) {
+                      Les mots de passe ne correspondent pas
+                    }
+                  </div>
+                }
+              </c-col>
+            </c-row>
+            
+            <div class="mb-4 form-check">
+              <input 
+                type="checkbox" 
+                class="form-check-input"
+                id="acceptTerms" 
+                formControlName="agreeTerms"
+                [class.is-invalid]="submitted && agreeTerms?.invalid"
+              />
+              <label class="form-check-label" for="acceptTerms">
+                J'accepte les <a href="#" class="text-decoration-none">conditions d'utilisation</a> et la <a href="#" class="text-decoration-none">politique de confidentialité</a> *
+              </label>
+              @if (submitted && agreeTerms?.invalid) {
+                <div class="invalid-feedback d-block">
+                  Vous devez accepter les conditions d'utilisation
+                </div>
+              }
+            </div>
+            
+            <div class="d-grid gap-2">
+              <button 
+                type="submit" 
+                class="btn btn-primary w-100"
+                [disabled]="isLoading">
+                <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+                Créer le Compte
+              </button>
+            </div>
+          </form>
+          
+          <div class="text-center mt-3">
+            <small class="text-muted">
+              Déjà un compte? 
+              <a routerLink="/auth/login" class="text-decoration-none">Se connecter</a>
+            </small>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</div>
