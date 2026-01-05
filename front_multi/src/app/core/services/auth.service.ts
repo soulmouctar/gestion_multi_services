@@ -8,7 +8,7 @@ import { User, AuthState, ApiResponse } from '../models';
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API_URL = 'http://127.0.0.1:8003/api';
+  private readonly API_URL = 'http://127.0.0.1:8000/api';
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_KEY = 'current_user';
   
@@ -32,8 +32,6 @@ export class AuthService {
     const token = localStorage.getItem(this.TOKEN_KEY);
     const userStr = localStorage.getItem(this.USER_KEY);
     
-    console.log('AuthService.initializeAuthState: token trouvé =', !!token, 'userStr trouvé =', !!userStr);
-    
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
@@ -44,32 +42,20 @@ export class AuthService {
           token
         };
         this.authState.next(authState);
-        console.log('AuthService.initializeAuthState: État authentification défini sur:', authState);
       } catch (error) {
-        console.log('AuthService.initializeAuthState: Erreur parsing user, nettoyage des données');
         this.clearAuthData();
       }
-    } else {
-      console.log('AuthService.initializeAuthState: Pas de token ou user, utilisateur non authentifié');
     }
   }
   
   login(credentials: { email: string; password: string; tenantDomain?: string }): Observable<ApiResponse<AuthState>> {
-    console.log('AuthService.login appelé avec:', credentials);
     return this.http.post<ApiResponse<AuthState>>(`${this.API_URL}/login`, credentials).pipe(
       tap(response => {
-        console.log('AuthService.login réponse reçue:', response);
         if (response.success && response.data) {
-          console.log('AuthService.login mise à jour état authentification');
           this.setAuthState(response.data);
-        } else {
-          console.log('AuthService.login échec:', response.message);
         }
       }),
-      catchError(error => {
-        console.log('AuthService.login erreur:', error);
-        return this.handleError(error);
-      })
+      catchError(error => this.handleError(error))
     );
   }
   
@@ -168,6 +154,18 @@ export class AuthService {
       catchError(error => this.handleError(error))
     );
   }
+
+  forgotPassword(email: string): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/forgot-password`, { email }).pipe(
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  resetPassword(data: { token: string; email: string; password: string; password_confirmation: string }): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/reset-password`, data).pipe(
+      catchError(error => this.handleError(error))
+    );
+  }
   
   // Getters
   get currentUser(): User | null {
@@ -182,9 +180,7 @@ export class AuthService {
     // Vérification directe du localStorage pour éviter les problèmes de BehaviorSubject
     const token = localStorage.getItem(this.TOKEN_KEY);
     const userStr = localStorage.getItem(this.USER_KEY);
-    const isAuth = !!(token && userStr);
-    console.log('AuthService.isAuthenticated appelé - token:', !!token, 'user:', !!userStr, 'résultat:', isAuth);
-    return isAuth;
+    return !!(token && userStr);
   }
   
   get userRole(): string | null {
@@ -237,19 +233,9 @@ export class AuthService {
   
   // Private methods
   private setAuthState(authData: AuthState): void {
-    console.log('AuthService.setAuthState appelé avec:', authData);
     this.authState.next(authData);
     localStorage.setItem(this.TOKEN_KEY, authData.token || '');
     localStorage.setItem(this.USER_KEY, JSON.stringify(authData.user));
-    
-    // Vérification immédiate de l'état
-    setTimeout(() => {
-      const currentState = this.authState.value;
-      console.log('AuthService.setAuthState - vérification état actuel:', currentState);
-      console.log('AuthService.setAuthState - isAuthenticated après mise à jour:', this.isAuthenticated);
-    }, 0);
-    
-    console.log('AuthService.setAuthState terminé, isAuthenticated:', authData.isAuthenticated);
   }
   
   private clearAuthData(): void {

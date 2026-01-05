@@ -1,8 +1,380 @@
-<c-card>
-  <c-card-header>
-    <strong>Gestion des Modules</strong>
-  </c-card-header>
+<!-- Success/Error Messages -->
+<div *ngIf="showMessage" class="alert alert-dismissible fade show mb-4" 
+     [class.alert-success]="successMessage" 
+     [class.alert-danger]="errorMessage">
+  <div class="d-flex align-items-center">
+    <svg *ngIf="successMessage" cIcon name="cil-check-circle" class="me-2"></svg>
+    <svg *ngIf="errorMessage" cIcon name="cil-warning" class="me-2"></svg>
+    <span>{{ successMessage || errorMessage }}</span>
+  </div>
+  <button type="button" class="btn-close" (click)="dismissMessage()"></button>
+</div>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-0">Gestion des Modules</h2>
+    <p class="text-muted mb-0">Configuration et gestion des modules système</p>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="btn-group" *ngIf="filteredModules.length > 0">
+      <button 
+        class="btn btn-outline-success btn-sm"
+        (click)="bulkActivate()"
+        [disabled]="loading"
+        title="Activer tous les modules filtrés">
+        <svg cIcon name="cil-check" class="me-1"></svg>
+        Activer tout
+      </button>
+      <button 
+        class="btn btn-outline-warning btn-sm"
+        (click)="bulkDeactivate()"
+        [disabled]="loading"
+        title="Désactiver tous les modules filtrés">
+        <svg cIcon name="cil-ban" class="me-1"></svg>
+        Désactiver tout
+      </button>
+    </div>
+    <button 
+      class="btn btn-primary"
+      (click)="openModuleModal()"
+      [disabled]="loading">
+      <svg cIcon name="cil-plus" class="me-2"></svg>
+      Nouveau Module
+    </button>
+  </div>
+</div>
+
+<!-- Filters -->
+<c-card class="mb-4">
   <c-card-body>
-    <p class="text-muted">Module de gestion des modules en cours de développement...</p>
+    <form [formGroup]="filterForm" class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Rechercher</label>
+        <input 
+          type="text" 
+          class="form-control" 
+          formControlName="search"
+          placeholder="Nom, code ou description du module..."
+          (input)="applyFilters()">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Statut</label>
+        <select class="form-select" formControlName="status" (change)="applyFilters()">
+          <option value="ALL">Tous les statuts</option>
+          <option value="ACTIVE">Actifs</option>
+          <option value="INACTIVE">Inactifs</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button 
+          type="button" 
+          class="btn btn-outline-secondary w-100"
+          (click)="clearFilters()">
+          Effacer
+        </button>
+      </div>
+    </form>
   </c-card-body>
 </c-card>
+
+<!-- Modules List -->
+<c-card>
+  <c-card-header class="d-flex justify-content-between align-items-center">
+    <strong>Liste des Modules ({{ filteredModules.length }}/{{ modules.length }})</strong>
+    <div class="d-flex align-items-center gap-2">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm"></span>
+      <small class="text-muted">{{ getActiveModulesCount() }} actifs</small>
+    </div>
+  </c-card-header>
+  
+  <c-card-body class="p-0">
+    <!-- Loading state -->
+    <div *ngIf="loading && modules.length === 0" class="text-center py-5">
+      <div class="spinner-border text-primary mb-3"></div>
+      <p class="text-muted">Chargement des modules...</p>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!loading && filteredModules.length === 0 && modules.length === 0" class="text-center py-5">
+      <svg cIcon name="cil-layers" size="3xl" class="text-muted mb-3"></svg>
+      <h5>Aucun module trouvé</h5>
+      <p class="text-muted">Commencez par créer votre premier module.</p>
+      <button class="btn btn-primary" (click)="openModuleModal()">
+        <svg cIcon name="cil-plus" class="me-2"></svg>
+        Créer un module
+      </button>
+    </div>
+
+    <!-- No results after filtering -->
+    <div *ngIf="!loading && filteredModules.length === 0 && modules.length > 0" class="text-center py-5">
+      <svg cIcon name="cil-magnifying-glass" size="3xl" class="text-muted mb-3"></svg>
+      <h5>Aucun résultat</h5>
+      <p class="text-muted">Aucun module ne correspond à vos critères de recherche.</p>
+      <button class="btn btn-outline-secondary" (click)="clearFilters()">
+        Effacer les filtres
+      </button>
+    </div>
+
+    <!-- Modules table -->
+    <div class="table-responsive" *ngIf="filteredModules.length > 0">
+      <table class="table table-striped table-bordered">
+        <thead style="background-color: #f8f9fa !important;">
+          <tr>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Module</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Code</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Description</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Permissions</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Statut</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let module of filteredModules">
+            <td>
+              <div class="d-flex align-items-center">
+                <svg [cIcon]="'cil-' + module.icon" class="me-3 text-primary" size="lg"></svg>
+                <div>
+                  <strong>{{ module.name }}</strong>
+                  <br>
+                  <small class="text-muted">ID: {{ module.id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <code class="bg-light px-2 py-1 rounded">{{ module.code }}</code>
+            </td>
+            <td>
+              <span class="text-muted">{{ module.description || 'Aucune description' }}</span>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap gap-1">
+                <c-badge 
+                  *ngFor="let permission of module.permissions" 
+                  [color]="getPermissionBadgeColor(permission)"
+                  class="text-uppercase">
+                  {{ permission }}
+                </c-badge>
+              </div>
+            </td>
+            <td>
+              <c-badge [color]="getStatusBadgeColor(module.is_active)">
+                {{ getStatusText(module.is_active) }}
+              </c-badge>
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <button 
+                  class="btn btn-sm btn-outline-info"
+                  (click)="openModuleModal(module)"
+                  [disabled]="loading"
+                  title="Modifier">
+                  <svg cIcon name="cil-pencil"></svg>
+                </button>
+                <button 
+                  class="btn btn-sm"
+                  [class]="module.is_active ? 'btn-outline-warning' : 'btn-outline-success'"
+                  (click)="toggleModuleStatus(module)"
+                  [disabled]="loading"
+                  [title]="module.is_active ? 'Désactiver' : 'Activer'">
+                  <svg [cIcon]="module.is_active ? 'cil-ban' : 'cil-check'"></svg>
+                </button>
+                <button 
+                  class="btn btn-sm btn-outline-danger"
+                  (click)="openDeleteModal(module)"
+                  [disabled]="loading"
+                  title="Supprimer">
+                  <svg cIcon name="cil-trash"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- Module Modal -->
+<c-modal 
+  [visible]="moduleModalOpen" 
+  (visibleChange)="moduleModalOpen = $event"
+  size="lg">
+  <c-modal-header>
+    <h4 cModalTitle>
+      <svg cIcon name="cil-layers" class="me-2"></svg>
+      {{ editMode ? 'Modifier le Module' : 'Nouveau Module' }}
+    </h4>
+    <button 
+      cButtonClose 
+      (click)="closeModuleModal()"
+      [disabled]="loading">
+    </button>
+  </c-modal-header>
+  
+  <c-modal-body>
+    <form [formGroup]="moduleForm" (ngSubmit)="saveModule()">
+      <div class="row g-3">
+        <!-- Name -->
+        <div class="col-md-6">
+          <label class="form-label">Nom du Module *</label>
+          <input 
+            type="text" 
+            class="form-control"
+            formControlName="name"
+            [class.is-invalid]="submitted && f['name'].errors"
+            placeholder="Ex: Gestion Commerciale">
+          <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
+            <div *ngIf="f['name'].errors['required']">Le nom est requis</div>
+            <div *ngIf="f['name'].errors['maxlength']">Le nom ne peut pas dépasser 100 caractères</div>
+          </div>
+        </div>
+
+        <!-- Code -->
+        <div class="col-md-6">
+          <label class="form-label">Code du Module *</label>
+          <input 
+            type="text" 
+            class="form-control"
+            formControlName="code"
+            [class.is-invalid]="submitted && f['code'].errors"
+            placeholder="Ex: COMMERCIAL"
+            style="text-transform: uppercase;">
+          <div *ngIf="submitted && f['code'].errors" class="invalid-feedback">
+            <div *ngIf="f['code'].errors['required']">Le code est requis</div>
+            <div *ngIf="f['code'].errors['maxlength']">Le code ne peut pas dépasser 50 caractères</div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="col-12">
+          <label class="form-label">Description</label>
+          <textarea 
+            class="form-control"
+            formControlName="description"
+            rows="3"
+            [class.is-invalid]="submitted && f['description'].errors"
+            placeholder="Description du module..."></textarea>
+          <div *ngIf="submitted && f['description'].errors" class="invalid-feedback">
+            <div *ngIf="f['description'].errors['maxlength']">La description ne peut pas dépasser 255 caractères</div>
+          </div>
+        </div>
+
+        <!-- Icon -->
+        <div class="col-md-6">
+          <label class="form-label">Icône *</label>
+          <select 
+            class="form-select"
+            formControlName="icon"
+            [class.is-invalid]="submitted && f['icon'].errors">
+            <option *ngFor="let icon of availableIcons" [value]="icon">
+              {{ icon }}
+            </option>
+          </select>
+          <div *ngIf="submitted && f['icon'].errors" class="invalid-feedback">
+            <div *ngIf="f['icon'].errors['required']">L'icône est requise</div>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="col-md-6">
+          <label class="form-label">Statut</label>
+          <div class="form-check form-switch mt-2">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              formControlName="is_active"
+              id="moduleStatus">
+            <label class="form-check-label" for="moduleStatus">
+              Module actif
+            </label>
+          </div>
+        </div>
+
+        <!-- Permissions -->
+        <div class="col-12">
+          <label class="form-label">Permissions *</label>
+          <div class="row g-2">
+            <div class="col-md-3" *ngFor="let permission of availablePermissions">
+              <div class="form-check">
+                <input 
+                  class="form-check-input" 
+                  type="checkbox" 
+                  [checked]="isPermissionSelected(permission)"
+                  (change)="togglePermission(permission)"
+                  [id]="'perm-' + permission">
+                <label class="form-check-label text-capitalize" [for]="'perm-' + permission">
+                  {{ permission.replace('_', ' ') }}
+                </label>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="submitted && f['permissions'].errors" class="text-danger mt-2">
+            <small *ngIf="f['permissions'].errors['required']">Au moins une permission est requise</small>
+          </div>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  
+  <c-modal-footer>
+    <button 
+      type="button" 
+      class="btn btn-secondary" 
+      (click)="closeModuleModal()"
+      [disabled]="loading">
+      Annuler
+    </button>
+    <button 
+      type="button" 
+      class="btn btn-primary" 
+      (click)="saveModule()"
+      [disabled]="loading">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      {{ editMode ? 'Modifier' : 'Créer' }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- Delete Confirmation Modal -->
+<c-modal 
+  [visible]="deleteModalOpen" 
+  (visibleChange)="deleteModalOpen = $event">
+  <c-modal-header>
+    <h4 cModalTitle>
+      <svg cIcon name="cil-warning" class="me-2 text-warning"></svg>
+      Confirmer la suppression
+    </h4>
+    <button 
+      cButtonClose 
+      (click)="closeDeleteModal()"
+      [disabled]="loading">
+    </button>
+  </c-modal-header>
+  
+  <c-modal-body>
+    <p>Êtes-vous sûr de vouloir supprimer le module "<strong>{{ moduleToDelete?.name }}</strong>" ?</p>
+    <div class="alert alert-warning">
+      <svg cIcon name="cil-warning" class="me-2"></svg>
+      <strong>Attention :</strong> Cette action est irréversible et peut affecter les tenants qui utilisent ce module.
+    </div>
+  </c-modal-body>
+  
+  <c-modal-footer>
+    <button 
+      type="button" 
+      class="btn btn-secondary" 
+      (click)="closeDeleteModal()"
+      [disabled]="loading">
+      Annuler
+    </button>
+    <button 
+      type="button" 
+      class="btn btn-danger" 
+      (click)="confirmDelete()"
+      [disabled]="loading">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      Supprimer
+    </button>
+  </c-modal-footer>
+</c-modal>

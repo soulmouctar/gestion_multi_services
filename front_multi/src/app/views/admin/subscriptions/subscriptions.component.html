@@ -1,8 +1,423 @@
-<c-card>
-  <c-card-header>
-    <strong>Gestion des Abonnements</strong>
-  </c-card-header>
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-0">Abonnements Actifs</h2>
+    <p class="text-muted mb-0">Gestion des abonnements clients et renouvellements</p>
+  </div>
+  <button 
+    class="btn btn-primary"
+    (click)="openSubscriptionModal()"
+    [disabled]="loading">
+    <svg cIcon name="cil-plus" class="me-2"></svg>
+    Nouvel Abonnement
+  </button>
+</div>
+
+<!-- Filters -->
+<c-card class="mb-4">
   <c-card-body>
-    <p class="text-muted">Module de gestion des abonnements en cours de développement...</p>
+    <form [formGroup]="filterForm" class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Rechercher</label>
+        <input 
+          type="text" 
+          class="form-control" 
+          formControlName="search"
+          placeholder="Nom du tenant ou domaine..."
+          (input)="applyFilters()">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Statut</label>
+        <select class="form-select" formControlName="status" (change)="applyFilters()">
+          <option value="ALL">Tous les statuts</option>
+          <option value="ACTIVE">Actifs</option>
+          <option value="EXPIRED">Expirés</option>
+          <option value="SUSPENDED">Suspendus</option>
+          <option value="CANCELLED">Annulés</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Plan</label>
+        <select class="form-select" formControlName="plan" (change)="applyFilters()">
+          <option value="ALL">Tous les plans</option>
+          <option *ngFor="let plan of plans" [value]="plan.id">{{ plan.name }}</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button 
+          type="button" 
+          class="btn btn-outline-secondary w-100"
+          (click)="clearFilters()">
+          Effacer
+        </button>
+      </div>
+    </form>
   </c-card-body>
 </c-card>
+
+<!-- Subscriptions List -->
+<c-card>
+  <c-card-header class="d-flex justify-content-between align-items-center">
+    <strong>Liste des Abonnements ({{ subscriptions.length }})</strong>
+    <div class="d-flex align-items-center gap-2">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm"></span>
+      <small class="text-muted">{{ getActiveSubscriptionsCount() }} actifs</small>
+    </div>
+  </c-card-header>
+  
+  <c-card-body class="p-0">
+    <!-- Loading state -->
+    <div *ngIf="loading && subscriptions.length === 0" class="text-center py-5">
+      <div class="spinner-border text-primary mb-3"></div>
+      <p class="text-muted">Chargement des abonnements...</p>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!loading && subscriptions.length === 0" class="text-center py-5">
+      <svg cIcon name="cil-credit-card" size="3xl" class="text-muted mb-3"></svg>
+      <h5>Aucun abonnement trouvé</h5>
+      <p class="text-muted">Commencez par créer votre premier abonnement.</p>
+      <button class="btn btn-primary" (click)="openSubscriptionModal()">
+        <svg cIcon name="cil-plus" class="me-2"></svg>
+        Créer un abonnement
+      </button>
+    </div>
+
+    <!-- Subscriptions table -->
+    <div class="table-responsive" *ngIf="subscriptions.length > 0">
+      <table class="table table-striped table-bordered">
+        <thead style="background-color: #f8f9fa !important;">
+          <tr>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Tenant</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Plan</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Période</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Statut</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Expiration</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let subscription of subscriptions" 
+              [class.table-warning]="isExpiringSoon(subscription.end_date)"
+              [class.table-danger]="isExpired(subscription.end_date)">
+            <td>
+              <div>
+                <strong>{{ subscription.tenant?.name || 'N/A' }}</strong>
+                <br>
+                <small class="text-muted">{{ subscription.tenant?.domain || '' }}</small>
+              </div>
+            </td>
+            <td>
+              <div>
+                <strong>{{ subscription.plan?.name || 'N/A' }}</strong>
+                <br>
+                <c-badge color="info">{{ formatPrice(subscription.plan?.price || 0) }}</c-badge>
+              </div>
+            </td>
+            <td>
+              <div>
+                <small class="text-muted d-block">Du {{ formatDate(subscription.start_date) }}</small>
+                <small class="text-muted d-block">Au {{ formatDate(subscription.end_date) }}</small>
+                <c-badge 
+                  *ngIf="subscription.auto_renew" 
+                  color="success" 
+                  class="mt-1">
+                  Auto-renouvelable
+                </c-badge>
+              </div>
+            </td>
+            <td>
+              <c-badge [color]="getStatusBadgeColor(subscription.status)">
+                {{ getStatusText(subscription.status) }}
+              </c-badge>
+            </td>
+            <td>
+              <div *ngIf="subscription.status === 'ACTIVE'">
+                <span [class.text-danger]="isExpired(subscription.end_date)"
+                      [class.text-warning]="isExpiringSoon(subscription.end_date)"
+                      [class.text-success]="!isExpired(subscription.end_date) && !isExpiringSoon(subscription.end_date)">
+                  {{ getDaysRemaining(subscription.end_date) }} jours
+                </span>
+                <div *ngIf="isExpiringSoon(subscription.end_date) && !isExpired(subscription.end_date)" 
+                     class="text-warning small mt-1">
+                  <svg cIcon name="cil-warning" class="me-1"></svg>
+                  Expire bientôt
+                </div>
+                <div *ngIf="isExpired(subscription.end_date)" class="text-danger small mt-1">
+                  <svg cIcon name="cil-x-circle" class="me-1"></svg>
+                  Expiré
+                </div>
+              </div>
+              <span *ngIf="subscription.status !== 'ACTIVE'" class="text-muted">-</span>
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <button 
+                  class="btn btn-sm btn-outline-info"
+                  (click)="openSubscriptionModal(subscription)"
+                  [disabled]="loading"
+                  title="Modifier">
+                  <svg cIcon name="cil-pencil"></svg>
+                </button>
+                <button 
+                  *ngIf="subscription.status === 'ACTIVE' || subscription.status === 'EXPIRED'"
+                  class="btn btn-sm btn-outline-success"
+                  (click)="openRenewModal(subscription)"
+                  [disabled]="loading"
+                  title="Renouveler">
+                  <svg cIcon name="cil-reload"></svg>
+                </button>
+                <button 
+                  class="btn btn-sm"
+                  [class]="subscription.status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'"
+                  (click)="toggleSubscriptionStatus(subscription)"
+                  [disabled]="loading"
+                  [title]="subscription.status === 'ACTIVE' ? 'Suspendre' : 'Activer'">
+                  <svg [cIcon]="subscription.status === 'ACTIVE' ? 'cil-ban' : 'cil-check'"></svg>
+                </button>
+                <button 
+                  class="btn btn-sm btn-outline-danger"
+                  (click)="openDeleteModal(subscription)"
+                  [disabled]="loading"
+                  title="Supprimer">
+                  <svg cIcon name="cil-trash"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- Subscription Modal -->
+<c-modal 
+  [visible]="subscriptionModalOpen" 
+  (visibleChange)="subscriptionModalOpen = $event"
+  size="lg">
+  <c-modal-header>
+    <h4 cModalTitle>
+      <svg cIcon name="cil-credit-card" class="me-2"></svg>
+      {{ editMode ? 'Modifier l\'Abonnement' : 'Nouvel Abonnement' }}
+    </h4>
+    <button 
+      cButtonClose 
+      (click)="closeSubscriptionModal()"
+      [disabled]="loading">
+    </button>
+  </c-modal-header>
+  
+  <c-modal-body>
+    <form [formGroup]="subscriptionForm" (ngSubmit)="saveSubscription()">
+      <div class="row g-3">
+        <!-- Tenant -->
+        <div class="col-md-6">
+          <label class="form-label">Tenant *</label>
+          <select 
+            class="form-select"
+            formControlName="tenant_id"
+            [class.is-invalid]="submitted && f['tenant_id'].errors">
+            <option value="">Sélectionner un tenant</option>
+            <option *ngFor="let tenant of tenants" [value]="tenant.id">
+              {{ tenant.name }} ({{ tenant.domain }})
+            </option>
+          </select>
+          <div *ngIf="submitted && f['tenant_id'].errors" class="invalid-feedback">
+            <div *ngIf="f['tenant_id'].errors['required']">Le tenant est requis</div>
+          </div>
+        </div>
+
+        <!-- Plan -->
+        <div class="col-md-6">
+          <label class="form-label">Plan d'Abonnement *</label>
+          <select 
+            class="form-select"
+            formControlName="plan_id"
+            [class.is-invalid]="submitted && f['plan_id'].errors">
+            <option value="">Sélectionner un plan</option>
+            <option *ngFor="let plan of plans" [value]="plan.id">
+              {{ plan.name }} - {{ formatPrice(plan.price) }}/{{ plan.duration_months }} mois
+            </option>
+          </select>
+          <div *ngIf="submitted && f['plan_id'].errors" class="invalid-feedback">
+            <div *ngIf="f['plan_id'].errors['required']">Le plan est requis</div>
+          </div>
+        </div>
+
+        <!-- Start Date -->
+        <div class="col-md-6">
+          <label class="form-label">Date de Début *</label>
+          <input 
+            type="date" 
+            class="form-control"
+            formControlName="start_date"
+            [class.is-invalid]="submitted && f['start_date'].errors">
+          <div *ngIf="submitted && f['start_date'].errors" class="invalid-feedback">
+            <div *ngIf="f['start_date'].errors['required']">La date de début est requise</div>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="col-md-6">
+          <label class="form-label">Statut *</label>
+          <select 
+            class="form-select"
+            formControlName="status"
+            [class.is-invalid]="submitted && f['status'].errors">
+            <option value="ACTIVE">Actif</option>
+            <option value="SUSPENDED">Suspendu</option>
+            <option value="CANCELLED">Annulé</option>
+          </select>
+          <div *ngIf="submitted && f['status'].errors" class="invalid-feedback">
+            <div *ngIf="f['status'].errors['required']">Le statut est requis</div>
+          </div>
+        </div>
+
+        <!-- Auto Renew -->
+        <div class="col-12">
+          <div class="form-check form-switch">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              formControlName="auto_renew"
+              id="autoRenew">
+            <label class="form-check-label" for="autoRenew">
+              Renouvellement automatique
+            </label>
+          </div>
+          <small class="form-text text-muted">L'abonnement sera automatiquement renouvelé à l'expiration</small>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  
+  <c-modal-footer>
+    <button 
+      type="button" 
+      class="btn btn-secondary" 
+      (click)="closeSubscriptionModal()"
+      [disabled]="loading">
+      Annuler
+    </button>
+    <button 
+      type="button" 
+      class="btn btn-primary" 
+      (click)="saveSubscription()"
+      [disabled]="loading">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      {{ editMode ? 'Modifier' : 'Créer' }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- Renew Modal -->
+<c-modal 
+  [visible]="renewModalOpen" 
+  (visibleChange)="renewModalOpen = $event">
+  <c-modal-header>
+    <h4 cModalTitle>
+      <svg cIcon name="cil-reload" class="me-2"></svg>
+      Renouveler l'Abonnement
+    </h4>
+    <button 
+      cButtonClose 
+      (click)="closeRenewModal()"
+      [disabled]="loading">
+    </button>
+  </c-modal-header>
+  
+  <c-modal-body>
+    <div *ngIf="subscriptionToRenew" class="mb-3">
+      <h6>Abonnement actuel :</h6>
+      <p><strong>{{ subscriptionToRenew.tenant?.name }}</strong> - {{ subscriptionToRenew.plan?.name }}</p>
+      <p class="text-muted">Expire le {{ formatDate(subscriptionToRenew.end_date) }}</p>
+    </div>
+    
+    <form [formGroup]="renewForm">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Durée de renouvellement (mois) *</label>
+          <input 
+            type="number" 
+            class="form-control"
+            formControlName="duration_months"
+            min="1" max="60">
+        </div>
+        <div class="col-md-6 d-flex align-items-end">
+          <div class="form-check form-switch">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              formControlName="auto_renew"
+              id="renewAutoRenew">
+            <label class="form-check-label" for="renewAutoRenew">
+              Auto-renouvellement
+            </label>
+          </div>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  
+  <c-modal-footer>
+    <button 
+      type="button" 
+      class="btn btn-secondary" 
+      (click)="closeRenewModal()"
+      [disabled]="loading">
+      Annuler
+    </button>
+    <button 
+      type="button" 
+      class="btn btn-success" 
+      (click)="confirmRenew()"
+      [disabled]="loading">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      Renouveler
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- Delete Confirmation Modal -->
+<c-modal 
+  [visible]="deleteModalOpen" 
+  (visibleChange)="deleteModalOpen = $event">
+  <c-modal-header>
+    <h4 cModalTitle>
+      <svg cIcon name="cil-warning" class="me-2 text-warning"></svg>
+      Confirmer la suppression
+    </h4>
+    <button 
+      cButtonClose 
+      (click)="closeDeleteModal()"
+      [disabled]="loading">
+    </button>
+  </c-modal-header>
+  
+  <c-modal-body>
+    <p>Êtes-vous sûr de vouloir supprimer l'abonnement de "<strong>{{ subscriptionToDelete?.tenant?.name }}</strong>" ?</p>
+    <div class="alert alert-warning">
+      <svg cIcon name="cil-warning" class="me-2"></svg>
+      <strong>Attention :</strong> Cette action est irréversible et affectera l'accès du tenant à la plateforme.
+    </div>
+  </c-modal-body>
+  
+  <c-modal-footer>
+    <button 
+      type="button" 
+      class="btn btn-secondary" 
+      (click)="closeDeleteModal()"
+      [disabled]="loading">
+      Annuler
+    </button>
+    <button 
+      type="button" 
+      class="btn btn-danger" 
+      (click)="confirmDelete()"
+      [disabled]="loading">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      Supprimer
+    </button>
+  </c-modal-footer>
+</c-modal>

@@ -6,7 +6,7 @@ import { SubscriptionGuard } from './core/guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'login',
+    redirectTo: 'auth/login',
     pathMatch: 'full'
   },
   {
@@ -34,6 +34,11 @@ export const routes: Routes = [
             title: 'Gestion des Modules'
           },
           {
+            path: 'subscription-plans',
+            loadComponent: () => import('./views/admin/subscription-plans/subscription-plans.component').then(m => m.SubscriptionPlansComponent),
+            title: 'Plans d\'Abonnement'
+          },
+          {
             path: 'subscriptions',
             loadComponent: () => import('./views/admin/subscriptions/subscriptions.component').then(m => m.SubscriptionsComponent),
             title: 'Gestion des Abonnements'
@@ -42,6 +47,11 @@ export const routes: Routes = [
             path: 'statistics',
             loadComponent: () => import('./views/admin/statistics/statistics.component').then(m => m.StatisticsComponent),
             title: 'Statistiques Globales'
+          },
+          {
+            path: 'users',
+            loadComponent: () => import('./views/admin/users/users.component').then(m => m.UsersComponent),
+            title: 'Gestion des Utilisateurs'
           }
         ]
       },
@@ -99,19 +109,9 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
   {
-    path: 'auth/login',
-    loadComponent: () => import('./views/auth/login/login.component').then(m => m.LoginComponent),
-    title: 'Connexion'
-  },
-  {
     path: 'register',
     redirectTo: 'auth/register',
     pathMatch: 'full'
-  },
-  {
-    path: 'auth/register',
-    loadComponent: () => import('./views/auth/register/register.component').then(m => m.RegisterComponent),
-    title: "Créer un Compte"
   },
   {
     path: 'subscription-expired',

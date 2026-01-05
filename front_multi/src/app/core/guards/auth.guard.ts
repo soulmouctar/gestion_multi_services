@@ -17,15 +17,11 @@ export class AuthGuard implements CanActivate {
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Observable<boolean> {
-    console.log('AuthGuard principal appelé pour:', state.url);
-    
     // Utiliser la même logique que isAuthenticated pour éviter les problèmes de BehaviorSubject
     const isAuth = this.authService.isAuthenticated;
-    console.log('AuthGuard principal: isAuthenticated (localStorage):', isAuth);
     
     // Require authentication for all protected routes
     if (!isAuth) {
-      console.log('AuthGuard principal: utilisateur non authentifié, redirection vers login');
       this.router.navigate(['/auth/login'], { 
         queryParams: { returnUrl: state.url } 
       });
@@ -34,7 +30,6 @@ export class AuthGuard implements CanActivate {
     
     // Check subscription status for non-super-admin users
     if (!this.authService.isSuperAdmin && !this.authService.isSubscriptionActive) {
-      console.log('AuthGuard principal: abonnement expiré, redirection vers subscription-expired');
       this.router.navigate(['/subscription-expired']);
       return of(false);
     }
@@ -42,12 +37,10 @@ export class AuthGuard implements CanActivate {
     // Check module access if required
     const requiredModule = route.data['requiredModule'];
     if (requiredModule && !this.authService.hasModuleAccess(requiredModule)) {
-      console.log('AuthGuard principal: accès module refusé, redirection vers access-denied');
       this.router.navigate(['/access-denied']);
       return of(false);
     }
     
-    console.log('AuthGuard principal: accès autorisé');
     return of(true);
   }
 }
@@ -91,16 +84,10 @@ export class TenantAdminGuard implements CanActivate {
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Observable<boolean> {
-    console.log('AuthGuard.canActivate appelé pour:', state.url);
-    
     // Utiliser la même logique que isAuthenticated pour éviter les problèmes de BehaviorSubject
     const isAuth = this.authService.isAuthenticated;
-    console.log('AuthGuard: isAuthenticated (localStorage):', isAuth);
-    console.log('AuthGuard: isSuperAdmin:', this.authService.isSuperAdmin);
-    console.log('AuthGuard: isTenantAdmin:', this.authService.isTenantAdmin);
     
     if (!isAuth) {
-      console.log('AuthGuard: utilisateur non authentifié, redirection vers login');
       this.router.navigate(['/auth/login'], { 
         queryParams: { returnUrl: state.url } 
       });
@@ -108,12 +95,10 @@ export class TenantAdminGuard implements CanActivate {
     }
     
     if (!this.authService.isSuperAdmin && !this.authService.isTenantAdmin) {
-      console.log('AuthGuard: utilisateur pas admin, redirection vers dashboard');
       this.router.navigate(['/dashboard']);
       return of(false);
     }
     
-    console.log('AuthGuard: accès autorisé');
     return of(true);
   }
 }

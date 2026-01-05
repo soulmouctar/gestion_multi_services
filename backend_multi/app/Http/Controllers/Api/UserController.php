@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends BaseController
 {
@@ -150,5 +151,99 @@ class UserController extends BaseController
         $user->removeRole($request->role);
 
         return $this->sendResponse($user->load('roles'), 'Role removed successfully');
+    }
+
+    public function getModulePermissions($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return $this->sendError('User not found');
+        }
+
+        // Get user's module permissions from database or return default structure
+        $modulePermissions = $this->getUserModulePermissions($user);
+
+        return $this->sendResponse($modulePermissions, 'Module permissions retrieved successfully');
+    }
+
+    public function updateModulePermissions(Request $request, $id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return $this->sendError('User not found');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'module_permissions' => 'required|array',
+            'module_permissions.*.module_code' => 'required|string',
+            'module_permissions.*.module_name' => 'required|string',
+            'module_permissions.*.permissions' => 'required|array',
+            'module_permissions.*.is_active' => 'required|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        // Store module permissions in user_module_permissions table
+        DB::beginTransaction();
+        try {
+            // Delete existing permissions for this user
+            DB::table('user_module_permissions')->where('user_id', $user->id)->delete();
+
+            // Insert new permissions
+            foreach ($request->module_permissions as $modulePermission) {
+                if ($modulePermission['is_active']) {
+                    DB::table('user_module_permissions')->insert([
+                        'user_id' => $user->id,
+                        'module_code' => $modulePermission['module_code'],
+                        'module_name' => $modulePermission['module_name'],
+                        'permissions' => json_encode($modulePermission['permissions']),
+                        'is_active' => $modulePermission['is_active'],
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            DB::commit();
+            
+            return $this->sendResponse([], 'Module permissions updated successfully');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return $this->sendError('Error updating module permissions', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function getUserModulePermissions($user)
+    {
+        $availableModules = [
+            ['module_code' => 'COMMERCIAL', 'module_name' => 'Gestion Commerciale', 'permissions' => [], 'is_active' => false],
+            ['module_code' => 'FINANCE', 'module_name' => 'Gestion Financière', 'permissions' => [], 'is_active' => false],
+            ['module_code' => 'CLIENTS_SUPPLIERS', 'module_name' => 'Clients & Fournisseurs', 'permissions' => [], 'is_active' => false],
+            ['module_code' => 'PRODUCTS_STOCK', 'module_name' => 'Produits & Stock', 'permissions' => [], 'is_active' => false],
+            ['module_code' => 'CONTAINERS', 'module_name' => 'Conteneurs', 'permissions' => [], 'is_active' => false],
+            ['module_code' => 'RENTAL', 'module_name' => 'Location Immobilière', 'permissions' => [], 'is_active' => false],
+            ['module_code' => 'TAXI', 'module_name' => 'Gestion Taxi', 'permissions' => [], 'is_active' => false],
+            ['module_code' => 'STATISTICS', 'module_name' => 'Statistiques', 'permissions' => [], 'is_active' => false],
+        ];
+
+        // Get user's existing permissions
+        $userPermissions = DB::table('user_module_permissions')
+            ->where('user_id', $user->id)
+            ->get();
+
+        // Merge with available modules
+        foreach ($userPermissions as $userPerm) {
+            $moduleIndex = array_search($userPerm->module_code, array_column($availableModules, 'module_code'));
+            if ($moduleIndex !== false) {
+                $availableModules[$moduleIndex]['permissions'] = json_decode($userPerm->permissions, true);
+                $availableModules[$moduleIndex]['is_active'] = $userPerm->is_active;
+            }
+        }
+
+        return $availableModules;
     }
 }

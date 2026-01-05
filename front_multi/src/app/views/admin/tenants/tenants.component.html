@@ -1,8 +1,370 @@
-<c-card>
-  <c-card-header>
-    <strong>Gestion des Tenants</strong>
-  </c-card-header>
-  <c-card-body>
-    <p class="text-muted">Module de gestion des tenants en cours de développement...</p>
-  </c-card-body>
-</c-card>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title mb-0">
+            <i class="cil-building me-2"></i>
+            Gestion des Tenants
+          </h4>
+        </div>
+        <div class="card-body">
+          <!-- Formulaire de filtres -->
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <div class="card card-filter">
+                <div class="card-body">
+                  <form [formGroup]="filterForm" class="row g-3">
+                    <div class="col-md-4">
+                      <label for="search" class="form-label">Rechercher</label>
+                      <input 
+                        type="text" 
+                        class="form-control" 
+                        id="search" 
+                        formControlName="search"
+                        placeholder="Nom, email..."
+                      >
+                    </div>
+                    <div class="col-md-3">
+                      <label for="status" class="form-label">Statut</label>
+                      <select 
+                        class="form-select" 
+                        id="status" 
+                        formControlName="status"
+                      >
+                        <option value="ALL">Tous</option>
+                        <option value="ACTIVE">Actifs</option>
+                        <option value="SUSPENDED">Suspendus</option>
+                      </select>
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label">&nbsp;</label>
+                      <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary" (click)="applyFilters()">
+                          <i class="cil-filter me-1"></i>
+                          Filtrer
+                        </button>
+                        <button type="button" class="btn btn-secondary" (click)="clearFilters()">
+                          <i class="cil-x me-1"></i>
+                          Effacer
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulaire d'ajout/modification -->
+          <div class="row mb-4">
+            <div class="col-md-8">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    {{ editMode ? 'Modifier le Tenant' : 'Nouveau Tenant' }}
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <form [formGroup]="tenantForm" (ngSubmit)="onSubmit()">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label for="name" class="form-label">Nom du Tenant *</label>
+                          <input 
+                            type="text" 
+                            class="form-control" 
+                            id="name" 
+                            formControlName="name"
+                            [class.is-invalid]="submitted && f['name'].errors"
+                          >
+                          <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
+                            <div *ngIf="f['name'].errors['required']">Le nom est requis</div>
+                            <div *ngIf="f['name'].errors['maxlength']">Maximum 150 caractères</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label for="email" class="form-label">Email</label>
+                          <input 
+                            type="email" 
+                            class="form-control" 
+                            id="email" 
+                            formControlName="email"
+                            [class.is-invalid]="submitted && f['email'].errors"
+                          >
+                          <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
+                            <div *ngIf="f['email'].errors['email']">Email invalide</div>
+                            <div *ngIf="f['email'].errors['maxlength']">Maximum 150 caractères</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label for="phone" class="form-label">Téléphone</label>
+                          <input 
+                            type="tel" 
+                            class="form-control" 
+                            id="phone" 
+                            formControlName="phone"
+                            [class.is-invalid]="submitted && f['phone'].errors"
+                          >
+                          <div *ngIf="submitted && f['phone'].errors" class="invalid-feedback">
+                            <div *ngIf="f['phone'].errors['maxlength']">Maximum 50 caractères</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label for="subscription_status" class="form-label">Statut d'abonnement *</label>
+                          <select 
+                            class="form-select" 
+                            id="subscription_status" 
+                            formControlName="subscription_status"
+                            [class.is-invalid]="submitted && f['subscription_status'].errors"
+                          >
+                            <option value="ACTIVE">Actif</option>
+                            <option value="SUSPENDED">Suspendu</option>
+                          </select>
+                          <div *ngIf="submitted && f['subscription_status'].errors" class="invalid-feedback">
+                            <div *ngIf="f['subscription_status'].errors['required']">Le statut est requis</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                      <button type="submit" class="btn btn-primary" [disabled]="loading">
+                        <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+                        {{ editMode ? 'Modifier' : 'Ajouter' }}
+                      </button>
+                      <button type="button" class="btn btn-secondary" (click)="resetForm()" [disabled]="loading">
+                        Annuler
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Liste des tenants -->
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Liste des Tenants</h5>
+                </div>
+                <div class="card-body">
+                  <div *ngIf="loading && tenants.length === 0" class="text-center py-4">
+                    <div class="spinner-border" role="status">
+                      <span class="visually-hidden">Chargement...</span>
+                    </div>
+                  </div>
+
+                  <div *ngIf="!loading && tenants.length === 0" class="alert alert-info">
+                    <i class="cil-info-circle me-2"></i>
+                    Aucun tenant trouvé. Créez votre premier tenant ci-dessus.
+                  </div>
+
+                  <div class="table-responsive" *ngIf="tenants.length > 0">
+                    <table class="table table-striped table-hover">
+                      <thead class="table-light">
+                        <tr>
+                          <th class="fw-semibold text-dark">Nom</th>
+                          <th class="fw-semibold text-dark">Contact</th>
+                          <th class="fw-semibold text-dark">Modules</th>
+                          <th class="fw-semibold text-dark">Statut</th>
+                          <th class="fw-semibold text-dark">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let tenant of tenants" 
+                            [class.table-warning]="tenant.subscription_status === 'SUSPENDED'">
+                          <td>
+                            <div class="d-flex align-items-center">
+                              <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                {{ tenant.name.charAt(0).toUpperCase() }}
+                              </div>
+                              <div>
+                                <strong>{{ tenant.name }}</strong>
+                                <br>
+                                <small class="text-muted">ID: {{ tenant.id }}</small>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div>
+                              <i class="cil-envelope me-1 text-muted"></i>
+                              {{ tenant.email || 'Non spécifié' }}
+                            </div>
+                            <div>
+                              <i class="cil-phone me-1 text-muted"></i>
+                              {{ tenant.phone || 'Non spécifié' }}
+                            </div>
+                          </td>
+                          <td>
+                            <div class="d-flex flex-wrap gap-1">
+                              <span *ngFor="let module of tenant.modules?.slice(0, 3)" 
+                                    class="badge bg-light text-dark"
+                                    [title]="module.name">
+                                <i [class]="'cil-' + module.icon.toLowerCase() + ' me-1'"></i>
+                                {{ module.name }}
+                              </span>
+                              <span *ngIf="tenant.modules && tenant.modules.length > 3" 
+                                    class="badge bg-secondary"
+                                    title="{{ tenant.modules.length - 3 }} modules supplémentaires">
+                                +{{ tenant.modules.length - 3 }}
+                              </span>
+                              <span *ngIf="!tenant.modules || tenant.modules.length === 0" 
+                                    class="text-muted small">
+                                Aucun module
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <span class="badge" [class]="getStatusBadgeClass(tenant.subscription_status)">
+                              {{ getStatusText(tenant.subscription_status) }}
+                            </span>
+                          </td>
+                          <td>
+                            <div class="btn-group" role="group">
+                              <button 
+                                type="button" 
+                                class="btn btn-sm btn-outline-primary"
+                                (click)="editTenant(tenant)"
+                                [disabled]="loading"
+                                title="Modifier"
+                              >
+                                <i class="cil-pencil"></i>
+                              </button>
+                              <button 
+                                type="button" 
+                                class="btn btn-sm btn-outline-info"
+                                (click)="openModuleModal(tenant)"
+                                [disabled]="loading"
+                                title="Gérer les modules"
+                              >
+                                <i class="cil-layers"></i>
+                              </button>
+                              <button 
+                                type="button" 
+                                class="btn btn-sm"
+                                [class]="tenant.subscription_status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'"
+                                (click)="toggleTenantStatus(tenant)"
+                                [disabled]="loading"
+                                [title]="tenant.subscription_status === 'ACTIVE' ? 'Suspendre' : 'Activer'"
+                              >
+                                <i [class]="tenant.subscription_status === 'ACTIVE' ? 'cil-pause' : 'cil-play'"></i>
+                              </button>
+                              <button 
+                                type="button" 
+                                class="btn btn-sm btn-outline-danger"
+                                (click)="deleteTenant(tenant)"
+                                [disabled]="loading"
+                                title="Supprimer"
+                              >
+                                <i class="cil-trash"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de gestion des modules -->
+<div class="modal fade" [class.show]="moduleModalOpen" [style.display]="moduleModalOpen ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="cil-layers me-2"></i>
+          Modules pour {{ selectedTenantForModules?.name }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeModuleModal()"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-striped table-bordered">
+          <thead style="background-color: #f8f9fa !important;">
+            <tr>
+              <th >Module</th>
+              <th >Code</th>
+              <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Statut</th>
+              <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let module of modules">
+              <td>
+                <strong>{{ module.name }}</strong>
+              </td>
+              <td>
+                <code class="text-muted">{{ module.code }}</code>
+              </td>
+              <td>
+                <span class="badge" 
+                      [class]="isModuleActive(selectedTenantForModules, module) ? 'bg-success' : 'bg-secondary'">
+                  {{ isModuleActive(selectedTenantForModules, module) ? 'ACTIF' : 'INACTIF' }}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-sm" 
+                        [class]="isModuleActive(selectedTenantForModules, module) ? 'btn-warning' : 'btn-success'"
+                        (click)="toggleModuleForTenant(selectedTenantForModules, module)"
+                        [disabled]="loading">
+                  {{ isModuleActive(selectedTenantForModules, module) ? 'Désactiver' : 'Activer' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModuleModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" [class.show]="deleteModalOpen" [style.display]="deleteModalOpen ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmation de Suppression</h5>
+        <button type="button" class="btn-close" (click)="cancelDelete()"></button>
+      </div>
+      <div class="modal-body">
+        <p>Êtes-vous sûr de vouloir supprimer le tenant "<strong>{{ tenantToDelete?.name }}</strong>" ?</p>
+        <p class="text-danger">
+          <i class="cil-warning me-2"></i>
+          Cette action est irréversible et affectera toutes les données associées à ce tenant.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Annuler</button>
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="loading">
+          <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Backdrop pour les modals -->
+<div *ngIf="deleteModalOpen || moduleModalOpen" class="modal-backdrop fade show" (click)="cancelDelete(); closeModuleModal();"></div>

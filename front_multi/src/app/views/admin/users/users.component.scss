@@ -1,0 +1,171 @@
+// CoreUI compatible styles
+.avatar-sm {
+  width: 40px;
+  height: 40px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+// Table styling to match CoreUI
+.table-borderless {
+  border: none;
+  
+  tbody tr {
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+  
+  td {
+    border: none;
+    vertical-align: middle;
+  }
+}
+
+// Ensure table headers are visible
+table[cTable] {
+  thead {
+    &.table-light {
+      background-color: #f8f9fa !important;
+    }
+    
+    th {
+      font-weight: 600 !important;
+      color: #495057 !important;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.75rem !important;
+      border-bottom: 2px solid #dee2e6 !important;
+    }
+  }
+}
+
+// Text emphasis classes
+.text-medium-emphasis {
+  color: var(--cui-text-color-medium-emphasis) !important;
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// Button styling
+c-button-group {
+  gap: 0.25rem;
+}
+
+button[cButton] {
+  transition: all 0.15s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+  
+  &.text-info:hover {
+    background-color: var(--cui-info-bg-subtle);
+  }
+  
+  &.text-danger:hover {
+    background-color: var(--cui-danger-bg-subtle);
+  }
+}
+
+// Modal styling
+c-modal {
+  .modal-header {
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+  }
+  
+  .modal-footer {
+    border-top: 1px solid var(--cui-border-color-translucent);
+  }
+}
+
+// Form styling
+.form-check-input {
+  &:checked {
+    background-color: var(--cui-primary);
+    border-color: var(--cui-primary);
+  }
+  
+  &:focus {
+    border-color: var(--cui-primary-border-subtle);
+    box-shadow: 0 0 0 0.25rem var(--cui-primary-bg-subtle);
+  }
+}
+
+.form-label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--cui-text-color-high-emphasis);
+}
+
+// Badge styling
+c-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+// Alert styling
+.alert {
+  border: none;
+  border-radius: var(--cui-border-radius);
+  
+  &.alert-info {
+    background-color: var(--cui-info-bg-subtle);
+    color: var(--cui-info-text-emphasis);
+    border-left: 4px solid var(--cui-info);
+  }
+}
+
+// Card styling
+c-card {
+  box-shadow: var(--cui-box-shadow-sm);
+  border: 1px solid var(--cui-border-color-translucent);
+  
+  c-card-header {
+    background-color: var(--cui-tertiary-bg);
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+    font-weight: 600;
+  }
+}
+
+// Loading spinner
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+// Gap utility for buttons
+.gap-2 {
+  gap: 0.5rem;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+  }
+  
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  c-button-group {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .text-medium-emphasis {
+    font-size: 0.75rem;
+  }
+}

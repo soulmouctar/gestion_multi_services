@@ -1,5 +1,5 @@
-import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, input, NgZone } from '@angular/core';
+import { NgTemplateOutlet, CommonModule } from '@angular/common';
+import { Component, computed, inject, input, NgZone, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 import {
@@ -24,18 +24,24 @@ import {
 
 import { IconDirective } from '@coreui/icons-angular';
 import { AuthService } from '../../../core/services/auth.service';
+import { ModuleService, Module } from '../../../core/services/module.service';
 
 @Component({
   selector: 'app-default-header',
   templateUrl: './default-header.component.html',
-  imports: [ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
+  imports: [CommonModule, ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
 })
-export class DefaultHeaderComponent extends HeaderComponent {
+export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
 
   readonly #colorModeService = inject(ColorModeService);
   readonly colorMode = this.#colorModeService.colorMode;
   readonly #authService = inject(AuthService);
+  readonly #moduleService = inject(ModuleService);
   readonly #ngZone = inject(NgZone);
+
+  // Modules navigation
+  activeModules: Module[] = [];
+  loadingModules = false;
 
   readonly colorModes = [
     { name: 'light', text: 'Light', icon: 'cilSun' },
@@ -52,7 +58,57 @@ export class DefaultHeaderComponent extends HeaderComponent {
     super();
   }
 
+  ngOnInit(): void {
+    this.loadActiveModules();
+  }
+
   sidebarId = input('sidebar1');
+
+  loadActiveModules(): void {
+    this.loadingModules = true;
+    // Simuler le chargement des modules actifs
+    setTimeout(() => {
+      this.activeModules = [
+        {
+          id: 1,
+          name: 'Gestion Modules',
+          code: 'MODULES',
+          description: 'Administration des modules système',
+          icon: 'cilPuzzle',
+          route: '/admin/modules',
+          permissions: ['module.view', 'module.create', 'module.edit', 'module.delete'],
+          is_active: true,
+          version: '1.0.0',
+          category: 'Administration'
+        },
+        {
+          id: 2,
+          name: 'Plans d\'Abonnement',
+          code: 'SUBSCRIPTION_PLANS',
+          description: 'Gestion des plans tarifaires',
+          icon: 'cilCreditCard',
+          route: '/admin/subscription-plans',
+          permissions: ['plan.view', 'plan.create', 'plan.edit', 'plan.delete'],
+          is_active: true,
+          version: '1.0.0',
+          category: 'Abonnements'
+        },
+        {
+          id: 3,
+          name: 'Abonnements',
+          code: 'SUBSCRIPTIONS',
+          description: 'Gestion des abonnements clients',
+          icon: 'cilUser',
+          route: '/admin/subscriptions',
+          permissions: ['subscription.view', 'subscription.create', 'subscription.edit', 'subscription.delete'],
+          is_active: true,
+          version: '1.0.0',
+          category: 'Abonnements'
+        }
+      ];
+      this.loadingModules = false;
+    }, 1000);
+  }
 
   public newMessages = [
     {

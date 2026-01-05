@@ -49,13 +49,9 @@ export class LoginComponent implements OnInit {
     }
     
     // Check if user is already logged in - use detectChanges to update view
-    console.log('LoginComponent: isAuthenticated =', this.authService.isAuthenticated);
     if (this.authService.isAuthenticated) {
-      console.log('LoginComponent: Redirection automatique vers dashboard');
       this.cdr.detectChanges();
       this.router.navigate(['/dashboard']);
-    } else {
-      console.log('LoginComponent: Utilisateur non authentifié, affichage du formulaire');
     }
   }
   
@@ -101,41 +97,24 @@ export class LoginComponent implements OnInit {
       remember: this.loginForm.value.remember
     };
     
-    console.log('Tentative de connexion avec:', loginData);
-    
     this.authService.login(loginData).subscribe({
       next: (response) => {
-        console.log('Réponse du backend:', response);
         this.isLoading = false;
         this.cdr.detectChanges(); // Manually trigger change detection
         
         if (response.success) {
-          console.log('Connexion réussie, redirection vers dashboard...');
           const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
-          console.log('URL de retour:', returnUrl);
           
           // Ajouter un petit délai pour permettre au service de se mettre à jour
           setTimeout(() => {
-            console.log('Tentative de navigation vers:', returnUrl);
-            console.log('AuthService.isAuthenticated avant navigation:', this.authService.isAuthenticated);
-            
-            this.router.navigate([returnUrl]).then(
-              (success) => {
-                console.log('Navigation réussie vers:', returnUrl, success);
-              },
-              (error) => {
-                console.log('Erreur de navigation vers:', returnUrl, error);
-              }
-            );
+            this.router.navigate([returnUrl]);
           }, 100);
         } else {
-          console.log('Échec de connexion:', response.message);
           this.errorMessage = response.message || 'Échec de connexion';
           this.cdr.detectChanges(); // Update error message
         }
       },
       error: (error) => {
-        console.log('Erreur de connexion:', error);
         this.isLoading = false;
         this.errorMessage = error.message || 'Une erreur est survenue lors de la connexion';
         this.cdr.detectChanges(); // Update error message

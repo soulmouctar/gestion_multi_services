@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\TenantController;
+use App\Http\Controllers\TenantController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ModuleController;
 use App\Http\Controllers\Api\SubscriptionPlanController;
@@ -37,6 +37,14 @@ use App\Http\Controllers\Api\RolePermissionController;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+// CRUD Backend pour les tenants - Utilisation du TenantController professionnel
+Route::apiResource('tenants', \App\Http\Controllers\TenantController::class);
+
+// Endpoint public temporaire pour tester les modules
+Route::get('/modules-public', [ModuleController::class, 'index']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -58,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/assign-role', [UserController::class, 'assignRole']);
         Route::post('users/{id}/remove-role', [UserController::class, 'removeRole']);
+        Route::get('users/{id}/module-permissions', [UserController::class, 'getModulePermissions']);
+        Route::post('users/{id}/module-permissions', [UserController::class, 'updateModulePermissions']);
     });
 
     // Modules (Super Admin only)

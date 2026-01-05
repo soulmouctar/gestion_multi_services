@@ -13,6 +13,14 @@ class Module extends Model
         'code',
         'name',
         'description',
+        'is_active',
+        'icon',
+        'permissions',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'permissions' => 'array',
     ];
 
     public function tenants()

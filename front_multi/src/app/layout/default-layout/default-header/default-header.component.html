@@ -15,6 +15,67 @@
       <c-nav-item>
         <a cNavLink routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
       </c-nav-item>
+      
+      <!-- Modules Navigation Dropdown -->
+      <c-dropdown variant="nav-item" *ngIf="activeModules.length > 0 || loadingModules">
+        <button cDropdownToggle cNavLink class="d-flex align-items-center">
+          <span *ngIf="loadingModules" class="spinner-border spinner-border-sm me-2"></span>
+          <svg *ngIf="!loadingModules" cIcon name="cilPuzzle" class="me-1"></svg>
+          Modules
+          <svg cIcon name="cilChevronBottom" size="sm" class="ms-1"></svg>
+        </button>
+        <ul cDropdownMenu>
+          <!-- Loading state -->
+          <li *ngIf="loadingModules">
+            <div class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-primary"></div>
+              <p class="text-muted small mt-2 mb-0">Chargement des modules...</p>
+            </div>
+          </li>
+          
+          <!-- Modules list -->
+          <ng-container *ngIf="!loadingModules && activeModules.length > 0">
+            <li>
+              <h6 cDropdownHeader class="bg-body-secondary text-body-secondary fw-semibold py-2">
+                <svg cIcon name="cilSettings" class="me-2"></svg>
+                Administration
+              </h6>
+            </li>
+            <li *ngFor="let module of activeModules">
+              <a cDropdownItem [routerLink]="module.route" routerLinkActive="active" class="py-2">
+                <div class="d-flex align-items-center">
+                  <svg cIcon [name]="module.icon" class="me-2 text-primary"></svg>
+                  <div>
+                    <div class="fw-semibold">{{ module.name }}</div>
+                    <small class="text-muted">{{ module.description }}</small>
+                  </div>
+                </div>
+              </a>
+            </li>
+            <li>
+              <hr cDropdownDivider />
+            </li>
+            <li>
+              <a cDropdownItem routerLink="/admin/modules" class="text-primary">
+                <svg cIcon name="cilCog" class="me-2"></svg>
+                <strong>Gérer les Modules</strong>
+              </a>
+            </li>
+          </ng-container>
+          
+          <!-- Empty state -->
+          <li *ngIf="!loadingModules && activeModules.length === 0">
+            <div class="text-center py-3">
+              <svg cIcon name="cilPuzzle" size="2xl" class="text-muted mb-2"></svg>
+              <p class="text-muted small mb-2">Aucun module actif</p>
+              <a cDropdownItem routerLink="/admin/modules" class="btn btn-sm btn-outline-primary">
+                Configurer les modules
+              </a>
+            </div>
+          </li>
+        </ul>
+      </c-dropdown>
+      
       <c-nav-item>
         <a cNavLink routerLink="/users" routerLinkActive="active">Users</a>
       </c-nav-item>

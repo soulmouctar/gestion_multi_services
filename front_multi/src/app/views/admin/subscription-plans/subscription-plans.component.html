@@ -1,0 +1,392 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-0">Plans d'Abonnement</h2>
+    <p class="text-muted mb-0">Gestion des plans et tarifs d'abonnement</p>
+  </div>
+  <button 
+    class="btn btn-primary"
+    (click)="openPlanModal()"
+    [disabled]="loading">
+    <svg cIcon name="cil-plus" class="me-2"></svg>
+    Nouveau Plan
+  </button>
+</div>
+
+<!-- Filters -->
+<c-card class="mb-4">
+  <c-card-body>
+    <form [formGroup]="filterForm" class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Rechercher</label>
+        <input 
+          type="text" 
+          class="form-control" 
+          formControlName="search"
+          placeholder="Nom ou description du plan..."
+          (input)="applyFilters()">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Statut</label>
+        <select class="form-select" formControlName="status" (change)="applyFilters()">
+          <option value="ALL">Tous les statuts</option>
+          <option value="ACTIVE">Actifs</option>
+          <option value="INACTIVE">Inactifs</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button 
+          type="button" 
+          class="btn btn-outline-secondary w-100"
+          (click)="clearFilters()">
+          Effacer
+        </button>
+      </div>
+    </form>
+  </c-card-body>
+</c-card>
+
+<!-- Plans List -->
+<c-card>
+  <c-card-header class="d-flex justify-content-between align-items-center">
+    <strong>Liste des Plans ({{ plans.length }})</strong>
+    <div class="d-flex align-items-center gap-2">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm"></span>
+      <small class="text-muted">{{ getActivePlansCount() }} actifs</small>
+    </div>
+  </c-card-header>
+  
+  <c-card-body class="p-0">
+    <!-- Loading state -->
+    <div *ngIf="loading && plans.length === 0" class="text-center py-5">
+      <div class="spinner-border text-primary mb-3"></div>
+      <p class="text-muted">Chargement des plans...</p>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!loading && plans.length === 0" class="text-center py-5">
+      <svg cIcon name="cil-credit-card" size="3xl" class="text-muted mb-3"></svg>
+      <h5>Aucun plan trouvé</h5>
+      <p class="text-muted">Commencez par créer votre premier plan d'abonnement.</p>
+      <button class="btn btn-primary" (click)="openPlanModal()">
+        <svg cIcon name="cil-plus" class="me-2"></svg>
+        Créer un plan
+      </button>
+    </div>
+
+    <!-- Plans table -->
+    <div class="table-responsive" *ngIf="plans.length > 0">
+      <table class="table table-striped table-bordered">
+        <thead style="background-color: #f8f9fa !important;">
+          <tr>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Plan</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Durée</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Prix</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Fonctionnalités</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Limites</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Statut</th>
+            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let plan of plans">
+            <td>
+              <div>
+                <strong>{{ plan.name }}</strong>
+                <br>
+                <small class="text-muted">{{ plan.description || 'Aucune description' }}</small>
+              </div>
+            </td>
+            <td>
+              <c-badge color="info">{{ getDurationText(plan.duration_months) }}</c-badge>
+            </td>
+            <td>
+              <div>
+                <strong class="text-success">{{ formatPrice(plan.price) }}</strong>
+                <br>
+                <small class="text-muted">
+                  <c-badge [color]="getPriceBadgeColor(plan.monthly_price)">
+                    {{ formatPrice(plan.monthly_price) }}/mois
+                  </c-badge>
+                </small>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap gap-1">
+                <c-badge 
+                  *ngFor="let feature of plan.features.slice(0, 3)" 
+                  color="secondary"
+                  class="text-capitalize">
+                  {{ feature }}
+                </c-badge>
+                <c-badge 
+                  *ngIf="plan.features.length > 3" 
+                  color="light"
+                  class="text-muted">
+                  +{{ plan.features.length - 3 }}
+                </c-badge>
+              </div>
+            </td>
+            <td>
+              <div>
+                <small class="d-block">
+                  <strong>Utilisateurs:</strong> 
+                  {{ plan.max_users ? plan.max_users : 'Illimité' }}
+                </small>
+                <small class="d-block">
+                  <strong>Modules:</strong> 
+                  {{ plan.max_modules ? plan.max_modules : 'Illimité' }}
+                </small>
+              </div>
+            </td>
+            <td>
+              <c-badge [color]="getStatusBadgeColor(plan.is_active)">
+                {{ getStatusText(plan.is_active) }}
+              </c-badge>
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <button 
+                  class="btn btn-sm btn-outline-info"
+                  (click)="openPlanModal(plan)"
+                  [disabled]="loading"
+                  title="Modifier">
+                  <svg cIcon name="cil-pencil"></svg>
+                </button>
+                <button 
+                  class="btn btn-sm"
+                  [class]="plan.is_active ? 'btn-outline-warning' : 'btn-outline-success'"
+                  (click)="togglePlanStatus(plan)"
+                  [disabled]="loading"
+                  [title]="plan.is_active ? 'Désactiver' : 'Activer'">
+                  <svg [cIcon]="plan.is_active ? 'cil-ban' : 'cil-check'"></svg>
+                </button>
+                <button 
+                  class="btn btn-sm btn-outline-danger"
+                  (click)="openDeleteModal(plan)"
+                  [disabled]="loading"
+                  title="Supprimer">
+                  <svg cIcon name="cil-trash"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- Plan Modal -->
+<c-modal 
+  [visible]="planModalOpen" 
+  (visibleChange)="planModalOpen = $event"
+  size="xl">
+  <c-modal-header>
+    <h4 cModalTitle>
+      <svg cIcon name="cil-credit-card" class="me-2"></svg>
+      {{ editMode ? 'Modifier le Plan' : 'Nouveau Plan' }}
+    </h4>
+    <button 
+      cButtonClose 
+      (click)="closePlanModal()"
+      [disabled]="loading">
+    </button>
+  </c-modal-header>
+  
+  <c-modal-body>
+    <form [formGroup]="planForm" (ngSubmit)="savePlan()">
+      <div class="row g-3">
+        <!-- Name -->
+        <div class="col-md-6">
+          <label class="form-label">Nom du Plan *</label>
+          <input 
+            type="text" 
+            class="form-control"
+            formControlName="name"
+            [class.is-invalid]="submitted && f['name'].errors"
+            placeholder="Ex: Plan Business">
+          <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
+            <div *ngIf="f['name'].errors['required']">Le nom est requis</div>
+            <div *ngIf="f['name'].errors['maxlength']">Le nom ne peut pas dépasser 100 caractères</div>
+          </div>
+        </div>
+
+        <!-- Duration -->
+        <div class="col-md-3">
+          <label class="form-label">Durée (mois) *</label>
+          <input 
+            type="number" 
+            class="form-control"
+            formControlName="duration_months"
+            [class.is-invalid]="submitted && f['duration_months'].errors"
+            min="1" max="60">
+          <div *ngIf="submitted && f['duration_months'].errors" class="invalid-feedback">
+            <div *ngIf="f['duration_months'].errors['required']">La durée est requise</div>
+            <div *ngIf="f['duration_months'].errors['min']">Minimum 1 mois</div>
+            <div *ngIf="f['duration_months'].errors['max']">Maximum 60 mois</div>
+          </div>
+        </div>
+
+        <!-- Price -->
+        <div class="col-md-3">
+          <label class="form-label">Prix Total (€) *</label>
+          <input 
+            type="number" 
+            class="form-control"
+            formControlName="price"
+            [class.is-invalid]="submitted && f['price'].errors"
+            step="0.01" min="0">
+          <div *ngIf="submitted && f['price'].errors" class="invalid-feedback">
+            <div *ngIf="f['price'].errors['required']">Le prix est requis</div>
+            <div *ngIf="f['price'].errors['min']">Le prix doit être positif</div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="col-12">
+          <label class="form-label">Description</label>
+          <textarea 
+            class="form-control"
+            formControlName="description"
+            rows="3"
+            [class.is-invalid]="submitted && f['description'].errors"
+            placeholder="Description du plan d'abonnement..."></textarea>
+          <div *ngIf="submitted && f['description'].errors" class="invalid-feedback">
+            <div *ngIf="f['description'].errors['maxlength']">La description ne peut pas dépasser 255 caractères</div>
+          </div>
+        </div>
+
+        <!-- Limits -->
+        <div class="col-md-6">
+          <label class="form-label">Limite Utilisateurs</label>
+          <input 
+            type="number" 
+            class="form-control"
+            formControlName="max_users"
+            [class.is-invalid]="submitted && f['max_users'].errors"
+            min="1"
+            placeholder="Laissez vide pour illimité">
+          <small class="form-text text-muted">Nombre maximum d'utilisateurs (vide = illimité)</small>
+          <div *ngIf="submitted && f['max_users'].errors" class="invalid-feedback">
+            <div *ngIf="f['max_users'].errors['min']">Minimum 1 utilisateur</div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Limite Modules</label>
+          <input 
+            type="number" 
+            class="form-control"
+            formControlName="max_modules"
+            [class.is-invalid]="submitted && f['max_modules'].errors"
+            min="1"
+            placeholder="Laissez vide pour illimité">
+          <small class="form-text text-muted">Nombre maximum de modules (vide = illimité)</small>
+          <div *ngIf="submitted && f['max_modules'].errors" class="invalid-feedback">
+            <div *ngIf="f['max_modules'].errors['min']">Minimum 1 module</div>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="col-md-6">
+          <label class="form-label">Statut</label>
+          <div class="form-check form-switch mt-2">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              formControlName="is_active"
+              id="planStatus">
+            <label class="form-check-label" for="planStatus">
+              Plan actif
+            </label>
+          </div>
+        </div>
+
+        <!-- Features -->
+        <div class="col-12">
+          <label class="form-label">Fonctionnalités *</label>
+          <div class="row g-2">
+            <div class="col-md-4" *ngFor="let feature of availableFeatures">
+              <div class="form-check">
+                <input 
+                  class="form-check-input" 
+                  type="checkbox" 
+                  [checked]="isFeatureSelected(feature)"
+                  (change)="toggleFeature(feature)"
+                  [id]="'feature-' + feature">
+                <label class="form-check-label" [for]="'feature-' + feature">
+                  {{ feature }}
+                </label>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="submitted && f['features'].errors" class="text-danger mt-2">
+            <small *ngIf="f['features'].errors['required']">Au moins une fonctionnalité est requise</small>
+          </div>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  
+  <c-modal-footer>
+    <button 
+      type="button" 
+      class="btn btn-secondary" 
+      (click)="closePlanModal()"
+      [disabled]="loading">
+      Annuler
+    </button>
+    <button 
+      type="button" 
+      class="btn btn-primary" 
+      (click)="savePlan()"
+      [disabled]="loading">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      {{ editMode ? 'Modifier' : 'Créer' }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- Delete Confirmation Modal -->
+<c-modal 
+  [visible]="deleteModalOpen" 
+  (visibleChange)="deleteModalOpen = $event">
+  <c-modal-header>
+    <h4 cModalTitle>
+      <svg cIcon name="cil-warning" class="me-2 text-warning"></svg>
+      Confirmer la suppression
+    </h4>
+    <button 
+      cButtonClose 
+      (click)="closeDeleteModal()"
+      [disabled]="loading">
+    </button>
+  </c-modal-header>
+  
+  <c-modal-body>
+    <p>Êtes-vous sûr de vouloir supprimer le plan "<strong>{{ planToDelete?.name }}</strong>" ?</p>
+    <div class="alert alert-warning">
+      <svg cIcon name="cil-warning" class="me-2"></svg>
+      <strong>Attention :</strong> Cette action est irréversible et peut affecter les abonnements existants utilisant ce plan.
+    </div>
+  </c-modal-body>
+  
+  <c-modal-footer>
+    <button 
+      type="button" 
+      class="btn btn-secondary" 
+      (click)="closeDeleteModal()"
+      [disabled]="loading">
+      Annuler
+    </button>
+    <button 
+      type="button" 
+      class="btn btn-danger" 
+      (click)="confirmDelete()"
+      [disabled]="loading">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      Supprimer
+    </button>
+  </c-modal-footer>
+</c-modal>

@@ -1,208 +1,170 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
-import { ApiService } from './api.service';
-import { Tenant, User, Subscription, SubscriptionPlan, ApiResponse, PaginatedResponse, FilterOptions } from '../models';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+export interface Tenant {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  subscription_status: 'ACTIVE' | 'SUSPENDED';
+  modules?: Module[];
+  subscriptions?: any[];
+  users?: any[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Module {
+  id: number;
+  code: string;
+  name: string;
+  icon: string;
+  enabled: boolean;
+  pivot?: {
+    tenant_id: number;
+    module_id: number;
+    is_active: boolean;
+    created_at?: string;
+    updated_at?: string;
+  };
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class TenantService {
-  private tenants = new BehaviorSubject<Tenant[]>([]);
-  private currentTenant = new BehaviorSubject<Tenant | null>(null);
-  private subscriptionPlans = new BehaviorSubject<SubscriptionPlan[]>([]);
-  
-  tenants$ = this.tenants.asObservable();
-  currentTenant$ = this.currentTenant.asObservable();
-  subscriptionPlans$ = this.subscriptionPlans.asObservable();
-  
-  constructor(private apiService: ApiService) {}
-  
-  // Tenant Management (Super Admin only)
-  getTenants(options?: FilterOptions): Observable<PaginatedResponse<Tenant>> {
-    return this.apiService.getPaginated('tenants', { params: options }).pipe(
-      tap(response => {
-        if (response.data) {
-          this.tenants.next(response.data);
-        }
-      })
-    );
+  private readonly API_URL = environment.apiUrl;
+
+  constructor(private http: HttpClient) {}
+
+  // Tenants CRUD
+  getTenants(): Observable<ApiResponse<Tenant[]>> {
+    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants`);
   }
-  
-  createTenant(tenantData: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
-    return this.apiService.post('tenants', tenantData).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          const currentTenants = this.tenants.value;
-          this.tenants.next([...currentTenants, response.data]);
-        }
-      })
-    );
+
+  getTenant(id: number): Observable<ApiResponse<Tenant>> {
+    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`);
   }
-  
-  updateTenant(id: string, tenantData: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
-    return this.apiService.put(`tenants/${id}`, tenantData).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          const currentTenants = this.tenants.value;
-          const updatedTenants = currentTenants.map(tenant => 
-            tenant.id === id ? response.data! : tenant
-          );
-          this.tenants.next(updatedTenants);
-          
-          // Update current tenant if it's the same
-          if (this.currentTenant.value?.id === id) {
-            this.currentTenant.next(response.data!);
-          }
-        }
-      })
-    );
+
+  createTenant(tenant: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
+    return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants`, tenant);
   }
-  
-  deleteTenant(id: string): Observable<ApiResponse<any>> {
-    return this.apiService.delete(`tenants/${id}`).pipe(
-      tap(response => {
-        if (response.success) {
-          const currentTenants = this.tenants.value;
-          const filteredTenants = currentTenants.filter(tenant => tenant.id !== id);
-          this.tenants.next(filteredTenants);
-        }
-      })
-    );
+
+  updateTenant(id: number, tenant: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
+    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`, tenant);
   }
-  
-  suspendTenant(id: string): Observable<ApiResponse<Tenant>> {
-    return this.apiService.post(`tenants/${id}/suspend`, {}).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          this.updateTenantInList(response.data);
-        }
-      })
-    );
+
+  deleteTenant(id: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.API_URL}/tenants/${id}`);
   }
-  
-  activateTenant(id: string): Observable<ApiResponse<Tenant>> {
-    return this.apiService.post(`tenants/${id}/activate`, {}).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          this.updateTenantInList(response.data);
-        }
-      })
-    );
+
+  // Module management
+  assignModule(tenantId: number, moduleId: number, isActive: boolean = true): Observable<ApiResponse<Tenant>> {
+    return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${tenantId}/assign-module`, {
+      module_id: moduleId,
+      is_active: isActive
+    });
   }
-  
-  // Current Tenant Management
-  getCurrentTenant(): Observable<ApiResponse<Tenant>> {
-    return this.apiService.get('tenant/current').pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          this.currentTenant.next(response.data);
-        }
-      })
-    );
+
+  removeModule(tenantId: number, moduleId: number): Observable<ApiResponse<Tenant>> {
+    return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${tenantId}/remove-module`, {
+      module_id: moduleId
+    });
   }
-  
-  updateCurrentTenant(tenantData: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
-    return this.apiService.put('tenant/current', tenantData).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          this.currentTenant.next(response.data);
-        }
-      })
-    );
+
+  // Utility methods
+  getActiveTenants(): Observable<ApiResponse<Tenant[]>> {
+    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants?subscription_status=ACTIVE`);
   }
-  
-  // User Management within Tenant
-  getTenantUsers(tenantId: string): Observable<ApiResponse<User[]>> {
-    return this.apiService.get(`tenants/${tenantId}/users`);
+
+  getSuspendedTenants(): Observable<ApiResponse<Tenant[]>> {
+    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants?subscription_status=SUSPENDED`);
   }
-  
-  createTenantUser(tenantId: string, userData: Partial<User>): Observable<ApiResponse<User>> {
-    return this.apiService.post(`tenants/${tenantId}/users`, userData);
+
+  searchTenants(query: string): Observable<ApiResponse<Tenant[]>> {
+    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants?search=${query}`);
   }
-  
-  updateTenantUser(tenantId: string, userId: string, userData: Partial<User>): Observable<ApiResponse<User>> {
-    return this.apiService.put(`tenants/${tenantId}/users/${userId}`, userData);
+
+  // Module management utilities
+  toggleModuleStatus(tenant: Tenant, module: Module): Observable<ApiResponse<Tenant>> {
+    const isActive = module.pivot?.is_active ?? false;
+    return this.assignModule(tenant.id, module.id, !isActive);
   }
-  
-  deleteTenantUser(tenantId: string, userId: string): Observable<ApiResponse<any>> {
-    return this.apiService.delete(`tenants/${tenantId}/users/${userId}`);
+
+  getTenantModules(tenantId: number): Observable<ApiResponse<Module[]>> {
+    return this.http.get<ApiResponse<Module[]>>(`${this.API_URL}/tenants/${tenantId}/modules`);
   }
-  
-  // Module Management
-  getTenantModules(tenantId: string): Observable<ApiResponse<any[]>> {
-    return this.apiService.get(`tenants/${tenantId}/modules`);
+
+  getTenantStats(tenantId: number): Observable<ApiResponse<any>> {
+    return this.http.get<ApiResponse<any>>(`${this.API_URL}/tenants/${tenantId}/stats`);
   }
-  
-  updateTenantModules(tenantId: string, moduleIds: string[]): Observable<ApiResponse<any>> {
-    return this.apiService.put(`tenants/${tenantId}/modules`, { moduleIds });
+
+  // Status management
+  activateTenant(tenantId: number): Observable<ApiResponse<Tenant>> {
+    return this.updateTenant(tenantId, { subscription_status: 'ACTIVE' });
   }
-  
-  // Subscription Management
-  getSubscriptionPlans(): Observable<ApiResponse<SubscriptionPlan[]>> {
-    return this.apiService.get('subscription-plans').pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          this.subscriptionPlans.next(response.data);
-        }
-      })
-    );
+
+  suspendTenant(tenantId: number): Observable<ApiResponse<Tenant>> {
+    return this.updateTenant(tenantId, { subscription_status: 'SUSPENDED' });
   }
-  
-  createSubscription(subscriptionData: {
-    tenantId: string;
-    planId: string;
-    paymentMethod: string;
-    paymentDetails: any;
-  }): Observable<ApiResponse<Subscription>> {
-    return this.apiService.post('subscriptions', subscriptionData);
+
+  // Validation helpers
+  validateTenantEmail(email: string): Observable<ApiResponse<{ available: boolean }>> {
+    return this.http.post<ApiResponse<{ available: boolean }>>(`${this.API_URL}/tenants/validate-email`, {
+      email
+    });
   }
-  
-  getTenantSubscription(tenantId: string): Observable<ApiResponse<Subscription>> {
-    return this.apiService.get(`tenants/${tenantId}/subscription`);
+
+  validateTenantDomain(domain: string): Observable<ApiResponse<{ available: boolean }>> {
+    return this.http.post<ApiResponse<{ available: boolean }>>(`${this.API_URL}/tenants/validate-domain`, {
+      domain
+    });
   }
-  
-  renewSubscription(tenantId: string, planId: string): Observable<ApiResponse<Subscription>> {
-    return this.apiService.post(`tenants/${tenantId}/subscription/renew`, { planId });
+
+  // Bulk operations
+  bulkUpdateStatus(tenantIds: number[], status: 'ACTIVE' | 'SUSPENDED'): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.API_URL}/tenants/bulk-update-status`, {
+      tenant_ids: tenantIds,
+      status
+    });
   }
-  
-  cancelSubscription(tenantId: string, reason?: string): Observable<ApiResponse<any>> {
-    return this.apiService.post(`tenants/${tenantId}/subscription/cancel`, { reason });
+
+  bulkDelete(tenantIds: number[]): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.API_URL}/tenants/bulk-delete`, {
+      tenant_ids: tenantIds
+    });
   }
-  
-  getSubscriptionPayments(subscriptionId: string): Observable<ApiResponse<any[]>> {
-    return this.apiService.get(`subscriptions/${subscriptionId}/payments`);
+
+  // Export functionality
+  exportTenants(format: 'csv' | 'excel' | 'pdf' = 'csv'): Observable<ApiResponse<Blob>> {
+    return this.http.get<ApiResponse<Blob>>(`${this.API_URL}/tenants/export?format=${format}`, {
+      responseType: 'blob' as 'json'
+    });
   }
-  
-  // Tenant Statistics
-  getTenantStatistics(tenantId: string): Observable<ApiResponse<{
-    totalUsers: number;
-    activeUsers: number;
-    totalRevenue: number;
-    totalExpenses: number;
-    moduleUsage: Array<{ moduleCode: string; usageCount: number }>;
-  }>> {
-    return this.apiService.get(`tenants/${tenantId}/statistics`);
+
+  // Get tenant statistics for dashboard
+  getTenantDashboardStats(tenantId: number): Observable<ApiResponse<any>> {
+    return this.http.get<ApiResponse<any>>(`${this.API_URL}/tenants/${tenantId}/dashboard-stats`);
   }
-  
-  // Global Statistics (Super Admin)
-  getGlobalStatistics(): Observable<ApiResponse<{
-    totalTenants: number;
-    activeTenants: number;
-    totalRevenue: number;
-    totalUsers: number;
-    subscriptionsByPlan: Array<{ planName: string; count: number }>;
-    monthlyGrowth: Array<{ month: string; newTenants: number; revenue: number }>;
-  }>> {
-    return this.apiService.get('admin/statistics');
+
+  // Module management for tenants
+  assignModuleToTenant(tenantId: number, moduleId: number): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/tenants/${tenantId}/assign-module`, {
+      module_id: moduleId
+    });
   }
-  
-  // Private helper methods
-  private updateTenantInList(updatedTenant: Tenant): void {
-    const currentTenants = this.tenants.value;
-    const updatedTenants = currentTenants.map(tenant => 
-      tenant.id === updatedTenant.id ? updatedTenant : tenant
-    );
-    this.tenants.next(updatedTenants);
+
+  removeModuleFromTenant(tenantId: number, moduleId: number): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/tenants/${tenantId}/remove-module`, {
+      module_id: moduleId
+    });
   }
 }
