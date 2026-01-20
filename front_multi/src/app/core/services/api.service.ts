@@ -3,13 +3,13 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { ApiResponse, PaginatedResponse, FilterOptions } from '../models';
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
-  private readonly API_URL = environment.apiUrl || 'http://localhost:8000/api';
+  private readonly API_URL = environment.apiUrl;
   
   constructor(private http: HttpClient) {}
   
@@ -226,8 +226,8 @@ export class ApiService {
     return this.getPaginated('properties', { params: options });
   }
   
-  getTenants(options?: FilterOptions): Observable<PaginatedResponse<any>> {
-    return this.getPaginated('tenants', { params: options });
+  getRentalTenants(options?: FilterOptions): Observable<PaginatedResponse<any>> {
+    return this.getPaginated('rental/tenants', { params: options });
   }
   
   // Taxi

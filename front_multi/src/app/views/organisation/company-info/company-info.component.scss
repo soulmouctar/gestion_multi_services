@@ -1,0 +1,41 @@
+.company-info {
+  .form-section {
+    border-left: 3px solid var(--cui-primary);
+    padding-left: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .required-field {
+    color: var(--cui-danger);
+  }
+
+  .info-card {
+    background: var(--cui-light);
+    border: 1px solid var(--cui-border-color);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .logo-preview {
+    max-width: 200px;
+    max-height: 100px;
+    border: 1px solid var(--cui-border-color);
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+  }
+}
+
+.loading-state {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.action-buttons {
+  border-top: 1px solid var(--cui-border-color);
+  padding-top: 1rem;
+  margin-top: 2rem;
+}

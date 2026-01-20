@@ -4,14 +4,16 @@
       <c-card>
         <c-card-header>
           <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Gestion des Utilisateurs</h4>
+            <div>
+              <h4 class="mb-0">Gestion des Utilisateurs</h4>
+              <small class="text-muted">{{ filteredUsers.length }} utilisateur(s) affiché(s) sur {{ users.length }} total</small>
+            </div>
             <button 
               cButton 
               color="primary" 
               (click)="openUserModal()"
               [disabled]="loading">
-              <svg cIcon name="cil-plus" class="me-2"></svg>
-              Nouvel Utilisateur
+              + Nouvel Utilisateur
             </button>
           </div>
         </c-card-header>
@@ -27,11 +29,12 @@
                   type="text" 
                   formControlName="search"
                   placeholder="Nom ou email..."
-                  class="form-control">
+                  class="form-control"
+                  (input)="applyFilters()">
               </div>
               <div class="col-md-3">
                 <label class="form-label">Rôle</label>
-                <select cFormControl formControlName="role" class="form-select">
+                <select cFormControl formControlName="role" class="form-select" (change)="applyFilters()">
                   <option value="ALL">Tous les rôles</option>
                   <option *ngFor="let role of availableRoles" [value]="role">
                     {{ getRoleDisplayName(role) }}
@@ -39,9 +42,9 @@
                 </select>
               </div>
               <div class="col-md-3">
-                <label class="form-label">Tenant</label>
-                <select cFormControl formControlName="tenant_id" class="form-select">
-                  <option value="ALL">Tous les tenants</option>
+                <label class="form-label">Organisation</label>
+                <select cFormControl formControlName="tenant_id" class="form-select" (change)="applyFilters()">
+                  <option value="ALL">Toutes les organisations</option>
                   <option *ngFor="let tenant of tenants" [value]="tenant.id">
                     {{ tenant.name }}
                   </option>
@@ -54,14 +57,14 @@
                     color="outline-primary" 
                     (click)="applyFilters()"
                     [disabled]="loading">
-                    <svg cIcon name="cil-magnifying-glass"></svg>
+                    🔍
                   </button>
                   <button 
                     cButton 
                     color="outline-secondary" 
                     (click)="clearFilters()"
                     [disabled]="loading">
-                    <svg cIcon name="cil-x"></svg>
+                    ✖️
                   </button>
                 </div>
               </div>
@@ -76,25 +79,25 @@
           </div>
 
           <!-- Empty state -->
-          <div *ngIf="!loading && users.length === 0" class="alert alert-info">
+          <div *ngIf="!loading && filteredUsers.length === 0" class="alert alert-info">
             <svg cIcon name="cil-info-circle" class="me-2"></svg>
             Aucun utilisateur trouvé.
           </div>
 
           <!-- Users table -->
-          <div class="table-responsive" *ngIf="users.length > 0">
+          <div class="table-responsive" *ngIf="filteredUsers.length > 0">
             <table cTable striped hover>
               <thead class="table-light">
                 <tr>
                   <th scope="col" class="fw-semibold text-dark">Utilisateur</th>
-                  <th scope="col" class="fw-semibold text-dark">Tenant</th>
+                  <th scope="col" class="fw-semibold text-dark">Organisation</th>
                   <th scope="col" class="fw-semibold text-dark">Rôle</th>
                   <th scope="col" class="fw-semibold text-dark">Modules</th>
                   <th scope="col" class="fw-semibold text-dark">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let user of users">
+                <tr *ngFor="let user of filteredUsers">
                   <td>
                     <div class="d-flex align-items-center">
                       <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
@@ -115,10 +118,9 @@
                   </td>
                   <td>
                     <c-badge 
-                      *ngFor="let role of user.roles" 
-                      [color]="getRoleBadgeColor(role.name)"
+                      [color]="getRoleBadgeColor(user.role)"
                       class="me-1">
-                      {{ getRoleDisplayName(role.name) }}
+                      {{ getRoleDisplayName(user.role) }}
                     </c-badge>
                   </td>
                   <td>
@@ -186,7 +188,7 @@
   </c-modal-header>
   
   <c-modal-body>
-    <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+    <form [formGroup]="userForm" (ngSubmit)="onSubmitUser()">
       <div class="row">
         <div class="col-md-6">
           <div class="mb-3">
@@ -199,8 +201,8 @@
               [class.is-invalid]="submitted && f['name'].errors"
               class="form-control">
             <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
-              <div *ngIf="f['name'].errors?.['required']">Le nom est requis</div>
-              <div *ngIf="f['name'].errors?.['maxlength']">Le nom ne peut pas dépasser 150 caractères</div>
+              <div *ngIf="f['name'].errors['required']">Le nom est requis</div>
+              <div *ngIf="f['name'].errors['maxlength']">Le nom ne peut pas dépasser 150 caractères</div>
             </div>
           </div>
         </div>
@@ -216,9 +218,9 @@
               [class.is-invalid]="submitted && f['email'].errors"
               class="form-control">
             <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
-              <div *ngIf="f['email'].errors?.['required']">L'email est requis</div>
-              <div *ngIf="f['email'].errors?.['email']">Format d'email invalide</div>
-              <div *ngIf="f['email'].errors?.['maxlength']">L'email ne peut pas dépasser 150 caractères</div>
+              <div *ngIf="f['email'].errors['required']">L'email est requis</div>
+              <div *ngIf="f['email'].errors['email']">Format d'email invalide</div>
+              <div *ngIf="f['email'].errors['maxlength']">L'email ne peut pas dépasser 150 caractères</div>
             </div>
           </div>
         </div>
@@ -236,8 +238,8 @@
               [class.is-invalid]="submitted && f['password'].errors"
               class="form-control">
             <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
-              <div *ngIf="f['password'].errors?.['required']">Le mot de passe est requis</div>
-              <div *ngIf="f['password'].errors?.['minlength']">Le mot de passe doit contenir au moins 8 caractères</div>
+              <div *ngIf="f['password'].errors['required']">Le mot de passe est requis</div>
+              <div *ngIf="f['password'].errors['minlength']">Le mot de passe doit contenir au moins 8 caractères</div>
             </div>
           </div>
         </div>
@@ -249,13 +251,14 @@
               cFormControl 
               formControlName="role"
               [class.is-invalid]="submitted && f['role'].errors"
-              class="form-select">
+              class="form-select"
+              (change)="onRoleChange($event)">
               <option *ngFor="let role of availableRoles" [value]="role">
                 {{ getRoleDisplayName(role) }}
               </option>
             </select>
             <div *ngIf="submitted && f['role'].errors" class="invalid-feedback">
-              <div *ngIf="f['role'].errors?.['required']">Le rôle est requis</div>
+              <div *ngIf="f['role'].errors['required']">Le rôle est requis</div>
             </div>
           </div>
         </div>
@@ -264,16 +267,22 @@
       <div class="row">
         <div class="col-12">
           <div class="mb-3">
-            <label class="form-label">Tenant</label>
+            <label class="form-label">Organisation</label>
             <select 
               cFormControl 
               formControlName="tenant_id"
               class="form-select">
-              <option value="">Aucun tenant spécifique</option>
-              <option *ngFor="let tenant of tenants" [value]="tenant.id">
-                {{ tenant.name }}
+              <option value="">Aucune organisation spécifique</option>
+              <option *ngFor="let organisation of filteredTenants" [value]="organisation.id">
+                {{ organisation.name }}
               </option>
             </select>
+            <small class="form-text text-muted" *ngIf="userForm.get('role')?.value === 'SUPER_ADMIN'">
+              Les Super Admins n'ont pas besoin d'être assignés à une organisation spécifique.
+            </small>
+            <small class="form-text text-muted" *ngIf="userForm.get('role')?.value !== 'SUPER_ADMIN' && filteredTenants.length === 0">
+              Aucune organisation disponible. Veuillez d'abord créer des organisations.
+            </small>
           </div>
         </div>
       </div>
@@ -291,7 +300,7 @@
     <button 
       cButton 
       color="primary" 
-      (click)="onSubmit()"
+      (click)="onSubmitUser()"
       [disabled]="loading">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       {{ editMode ? 'Modifier' : 'Créer' }}
@@ -431,39 +440,4 @@
   </c-modal-footer>
 </c-modal>
 
-<!-- Delete Confirmation Modal -->
-<c-modal 
-  [visible]="deleteModalOpen" 
-  (visibleChange)="deleteModalOpen = $event">
-  <c-modal-header>
-    <h4 cModalTitle>Confirmer la suppression</h4>
-    <button 
-      cButtonClose 
-      (click)="cancelDelete()"
-      [disabled]="loading">
-    </button>
-  </c-modal-header>
-  
-  <c-modal-body>
-    <p>Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{{ userToDelete?.name }}</strong> ?</p>
-    <p class="text-muted">Cette action est irréversible.</p>
-  </c-modal-body>
-  
-  <c-modal-footer>
-    <button 
-      cButton 
-      color="secondary" 
-      (click)="cancelDelete()"
-      [disabled]="loading">
-      Annuler
-    </button>
-    <button 
-      cButton 
-      color="danger" 
-      (click)="confirmDelete()"
-      [disabled]="loading">
-      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-      Supprimer
-    </button>
-  </c-modal-footer>
-</c-modal>
+<!-- Modal de suppression supprimé - maintenant géré par SweetAlert2 -->

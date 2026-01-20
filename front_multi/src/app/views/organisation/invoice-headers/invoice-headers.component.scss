@@ -1,0 +1,123 @@
+.header-card {
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &.border-primary {
+    border-width: 2px;
+    box-shadow: 0 2px 8px rgba(var(--cui-primary-rgb), 0.2);
+  }
+}
+
+.header-preview {
+  .company-info {
+    h6 {
+      color: var(--cui-primary);
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  .contact-info {
+    svg {
+      color: var(--cui-primary);
+    }
+  }
+
+  .legal-info {
+    border-top: 1px solid var(--cui-border-color);
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+  }
+}
+
+.preview-container {
+  .invoice-preview {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    
+    .company-name {
+      color: var(--cui-primary);
+      font-weight: 700;
+    }
+
+    .header-section {
+      border-bottom: 2px solid var(--cui-primary);
+      padding-bottom: 1rem;
+    }
+
+    .logo img {
+      border: 1px solid var(--cui-border-color);
+      border-radius: 0.25rem;
+      padding: 0.5rem;
+    }
+
+    .legal-info {
+      background: var(--cui-light);
+      padding: 1rem;
+      border-radius: 0.25rem;
+    }
+
+    .bank-details {
+      background: var(--cui-light);
+      padding: 1rem;
+      border-radius: 0.25rem;
+      
+      pre {
+        background: white;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        margin: 0;
+      }
+    }
+
+    .footer-text {
+      font-style: italic;
+      border-top: 1px solid var(--cui-border-color);
+      padding-top: 1rem;
+    }
+  }
+}
+
+.empty-state {
+  padding: 3rem 1rem;
+  
+  svg {
+    opacity: 0.5;
+  }
+}
+
+.modal-form {
+  .form-section {
+    border-left: 3px solid var(--cui-primary);
+    padding-left: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .form-check {
+    padding: 1rem;
+    background: var(--cui-light);
+    border-radius: 0.375rem;
+    margin-top: 1rem;
+  }
+}
+
+.action-buttons {
+  .btn {
+    transition: all 0.2s ease-in-out;
+    
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+}
+
+.loading-state {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}

@@ -1,5 +1,5 @@
 import { NgTemplateOutlet, CommonModule } from '@angular/common';
-import { Component, computed, inject, input, NgZone, OnInit } from '@angular/core';
+import { Component, computed, inject, input, NgZone, OnInit, ChangeDetectorRef } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 import {
@@ -25,6 +25,7 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { ModuleService, Module } from '../../../core/services/module.service';
+import { PermissionService, UserModulePermission } from '../../../core/services/permission.service';
 
 @Component({
   selector: 'app-default-header',
@@ -37,7 +38,9 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
   readonly colorMode = this.#colorModeService.colorMode;
   readonly #authService = inject(AuthService);
   readonly #moduleService = inject(ModuleService);
+  readonly #permissionService = inject(PermissionService);
   readonly #ngZone = inject(NgZone);
+  readonly #cdr = inject(ChangeDetectorRef);
 
   // Modules navigation
   activeModules: Module[] = [];
@@ -58,56 +61,72 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
     super();
   }
 
+  get currentUser() {
+    return this.#authService.currentUser;
+  }
+
+  get userRole() {
+    return this.#authService.userRole;
+  }
+
+  get userRoleTitle() {
+    const role = this.userRole;
+    switch (role) {
+      case 'SUPER_ADMIN':
+        return 'Super Administrateur';
+      case 'ADMIN':
+        return 'Administrateur';
+      case 'USER':
+        return 'Utilisateur';
+      default:
+        return 'Utilisateur';
+    }
+  }
+
+  get userInitials() {
+    const user = this.currentUser;
+    if (!user || !user.name) return 'U';
+    const names = user.name.split(' ');
+    if (names.length >= 2) {
+      return (names[0][0] + names[1][0]).toUpperCase();
+    }
+    return user.name[0].toUpperCase();
+  }
+
   ngOnInit(): void {
-    this.loadActiveModules();
+    // Defer loading to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.loadActiveModules();
+    }, 0);
   }
 
   sidebarId = input('sidebar1');
 
   loadActiveModules(): void {
-    this.loadingModules = true;
-    // Simuler le chargement des modules actifs
-    setTimeout(() => {
-      this.activeModules = [
-        {
-          id: 1,
-          name: 'Gestion Modules',
-          code: 'MODULES',
-          description: 'Administration des modules système',
-          icon: 'cilPuzzle',
-          route: '/admin/modules',
-          permissions: ['module.view', 'module.create', 'module.edit', 'module.delete'],
-          is_active: true,
-          version: '1.0.0',
-          category: 'Administration'
-        },
-        {
-          id: 2,
-          name: 'Plans d\'Abonnement',
-          code: 'SUBSCRIPTION_PLANS',
-          description: 'Gestion des plans tarifaires',
-          icon: 'cilCreditCard',
-          route: '/admin/subscription-plans',
-          permissions: ['plan.view', 'plan.create', 'plan.edit', 'plan.delete'],
-          is_active: true,
-          version: '1.0.0',
-          category: 'Abonnements'
-        },
-        {
-          id: 3,
-          name: 'Abonnements',
-          code: 'SUBSCRIPTIONS',
-          description: 'Gestion des abonnements clients',
-          icon: 'cilUser',
-          route: '/admin/subscriptions',
-          permissions: ['subscription.view', 'subscription.create', 'subscription.edit', 'subscription.delete'],
-          is_active: true,
-          version: '1.0.0',
-          category: 'Abonnements'
-        }
-      ];
-      this.loadingModules = false;
-    }, 1000);
+    // Get modules based on user permissions
+    this.#permissionService.getNavigationModules().subscribe({
+      next: (userModules: UserModulePermission[]) => {
+        // Convert user modules to Module format for display
+        this.activeModules = userModules.map((userModule: UserModulePermission) => ({
+          id: 0, // Will be set by backend
+          name: userModule.module_name,
+          code: userModule.module_code,
+          description: userModule.module_name,
+          icon: this.getModuleIcon(userModule.module_code) || '',
+          is_active: userModule.is_active,
+          permissions: userModule.permissions,
+          route: this.getModuleRoute(userModule.module_code)
+        }));
+        this.loadingModules = false;
+        this.#cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading user modules:', error);
+        this.activeModules = [];
+        this.loadingModules = false;
+        this.#cdr.detectChanges();
+      }
+    });
   }
 
   public newMessages = [
@@ -184,6 +203,67 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
     { id: 3, title: 'Add new layouts', value: 75, color: 'info' },
     { id: 4, title: 'Angular Version', value: 100, color: 'success' }
   ];
+
+  getModuleRoute(moduleCode: string): string {
+    // Générer la route basée sur le code du module
+    const routeMap: { [key: string]: string } = {
+      'MODULES': '/admin/modules',
+      'SUBSCRIPTION_PLANS': '/admin/subscription-plans',
+      'SUBSCRIPTIONS': '/admin/subscriptions',
+      'USERS': '/admin/users',
+      'ROLES': '/admin/roles',
+      'TENANTS': '/admin/tenants',
+      'COMMERCIAL': '/commercial',
+      'FINANCE': '/finance',
+      'CLIENTS': '/clients',
+      'PRODUCTS_STOCK': '/products',
+      'CONTAINERS': '/containers',
+      'RENTAL': '/rental',
+      'TAXI': '/taxi',
+      'STATISTICS': '/statistics'
+    };
+    
+    return routeMap[moduleCode] || `/module/${moduleCode.toLowerCase()}`;
+  }
+
+  getModuleIcon(moduleCode: string): string {
+    // Mapper les icônes basées sur le code du module
+    const iconMap: { [key: string]: string } = {
+      'MODULES': 'cilPuzzle',
+      'SUBSCRIPTION_PLANS': 'cilCreditCard',
+      'SUBSCRIPTIONS': 'cilUser',
+      'USERS': 'cilPeople',
+      'ROLES': 'cilShieldAlt',
+      'TENANTS': 'cilApplicationsSettings',
+      'COMMERCIAL': 'cilBasket',
+      'FINANCE': 'cilDollar',
+      'CLIENTS': 'cilPeople',
+      'PRODUCTS_STOCK': 'cilGrid',
+      'CONTAINERS': 'cilLayers',
+      'RENTAL': 'cilHome',
+      'TAXI': 'cilLocationPin',
+      'STATISTICS': 'cilChart'
+    };
+    
+    return iconMap[moduleCode] || 'cilApps';
+  }
+
+  // Template helper methods to avoid ExpressionChangedAfterItHasBeenCheckedError
+  shouldShowModulesDropdown(): boolean {
+    return this.activeModules.length > 0 || this.loadingModules;
+  }
+
+  isLoadingModules(): boolean {
+    return this.loadingModules;
+  }
+
+  hasActiveModules(): boolean {
+    return this.activeModules.length > 0;
+  }
+
+  getActiveModules(): Module[] {
+    return this.activeModules;
+  }
 
   logout(): void {
     // Use NgZone to ensure proper logout without Angular errors

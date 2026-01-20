@@ -2,6 +2,8 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ModuleService, Module, ApiResponse } from '../../../core/services/module.service';
+import Swal from 'sweetalert2';
+import { AlertService } from '../../../core/services/alert.service';
 import { 
   CardModule, 
   ButtonModule, 
@@ -45,10 +47,7 @@ export class ModulesComponent implements OnInit {
   editMode = false;
   selectedModule: Module | null = null;
   
-  // Messages and notifications
-  successMessage: string = '';
-  errorMessage: string = '';
-  showMessage = false;
+  // Messages and notifications (maintenant gérés par SweetAlert2)
   
   // Modal states
   moduleModalOpen = false;
@@ -74,7 +73,8 @@ export class ModulesComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
-    private moduleService: ModuleService
+    private moduleService: ModuleService,
+    private alertService: AlertService
   ) {
     // Initialisation explicite des tableaux
     this.modules = [];
@@ -236,47 +236,61 @@ export class ModulesComponent implements OnInit {
     }
   }
 
-  // Delete module
+  // Delete module with AlertService confirmation
   openDeleteModal(module: Module): void {
-    this.moduleToDelete = module;
-    this.deleteModalOpen = true;
+    this.alertService.showDeleteConfirmation(module.name, 'le module').then((result) => {
+      if (result.isConfirmed) {
+        this.confirmDelete(module);
+      }
+    });
   }
 
-  closeDeleteModal(): void {
-    this.deleteModalOpen = false;
-    this.moduleToDelete = null;
+  // Méthodes obsolètes supprimées - maintenant géré par SweetAlert2
+
+  confirmDelete(module: Module): void {
+    this.loading = true;
+    this.cdr.detectChanges();
+    
+    this.moduleService.deleteModule(module.id).subscribe({
+      next: (response: ApiResponse<void>) => {
+        this.modules = this.modules.filter(m => m.id !== module.id);
+        this.loading = false;
+        setTimeout(() => {
+          this.applyFilters();
+          this.showSuccessMessage('Module supprimé avec succès!');
+          this.cdr.detectChanges();
+        });
+      },
+      error: (error) => {
+        console.error('Error deleting module:', error);
+        this.showErrorMessage('Erreur lors de la suppression du module.');
+        this.loading = false;
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        });
+      }
+    });
   }
 
-  confirmDelete(): void {
-    if (this.moduleToDelete) {
-      this.loading = true;
-      this.cdr.detectChanges();
-      
-      this.moduleService.deleteModule(this.moduleToDelete.id).subscribe({
-        next: (response: ApiResponse<void>) => {
-          this.modules = this.modules.filter(m => m.id !== this.moduleToDelete!.id);
-          this.loading = false;
-          this.closeDeleteModal();
-          setTimeout(() => {
-            this.applyFilters();
-            this.showSuccessMessage('Module supprimé avec succès!');
-            this.cdr.detectChanges();
-          });
-        },
-        error: (error) => {
-          console.error('Error deleting module:', error);
-          this.showErrorMessage('Erreur lors de la suppression du module.');
-          this.loading = false;
-          setTimeout(() => {
-            this.cdr.detectChanges();
-          });
-        }
-      });
-    }
-  }
-
-  // Toggle module status
+  // Toggle module status with confirmation
   toggleModuleStatus(module: Module): void {
+    const action = module.is_active ? 'désactiver' : 'activer';
+    const actionPast = module.is_active ? 'désactivé' : 'activé';
+    
+    this.alertService.showConfirmation(
+      'Confirmer l\'action',
+      `Voulez-vous vraiment ${action} le module "${module.name}"?`,
+      `Oui, ${action}!`,
+      'Annuler',
+      'question'
+    ).then((result) => {
+      if (result.isConfirmed) {
+        this.confirmToggleStatus(module, actionPast);
+      }
+    });
+  }
+
+  private confirmToggleStatus(module: Module, actionPast: string): void {
     this.loading = true;
     this.cdr.detectChanges();
     
@@ -292,7 +306,7 @@ export class ModulesComponent implements OnInit {
         this.loading = false;
         setTimeout(() => {
           this.applyFilters();
-          this.showSuccessMessage(`Module ${response.data.is_active ? 'activé' : 'désactivé'} avec succès!`);
+          this.showSuccessMessage(`Module ${actionPast} avec succès!`);
           this.cdr.detectChanges();
         });
       },
@@ -392,34 +406,20 @@ export class ModulesComponent implements OnInit {
     return this.modules.filter(m => m.is_active).length;
   }
 
-  // Message handling
+  // Message handling with AlertService
   showSuccessMessage(message: string): void {
-    this.successMessage = message;
-    this.errorMessage = '';
-    this.showMessage = true;
-    setTimeout(() => {
-      this.showMessage = false;
-      this.successMessage = '';
-    }, 3000);
+    this.alertService.showSuccess('Succès!', message);
   }
 
   showErrorMessage(message: string): void {
-    this.errorMessage = message;
-    this.successMessage = '';
-    this.showMessage = true;
-    setTimeout(() => {
-      this.showMessage = false;
-      this.errorMessage = '';
-    }, 5000);
+    this.alertService.showError('Erreur!', message);
   }
 
   dismissMessage(): void {
-    this.showMessage = false;
-    this.successMessage = '';
-    this.errorMessage = '';
+    // Plus nécessaire avec SweetAlert2
   }
 
-  // Bulk operations
+  // Bulk operations with confirmation
   bulkActivate(): void {
     if (!Array.isArray(this.filteredModules)) {
       this.filteredModules = [];
@@ -430,6 +430,20 @@ export class ModulesComponent implements OnInit {
       return;
     }
 
+    this.alertService.showConfirmation(
+      'Activation en lot',
+      `Voulez-vous vraiment activer ${inactiveModules.length} module(s) inactif(s)?`,
+      'Oui, activer tout!',
+      'Annuler',
+      'question'
+    ).then((result) => {
+      if (result.isConfirmed) {
+        this.confirmBulkActivate(inactiveModules);
+      }
+    });
+  }
+
+  private confirmBulkActivate(inactiveModules: Module[]): void {
     this.loading = true;
     setTimeout(() => {
       inactiveModules.forEach(module => {
@@ -453,6 +467,20 @@ export class ModulesComponent implements OnInit {
       return;
     }
 
+    this.alertService.showConfirmation(
+      'Désactivation en lot',
+      `Voulez-vous vraiment désactiver ${activeModules.length} module(s) actif(s)?`,
+      'Oui, désactiver tout!',
+      'Annuler',
+      'warning'
+    ).then((result) => {
+      if (result.isConfirmed) {
+        this.confirmBulkDeactivate(activeModules);
+      }
+    });
+  }
+
+  private confirmBulkDeactivate(activeModules: Module[]): void {
     this.loading = true;
     setTimeout(() => {
       activeModules.forEach(module => {

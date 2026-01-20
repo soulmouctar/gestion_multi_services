@@ -1,0 +1,242 @@
+<c-row>
+  <c-col xs="12">
+    <c-card class="mb-4">
+      <c-card-header class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong><svg cIcon name="cilAddressBook" class="me-2"></svg>Contacts & Adresses</strong>
+          <small class="text-muted ms-2">Gérez les contacts et adresses de votre organisation</small>
+        </div>
+        <button cButton color="primary" (click)="openModal()">
+          <svg cIcon name="cilPlus" class="me-1"></svg>
+          Ajouter un contact
+        </button>
+      </c-card-header>
+      <c-card-body>
+        <div *ngIf="loading" class="text-center py-4">
+          <c-spinner></c-spinner>
+          <p class="text-muted mt-2">Chargement des contacts...</p>
+        </div>
+
+        <div *ngIf="!loading && contacts.length === 0" class="text-center py-5">
+          <svg cIcon name="cilAddressBook" size="3xl" class="text-muted mb-3"></svg>
+          <h5 class="text-muted">Aucun contact configuré</h5>
+          <p class="text-muted">Ajoutez votre premier contact pour commencer</p>
+          <button cButton color="primary" variant="outline" (click)="openModal()">
+            <svg cIcon name="cilPlus" class="me-1"></svg>
+            Ajouter un contact
+          </button>
+        </div>
+
+        <c-row *ngIf="!loading && contacts.length > 0">
+          <c-col lg="6" xl="4" *ngFor="let contact of contacts" class="mb-4">
+            <c-card class="h-100 contact-card" [class.border-primary]="contact.is_default">
+              <c-card-header class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <svg cIcon [name]="getContactTypeIcon(contact.type)" class="me-2 text-primary"></svg>
+                  <span class="fw-semibold">{{ getContactTypeLabel(contact.type) }}</span>
+                </div>
+                <div class="d-flex gap-1">
+                  <c-badge *ngIf="contact.is_default" color="primary">Par défaut</c-badge>
+                  <button cButton size="sm" color="light" variant="ghost" (click)="openModal(contact)">
+                    <svg cIcon name="cilPencil" size="sm"></svg>
+                  </button>
+                  <button cButton size="sm" color="danger" variant="ghost" (click)="deleteContact(contact)">
+                    <svg cIcon name="cilTrash" size="sm"></svg>
+                  </button>
+                </div>
+              </c-card-header>
+              <c-card-body>
+                <div class="contact-info">
+                  <div class="mb-2">
+                    <strong>{{ contact.name }}</strong>
+                  </div>
+                  <div class="mb-1">
+                    <svg cIcon name="cilEnvelopeOpen" size="sm" class="me-2 text-muted"></svg>
+                    <a [href]="'mailto:' + contact.email" class="text-decoration-none">{{ contact.email }}</a>
+                  </div>
+                  <div class="mb-2">
+                    <svg cIcon name="cilPhone" size="sm" class="me-2 text-muted"></svg>
+                    <a [href]="'tel:' + contact.phone" class="text-decoration-none">{{ contact.phone }}</a>
+                  </div>
+                  <div class="text-muted small">
+                    <svg cIcon name="cilLocationPin" size="sm" class="me-2"></svg>
+                    {{ contact.address }}<br>
+                    {{ contact.postal_code }} {{ contact.city }}<br>
+                    {{ contact.country }}
+                  </div>
+                </div>
+                <div class="mt-3" *ngIf="!contact.is_default">
+                  <button cButton size="sm" color="primary" variant="outline" (click)="setAsDefault(contact)">
+                    <svg cIcon name="cilStar" size="sm" class="me-1"></svg>
+                    Définir par défaut
+                  </button>
+                </div>
+              </c-card-body>
+            </c-card>
+          </c-col>
+        </c-row>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<!-- Modal pour ajouter/modifier un contact -->
+<c-modal [visible]="showModal" (visibleChange)="showModal = $event" size="lg">
+  <c-modal-header>
+    <h4 cModalTitle>
+      {{ editingContact ? 'Modifier le contact' : 'Ajouter un contact' }}
+    </h4>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="contactForm" (ngSubmit)="onSubmit()">
+      <c-row>
+        <c-col md="6">
+          <div class="mb-3">
+            <label cFormLabel for="type">Type de contact *</label>
+            <select cFormSelect id="type" formControlName="type" [class.is-invalid]="f['type'].invalid && f['type'].touched">
+              <option *ngFor="let type of contactTypes" [value]="type.value">
+                {{ type.label }}
+              </option>
+            </select>
+          </div>
+        </c-col>
+        <c-col md="6">
+          <div class="mb-3">
+            <label cFormLabel for="name">Nom du contact *</label>
+            <input
+              cFormControl
+              type="text"
+              id="name"
+              formControlName="name"
+              placeholder="Nom complet"
+              [class.is-invalid]="f['name'].invalid && f['name'].touched"
+            />
+            <div *ngIf="f['name'].invalid && f['name'].touched" class="invalid-feedback">
+              <div *ngIf="f['name'].errors?.['required']">Le nom est requis</div>
+              <div *ngIf="f['name'].errors?.['minlength']">Le nom doit contenir au moins 2 caractères</div>
+            </div>
+          </div>
+        </c-col>
+        <c-col md="6">
+          <div class="mb-3">
+            <label cFormLabel for="email">Email *</label>
+            <input
+              cFormControl
+              type="email"
+              id="email"
+              formControlName="email"
+              placeholder="contact@exemple.com"
+              [class.is-invalid]="f['email'].invalid && f['email'].touched"
+            />
+            <div *ngIf="f['email'].invalid && f['email'].touched" class="invalid-feedback">
+              <div *ngIf="f['email'].errors?.['required']">L'email est requis</div>
+              <div *ngIf="f['email'].errors?.['email']">Format d'email invalide</div>
+            </div>
+          </div>
+        </c-col>
+        <c-col md="6">
+          <div class="mb-3">
+            <label cFormLabel for="phone">Téléphone *</label>
+            <input
+              cFormControl
+              type="tel"
+              id="phone"
+              formControlName="phone"
+              placeholder="+33 1 23 45 67 89"
+              [class.is-invalid]="f['phone'].invalid && f['phone'].touched"
+            />
+            <div *ngIf="f['phone'].invalid && f['phone'].touched" class="invalid-feedback">
+              Le téléphone est requis
+            </div>
+          </div>
+        </c-col>
+        <c-col xs="12">
+          <div class="mb-3">
+            <label cFormLabel for="address">Adresse *</label>
+            <input
+              cFormControl
+              type="text"
+              id="address"
+              formControlName="address"
+              placeholder="123 Rue de la Paix"
+              [class.is-invalid]="f['address'].invalid && f['address'].touched"
+            />
+            <div *ngIf="f['address'].invalid && f['address'].touched" class="invalid-feedback">
+              L'adresse est requise
+            </div>
+          </div>
+        </c-col>
+        <c-col md="4">
+          <div class="mb-3">
+            <label cFormLabel for="city">Ville *</label>
+            <input
+              cFormControl
+              type="text"
+              id="city"
+              formControlName="city"
+              placeholder="Paris"
+              [class.is-invalid]="f['city'].invalid && f['city'].touched"
+            />
+            <div *ngIf="f['city'].invalid && f['city'].touched" class="invalid-feedback">
+              La ville est requise
+            </div>
+          </div>
+        </c-col>
+        <c-col md="4">
+          <div class="mb-3">
+            <label cFormLabel for="postal_code">Code postal *</label>
+            <input
+              cFormControl
+              type="text"
+              id="postal_code"
+              formControlName="postal_code"
+              placeholder="75001"
+              [class.is-invalid]="f['postal_code'].invalid && f['postal_code'].touched"
+            />
+            <div *ngIf="f['postal_code'].invalid && f['postal_code'].touched" class="invalid-feedback">
+              Le code postal est requis
+            </div>
+          </div>
+        </c-col>
+        <c-col md="4">
+          <div class="mb-3">
+            <label cFormLabel for="country">Pays *</label>
+            <input
+              cFormControl
+              type="text"
+              id="country"
+              formControlName="country"
+              placeholder="France"
+              [class.is-invalid]="f['country'].invalid && f['country'].touched"
+            />
+            <div *ngIf="f['country'].invalid && f['country'].touched" class="invalid-feedback">
+              Le pays est requis
+            </div>
+          </div>
+        </c-col>
+        <c-col xs="12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="is_default"
+              formControlName="is_default"
+            />
+            <label class="form-check-label" for="is_default">
+              Définir comme contact par défaut
+            </label>
+          </div>
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="closeModal()" [disabled]="saving">
+      Annuler
+    </button>
+    <button cButton color="primary" (click)="onSubmit()" [disabled]="contactForm.invalid || saving">
+      <c-spinner *ngIf="saving" size="sm" class="me-2"></c-spinner>
+      {{ saving ? 'Enregistrement...' : (editingContact ? 'Modifier' : 'Ajouter') }}
+    </button>
+  </c-modal-footer>
+</c-modal>

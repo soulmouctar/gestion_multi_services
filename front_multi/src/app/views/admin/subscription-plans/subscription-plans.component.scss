@@ -1,15 +1,27 @@
 .subscription-plans {
   .card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    border: 1px solid rgba(0, 0, 0, 0.125);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: none;
+    border-radius: 0.75rem;
+    
+    &.shadow-sm {
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
     
     .card-header {
-      background-color: #f8f9fa;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+      &.bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border: none;
+        border-radius: 0.75rem 0.75rem 0 0;
+      }
       
       h4 {
         color: #495057;
         font-weight: 600;
+        
+        &.text-white {
+          color: white !important;
+        }
         
         i {
           color: #6c757d;
@@ -19,6 +31,23 @@
   }
 
   .table {
+    &.table-hover tbody tr:hover {
+      background-color: rgba(0, 123, 255, 0.05);
+      transform: translateY(-1px);
+      transition: all 0.2s ease;
+    }
+    
+    .table-dark {
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      
+      th {
+        border: none;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        color: white;
+      }
+    }
+    
     th {
       border-top: none;
       font-weight: 600;
@@ -39,6 +68,12 @@
         .btn {
           padding: 0.25rem 0.5rem;
           font-size: 0.875rem;
+          transition: all 0.2s ease;
+          
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          }
           
           i {
             font-size: 1rem;

@@ -58,7 +58,7 @@
 <!-- Subscriptions List -->
 <c-card>
   <c-card-header class="d-flex justify-content-between align-items-center">
-    <strong>Liste des Abonnements ({{ subscriptions.length }})</strong>
+    <strong>Liste des Abonnements ({{ filteredSubscriptions.length }})</strong>
     <div class="d-flex align-items-center gap-2">
       <span *ngIf="loading" class="spinner-border spinner-border-sm"></span>
       <small class="text-muted">{{ getActiveSubscriptionsCount() }} actifs</small>
@@ -73,7 +73,7 @@
     </div>
 
     <!-- Empty state -->
-    <div *ngIf="!loading && subscriptions.length === 0" class="text-center py-5">
+    <div *ngIf="!loading && filteredSubscriptions.length === 0" class="text-center py-5">
       <svg cIcon name="cil-credit-card" size="3xl" class="text-muted mb-3"></svg>
       <h5>Aucun abonnement trouvé</h5>
       <p class="text-muted">Commencez par créer votre premier abonnement.</p>
@@ -84,7 +84,7 @@
     </div>
 
     <!-- Subscriptions table -->
-    <div class="table-responsive" *ngIf="subscriptions.length > 0">
+    <div class="table-responsive" *ngIf="filteredSubscriptions.length > 0">
       <table class="table table-striped table-bordered">
         <thead style="background-color: #f8f9fa !important;">
           <tr>
@@ -97,7 +97,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let subscription of subscriptions" 
+          <tr *ngFor="let subscription of filteredSubscriptions" 
               [class.table-warning]="isExpiringSoon(subscription.end_date)"
               [class.table-danger]="isExpired(subscription.end_date)">
             <td>
@@ -414,7 +414,7 @@
     <button 
       type="button" 
       class="btn btn-danger" 
-      (click)="confirmDelete()"
+      (click)="confirmDelete(subscriptionToDelete!)"
       [disabled]="loading">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       Supprimer

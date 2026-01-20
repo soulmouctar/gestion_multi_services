@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { SuperAdminGuard } from './core/guards/auth.guard';
 import { SubscriptionGuard } from './core/guards/auth.guard';
+import { NoAuthGuard } from './core/guards/no-auth.guard';
 
 export const routes: Routes = [
   {
@@ -24,9 +25,9 @@ export const routes: Routes = [
         canActivate: [SuperAdminGuard],
         children: [
           {
-            path: 'tenants',
+            path: 'organisations',
             loadComponent: () => import('./views/admin/tenants/tenants.component').then(m => m.TenantsComponent),
-            title: 'Gestion des Tenants'
+            title: 'Gestion des Organisations'
           },
           {
             path: 'modules',
@@ -52,6 +53,11 @@ export const routes: Routes = [
             path: 'users',
             loadComponent: () => import('./views/admin/users/users.component').then(m => m.UsersComponent),
             title: 'Gestion des Utilisateurs'
+          },
+          {
+            path: 'roles',
+            loadComponent: () => import('./views/admin/roles/roles.component').then(m => m.RolesComponent),
+            title: 'Gestion des Rôles et Permissions'
           }
         ]
       },
@@ -96,6 +102,11 @@ export const routes: Routes = [
         path: 'settings',
         loadComponent: () => import('./views/settings/settings.component').then(m => m.SettingsComponent),
         title: 'Paramètres'
+      },
+      {
+        path: 'organisation',
+        loadChildren: () => import('./views/organisation/organisation.module').then(m => m.OrganisationModule),
+        title: 'Organisation'
       }
     ]
   },
@@ -118,7 +129,7 @@ export const routes: Routes = [
     redirectTo: 'auth/subscription-expired',
     pathMatch: 'full'
   },
-    {
+  {
     path: 'unauthorized',
     loadComponent: () => import('./views/errors/unauthorized.component').then(m => m.UnauthorizedComponent),
     title: 'Non Autorisé'

@@ -12,6 +12,9 @@ import {
   SpinnerModule
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
+import { SubscriptionService } from '../../../core/services/subscription.service';
+import Swal from 'sweetalert2';
+import { AlertService } from '../../../core/services/alert.service';
 
 export interface SubscriptionPlan {
   id: number;
@@ -83,7 +86,9 @@ export class SubscriptionPlansComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private subscriptionService: SubscriptionService,
+    private alertService: AlertService
   ) {
     this.initializeForms();
   }
@@ -115,61 +120,28 @@ export class SubscriptionPlansComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    // Simulate API call - replace with actual service
-    setTimeout(() => {
-      this.plans = [
-        {
-          id: 1,
-          name: 'Plan Starter',
-          duration_months: 1,
-          price: 29.99,
-          monthly_price: 29.99,
-          description: 'Parfait pour les petites entreprises',
-          features: ['Gestion multi-utilisateurs', 'Sauvegarde automatique'],
-          is_active: true,
-          max_users: 5,
-          max_modules: 3
-        },
-        {
-          id: 2,
-          name: 'Plan Business',
-          duration_months: 12,
-          price: 299.99,
-          monthly_price: 24.99,
-          description: 'Solution complète pour entreprises en croissance',
-          features: ['Gestion multi-utilisateurs', 'Sauvegarde automatique', 'Support prioritaire', 'Rapports avancés'],
-          is_active: true,
-          max_users: 25,
-          max_modules: 8
-        },
-        {
-          id: 3,
-          name: 'Plan Enterprise',
-          duration_months: 12,
-          price: 599.99,
-          monthly_price: 49.99,
-          description: 'Solution premium pour grandes entreprises',
-          features: ['Gestion multi-utilisateurs', 'Sauvegarde automatique', 'Support prioritaire', 'Rapports avancés', 'API complète', 'Modules illimités'],
-          is_active: true,
-          max_users: undefined, // Illimité
-          max_modules: undefined // Illimité
-        },
-        {
-          id: 4,
-          name: 'Plan Test',
-          duration_months: 3,
-          price: 59.99,
-          monthly_price: 19.99,
-          description: 'Plan de test temporaire',
-          features: ['Gestion multi-utilisateurs'],
-          is_active: false,
-          max_users: 10,
-          max_modules: 5
-        }
-      ];
-      this.loading = false;
-      this.cdr.detectChanges();
-    }, 1000);
+    this.subscriptionService.getSubscriptionPlans().subscribe({
+      next: (response: any) => {
+        const rawPlans = response.data?.data || response.data || [];
+        // Ensure each plan has required properties with defaults
+        this.plans = rawPlans.map((plan: any) => ({
+          ...plan,
+          features: plan.features || [],
+          max_users: plan.max_users || null,
+          monthly_price: plan.monthly_price || plan.price || 0,
+          yearly_price: plan.yearly_price || (plan.price * 12) || 0
+        }));
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading plans:', error);
+        this.plans = [];
+        this.showErrorMessage('Erreur lors du chargement des plans.');
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   // Plan management
@@ -220,36 +192,47 @@ export class SubscriptionPlansComponent implements OnInit {
       this.cdr.detectChanges();
       
       const formData = this.planForm.value;
-      // Calculate monthly price
-      formData.monthly_price = formData.duration_months > 0 ? formData.price / formData.duration_months : formData.price;
       
-      // Simulate API call
-      setTimeout(() => {
-        if (this.editMode && this.selectedPlan) {
-          // Update existing plan
-          const index = this.plans.findIndex(p => p.id === this.selectedPlan!.id);
-          if (index !== -1) {
-            this.plans[index] = {
-              ...this.selectedPlan,
-              ...formData,
-              updated_at: new Date().toISOString()
-            };
+      if (this.editMode && this.selectedPlan) {
+        // Update existing plan
+        this.subscriptionService.updateSubscriptionPlan(this.selectedPlan.id, formData).subscribe({
+          next: (response: any) => {
+            const updatedPlan = response.data;
+            const index = this.plans.findIndex(p => p.id === this.selectedPlan!.id);
+            if (index !== -1) {
+              this.plans[index] = updatedPlan;
+            }
+            this.loading = false;
+            this.closePlanModal();
+            this.showSuccessMessage('Plan modifié avec succès!');
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Error updating plan:', error);
+            this.showErrorMessage('Erreur lors de la modification du plan.');
+            this.loading = false;
+            this.cdr.detectChanges();
           }
-        } else {
-          // Create new plan
-          const newPlan: SubscriptionPlan = {
-            id: Math.max(...this.plans.map(p => p.id)) + 1,
-            ...formData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-          this.plans.unshift(newPlan);
-        }
-        
-        this.loading = false;
-        this.closePlanModal();
-        this.cdr.detectChanges();
-      }, 1500);
+        });
+      } else {
+        // Create new plan
+        this.subscriptionService.createSubscriptionPlan(formData).subscribe({
+          next: (response: any) => {
+            const newPlan = response.data;
+            this.plans.unshift(newPlan);
+            this.loading = false;
+            this.closePlanModal();
+            this.showSuccessMessage('Plan créé avec succès!');
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Error creating plan:', error);
+            this.showErrorMessage('Erreur lors de la création du plan.');
+            this.loading = false;
+            this.cdr.detectChanges();
+          }
+        });
+      }
     }
   }
 
@@ -269,13 +252,21 @@ export class SubscriptionPlansComponent implements OnInit {
       this.loading = true;
       this.cdr.detectChanges();
       
-      // Simulate API call
-      setTimeout(() => {
-        this.plans = this.plans.filter(p => p.id !== this.planToDelete!.id);
-        this.loading = false;
-        this.closeDeleteModal();
-        this.cdr.detectChanges();
-      }, 1000);
+      this.subscriptionService.deleteSubscriptionPlan(this.planToDelete.id).subscribe({
+        next: () => {
+          this.plans = this.plans.filter(p => p.id !== this.planToDelete!.id);
+          this.loading = false;
+          this.closeDeleteModal();
+          this.showSuccessMessage('Plan supprimé avec succès!');
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error deleting plan:', error);
+          this.showErrorMessage('Erreur lors de la suppression du plan.');
+          this.loading = false;
+          this.cdr.detectChanges();
+        }
+      });
     }
   }
 
@@ -284,13 +275,26 @@ export class SubscriptionPlansComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    // Simulate API call
-    setTimeout(() => {
-      plan.is_active = !plan.is_active;
-      plan.updated_at = new Date().toISOString();
-      this.loading = false;
-      this.cdr.detectChanges();
-    }, 500);
+    const updatedData = { is_active: !plan.is_active };
+    
+    this.subscriptionService.updateSubscriptionPlan(plan.id, updatedData).subscribe({
+      next: (response: any) => {
+        const updatedPlan = response.data;
+        const index = this.plans.findIndex(p => p.id === plan.id);
+        if (index !== -1) {
+          this.plans[index] = updatedPlan;
+        }
+        this.loading = false;
+        this.showSuccessMessage(`Plan ${updatedPlan.is_active ? 'activé' : 'désactivé'} avec succès!`);
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error toggling plan status:', error);
+        this.showErrorMessage('Erreur lors du changement de statut du plan.');
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   // Utility methods
@@ -309,9 +313,9 @@ export class SubscriptionPlansComponent implements OnInit {
   }
 
   formatPrice(price: number): string {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat('fr-GN', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'GNF'
     }).format(price);
   }
 
@@ -362,5 +366,14 @@ export class SubscriptionPlansComponent implements OnInit {
 
   getActivePlansCount(): number {
     return this.plans.filter(p => p.is_active).length;
+  }
+
+  // Message helpers
+  showSuccessMessage(message: string): void {
+    this.alertService.showSuccess('Succès!', message);
+  }
+
+  showErrorMessage(message: string): void {
+    this.alertService.showError('Erreur!', message);
   }
 }

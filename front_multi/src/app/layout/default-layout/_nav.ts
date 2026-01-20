@@ -1,4 +1,18 @@
 import { INavData } from '@coreui/angular';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { NavigationService } from '../../core/services/navigation.service';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class NavService {
+  private navigationService = inject(NavigationService);
+
+  getNavItems(): Observable<INavData[]> {
+    return this.navigationService.getNavigationItems();
+  }
+}
 
 export const navItems: INavData[] = [
   {
@@ -68,6 +82,21 @@ export const navItems: INavData[] = [
     name: 'Gestion des Abonnements',
     url: '/admin/subscriptions',
     iconComponent: { name: 'cilCreditCard' }
+  },
+  {
+    name: 'Plans d\'Abonnement',
+    url: '/admin/subscription-plans',
+    iconComponent: { name: 'cilList' }
+  },
+  {
+    name: 'Gestion des Utilisateurs',
+    url: '/admin/users',
+    iconComponent: { name: 'cilPeople' }
+  },
+  {
+    name: 'Rôles & Permissions',
+    url: '/admin/roles',
+    iconComponent: { name: 'cilShieldAlt' }
   },
   {
     name: 'Statistiques Globales',

@@ -8,6 +8,8 @@ export interface SubscriptionPlan {
   name: string;
   duration_months: number;
   price: number;
+  features: string[];
+  is_active: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -18,8 +20,13 @@ export interface Subscription {
   plan_id: number;
   start_date: string;
   end_date: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'ILLIMITY';
-  tenant?: any;
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'SUSPENDED';
+  auto_renew: boolean;
+  tenant?: {
+    id: number;
+    name: string;
+    domain: string;
+  };
   plan?: SubscriptionPlan;
   payments?: SubscriptionPayment[];
   created_at?: string;
@@ -54,7 +61,7 @@ export class SubscriptionService {
 
   // Subscription Plans
   getSubscriptionPlans(): Observable<ApiResponse<SubscriptionPlan[]>> {
-    return this.http.get<ApiResponse<SubscriptionPlan[]>>(`${this.API_URL}/subscription-plans`);
+    return this.http.get<ApiResponse<SubscriptionPlan[]>>(`${this.API_URL}/subscription-plans-public`);
   }
 
   getSubscriptionPlan(id: number): Observable<ApiResponse<SubscriptionPlan>> {
@@ -75,7 +82,7 @@ export class SubscriptionService {
 
   // Subscriptions
   getSubscriptions(tenantId?: number): Observable<ApiResponse<Subscription[]>> {
-    const url = tenantId ? `${this.API_URL}/subscriptions?tenant_id=${tenantId}` : `${this.API_URL}/subscriptions`;
+    const url = tenantId ? `${this.API_URL}/subscriptions-public?tenant_id=${tenantId}` : `${this.API_URL}/subscriptions-public`;
     return this.http.get<ApiResponse<Subscription[]>>(url);
   }
 

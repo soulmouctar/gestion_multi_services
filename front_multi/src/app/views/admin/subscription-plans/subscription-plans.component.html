@@ -17,29 +17,25 @@
 <c-card class="mb-4">
   <c-card-body>
     <form [formGroup]="filterForm" class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Rechercher</label>
-        <input 
-          type="text" 
-          class="form-control" 
-          formControlName="search"
-          placeholder="Nom ou description du plan..."
-          (input)="applyFilters()">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Statut</label>
-        <select class="form-select" formControlName="status" (change)="applyFilters()">
-          <option value="ALL">Tous les statuts</option>
-          <option value="ACTIVE">Actifs</option>
-          <option value="INACTIVE">Inactifs</option>
+      <div class="d-flex gap-3">
+        <div class="input-group shadow-sm" style="width: 320px;">
+          <span class="input-group-text bg-light border-end-0">
+            <i class="fas fa-search text-muted"></i>
+          </span>
+          <input 
+            type="text" 
+            class="form-control border-start-0" 
+            placeholder="Rechercher un plan..."
+            formControlName="search"
+            (input)="applyFilters()">
+        </div>
+        <select class="form-select shadow-sm" style="width: 160px;" formControlName="status" (change)="applyFilters()">
+          <option value="ALL">📋 Tous</option>
+          <option value="ACTIVE">✅ Actifs</option>
+          <option value="INACTIVE">❌ Inactifs</option>
         </select>
-      </div>
-      <div class="col-md-2 d-flex align-items-end">
-        <button 
-          type="button" 
-          class="btn btn-outline-secondary w-100"
-          (click)="clearFilters()">
-          Effacer
+        <button type="button" class="btn btn-outline-secondary shadow-sm" (click)="clearFilters()">
+          <i class="fas fa-times me-1"></i>Effacer
         </button>
       </div>
     </form>
@@ -47,12 +43,17 @@
 </c-card>
 
 <!-- Plans List -->
-<c-card>
-  <c-card-header class="d-flex justify-content-between align-items-center">
-    <strong>Liste des Plans ({{ plans.length }})</strong>
-    <div class="d-flex align-items-center gap-2">
-      <span *ngIf="loading" class="spinner-border spinner-border-sm"></span>
-      <small class="text-muted">{{ getActivePlansCount() }} actifs</small>
+<c-card class="mb-4 shadow-sm border-0">
+  <c-card-header class="bg-gradient-primary text-white">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h4 class="mb-0 text-white">💎 Plans d'Abonnement</h4>
+        <small class="text-white-50">Créez et gérez vos offres d'abonnement</small>
+      </div>
+      <div class="d-flex gap-2">
+        <span class="badge bg-light text-primary fw-bold">{{ plans.length }} plans</span>
+        <span class="badge bg-success fw-bold">{{ getActivePlansCount() }} actifs</span>
+      </div>
     </div>
   </c-card-header>
   
@@ -75,74 +76,90 @@
     </div>
 
     <!-- Plans table -->
-    <div class="table-responsive" *ngIf="plans.length > 0">
-      <table class="table table-striped table-bordered">
-        <thead style="background-color: #f8f9fa !important;">
+    <div class="table-responsive shadow-sm rounded">
+      <table class="table table-hover mb-0">
+        <thead class="table-dark">
           <tr>
-            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Plan</th>
-            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Durée</th>
-            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Prix</th>
-            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Fonctionnalités</th>
-            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Limites</th>
-            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Statut</th>
-            <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Actions</th>
+            <th class="border-0"><i class="fas fa-tag me-2"></i>Plan</th>
+            <th class="border-0"><i class="fas fa-clock me-2"></i>Durée</th>
+            <th class="border-0"><i class="fas fa-euro-sign me-2"></i>Prix</th>
+            <th class="border-0"><i class="fas fa-calendar me-2"></i>Prix/mois</th>
+            <th class="border-0"><i class="fas fa-star me-2"></i>Fonctionnalités</th>
+            <th class="border-0"><i class="fas fa-users me-2"></i>Limites</th>
+            <th class="border-0"><i class="fas fa-toggle-on me-2"></i>Statut</th>
+            <th class="border-0"><i class="fas fa-cogs me-2"></i>Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let plan of plans">
+          <tr *ngFor="let plan of plans" class="align-middle">
             <td>
-              <div>
-                <strong>{{ plan.name }}</strong>
-                <br>
-                <small class="text-muted">{{ plan.description || 'Aucune description' }}</small>
+              <div class="d-flex align-items-center">
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                  <i class="fas fa-gem text-white"></i>
+                </div>
+                <div>
+                  <strong class="text-dark">{{ plan.name }}</strong>
+                  <div class="text-muted small" *ngIf="plan.description">
+                    {{ plan.description }}
+                  </div>
+                </div>
               </div>
             </td>
             <td>
-              <c-badge color="info">{{ getDurationText(plan.duration_months) }}</c-badge>
+              <span class="badge bg-info text-dark fw-normal px-3 py-2">
+                {{ plan.duration_months }} mois
+              </span>
             </td>
             <td>
-              <div>
-                <strong class="text-success">{{ formatPrice(plan.price) }}</strong>
-                <br>
-                <small class="text-muted">
-                  <c-badge [color]="getPriceBadgeColor(plan.monthly_price)">
-                    {{ formatPrice(plan.monthly_price) }}/mois
-                  </c-badge>
-                </small>
-              </div>
+              <span class="fw-bold text-success fs-6">
+                {{ plan.price | currency:'GNF':'symbol':'1.0-0' }}
+              </span>
+            </td>
+            <td>
+              <span class="text-primary fw-semibold">
+                {{ plan.monthly_price | currency:'GNF':'symbol':'1.0-0' }}
+              </span>
             </td>
             <td>
               <div class="d-flex flex-wrap gap-1">
-                <c-badge 
-                  *ngFor="let feature of plan.features.slice(0, 3)" 
-                  color="secondary"
-                  class="text-capitalize">
-                  {{ feature }}
-                </c-badge>
-                <c-badge 
-                  *ngIf="plan.features.length > 3" 
-                  color="light"
-                  class="text-muted">
-                  +{{ plan.features.length - 3 }}
-                </c-badge>
+                <span 
+                  *ngFor="let feature of plan.features || []; let i = index" 
+                  class="badge bg-light text-dark border small"
+                  [class.d-none]="i >= 2"
+                  [title]="feature">
+                  <i class="fas fa-check text-success me-1"></i>{{ feature }}
+                </span>
+                <span *ngIf="plan.features && plan.features.length > 2" class="badge bg-primary small">
+                  +{{ plan.features.length - 2 }} autres
+                </span>
               </div>
             </td>
             <td>
-              <div>
-                <small class="d-block">
-                  <strong>Utilisateurs:</strong> 
-                  {{ plan.max_users ? plan.max_users : 'Illimité' }}
-                </small>
-                <small class="d-block">
-                  <strong>Modules:</strong> 
-                  {{ plan.max_modules ? plan.max_modules : 'Illimité' }}
-                </small>
+              <div class="small">
+                <div class="mb-1">
+                  <i class="fas fa-users text-primary me-1"></i>
+                  <span class="fw-semibold">{{ plan.max_users || '∞' }}</span>
+                  <span class="text-muted">utilisateurs</span>
+                </div>
+                <div>
+                  <i class="fas fa-cube text-info me-1"></i>
+                  <span class="fw-semibold">{{ plan.max_modules || '∞' }}</span>
+                  <span class="text-muted">modules</span>
+                </div>
               </div>
             </td>
             <td>
-              <c-badge [color]="getStatusBadgeColor(plan.is_active)">
-                {{ getStatusText(plan.is_active) }}
-              </c-badge>
+              <div class="form-check form-switch">
+                <input 
+                  class="form-check-input" 
+                  type="checkbox" 
+                  [checked]="plan.is_active"
+                  (change)="togglePlanStatus(plan)"
+                  [disabled]="loading">
+                <label class="form-check-label fw-semibold" [class.text-success]="plan.is_active" [class.text-muted]="!plan.is_active">
+                  {{ plan.is_active ? 'Actif' : 'Inactif' }}
+                </label>
+              </div>
             </td>
             <td>
               <div class="d-flex gap-1">

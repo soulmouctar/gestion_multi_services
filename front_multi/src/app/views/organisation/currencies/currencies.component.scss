@@ -1,0 +1,67 @@
+.currency-table {
+  .currency-code {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+  }
+
+  .currency-symbol {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: var(--cui-success);
+  }
+
+  .exchange-rate {
+    font-family: 'Courier New', monospace;
+  }
+}
+
+.common-currencies {
+  .currency-btn {
+    transition: all 0.2s ease-in-out;
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+.form-section {
+  border-left: 3px solid var(--cui-primary);
+  padding-left: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.currency-preview {
+  background: var(--cui-light);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-top: 1rem;
+  
+  .preview-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.action-buttons {
+  .btn {
+    transition: all 0.2s ease-in-out;
+    
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+}

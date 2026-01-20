@@ -1,0 +1,243 @@
+<c-row>
+  <c-col xs="12">
+    <c-card class="mb-4">
+      <c-card-header class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong><svg cIcon name="cilBuilding" class="me-2"></svg>Informations de l'Organisation</strong>
+          <small class="text-muted ms-2">Gérez les informations de votre organisation</small>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <!-- Sélecteur d'organisation pour SUPER_ADMIN -->
+          <div *ngIf="canSelectOrganisation && availableOrganisations.length > 1" class="organisation-selector">
+            <label class="form-label mb-1 small">Organisation :</label>
+            <select 
+              class="form-select form-select-sm" 
+              [value]="selectedOrganisation?.id || ''" 
+              (change)="onOrganisationSelectChange($event)"
+              style="min-width: 200px;">
+              <option value="" disabled>Sélectionner une organisation</option>
+              <option *ngFor="let org of availableOrganisations" [value]="org.id">
+                {{ org.name }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Affichage de l'organisation actuelle pour ADMIN -->
+          <div *ngIf="!canSelectOrganisation && selectedOrganisation" class="current-organisation">
+            <small class="text-muted">Organisation :</small>
+            <strong class="ms-1">{{ selectedOrganisation.name }}</strong>
+          </div>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <div *ngIf="loading" class="text-center py-4">
+          <c-spinner></c-spinner>
+          <p class="text-muted mt-2">Chargement des informations...</p>
+        </div>
+
+        <form [formGroup]="companyForm" (ngSubmit)="onSubmit()" *ngIf="!loading">
+          <c-row>
+            <!-- Informations de base -->
+            <c-col md="6">
+              <div class="mb-3">
+                <label cFormLabel for="name">Nom de l'entreprise *</label>
+                <input
+                  cFormControl
+                  type="text"
+                  id="name"
+                  formControlName="name"
+                  placeholder="Nom de votre entreprise"
+                  [class.is-invalid]="f['name'].invalid && f['name'].touched"
+                />
+                <div *ngIf="f['name'].invalid && f['name'].touched" class="invalid-feedback">
+                  <div *ngIf="f['name'].errors?.['required']">Le nom de l'entreprise est requis</div>
+                  <div *ngIf="f['name'].errors?.['minlength']">Le nom doit contenir au moins 2 caractères</div>
+                </div>
+              </div>
+            </c-col>
+
+            <c-col md="6">
+              <div class="mb-3">
+                <label cFormLabel for="email">Email *</label>
+                <input
+                  cFormControl
+                  type="email"
+                  id="email"
+                  formControlName="email"
+                  placeholder="contact@entreprise.com"
+                  [class.is-invalid]="f['email'].invalid && f['email'].touched"
+                />
+                <div *ngIf="f['email'].invalid && f['email'].touched" class="invalid-feedback">
+                  <div *ngIf="f['email'].errors?.['required']">L'email est requis</div>
+                  <div *ngIf="f['email'].errors?.['email']">Format d'email invalide</div>
+                </div>
+              </div>
+            </c-col>
+
+            <c-col md="6">
+              <div class="mb-3">
+                <label cFormLabel for="phone">Téléphone *</label>
+                <input
+                  cFormControl
+                  type="tel"
+                  id="phone"
+                  formControlName="phone"
+                  placeholder="+33 1 23 45 67 89"
+                  [class.is-invalid]="f['phone'].invalid && f['phone'].touched"
+                />
+                <div *ngIf="f['phone'].invalid && f['phone'].touched" class="invalid-feedback">
+                  Le téléphone est requis
+                </div>
+              </div>
+            </c-col>
+
+            <c-col md="6">
+              <div class="mb-3">
+                <label cFormLabel for="website">Site web</label>
+                <input
+                  cFormControl
+                  type="url"
+                  id="website"
+                  formControlName="website"
+                  placeholder="https://www.entreprise.com"
+                />
+              </div>
+            </c-col>
+
+            <!-- Adresse -->
+            <c-col xs="12">
+              <h5 class="mt-4 mb-3">
+                <svg cIcon name="cilLocationPin" class="me-2"></svg>Adresse
+              </h5>
+            </c-col>
+
+            <c-col xs="12">
+              <div class="mb-3">
+                <label cFormLabel for="address">Adresse</label>
+                <input
+                  cFormControl
+                  type="text"
+                  id="address"
+                  formControlName="address"
+                  placeholder="123 Rue de la Paix"
+                />
+              </div>
+            </c-col>
+
+            <c-col md="4">
+              <div class="mb-3">
+                <label cFormLabel for="city">Ville</label>
+                <input
+                  cFormControl
+                  type="text"
+                  id="city"
+                  formControlName="city"
+                  placeholder="Paris"
+                />
+              </div>
+            </c-col>
+
+            <c-col md="4">
+              <div class="mb-3">
+                <label cFormLabel for="postal_code">Code postal</label>
+                <input
+                  cFormControl
+                  type="text"
+                  id="postal_code"
+                  formControlName="postal_code"
+                  placeholder="75001"
+                />
+              </div>
+            </c-col>
+
+            <c-col md="4">
+              <div class="mb-3">
+                <label cFormLabel for="country">Pays</label>
+                <input
+                  cFormControl
+                  type="text"
+                  id="country"
+                  formControlName="country"
+                  placeholder="France"
+                />
+              </div>
+            </c-col>
+
+            <!-- Informations légales -->
+            <c-col xs="12">
+              <h5 class="mt-4 mb-3">
+                <svg cIcon name="cilDescription" class="me-2"></svg>Informations légales
+              </h5>
+            </c-col>
+
+            <c-col md="6">
+              <div class="mb-3">
+                <label cFormLabel for="tax_number">Numéro de TVA</label>
+                <input
+                  cFormControl
+                  type="text"
+                  id="tax_number"
+                  formControlName="tax_number"
+                  placeholder="FR12345678901"
+                />
+              </div>
+            </c-col>
+
+            <c-col md="6">
+              <div class="mb-3">
+                <label cFormLabel for="registration_number">SIRET</label>
+                <input
+                  cFormControl
+                  type="text"
+                  id="registration_number"
+                  formControlName="registration_number"
+                  placeholder="12345678901234"
+                />
+              </div>
+            </c-col>
+
+            <c-col xs="12">
+              <div class="mb-3">
+                <label cFormLabel for="description">Description</label>
+                <textarea
+                  cFormControl
+                  id="description"
+                  formControlName="description"
+                  rows="3"
+                  placeholder="Description de votre entreprise..."
+                ></textarea>
+              </div>
+            </c-col>
+
+            <!-- Actions -->
+            <c-col xs="12">
+              <div class="d-flex justify-content-end gap-2 mt-4">
+                <button
+                  type="button"
+                  cButton
+                  color="secondary"
+                  variant="outline"
+                  (click)="loadOrganisationInfo()"
+                  [disabled]="saving"
+                >
+                  <svg cIcon name="cilReload" class="me-1"></svg>
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  cButton
+                  color="primary"
+                  [disabled]="companyForm.invalid || saving"
+                >
+                  <c-spinner *ngIf="saving" size="sm" class="me-2"></c-spinner>
+                  <svg *ngIf="!saving" cIcon name="cilCheckAlt" class="me-1"></svg>
+                  {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+                </button>
+              </div>
+            </c-col>
+          </c-row>
+        </form>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

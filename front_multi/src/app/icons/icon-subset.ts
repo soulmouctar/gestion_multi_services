@@ -33,6 +33,7 @@ import {
   cilChart,
   cilChartPie,
   cilCheck,
+  cilChevronBottom,
   cilChevronLeft,
   cilChevronRight,
   cilCloudDownload,
@@ -74,6 +75,7 @@ import {
   cilPen,
   cilPencil,
   cilPeople,
+  cilPlus,
   cilPrint,
   cilPuzzle,
   cilReportSlash,
@@ -82,6 +84,7 @@ import {
   cilShare,
   cilShareAll,
   cilShareBoxed,
+  cilShieldAlt,
   cilSpeech,
   cilSpeedometer,
   cilSpreadsheet,
@@ -94,7 +97,8 @@ import {
   cilUser,
   cilUserFemale,
   cilUserFollow,
-  cilUserUnfollow
+  cilUserUnfollow,
+  cilWarning
 } from '@coreui/icons';
 
 import { signet } from './signet';
@@ -135,6 +139,7 @@ export const iconSubset = {
   cilChart,
   cilChartPie,
   cilCheck,
+  cilChevronBottom,
   cilChevronLeft,
   cilChevronRight,
   cilCloudDownload,
@@ -176,6 +181,7 @@ export const iconSubset = {
   cilPen,
   cilPencil,
   cilPeople,
+  cilPlus,
   cilPrint,
   cilPuzzle,
   cilReportSlash,
@@ -184,6 +190,7 @@ export const iconSubset = {
   cilShare,
   cilShareAll,
   cilShareBoxed,
+  cilShieldAlt,
   cilSpeech,
   cilSpeedometer,
   cilSpreadsheet,
@@ -197,6 +204,7 @@ export const iconSubset = {
   cilUserFemale,
   cilUserFollow,
   cilUserUnfollow,
+  cilWarning,
   logo,
   signet
 };
@@ -236,6 +244,7 @@ export enum IconSubset {
   cilChart = 'cilChart',
   cilChartPie = 'cilChartPie',
   cilCheck = 'cilCheck',
+  cilChevronBottom = 'cilChevronBottom',
   cilChevronLeft = 'cilChevronLeft',
   cilChevronRight = 'cilChevronRight',
   cilCloudDownload = 'cilCloudDownload',
@@ -277,6 +286,7 @@ export enum IconSubset {
   cilPen = 'cilPen',
   cilPencil = 'cilPencil',
   cilPeople = 'cilPeople',
+  cilPlus = 'cilPlus',
   cilPrint = 'cilPrint',
   cilPuzzle = 'cilPuzzle',
   cilReportSlash = 'cilReportSlash',
@@ -285,6 +295,7 @@ export enum IconSubset {
   cilShare = 'cilShare',
   cilShareAll = 'cilShareAll',
   cilShareBoxed = 'cilShareBoxed',
+  cilShieldAlt = 'cilShieldAlt',
   cilSpeech = 'cilSpeech',
   cilSpeedometer = 'cilSpeedometer',
   cilSpreadsheet = 'cilSpreadsheet',
@@ -298,6 +309,7 @@ export enum IconSubset {
   cilUserFemale = 'cilUserFemale',
   cilUserFollow = 'cilUserFollow',
   cilUserUnfollow = 'cilUserUnfollow',
+  cilWarning = 'cilWarning',
   logo = 'logo',
   signet = 'signet'
 }

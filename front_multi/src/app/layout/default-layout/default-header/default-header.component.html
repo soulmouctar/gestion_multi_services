@@ -17,16 +17,16 @@
       </c-nav-item>
       
       <!-- Modules Navigation Dropdown -->
-      <c-dropdown variant="nav-item" *ngIf="activeModules.length > 0 || loadingModules">
+      <c-dropdown variant="nav-item" *ngIf="shouldShowModulesDropdown()">
         <button cDropdownToggle cNavLink class="d-flex align-items-center">
-          <span *ngIf="loadingModules" class="spinner-border spinner-border-sm me-2"></span>
-          <svg *ngIf="!loadingModules" cIcon name="cilPuzzle" class="me-1"></svg>
+          <span *ngIf="isLoadingModules()" class="spinner-border spinner-border-sm me-2"></span>
+          <svg *ngIf="!isLoadingModules()" cIcon name="cilPuzzle" class="me-1"></svg>
           Modules
           <svg cIcon name="cilChevronBottom" size="sm" class="ms-1"></svg>
         </button>
         <ul cDropdownMenu>
           <!-- Loading state -->
-          <li *ngIf="loadingModules">
+          <li *ngIf="isLoadingModules()">
             <div class="text-center py-3">
               <div class="spinner-border spinner-border-sm text-primary"></div>
               <p class="text-muted small mt-2 mb-0">Chargement des modules...</p>
@@ -34,21 +34,24 @@
           </li>
           
           <!-- Modules list -->
-          <ng-container *ngIf="!loadingModules && activeModules.length > 0">
+          <ng-container *ngIf="!isLoadingModules() && hasActiveModules()">
             <li>
               <h6 cDropdownHeader class="bg-body-secondary text-body-secondary fw-semibold py-2">
                 <svg cIcon name="cilSettings" class="me-2"></svg>
                 Administration
               </h6>
             </li>
-            <li *ngFor="let module of activeModules">
-              <a cDropdownItem [routerLink]="module.route" routerLinkActive="active" class="py-2">
+            <li *ngFor="let module of getActiveModules()">
+              <a cDropdownItem [routerLink]="getModuleRoute(module.code)" routerLinkActive="active" class="py-2">
                 <div class="d-flex align-items-center">
-                  <svg cIcon [name]="module.icon" class="me-2 text-primary"></svg>
+                  <svg cIcon [name]="getModuleIcon(module.code)" class="me-2 text-primary"></svg>
                   <div>
                     <div class="fw-semibold">{{ module.name }}</div>
-                    <small class="text-muted">{{ module.description }}</small>
+                    <small class="text-muted">{{ module.description || 'Module ' + module.code }}</small>
                   </div>
+                  <c-badge color="success" class="ms-auto" *ngIf="module.is_active">
+                    Actif
+                  </c-badge>
                 </div>
               </a>
             </li>
@@ -57,7 +60,7 @@
             </li>
             <li>
               <a cDropdownItem routerLink="/admin/modules" class="text-primary">
-                <svg cIcon name="cilCog" class="me-2"></svg>
+                ⚙️
                 <strong>Gérer les Modules</strong>
               </a>
             </li>
@@ -119,78 +122,62 @@
 
 <ng-template #userDropdown>
   <c-dropdown [popperOptions]="{ placement: 'bottom-start' }" variant="nav-item">
-    <button [caret]="false" cDropdownToggle class="py-0 pe-0" aria-label="Open user menu">
+    <button [caret]="false" cDropdownToggle class="py-0 pe-0 d-flex align-items-center" aria-label="Open user menu">
+      <div class="d-flex align-items-center me-2">
+        <div class="me-3">
+          <div class="fw-semibold text-body">{{ currentUser?.name || 'Utilisateur' }}</div>
+          <small class="text-muted">{{ userRoleTitle }}</small>
+        </div>
+      </div>
       <c-avatar
         shape="rounded-1"
         size="md"
-        src="./assets/images/avatars/8.jpg"
+        [textColor]="userRole === 'SUPER_ADMIN' ? 'danger' : userRole === 'ADMIN' ? 'warning' : 'primary'"
         status="success"
-        textColor="primary"
         alt="User avatar"
-      />
+      >{{ userInitials }}</c-avatar>
     </button>
     <ul cDropdownMenu class="pt-0 w-auto">
       <li>
-        <h6 cDropdownHeader class="bg-body-secondary text-body-secondary fw-semibold py-2 rounded-top">
-          Account
+        <h6 cDropdownHeader class="bg-body-secondary text-body-secondary fw-semibold py-2 rounded-top d-flex align-items-center">
+          <c-avatar
+            shape="rounded-1"
+            size="sm"
+            [textColor]="userRole === 'SUPER_ADMIN' ? 'danger' : userRole === 'ADMIN' ? 'warning' : 'primary'"
+            class="me-2"
+          >{{ userInitials }}</c-avatar>
+          <div>
+            <div class="fw-semibold">{{ currentUser?.name || 'Utilisateur' }}</div>
+            <small class="text-muted">{{ userRoleTitle }}</small>
+          </div>
         </h6>
       </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilBell"></svg>
-          Updates
-          <c-badge class="ms-2 float-end" color="info"> 42</c-badge>
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="/apps/email/inbox">
-          <svg cIcon class="me-2" name="cilEnvelopeOpen"></svg>
-          Messages
-          <c-badge class="ms-2 float-end" color="success">
-            42
-          </c-badge>
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilTask"></svg>
-          Tasks
-          <c-badge class="ms-2 float-end" color="danger"> 42</c-badge>
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilCommentSquare"></svg>
-          Comments
-          <c-badge class="ms-auto" color="warning"> 42</c-badge>
-        </a>
-      </li>
-      <li>
-        <h6 cDropdownHeader class="bg-body-secondary text-body-secondary fw-semibold py-2">
-          Settings
-        </h6>
-      </li>
-      <li></li>
       <li>
         <a cDropdownItem routerLink="/profile">
           <svg cIcon class="me-2" name="cilUser"></svg>
-          Profile
+          Mon Profil
         </a>
       </li>
       <li>
-        <a cDropdownItem routerLink="">
+        <a cDropdownItem routerLink="/settings">
           <svg cIcon class="me-2" name="cilSettings"></svg>
-          Settings
+          Paramètres
+        </a>
+      </li>
+      <li *ngIf="userRole === 'SUPER_ADMIN'">
+        <a cDropdownItem routerLink="/admin/users">
+          <svg cIcon class="me-2" name="cilPeople"></svg>
+          Gestion Utilisateurs
+        </a>
+      </li>
+      <li *ngIf="userRole === 'SUPER_ADMIN'">
+        <a cDropdownItem routerLink="/admin/organisations">
+          <svg cIcon class="me-2" name="cilApplicationsSettings"></svg>
+          Gestion Organisations
         </a>
       </li>
       <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilCreditCard"></svg>
-          Payments
-          <c-badge class="ms-2 float-end" color="secondary">
-            42
-          </c-badge>
-        </a>
+        <hr cDropdownDivider />
       </li>
       <!-- <li>
         <a cDropdownItem routerLink="">

@@ -167,4 +167,9 @@ export class TenantService {
       module_id: moduleId
     });
   }
+
+  // Get all modules from database
+  getModules(): Observable<ApiResponse<any>> {
+    return this.http.get<ApiResponse<any>>(`${this.API_URL}/modules`);
+  }
 }

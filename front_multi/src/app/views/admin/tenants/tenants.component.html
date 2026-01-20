@@ -5,7 +5,7 @@
         <div class="card-header">
           <h4 class="card-title mb-0">
             <i class="cil-building me-2"></i>
-            Gestion des Tenants
+            Gestion des Organisations
           </h4>
         </div>
         <div class="card-body">
@@ -62,15 +62,15 @@
               <div class="card">
                 <div class="card-header">
                   <h5 class="card-title mb-0">
-                    {{ editMode ? 'Modifier le Tenant' : 'Nouveau Tenant' }}
+                    {{ editMode ? 'Modifier l\'Organisation' : 'Nouvelle Organisation' }}
                   </h5>
                 </div>
                 <div class="card-body">
-                  <form [formGroup]="tenantForm" (ngSubmit)="onSubmit()">
+                  <form [formGroup]="organisationForm" (ngSubmit)="onSubmit()">
                     <div class="row">
                       <div class="col-md-6">
                         <div class="mb-3">
-                          <label for="name" class="form-label">Nom du Tenant *</label>
+                          <label for="name" class="form-label">Nom de l\'Organisation *</label>
                           <input 
                             type="text" 
                             class="form-control" 
@@ -157,21 +157,21 @@
             <div class="col-12">
               <div class="card">
                 <div class="card-header">
-                  <h5 class="card-title mb-0">Liste des Tenants</h5>
+                  <h5 class="card-title mb-0">Liste des Organisations</h5>
                 </div>
                 <div class="card-body">
-                  <div *ngIf="loading && tenants.length === 0" class="text-center py-4">
+                  <div *ngIf="loading && organisations.length === 0" class="text-center py-4">
                     <div class="spinner-border" role="status">
                       <span class="visually-hidden">Chargement...</span>
                     </div>
                   </div>
 
-                  <div *ngIf="!loading && tenants.length === 0" class="alert alert-info">
+                  <div *ngIf="!loading && organisations.length === 0" class="alert alert-info">
                     <i class="cil-info-circle me-2"></i>
-                    Aucun tenant trouvé. Créez votre premier tenant ci-dessus.
+                    Aucune organisation trouvée. Créez votre première organisation ci-dessus.
                   </div>
 
-                  <div class="table-responsive" *ngIf="tenants.length > 0">
+                  <div class="table-responsive" *ngIf="organisations.length > 0">
                     <table class="table table-striped table-hover">
                       <thead class="table-light">
                         <tr>
@@ -183,52 +183,52 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <tr *ngFor="let tenant of tenants" 
-                            [class.table-warning]="tenant.subscription_status === 'SUSPENDED'">
+                        <tr *ngFor="let organisation of organisations" 
+                            [class.table-warning]="organisation.subscription_status === 'SUSPENDED'">
                           <td>
                             <div class="d-flex align-items-center">
                               <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                {{ tenant.name.charAt(0).toUpperCase() }}
+                                {{ organisation.name.charAt(0).toUpperCase() }}
                               </div>
                               <div>
-                                <strong>{{ tenant.name }}</strong>
+                                <strong>{{ organisation.name }}</strong>
                                 <br>
-                                <small class="text-muted">ID: {{ tenant.id }}</small>
+                                <small class="text-muted">ID: {{ organisation.id }}</small>
                               </div>
                             </div>
                           </td>
                           <td>
                             <div>
                               <i class="cil-envelope me-1 text-muted"></i>
-                              {{ tenant.email || 'Non spécifié' }}
+                              {{ organisation.email || 'Non spécifié' }}
                             </div>
                             <div>
                               <i class="cil-phone me-1 text-muted"></i>
-                              {{ tenant.phone || 'Non spécifié' }}
+                              {{ organisation.phone || 'Non spécifié' }}
                             </div>
                           </td>
                           <td>
                             <div class="d-flex flex-wrap gap-1">
-                              <span *ngFor="let module of tenant.modules?.slice(0, 3)" 
+                              <span *ngFor="let module of organisation.modules?.slice(0, 3)" 
                                     class="badge bg-light text-dark"
                                     [title]="module.name">
                                 <i [class]="'cil-' + module.icon.toLowerCase() + ' me-1'"></i>
                                 {{ module.name }}
                               </span>
-                              <span *ngIf="tenant.modules && tenant.modules.length > 3" 
+                              <span *ngIf="organisation.modules && organisation.modules.length > 3" 
                                     class="badge bg-secondary"
-                                    title="{{ tenant.modules.length - 3 }} modules supplémentaires">
-                                +{{ tenant.modules.length - 3 }}
+                                    title="{{ organisation.modules.length - 3 }} modules supplémentaires">
+                                +{{ organisation.modules.length - 3 }}
                               </span>
-                              <span *ngIf="!tenant.modules || tenant.modules.length === 0" 
+                              <span *ngIf="!organisation.modules || organisation.modules.length === 0" 
                                     class="text-muted small">
                                 Aucun module
                               </span>
                             </div>
                           </td>
                           <td>
-                            <span class="badge" [class]="getStatusBadgeClass(tenant.subscription_status)">
-                              {{ getStatusText(tenant.subscription_status) }}
+                            <span class="badge" [class]="getStatusBadgeClass(organisation.subscription_status)">
+                              {{ getStatusText(organisation.subscription_status) }}
                             </span>
                           </td>
                           <td>
@@ -236,39 +236,39 @@
                               <button 
                                 type="button" 
                                 class="btn btn-sm btn-outline-primary"
-                                (click)="editTenant(tenant)"
+                                (click)="editOrganisation(organisation)"
                                 [disabled]="loading"
                                 title="Modifier"
                               >
-                                <i class="cil-pencil"></i>
+                                <svg cIcon name="cilPencil"></svg>
                               </button>
                               <button 
                                 type="button" 
                                 class="btn btn-sm btn-outline-info"
-                                (click)="openModuleModal(tenant)"
+                                (click)="openModuleModal(organisation)"
                                 [disabled]="loading"
                                 title="Gérer les modules"
                               >
-                                <i class="cil-layers"></i>
+                                <svg cIcon name="cilLayers"></svg>
                               </button>
                               <button 
                                 type="button" 
                                 class="btn btn-sm"
-                                [class]="tenant.subscription_status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'"
-                                (click)="toggleTenantStatus(tenant)"
+                                [class]="organisation.subscription_status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'"
+                                (click)="toggleOrganisationStatus(organisation)"
                                 [disabled]="loading"
-                                [title]="tenant.subscription_status === 'ACTIVE' ? 'Suspendre' : 'Activer'"
+                                [title]="organisation.subscription_status === 'ACTIVE' ? 'Suspendre' : 'Activer'"
                               >
-                                <i [class]="tenant.subscription_status === 'ACTIVE' ? 'cil-pause' : 'cil-play'"></i>
+                                <svg cIcon [name]="organisation.subscription_status === 'ACTIVE' ? 'cilMediaPause' : 'cilMediaPlay'"></svg>
                               </button>
                               <button 
                                 type="button" 
                                 class="btn btn-sm btn-outline-danger"
-                                (click)="deleteTenant(tenant)"
+                                (click)="deleteOrganisation(organisation)"
                                 [disabled]="loading"
                                 title="Supprimer"
                               >
-                                <i class="cil-trash"></i>
+                                <svg cIcon name="cilTrash"></svg>
                               </button>
                             </div>
                           </td>
@@ -293,7 +293,7 @@
       <div class="modal-header">
         <h5 class="modal-title">
           <i class="cil-layers me-2"></i>
-          Modules pour {{ selectedTenantForModules?.name }}
+          Modules pour {{ selectedOrganisationForModules?.name }}
         </h5>
         <button type="button" class="btn-close" (click)="closeModuleModal()"></button>
       </div>
@@ -317,16 +317,16 @@
               </td>
               <td>
                 <span class="badge" 
-                      [class]="isModuleActive(selectedTenantForModules, module) ? 'bg-success' : 'bg-secondary'">
-                  {{ isModuleActive(selectedTenantForModules, module) ? 'ACTIF' : 'INACTIF' }}
+                      [class]="isModuleActive(selectedOrganisationForModules, module) ? 'bg-success' : 'bg-secondary'">
+                  {{ isModuleActive(selectedOrganisationForModules, module) ? 'ACTIF' : 'INACTIF' }}
                 </span>
               </td>
               <td>
                 <button class="btn btn-sm" 
-                        [class]="isModuleActive(selectedTenantForModules, module) ? 'btn-warning' : 'btn-success'"
-                        (click)="toggleModuleForTenant(selectedTenantForModules, module)"
+                        [class]="isModuleActive(selectedOrganisationForModules, module) ? 'btn-warning' : 'btn-success'"
+                        (click)="toggleModuleForOrganisation(selectedOrganisationForModules, module)"
                         [disabled]="loading">
-                  {{ isModuleActive(selectedTenantForModules, module) ? 'Désactiver' : 'Activer' }}
+                  {{ isModuleActive(selectedOrganisationForModules, module) ? 'Désactiver' : 'Activer' }}
                 </button>
               </td>
             </tr>
@@ -349,10 +349,10 @@
         <button type="button" class="btn-close" (click)="cancelDelete()"></button>
       </div>
       <div class="modal-body">
-        <p>Êtes-vous sûr de vouloir supprimer le tenant "<strong>{{ tenantToDelete?.name }}</strong>" ?</p>
+        <p>Êtes-vous sûr de vouloir supprimer l'organisation "<strong>{{ organisationToDelete?.name }}</strong>" ?</p>
         <p class="text-danger">
           <i class="cil-warning me-2"></i>
-          Cette action est irréversible et affectera toutes les données associées à ce tenant.
+          Cette action est irréversible et affectera toutes les données associées à cette organisation.
         </p>
       </div>
       <div class="modal-footer">

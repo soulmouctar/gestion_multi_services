@@ -1,0 +1,263 @@
+<c-row>
+  <c-col xs="12">
+    <c-card class="mb-4">
+      <c-card-header class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong><svg cIcon name="cilPeople" class="me-2"></svg>Gestion des Utilisateurs</strong>
+          <small class="text-muted ms-2">Gérez les utilisateurs de votre organisation</small>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <!-- Sélecteur d'organisation pour SUPER_ADMIN -->
+          <div *ngIf="canSelectOrganisation && availableOrganisations.length > 1" class="organisation-selector">
+            <label class="form-label mb-1 small">Organisation :</label>
+            <select 
+              class="form-select form-select-sm" 
+              [value]="selectedOrganisation?.id || ''" 
+              (change)="onOrganisationSelectChange($event)"
+              style="min-width: 200px;">
+              <option value="" disabled>Sélectionner une organisation</option>
+              <option *ngFor="let org of availableOrganisations" [value]="org.id">
+                {{ org.name }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Affichage de l'organisation actuelle pour ADMIN -->
+          <div *ngIf="!canSelectOrganisation && selectedOrganisation" class="current-organisation">
+            <small class="text-muted">Organisation :</small>
+            <strong class="ms-1">{{ selectedOrganisation.name }}</strong>
+          </div>
+          
+          <button cButton color="primary" (click)="openModal()" [disabled]="!selectedOrganisation">
+            <svg cIcon name="cilPlus" class="me-1"></svg>
+            Ajouter un utilisateur
+          </button>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <div *ngIf="loading" class="text-center py-4">
+          <c-spinner></c-spinner>
+          <p class="text-muted mt-2">Chargement des utilisateurs...</p>
+        </div>
+
+        <div *ngIf="!loading && !selectedOrganisation" class="text-center py-5">
+          <svg cIcon name="cilBuilding" size="3xl" class="text-muted mb-3"></svg>
+          <h5 class="text-muted">Aucune organisation sélectionnée</h5>
+          <p class="text-muted">Sélectionnez une organisation pour voir ses utilisateurs</p>
+        </div>
+
+        <div *ngIf="!loading && selectedOrganisation && users.length === 0" class="text-center py-5">
+          <svg cIcon name="cilPeople" size="3xl" class="text-muted mb-3"></svg>
+          <h5 class="text-muted">Aucun utilisateur</h5>
+          <p class="text-muted">Ajoutez votre premier utilisateur pour commencer</p>
+          <button cButton color="primary" variant="outline" (click)="openModal()">
+            <svg cIcon name="cilPlus" class="me-1"></svg>
+            Ajouter un utilisateur
+          </button>
+        </div>
+
+        <div *ngIf="!loading && users.length > 0">
+          <table cTable [hover]="true" [responsive]="true">
+            <thead>
+              <tr>
+                <th>Utilisateur</th>
+                <th>Email</th>
+                <th>Rôle</th>
+                <th>Statut</th>
+                <th>Dernière connexion</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let user of users">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                         style="width: 40px; height: 40px;">
+                      {{ user.name.charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <strong>{{ user.name }}</strong>
+                      <br>
+                      <small class="text-muted">ID: {{ user.id }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ user.email }}</td>
+                <td>
+                  <c-badge [color]="getRoleColor(user.role)">
+                    {{ getRoleLabel(user.role) }}
+                  </c-badge>
+                </td>
+                <td>
+                  <c-badge [color]="user.is_active ? 'success' : 'secondary'">
+                    {{ user.is_active ? 'Actif' : 'Inactif' }}
+                  </c-badge>
+                </td>
+                <td>
+                  <span *ngIf="user.last_login">{{ formatDate(user.last_login) }}</span>
+                  <span *ngIf="!user.last_login" class="text-muted">Jamais connecté</span>
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <button
+                      cButton
+                      size="sm"
+                      color="primary"
+                      variant="ghost"
+                      (click)="openModal(user)"
+                      title="Modifier"
+                    >
+                      <svg cIcon name="cilPencil" size="sm"></svg>
+                    </button>
+                    <button
+                      cButton
+                      size="sm"
+                      [color]="user.is_active ? 'warning' : 'success'"
+                      variant="ghost"
+                      (click)="toggleUserStatus(user)"
+                      [title]="user.is_active ? 'Désactiver' : 'Activer'"
+                    >
+                      <svg cIcon [name]="user.is_active ? 'cilMediaPause' : 'cilMediaPlay'" size="sm"></svg>
+                    </button>
+                    <button
+                      cButton
+                      size="sm"
+                      color="danger"
+                      variant="ghost"
+                      (click)="deleteUser(user)"
+                      title="Supprimer"
+                    >
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<!-- Modal pour ajouter/modifier un utilisateur -->
+<c-modal [visible]="showModal" (visibleChange)="showModal = $event" size="lg">
+  <c-modal-header>
+    <h4 cModalTitle>
+      {{ editingUser ? 'Modifier l\'utilisateur' : 'Ajouter un utilisateur' }}
+    </h4>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+      <c-row>
+        <c-col md="6">
+          <div class="mb-3">
+            <label cFormLabel for="name">Nom complet *</label>
+            <input
+              cFormControl
+              type="text"
+              id="name"
+              formControlName="name"
+              placeholder="Nom complet"
+              [class.is-invalid]="f['name'].invalid && f['name'].touched"
+            />
+            <div *ngIf="f['name'].invalid && f['name'].touched" class="invalid-feedback">
+              <div *ngIf="f['name'].errors?.['required']">Le nom est requis</div>
+              <div *ngIf="f['name'].errors?.['minlength']">Le nom doit contenir au moins 2 caractères</div>
+            </div>
+          </div>
+        </c-col>
+        <c-col md="6">
+          <div class="mb-3">
+            <label cFormLabel for="email">Email *</label>
+            <input
+              cFormControl
+              type="email"
+              id="email"
+              formControlName="email"
+              placeholder="email@exemple.com"
+              [class.is-invalid]="f['email'].invalid && f['email'].touched"
+            />
+            <div *ngIf="f['email'].invalid && f['email'].touched" class="invalid-feedback">
+              <div *ngIf="f['email'].errors?.['required']">L'email est requis</div>
+              <div *ngIf="f['email'].errors?.['email']">Format d'email invalide</div>
+            </div>
+          </div>
+        </c-col>
+        <c-col md="6">
+          <div class="mb-3">
+            <label cFormLabel for="role">Rôle *</label>
+            <select cFormSelect id="role" formControlName="role" [class.is-invalid]="f['role'].invalid && f['role'].touched">
+              <option *ngFor="let role of roles" [value]="role.value">
+                {{ role.label }}
+              </option>
+            </select>
+            <div *ngIf="f['role'].invalid && f['role'].touched" class="invalid-feedback">
+              Le rôle est requis
+            </div>
+            <small class="form-text text-muted" *ngIf="f['role'].value">
+                  {{ getRoleDescription(f['role'].value) }}
+            </small>
+          </div>
+        </c-col>
+        <c-col md="6" *ngIf="!editingUser">
+          <div class="mb-3">
+            <label cFormLabel for="password">Mot de passe *</label>
+            <input
+              cFormControl
+              type="password"
+              id="password"
+              formControlName="password"
+              placeholder="Mot de passe"
+              [class.is-invalid]="f['password'].invalid && f['password'].touched"
+            />
+            <div *ngIf="f['password'].invalid && f['password'].touched" class="invalid-feedback">
+              <div *ngIf="f['password'].errors?.['required']">Le mot de passe est requis</div>
+              <div *ngIf="f['password'].errors?.['minlength']">Le mot de passe doit contenir au moins 6 caractères</div>
+            </div>
+          </div>
+        </c-col>
+        <c-col md="6" *ngIf="!editingUser">
+          <div class="mb-3">
+            <label cFormLabel for="password_confirmation">Confirmer le mot de passe *</label>
+            <input
+              cFormControl
+              type="password"
+              id="password_confirmation"
+              formControlName="password_confirmation"
+              placeholder="Confirmer le mot de passe"
+              [class.is-invalid]="f['password_confirmation'].invalid && f['password_confirmation'].touched"
+            />
+            <div *ngIf="f['password_confirmation'].invalid && f['password_confirmation'].touched" class="invalid-feedback">
+              <div *ngIf="f['password_confirmation'].errors?.['required']">La confirmation est requise</div>
+              <div *ngIf="f['password_confirmation'].errors?.['passwordMismatch']">Les mots de passe ne correspondent pas</div>
+            </div>
+          </div>
+        </c-col>
+        <c-col xs="12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="is_active"
+              formControlName="is_active"
+            />
+            <label class="form-check-label" for="is_active">
+              Utilisateur actif
+            </label>
+          </div>
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="closeModal()" [disabled]="saving">
+      Annuler
+    </button>
+    <button cButton color="primary" (click)="onSubmit()" [disabled]="userForm.invalid || saving">
+      <c-spinner *ngIf="saving" size="sm" class="me-2"></c-spinner>
+      {{ saving ? 'Enregistrement...' : (editingUser ? 'Modifier' : 'Ajouter') }}
+    </button>
+  </c-modal-footer>
+</c-modal>

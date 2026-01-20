@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\TaxiController;
 use App\Http\Controllers\Api\TaxiAssignmentController;
 use App\Http\Controllers\Api\RolePermissionController;
+use App\Http\Controllers\Api\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,17 +35,52 @@ use App\Http\Controllers\Api\RolePermissionController;
 |--------------------------------------------------------------------------
 */
 
-// Public routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+// Appliquer le middleware CORS à toutes les routes API
+Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function () {
+
+    // Public routes
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // CRUD Backend pour les tenants - Utilisation du TenantController professionnel
 Route::apiResource('tenants', \App\Http\Controllers\TenantController::class);
 
-// Endpoint public temporaire pour tester les modules
+// Endpoints publics temporaires pour tester
 Route::get('/modules-public', [ModuleController::class, 'index']);
+Route::get('/subscriptions-public', [\App\Http\Controllers\Api\SubscriptionController::class, 'index']);
+Route::get('/subscription-plans-public', [\App\Http\Controllers\Api\SubscriptionPlanController::class, 'index']);
+Route::get('/users-public', [\App\Http\Controllers\Api\UserController::class, 'index']);
+Route::get('/roles-public', [\App\Http\Controllers\Api\RolePermissionController::class, 'indexRoles']);
+Route::get('/permissions-public', [\App\Http\Controllers\Api\RolePermissionController::class, 'indexPermissions']);
+
+// Dashboard endpoints publics temporaires
+Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
+Route::get('/dashboard/activities', [DashboardController::class, 'getRecentActivities']);
+Route::get('/dashboard/subscription-trends', [DashboardController::class, 'getSubscriptionTrends']);
+Route::get('/dashboard/revenue-chart', [DashboardController::class, 'getRevenueChart']);
+Route::get('/dashboard/module-usage', [DashboardController::class, 'getModuleUsage']);
+
+// User module permissions endpoints publics temporaires
+Route::get('/users/{id}/module-permissions-public', [UserController::class, 'getModulePermissions']);
+Route::post('/users/{id}/module-permissions-public', [UserController::class, 'updateModulePermissions']);
+
+// Subscription plans endpoints publics temporaires
+Route::get('/subscription-plans-public', [SubscriptionPlanController::class, 'index']);
+Route::post('/subscription-plans-public', [SubscriptionPlanController::class, 'store']);
+Route::get('/subscription-plans-public/{id}', [SubscriptionPlanController::class, 'show']);
+Route::put('/subscription-plans-public/{id}', [SubscriptionPlanController::class, 'update']);
+Route::delete('/subscription-plans-public/{id}', [SubscriptionPlanController::class, 'destroy']);
+
+// Roles and permissions endpoints publics temporaires
+Route::get('/roles-public', [RolePermissionController::class, 'getRoles']);
+Route::post('/roles-public', [RolePermissionController::class, 'createRole']);
+Route::put('/roles-public/{id}', [RolePermissionController::class, 'updateRole']);
+Route::delete('/roles-public/{id}', [RolePermissionController::class, 'deleteRole']);
+Route::get('/permissions-public', [RolePermissionController::class, 'getPermissions']);
+Route::post('/permissions-public', [RolePermissionController::class, 'createPermission']);
+Route::delete('/permissions-public/{id}', [RolePermissionController::class, 'deletePermission']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -135,4 +171,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('drivers', DriverController::class);
     Route::apiResource('taxis', TaxiController::class);
     Route::apiResource('taxi-assignments', TaxiAssignmentController::class);
-});
+}); // Fin du groupe auth:sanctum
+}); // Fin du groupe CORS

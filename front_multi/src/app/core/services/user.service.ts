@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiResponse } from './tenant.service';
+import { environment } from '../../../environments/environment';
 
 export interface Role {
   id: number;
@@ -29,8 +30,7 @@ export interface UserProfile {
     name: string;
     email: string;
   };
-  roles: Role[];
-  permissions?: Permission[];
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'USER';
   module_permissions?: ModulePermission[];
   created_at: string;
   updated_at: string;
@@ -65,7 +65,7 @@ export interface UpdateUserRequest {
   providedIn: 'root'
 })
 export class UserService {
-  private readonly API_URL = 'http://127.0.0.1:8000/api';
+  private readonly API_URL = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -80,9 +80,7 @@ export class UserService {
   // CRUD Operations
   getUsers(tenantId?: number): Observable<ApiResponse<any>> {
     const params = tenantId ? `?tenant_id=${tenantId}` : '';
-    return this.http.get<ApiResponse<any>>(`${this.API_URL}/users${params}`, {
-      headers: this.getAuthHeaders()
-    });
+    return this.http.get<ApiResponse<any>>(`${this.API_URL}/users-public${params}`);
   }
 
   getUser(id: number): Observable<ApiResponse<UserProfile>> {
@@ -126,30 +124,34 @@ export class UserService {
 
   // Get available roles
   getRoles(): Observable<ApiResponse<Role[]>> {
-    return this.http.get<ApiResponse<Role[]>>(`${this.API_URL}/roles`, {
-      headers: this.getAuthHeaders()
-    });
+    return this.http.get<ApiResponse<Role[]>>(`${this.API_URL}/roles-public`);
   }
 
   // Get available permissions
   getPermissions(): Observable<ApiResponse<Permission[]>> {
-    return this.http.get<ApiResponse<Permission[]>>(`${this.API_URL}/permissions`, {
-      headers: this.getAuthHeaders()
-    });
+    return this.http.get<ApiResponse<Permission[]>>(`${this.API_URL}/permissions-public`);
   }
 
   // Module-based permissions
   getUserModulePermissions(userId: number): Observable<ApiResponse<ModulePermission[]>> {
-    return this.http.get<ApiResponse<ModulePermission[]>>(`${this.API_URL}/users/${userId}/module-permissions`, {
-      headers: this.getAuthHeaders()
-    });
+    return this.http.get<ApiResponse<ModulePermission[]>>(`${this.API_URL}/users/${userId}/module-permissions-public`);
   }
 
   updateUserModulePermissions(userId: number, modulePermissions: ModulePermission[]): Observable<ApiResponse<any>> {
-    return this.http.post<ApiResponse<any>>(`${this.API_URL}/users/${userId}/module-permissions`, 
-      { module_permissions: modulePermissions }, 
-      { headers: this.getAuthHeaders() }
-    );
+    // Ensure is_active is boolean and permissions is array
+    const sanitizedPermissions = modulePermissions.map(module => ({
+      ...module,
+      is_active: Boolean(module.is_active),
+      permissions: Array.isArray(module.permissions) ? module.permissions : []
+    }));
+    
+    const payload = { module_permissions: sanitizedPermissions };
+    
+    // Debug: Log the exact payload being sent
+    console.log('UserService - Sending payload:', JSON.stringify(payload, null, 2));
+    console.log('UserService - URL:', `${this.API_URL}/users/${userId}/module-permissions-public`);
+    
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/users/${userId}/module-permissions-public`, payload);
   }
 
   // Available modules (from tenant component)

@@ -69,7 +69,7 @@ export class DashboardComponent implements OnInit {
         beginAtZero: true,
         ticks: {
           callback: function(value: any) {
-            return '€' + value.toLocaleString();
+            return 'GNF' + value.toLocaleString();
           }
         }
       }
@@ -114,7 +114,7 @@ export class DashboardComponent implements OnInit {
     // Charger les tendances des abonnements
     this.dashboardService.getSubscriptionTrends().subscribe({
       next: (response: ApiResponse<SubscriptionTrend[]>) => {
-        this.subscriptionTrends = response.data;
+        this.subscriptionTrends = response.data || [];
         this.prepareSubscriptionChartData();
       },
       error: (error) => {
@@ -126,7 +126,7 @@ export class DashboardComponent implements OnInit {
     // Charger le graphique des revenus
     this.dashboardService.getRevenueChart().subscribe({
       next: (response: ApiResponse<RevenueChart[]>) => {
-        this.revenueChart = response.data;
+        this.revenueChart = response.data || [];
         this.prepareRevenueChartData();
       },
       error: (error) => {
@@ -239,6 +239,12 @@ export class DashboardComponent implements OnInit {
   }
 
   private prepareSubscriptionChartData(): void {
+    if (!Array.isArray(this.subscriptionTrends)) {
+      console.warn('subscriptionTrends is not an array:', this.subscriptionTrends);
+      this.subscriptionTrends = [];
+      return;
+    }
+
     this.subscriptionChartOptions.data = {
       labels: this.subscriptionTrends.map(t => t.month),
       datasets: [
@@ -268,11 +274,17 @@ export class DashboardComponent implements OnInit {
   }
 
   private prepareRevenueChartData(): void {
+    if (!Array.isArray(this.revenueChart)) {
+      console.warn('revenueChart is not an array:', this.revenueChart);
+      this.revenueChart = [];
+      return;
+    }
+
     this.revenueChartOptions.data = {
       labels: this.revenueChart.map(r => r.month),
       datasets: [
         {
-          label: 'Revenus (€)',
+          label: 'Revenus (GNF)',
           data: this.revenueChart.map(r => r.revenue),
           borderColor: 'rgb(75, 192, 192)',
           backgroundColor: 'rgba(75, 192, 192, 0.2)',

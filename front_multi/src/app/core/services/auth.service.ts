@@ -3,12 +3,13 @@ import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
 import { User, AuthState, ApiResponse } from '../models';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API_URL = 'http://127.0.0.1:8000/api';
+  private readonly API_URL = environment.apiUrl;
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_KEY = 'current_user';
   
@@ -35,24 +36,37 @@ export class AuthService {
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
-        const authState = {
-          user,
-          tenant: user.tenant || null,
-          isAuthenticated: true,
-          token
-        };
-        this.authState.next(authState);
+        // Validation simple des données
+        if (user && user.id && user.email) {
+          const authState = {
+            user,
+            tenant: user.tenant || null,
+            isAuthenticated: true,
+            token
+          };
+          this.authState.next(authState);
+        } else {
+          this.clearAuthData();
+        }
       } catch (error) {
+        console.error('Erreur lors de l\'initialisation de l\'authentification:', error);
         this.clearAuthData();
       }
     }
   }
   
   login(credentials: { email: string; password: string; tenantDomain?: string }): Observable<ApiResponse<AuthState>> {
-    return this.http.post<ApiResponse<AuthState>>(`${this.API_URL}/login`, credentials).pipe(
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/login`, credentials).pipe(
       tap(response => {
         if (response.success && response.data) {
-          this.setAuthState(response.data);
+          // Transform Laravel response to Angular AuthState format
+          const authState: AuthState = {
+            user: response.data.user,
+            tenant: response.data.user?.tenant || null,
+            isAuthenticated: response.data.isAuthenticated || true,
+            token: response.data.token
+          };
+          this.setAuthState(authState);
         }
       }),
       catchError(error => this.handleError(error))
@@ -185,14 +199,17 @@ export class AuthService {
   
   get userRole(): string | null {
     const user = this.authState.value.user;
-    if (!user || !user.roles || user.roles.length === 0) {
+    if (!user || !user.roles || !Array.isArray(user.roles) || user.roles.length === 0) {
       return null;
     }
+    // Laravel Spatie returns roles as array, get the first role name
     return user.roles[0].name;
   }
   
   get isSuperAdmin(): boolean {
-    return this.userRole === 'SUPER_ADMIN';
+    const role = this.userRole;
+    console.log('Current user role:', role);
+    return role === 'SUPER_ADMIN';
   }
   
   get isTenantAdmin(): boolean {
@@ -233,9 +250,13 @@ export class AuthService {
   
   // Private methods
   private setAuthState(authData: AuthState): void {
-    this.authState.next(authData);
-    localStorage.setItem(this.TOKEN_KEY, authData.token || '');
-    localStorage.setItem(this.USER_KEY, JSON.stringify(authData.user));
+    try {
+      this.authState.next(authData);
+      localStorage.setItem(this.TOKEN_KEY, authData.token || '');
+      localStorage.setItem(this.USER_KEY, JSON.stringify(authData.user));
+    } catch (error) {
+      console.error('Error setting auth state:', error);
+    }
   }
   
   private clearAuthData(): void {

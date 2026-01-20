@@ -56,18 +56,34 @@ class AuthController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return $this->sendError('Invalid credentials', [], 401);
+        try {
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                return $this->sendError('Invalid credentials', [], 401);
+            }
+
+            $user = User::where('email', $request->email)->firstOrFail();
+            
+            // Check if user is active
+            if (isset($user->is_active) && !$user->is_active) {
+                return $this->sendError('Account is deactivated', [], 403);
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Load relationships with error handling
+            $userData = $user->load(['tenant', 'roles', 'permissions']);
+
+            return $this->sendResponse([
+                'user' => $userData,
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'isAuthenticated' => true
+            ], 'Login successful');
+            
+        } catch (\Exception $e) {
+            \Log::error('Login error: ' . $e->getMessage());
+            return $this->sendError('Login failed', ['error' => $e->getMessage()], 500);
         }
-
-        $user = User::where('email', $request->email)->firstOrFail();
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return $this->sendResponse([
-            'user' => $user->load('tenant', 'roles', 'permissions'),
-            'token' => $token,
-            'token_type' => 'Bearer',
-        ], 'Login successful');
     }
 
     public function logout(Request $request)

@@ -1,0 +1,387 @@
+<c-row>
+  <c-col xs="12">
+    <c-card class="mb-4">
+      <c-card-header>
+        <strong><svg cIcon name="cilSettings" class="me-2"></svg>Configuration de l'Organisation</strong>
+        <small class="text-muted ms-2">Paramètres généraux de votre organisation</small>
+      </c-card-header>
+      <c-card-body>
+        <div *ngIf="loading" class="text-center py-4">
+          <c-spinner></c-spinner>
+          <p class="text-muted mt-2">Chargement des paramètres...</p>
+        </div>
+
+        <form [formGroup]="settingsForm" (ngSubmit)="onSubmit()" *ngIf="!loading">
+          <c-tabs [activeItemKey]="0">
+            <c-tabs-list>
+              <button cTab [itemKey]="0">
+                <svg cIcon name="cilGlobeAlt" class="me-2"></svg>
+                Général
+              </button>
+              <button cTab [itemKey]="1">
+                <svg cIcon name="cilDescription" class="me-2"></svg>
+                Facturation
+              </button>
+              <button cTab [itemKey]="2">
+                <svg cIcon name="cilBell" class="me-2"></svg>
+                Notifications
+              </button>
+              <button cTab [itemKey]="3">
+                <svg cIcon name="cilShieldAlt" class="me-2"></svg>
+                Sécurité
+              </button>
+              <button cTab [itemKey]="4">
+                <svg cIcon name="cilFolder" class="me-2"></svg>
+                Archivage
+              </button>
+            </c-tabs-list>
+            <c-tabs-content>
+              <!-- Onglet Général -->
+              <c-tab-panel [itemKey]="0" class="p-3">
+                <h5 class="mb-4">
+                  <svg cIcon name="cilGlobeAlt" class="me-2"></svg>Paramètres généraux
+                </h5>
+                <c-row>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="timezone">Fuseau horaire *</label>
+                      <select cFormSelect id="timezone" formControlName="timezone" [class.is-invalid]="f['timezone'].invalid && f['timezone'].touched">
+                        <option *ngFor="let tz of timezones" [value]="tz.value">
+                          {{ tz.label }}
+                        </option>
+                      </select>
+                      <div *ngIf="f['timezone'].invalid && f['timezone'].touched" class="invalid-feedback">
+                        Le fuseau horaire est requis
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="language">Langue *</label>
+                      <select cFormSelect id="language" formControlName="language" [class.is-invalid]="f['language'].invalid && f['language'].touched">
+                        <option *ngFor="let lang of languages" [value]="lang.value">
+                          {{ lang.label }}
+                        </option>
+                      </select>
+                      <div *ngIf="f['language'].invalid && f['language'].touched" class="invalid-feedback">
+                        La langue est requise
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="date_format">Format de date *</label>
+                      <select cFormSelect id="date_format" formControlName="date_format" [class.is-invalid]="f['date_format'].invalid && f['date_format'].touched">
+                        <option *ngFor="let format of dateFormats" [value]="format.value">
+                          {{ format.label }}
+                        </option>
+                      </select>
+                      <div *ngIf="f['date_format'].invalid && f['date_format'].touched" class="invalid-feedback">
+                        Le format de date est requis
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="number_format">Format des nombres *</label>
+                      <select cFormSelect id="number_format" formControlName="number_format" [class.is-invalid]="f['number_format'].invalid && f['number_format'].touched">
+                        <option *ngFor="let format of numberFormats" [value]="format.value">
+                          {{ format.label }}
+                        </option>
+                      </select>
+                      <div *ngIf="f['number_format'].invalid && f['number_format'].touched" class="invalid-feedback">
+                        Le format des nombres est requis
+                      </div>
+                    </div>
+                  </c-col>
+                </c-row>
+              </c-tab-panel>
+
+              <!-- Onglet Facturation -->
+              <c-tab-panel [itemKey]="1" class="p-3">
+                <h5 class="mb-4">
+                  <svg cIcon name="cilDescription" class="me-2"></svg>Paramètres de facturation
+                </h5>
+                <c-row>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="invoice_prefix">Préfixe des factures *</label>
+                      <input
+                        cFormControl
+                        type="text"
+                        id="invoice_prefix"
+                        formControlName="invoice_prefix"
+                        placeholder="INV-"
+                        [class.is-invalid]="f['invoice_prefix'].invalid && f['invoice_prefix'].touched"
+                      />
+                      <div *ngIf="f['invoice_prefix'].invalid && f['invoice_prefix'].touched" class="invalid-feedback">
+                        Le préfixe des factures est requis
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="invoice_counter">Compteur des factures *</label>
+                      <input
+                        cFormControl
+                        type="number"
+                        id="invoice_counter"
+                        formControlName="invoice_counter"
+                        min="1"
+                        [class.is-invalid]="f['invoice_counter'].invalid && f['invoice_counter'].touched"
+                      />
+                      <div *ngIf="f['invoice_counter'].invalid && f['invoice_counter'].touched" class="invalid-feedback">
+                        <div *ngIf="f['invoice_counter'].errors?.['required']">Le compteur est requis</div>
+                        <div *ngIf="f['invoice_counter'].errors?.['min']">Le compteur doit être supérieur à 0</div>
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="quote_prefix">Préfixe des devis *</label>
+                      <input
+                        cFormControl
+                        type="text"
+                        id="quote_prefix"
+                        formControlName="quote_prefix"
+                        placeholder="DEV-"
+                        [class.is-invalid]="f['quote_prefix'].invalid && f['quote_prefix'].touched"
+                      />
+                      <div *ngIf="f['quote_prefix'].invalid && f['quote_prefix'].touched" class="invalid-feedback">
+                        Le préfixe des devis est requis
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="quote_counter">Compteur des devis *</label>
+                      <input
+                        cFormControl
+                        type="number"
+                        id="quote_counter"
+                        formControlName="quote_counter"
+                        min="1"
+                        [class.is-invalid]="f['quote_counter'].invalid && f['quote_counter'].touched"
+                      />
+                      <div *ngIf="f['quote_counter'].invalid && f['quote_counter'].touched" class="invalid-feedback">
+                        <div *ngIf="f['quote_counter'].errors?.['required']">Le compteur est requis</div>
+                        <div *ngIf="f['quote_counter'].errors?.['min']">Le compteur doit être supérieur à 0</div>
+                      </div>
+                    </div>
+                  </c-col>
+                </c-row>
+              </c-tab-panel>
+
+              <!-- Onglet Notifications -->
+              <c-tab-panel [itemKey]="2" class="p-3">
+                <h5 class="mb-4">
+                  <svg cIcon name="cilBell" class="me-2"></svg>Paramètres de notification
+                </h5>
+                <c-row>
+                  <c-col xs="12">
+                    <div class="mb-3">
+                      <div class="form-check form-switch">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="email_notifications"
+                          formControlName="email_notifications"
+                        />
+                        <label class="form-check-label" for="email_notifications">
+                          <strong>Notifications par email</strong>
+                          <br>
+                          <small class="text-muted">Recevoir les notifications importantes par email</small>
+                        </label>
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col xs="12">
+                    <div class="mb-3">
+                      <div class="form-check form-switch">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="sms_notifications"
+                          formControlName="sms_notifications"
+                        />
+                        <label class="form-check-label" for="sms_notifications">
+                          <strong>Notifications par SMS</strong>
+                          <br>
+                          <small class="text-muted">Recevoir les notifications urgentes par SMS</small>
+                        </label>
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col xs="12">
+                    <div class="mb-3">
+                      <div class="form-check form-switch">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="browser_notifications"
+                          formControlName="browser_notifications"
+                        />
+                        <label class="form-check-label" for="browser_notifications">
+                          <strong>Notifications du navigateur</strong>
+                          <br>
+                          <small class="text-muted">Afficher les notifications dans le navigateur</small>
+                        </label>
+                      </div>
+                    </div>
+                  </c-col>
+                </c-row>
+              </c-tab-panel>
+
+              <!-- Onglet Sécurité -->
+              <c-tab-panel [itemKey]="3" class="p-3">
+                <h5 class="mb-4">
+                  <svg cIcon name="cilShieldAlt" class="me-2"></svg>Paramètres de sécurité
+                </h5>
+                <c-row>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="session_timeout">Délai d'expiration de session (minutes) *</label>
+                      <input
+                        cFormControl
+                        type="number"
+                        id="session_timeout"
+                        formControlName="session_timeout"
+                        min="5"
+                        max="480"
+                        [class.is-invalid]="f['session_timeout'].invalid && f['session_timeout'].touched"
+                      />
+                      <div *ngIf="f['session_timeout'].invalid && f['session_timeout'].touched" class="invalid-feedback">
+                        <div *ngIf="f['session_timeout'].errors?.['required']">Le délai est requis</div>
+                        <div *ngIf="f['session_timeout'].errors?.['min']">Minimum 5 minutes</div>
+                        <div *ngIf="f['session_timeout'].errors?.['max']">Maximum 8 heures</div>
+                      </div>
+                      <small class="form-text text-muted">Durée avant déconnexion automatique</small>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="password_expiry">Expiration des mots de passe (jours) *</label>
+                      <input
+                        cFormControl
+                        type="number"
+                        id="password_expiry"
+                        formControlName="password_expiry"
+                        min="30"
+                        max="365"
+                        [class.is-invalid]="f['password_expiry'].invalid && f['password_expiry'].touched"
+                      />
+                      <div *ngIf="f['password_expiry'].invalid && f['password_expiry'].touched" class="invalid-feedback">
+                        <div *ngIf="f['password_expiry'].errors?.['required']">La durée est requise</div>
+                        <div *ngIf="f['password_expiry'].errors?.['min']">Minimum 30 jours</div>
+                        <div *ngIf="f['password_expiry'].errors?.['max']">Maximum 365 jours</div>
+                      </div>
+                      <small class="form-text text-muted">Durée de validité des mots de passe</small>
+                    </div>
+                  </c-col>
+                  <c-col xs="12">
+                    <div class="mb-3">
+                      <div class="form-check form-switch">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="two_factor_auth"
+                          formControlName="two_factor_auth"
+                        />
+                        <label class="form-check-label" for="two_factor_auth">
+                          <strong>Authentification à deux facteurs</strong>
+                          <br>
+                          <small class="text-muted">Activer l'authentification à deux facteurs pour tous les utilisateurs</small>
+                        </label>
+                      </div>
+                    </div>
+                  </c-col>
+                </c-row>
+              </c-tab-panel>
+
+              <!-- Onglet Archivage -->
+              <c-tab-panel [itemKey]="4" class="p-3">
+                <h5 class="mb-4">
+                  <svg cIcon name="cilFolder" class="me-2"></svg>Paramètres d'archivage
+                </h5>
+                <c-row>
+                  <c-col xs="12">
+                    <div class="mb-3">
+                      <div class="form-check form-switch">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="auto_archive_invoices"
+                          formControlName="auto_archive_invoices"
+                        />
+                        <label class="form-check-label" for="auto_archive_invoices">
+                          <strong>Archivage automatique des factures</strong>
+                          <br>
+                          <small class="text-muted">Archiver automatiquement les factures anciennes</small>
+                        </label>
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col md="6" *ngIf="f['auto_archive_invoices'].value">
+                    <div class="mb-3">
+                      <label cFormLabel for="archive_after_days">Archiver après (jours) *</label>
+                      <input
+                        cFormControl
+                        type="number"
+                        id="archive_after_days"
+                        formControlName="archive_after_days"
+                        min="30"
+                        [class.is-invalid]="f['archive_after_days'].invalid && f['archive_after_days'].touched"
+                      />
+                      <div *ngIf="f['archive_after_days'].invalid && f['archive_after_days'].touched" class="invalid-feedback">
+                        <div *ngIf="f['archive_after_days'].errors?.['required']">Le nombre de jours est requis</div>
+                        <div *ngIf="f['archive_after_days'].errors?.['min']">Minimum 30 jours</div>
+                      </div>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cFormLabel for="backup_frequency">Fréquence de sauvegarde *</label>
+                      <select cFormSelect id="backup_frequency" formControlName="backup_frequency" [class.is-invalid]="f['backup_frequency'].invalid && f['backup_frequency'].touched">
+                        <option value="daily">Quotidienne</option>
+                        <option value="weekly">Hebdomadaire</option>
+                        <option value="monthly">Mensuelle</option>
+                      </select>
+                      <div *ngIf="f['backup_frequency'].invalid && f['backup_frequency'].touched" class="invalid-feedback">
+                        La fréquence de sauvegarde est requise
+                      </div>
+                    </div>
+                  </c-col>
+                </c-row>
+              </c-tab-panel>
+            </c-tabs-content>
+          </c-tabs>
+
+          <!-- Actions -->
+          <div class="d-flex justify-content-between mt-4 pt-4 border-top">
+            <button
+              type="button"
+              cButton
+              color="secondary"
+              variant="outline"
+              (click)="resetToDefaults()"
+              [disabled]="saving"
+            >
+              <svg cIcon name="cilReload" class="me-1"></svg>
+              Restaurer les défauts
+            </button>
+            <button
+              type="submit"
+              cButton
+              color="primary"
+              [disabled]="settingsForm.invalid || saving"
+            >
+              <c-spinner *ngIf="saving" size="sm" class="me-2"></c-spinner>
+              <svg *ngIf="!saving" cIcon name="cilCheckAlt" class="me-1"></svg>
+              {{ saving ? 'Enregistrement...' : 'Enregistrer les paramètres' }}
+            </button>
+          </div>
+        </form>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

@@ -1,13 +1,15 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { tap, catchError, throwError } from 'rxjs';
 import { Currency, ExchangeRate, ApiResponse } from '../models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CurrencyService {
-  private readonly API_URL = 'http://localhost:8000/api';
+  private readonly API_URL = environment.apiUrl;
   
   // Current exchange rates
   private exchangeRates = new BehaviorSubject<Map<string, number>>(new Map());
@@ -23,7 +25,7 @@ export class CurrencyService {
     { id: '2', code: 'GNF', name: 'Guinean Franc' }
   ];
   
-  readonly DEFAULT_CURRENCY = 'USD';
+  readonly DEFAULT_CURRENCY = 'GNF';
   readonly LOCAL_CURRENCY = 'GNF';
   
   constructor(private http: HttpClient) {

@@ -1,6 +1,9 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { SubscriptionService, Subscription, SubscriptionPlan, ApiResponse } from '../../../core/services/subscription.service';
+import Swal from 'sweetalert2';
+import { AlertService } from '../../../core/services/alert.service';
 import { 
   CardModule, 
   ButtonModule, 
@@ -13,44 +16,7 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
-export interface Subscription {
-  id: number;
-  tenant_id: number;
-  plan_id: number;
-  start_date: string;
-  end_date: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'SUSPENDED';
-  auto_renew: boolean;
-  created_at?: string;
-  updated_at?: string;
-  // Relations
-  tenant?: {
-    id: number;
-    name: string;
-    domain: string;
-  };
-  plan?: {
-    id: number;
-    name: string;
-    price: number;
-    duration_months: number;
-  };
-}
-
-export interface SubscriptionPlan {
-  id: number;
-  name: string;
-  price: number;
-  duration_months: number;
-  features: string[];
-  is_active: boolean;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+// Interfaces importées depuis le service
 
 @Component({
   selector: 'app-subscriptions',
@@ -73,6 +39,7 @@ export interface ApiResponse<T> {
 })
 export class SubscriptionsComponent implements OnInit {
   subscriptions: Subscription[] = [];
+  filteredSubscriptions: Subscription[] = [];
   plans: SubscriptionPlan[] = [];
   tenants: any[] = [];
   loading = false;
@@ -94,7 +61,9 @@ export class SubscriptionsComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private subscriptionService: SubscriptionService,
+    private alertService: AlertService
   ) {
     this.initializeForms();
   }
@@ -131,70 +100,44 @@ export class SubscriptionsComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    // Simulate API call - replace with actual service
-    setTimeout(() => {
-      this.subscriptions = [
-        {
-          id: 1,
-          tenant_id: 1,
-          plan_id: 2,
-          start_date: '2024-01-15',
-          end_date: '2025-01-15',
-          status: 'ACTIVE',
-          auto_renew: true,
-          tenant: { id: 1, name: 'Entreprise Alpha', domain: 'alpha.example.com' },
-          plan: { id: 2, name: 'Plan Business', price: 299.99, duration_months: 12 }
-        },
-        {
-          id: 2,
-          tenant_id: 2,
-          plan_id: 1,
-          start_date: '2024-06-01',
-          end_date: '2024-07-01',
-          status: 'EXPIRED',
-          auto_renew: false,
-          tenant: { id: 2, name: 'Startup Beta', domain: 'beta.example.com' },
-          plan: { id: 1, name: 'Plan Starter', price: 29.99, duration_months: 1 }
-        },
-        {
-          id: 3,
-          tenant_id: 3,
-          plan_id: 3,
-          start_date: '2024-12-01',
-          end_date: '2025-12-01',
-          status: 'ACTIVE',
-          auto_renew: true,
-          tenant: { id: 3, name: 'Corporation Gamma', domain: 'gamma.example.com' },
-          plan: { id: 3, name: 'Plan Enterprise', price: 599.99, duration_months: 12 }
-        },
-        {
-          id: 4,
-          tenant_id: 4,
-          plan_id: 2,
-          start_date: '2024-11-15',
-          end_date: '2025-11-15',
-          status: 'SUSPENDED',
-          auto_renew: false,
-          tenant: { id: 4, name: 'Société Delta', domain: 'delta.example.com' },
-          plan: { id: 2, name: 'Plan Business', price: 299.99, duration_months: 12 }
-        }
-      ];
-      this.loading = false;
-      this.cdr.detectChanges();
-    }, 1000);
+    this.subscriptionService.getSubscriptions().subscribe({
+      next: (response: any) => {
+        // L'API retourne une structure paginée avec data.data
+        this.subscriptions = response.data?.data || response.data || [];
+        this.loading = false;
+        setTimeout(() => {
+          this.applyFilters();
+          this.cdr.detectChanges();
+        });
+      },
+      error: (error) => {
+        console.error('Error loading subscriptions:', error);
+        this.subscriptions = [];
+        this.showErrorMessage('Erreur lors du chargement des abonnements.');
+        this.loading = false;
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        });
+      }
+    });
   }
 
   loadPlans(): void {
-    // Simulate API call
-    this.plans = [
-      { id: 1, name: 'Plan Starter', price: 29.99, duration_months: 1, features: ['Basic'], is_active: true },
-      { id: 2, name: 'Plan Business', price: 299.99, duration_months: 12, features: ['Advanced'], is_active: true },
-      { id: 3, name: 'Plan Enterprise', price: 599.99, duration_months: 12, features: ['Premium'], is_active: true }
-    ];
+    this.subscriptionService.getSubscriptionPlans().subscribe({
+      next: (response: any) => {
+        this.plans = response.data?.data || response.data || [];
+      },
+      error: (error) => {
+        console.error('Error loading plans:', error);
+        this.plans = [];
+        this.showErrorMessage('Erreur lors du chargement des plans.');
+      }
+    });
   }
 
   loadTenants(): void {
-    // Simulate API call
+    // Pour les tenants, on peut utiliser un service tenant ou créer des données temporaires
+    // En attendant l'implémentation du service tenant, on garde les données simulées
     this.tenants = [
       { id: 1, name: 'Entreprise Alpha', domain: 'alpha.example.com' },
       { id: 2, name: 'Startup Beta', domain: 'beta.example.com' },
@@ -256,42 +199,72 @@ export class SubscriptionsComponent implements OnInit {
         formData.end_date = endDate.toISOString().split('T')[0];
       }
       
-      // Simulate API call
-      setTimeout(() => {
-        if (this.editMode && this.selectedSubscription) {
-          // Update existing subscription
-          const index = this.subscriptions.findIndex(s => s.id === this.selectedSubscription!.id);
-          if (index !== -1) {
-            this.subscriptions[index] = {
-              ...this.selectedSubscription,
-              ...formData,
-              updated_at: new Date().toISOString()
-            };
+      if (this.editMode && this.selectedSubscription) {
+        // Update existing subscription
+        this.subscriptionService.updateSubscription(this.selectedSubscription.id, formData).subscribe({
+          next: (response: ApiResponse<Subscription>) => {
+            const index = this.subscriptions.findIndex(s => s.id === this.selectedSubscription!.id);
+            if (index !== -1) {
+              this.subscriptions[index] = response.data;
+              this.subscriptions = [...this.subscriptions];
+            }
+            this.loading = false;
+            this.closeSubscriptionModal();
+            setTimeout(() => {
+              this.applyFilters();
+              this.showSuccessMessage('Abonnement modifié avec succès!');
+              this.cdr.detectChanges();
+            });
+          },
+          error: (error) => {
+            console.error('Error updating subscription:', error);
+            this.showErrorMessage('Erreur lors de la modification de l\'abonnement.');
+            this.loading = false;
+            setTimeout(() => {
+              this.cdr.detectChanges();
+            });
           }
-        } else {
-          // Create new subscription
-          const newSubscription: Subscription = {
-            id: Math.max(...this.subscriptions.map(s => s.id)) + 1,
-            ...formData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            tenant: this.tenants.find(t => t.id == formData.tenant_id),
-            plan: this.plans.find(p => p.id == formData.plan_id)
-          };
-          this.subscriptions.unshift(newSubscription);
-        }
-        
-        this.loading = false;
-        this.closeSubscriptionModal();
-        this.cdr.detectChanges();
-      }, 1500);
+        });
+      } else {
+        // Create new subscription
+        this.subscriptionService.createSubscription(formData).subscribe({
+          next: (response: ApiResponse<Subscription>) => {
+            this.subscriptions.unshift(response.data);
+            this.subscriptions = [...this.subscriptions];
+            this.loading = false;
+            this.closeSubscriptionModal();
+            setTimeout(() => {
+              this.applyFilters();
+              this.showSuccessMessage('Abonnement créé avec succès!');
+              this.cdr.detectChanges();
+            });
+          },
+          error: (error) => {
+            console.error('Error creating subscription:', error);
+            this.showErrorMessage('Erreur lors de la création de l\'abonnement.');
+            this.loading = false;
+            setTimeout(() => {
+              this.cdr.detectChanges();
+            });
+          }
+        });
+      }
+    } else {
+      console.log('Form is invalid:', this.subscriptionForm.errors);
+      this.showErrorMessage('Veuillez corriger les erreurs dans le formulaire.');
     }
   }
 
-  // Delete subscription
+  // Delete subscription with AlertService confirmation
   openDeleteModal(subscription: Subscription): void {
-    this.subscriptionToDelete = subscription;
-    this.deleteModalOpen = true;
+    this.alertService.showDeleteConfirmation(
+      subscription.tenant?.name || 'cet abonnement', 
+      'l\'abonnement'
+    ).then((result) => {
+      if (result.isConfirmed) {
+        this.confirmDelete(subscription);
+      }
+    });
   }
 
   closeDeleteModal(): void {
@@ -299,19 +272,29 @@ export class SubscriptionsComponent implements OnInit {
     this.subscriptionToDelete = null;
   }
 
-  confirmDelete(): void {
-    if (this.subscriptionToDelete) {
-      this.loading = true;
-      this.cdr.detectChanges();
-      
-      // Simulate API call
-      setTimeout(() => {
-        this.subscriptions = this.subscriptions.filter(s => s.id !== this.subscriptionToDelete!.id);
+  confirmDelete(subscription: Subscription): void {
+    this.loading = true;
+    this.cdr.detectChanges();
+    
+    this.subscriptionService.deleteSubscription(subscription.id).subscribe({
+      next: (response: ApiResponse<void>) => {
+        this.subscriptions = this.subscriptions.filter(s => s.id !== subscription.id);
         this.loading = false;
-        this.closeDeleteModal();
-        this.cdr.detectChanges();
-      }, 1000);
-    }
+        setTimeout(() => {
+          this.applyFilters();
+          this.showSuccessMessage('Abonnement supprimé avec succès!');
+          this.cdr.detectChanges();
+        });
+      },
+      error: (error) => {
+        console.error('Error deleting subscription:', error);
+        this.showErrorMessage('Erreur lors de la suppression de l\'abonnement.');
+        this.loading = false;
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        });
+      }
+    });
   }
 
   // Renew subscription
@@ -413,9 +396,9 @@ export class SubscriptionsComponent implements OnInit {
   }
 
   formatPrice(price: number): string {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat('fr-GN', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'GNF'
     }).format(price);
   }
 
@@ -431,14 +414,37 @@ export class SubscriptionsComponent implements OnInit {
   get f() { return this.subscriptionForm.controls; }
   get rf() { return this.renewForm.controls; }
 
+  // Message handling with AlertService
+  showSuccessMessage(message: string): void {
+    this.alertService.showSuccess('Succès!', message);
+  }
+
+  showErrorMessage(message: string): void {
+    this.alertService.showError('Erreur!', message);
+  }
+
   // Filter and search
   applyFilters(): void {
+    if (!Array.isArray(this.subscriptions)) {
+      this.subscriptions = [];
+    }
+    
     const search = this.filterForm.get('search')?.value?.toLowerCase() || '';
     const status = this.filterForm.get('status')?.value || 'ALL';
     const plan = this.filterForm.get('plan')?.value || 'ALL';
     
-    // Implement filtering logic here
-    console.log('Applying filters:', { search, status, plan });
+    this.filteredSubscriptions = this.subscriptions.filter(subscription => {
+      const matchesSearch = !search || 
+        subscription.tenant?.name.toLowerCase().includes(search) ||
+        subscription.tenant?.domain.toLowerCase().includes(search) ||
+        subscription.plan?.name.toLowerCase().includes(search);
+      
+      const matchesStatus = status === 'ALL' || subscription.status === status;
+      
+      const matchesPlan = plan === 'ALL' || subscription.plan_id.toString() === plan;
+      
+      return matchesSearch && matchesStatus && matchesPlan;
+    });
   }
 
   clearFilters(): void {

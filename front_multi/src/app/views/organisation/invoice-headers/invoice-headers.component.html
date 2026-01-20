@@ -1,0 +1,423 @@
+<c-row>
+  <c-col xs="12">
+    <c-card class="mb-4">
+      <c-card-header class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong><svg cIcon name="cilDescription" class="me-2"></svg>En-têtes de Factures</strong>
+          <small class="text-muted ms-2">Configurez les en-têtes de vos documents commerciaux</small>
+        </div>
+        <button cButton color="primary" (click)="openModal()">
+          <svg cIcon name="cilPlus" class="me-1"></svg>
+          Nouvel en-tête
+        </button>
+      </c-card-header>
+      <c-card-body>
+        <div *ngIf="loading" class="text-center py-4">
+          <c-spinner></c-spinner>
+          <p class="text-muted mt-2">Chargement des en-têtes...</p>
+        </div>
+
+        <div *ngIf="!loading && headers.length === 0" class="text-center py-5">
+          <svg cIcon name="cilDescription" size="3xl" class="text-muted mb-3"></svg>
+          <h5 class="text-muted">Aucun en-tête configuré</h5>
+          <p class="text-muted">Créez votre premier en-tête de facture</p>
+          <button cButton color="primary" variant="outline" (click)="openModal()">
+            <svg cIcon name="cilPlus" class="me-1"></svg>
+            Créer un en-tête
+          </button>
+        </div>
+
+        <c-row *ngIf="!loading && headers.length > 0">
+          <c-col lg="6" xl="4" *ngFor="let header of headers" class="mb-4">
+            <c-card class="h-100 header-card" [class.border-primary]="header.is_default">
+              <c-card-header class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <svg cIcon name="cilDescription" class="me-2 text-primary"></svg>
+                  <span class="fw-semibold">{{ header.name }}</span>
+                </div>
+                <div class="d-flex gap-1">
+                  <c-badge *ngIf="header.is_default" color="primary">Par défaut</c-badge>
+                  <button cButton size="sm" color="light" variant="ghost" (click)="openModal(header)">
+                    <svg cIcon name="cilPencil" size="sm"></svg>
+                  </button>
+                  <button cButton size="sm" color="info" variant="ghost" (click)="duplicateHeader(header)">
+                    <svg cIcon name="cilCopy" size="sm"></svg>
+                  </button>
+                  <button cButton size="sm" color="danger" variant="ghost" (click)="deleteHeader(header)" *ngIf="!header.is_default">
+                    <svg cIcon name="cilTrash" size="sm"></svg>
+                  </button>
+                </div>
+              </c-card-header>
+              <c-card-body>
+                <div class="header-preview">
+                  <div class="company-info mb-3">
+                    <h6 class="fw-bold mb-1">{{ header.company_name }}</h6>
+                    <div class="text-muted small">
+                      {{ header.address }}<br>
+                      {{ header.postal_code }} {{ header.city }}<br>
+                      {{ header.country }}
+                    </div>
+                  </div>
+                  <div class="contact-info mb-3">
+                    <div class="text-muted small">
+                      <div><svg cIcon name="cilPhone" size="sm" class="me-1"></svg>{{ header.phone }}</div>
+                      <div><svg cIcon name="cilEnvelopeOpen" size="sm" class="me-1"></svg>{{ header.email }}</div>
+                      <div *ngIf="header.website"><svg cIcon name="cilGlobeAlt" size="sm" class="me-1"></svg>{{ header.website }}</div>
+                    </div>
+                  </div>
+                  <div class="legal-info" *ngIf="header.tax_number || header.registration_number">
+                    <div class="text-muted small">
+                      <div *ngIf="header.tax_number">TVA: {{ header.tax_number }}</div>
+                      <div *ngIf="header.registration_number">SIRET: {{ header.registration_number }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-3" *ngIf="!header.is_default">
+                  <button cButton size="sm" color="primary" variant="outline" (click)="setAsDefault(header)">
+                    <svg cIcon name="cilStar" size="sm" class="me-1"></svg>
+                    Définir par défaut
+                  </button>
+                </div>
+              </c-card-body>
+            </c-card>
+          </c-col>
+        </c-row>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<!-- Modal pour ajouter/modifier un en-tête -->
+<c-modal [visible]="showModal" (visibleChange)="showModal = $event" size="xl">
+  <c-modal-header>
+    <h4 cModalTitle>
+      {{ editingHeader ? 'Modifier l\'en-tête' : 'Créer un en-tête' }}
+    </h4>
+    <div class="ms-auto">
+      <button cButton color="info" variant="outline" size="sm" (click)="togglePreview()" *ngIf="!previewMode">
+        <svg cIcon name="cilEye" size="sm" class="me-1"></svg>
+        Aperçu
+      </button>
+      <button cButton color="secondary" variant="outline" size="sm" (click)="togglePreview()" *ngIf="previewMode">
+        <svg cIcon name="cilPencil" size="sm" class="me-1"></svg>
+        Modifier
+      </button>
+    </div>
+  </c-modal-header>
+  <c-modal-body>
+    <!-- Formulaire -->
+    <div *ngIf="!previewMode">
+      <form [formGroup]="headerForm" (ngSubmit)="onSubmit()">
+        <c-row>
+          <c-col md="6">
+            <div class="mb-3">
+              <label cFormLabel for="name">Nom de l'en-tête *</label>
+              <input
+                cFormControl
+                type="text"
+                id="name"
+                formControlName="name"
+                placeholder="En-tête standard"
+                [class.is-invalid]="f['name'].invalid && f['name'].touched"
+              />
+              <div *ngIf="f['name'].invalid && f['name'].touched" class="invalid-feedback">
+                <div *ngIf="f['name'].errors?.['required']">Le nom est requis</div>
+                <div *ngIf="f['name'].errors?.['minlength']">Le nom doit contenir au moins 2 caractères</div>
+              </div>
+            </div>
+          </c-col>
+          <c-col md="6">
+            <div class="mb-3">
+              <label cFormLabel for="logo_url">URL du logo</label>
+              <input
+                cFormControl
+                type="url"
+                id="logo_url"
+                formControlName="logo_url"
+                placeholder="https://exemple.com/logo.png"
+              />
+            </div>
+          </c-col>
+        </c-row>
+
+        <h6 class="mt-4 mb-3">
+          <svg cIcon name="cilBuilding" class="me-2"></svg>Informations de l'entreprise
+        </h6>
+        <c-row>
+          <c-col md="6">
+            <div class="mb-3">
+              <label cFormLabel for="company_name">Nom de l'entreprise *</label>
+              <input
+                cFormControl
+                type="text"
+                id="company_name"
+                formControlName="company_name"
+                placeholder="Nom de votre entreprise"
+                [class.is-invalid]="f['company_name'].invalid && f['company_name'].touched"
+              />
+              <div *ngIf="f['company_name'].invalid && f['company_name'].touched" class="invalid-feedback">
+                Le nom de l'entreprise est requis
+              </div>
+            </div>
+          </c-col>
+          <c-col md="6">
+            <div class="mb-3">
+              <label cFormLabel for="email">Email *</label>
+              <input
+                cFormControl
+                type="email"
+                id="email"
+                formControlName="email"
+                placeholder="contact@entreprise.com"
+                [class.is-invalid]="f['email'].invalid && f['email'].touched"
+              />
+              <div *ngIf="f['email'].invalid && f['email'].touched" class="invalid-feedback">
+                <div *ngIf="f['email'].errors?.['required']">L'email est requis</div>
+                <div *ngIf="f['email'].errors?.['email']">Format d'email invalide</div>
+              </div>
+            </div>
+          </c-col>
+          <c-col md="6">
+            <div class="mb-3">
+              <label cFormLabel for="phone">Téléphone *</label>
+              <input
+                cFormControl
+                type="tel"
+                id="phone"
+                formControlName="phone"
+                placeholder="+33 1 23 45 67 89"
+                [class.is-invalid]="f['phone'].invalid && f['phone'].touched"
+              />
+              <div *ngIf="f['phone'].invalid && f['phone'].touched" class="invalid-feedback">
+                Le téléphone est requis
+              </div>
+            </div>
+          </c-col>
+          <c-col md="6">
+            <div class="mb-3">
+              <label cFormLabel for="website">Site web</label>
+              <input
+                cFormControl
+                type="url"
+                id="website"
+                formControlName="website"
+                placeholder="https://www.entreprise.com"
+              />
+            </div>
+          </c-col>
+        </c-row>
+
+        <h6 class="mt-4 mb-3">
+          <svg cIcon name="cilLocationPin" class="me-2"></svg>Adresse
+        </h6>
+        <c-row>
+          <c-col xs="12">
+            <div class="mb-3">
+              <label cFormLabel for="address">Adresse *</label>
+              <input
+                cFormControl
+                type="text"
+                id="address"
+                formControlName="address"
+                placeholder="123 Rue de la Paix"
+                [class.is-invalid]="f['address'].invalid && f['address'].touched"
+              />
+              <div *ngIf="f['address'].invalid && f['address'].touched" class="invalid-feedback">
+                L'adresse est requise
+              </div>
+            </div>
+          </c-col>
+          <c-col md="4">
+            <div class="mb-3">
+              <label cFormLabel for="city">Ville *</label>
+              <input
+                cFormControl
+                type="text"
+                id="city"
+                formControlName="city"
+                placeholder="Paris"
+                [class.is-invalid]="f['city'].invalid && f['city'].touched"
+              />
+              <div *ngIf="f['city'].invalid && f['city'].touched" class="invalid-feedback">
+                La ville est requise
+              </div>
+            </div>
+          </c-col>
+          <c-col md="4">
+            <div class="mb-3">
+              <label cFormLabel for="postal_code">Code postal *</label>
+              <input
+                cFormControl
+                type="text"
+                id="postal_code"
+                formControlName="postal_code"
+                placeholder="75001"
+                [class.is-invalid]="f['postal_code'].invalid && f['postal_code'].touched"
+              />
+              <div *ngIf="f['postal_code'].invalid && f['postal_code'].touched" class="invalid-feedback">
+                Le code postal est requis
+              </div>
+            </div>
+          </c-col>
+          <c-col md="4">
+            <div class="mb-3">
+              <label cFormLabel for="country">Pays *</label>
+              <input
+                cFormControl
+                type="text"
+                id="country"
+                formControlName="country"
+                placeholder="France"
+                [class.is-invalid]="f['country'].invalid && f['country'].touched"
+              />
+              <div *ngIf="f['country'].invalid && f['country'].touched" class="invalid-feedback">
+                Le pays est requis
+              </div>
+            </div>
+          </c-col>
+        </c-row>
+
+        <h6 class="mt-4 mb-3">
+          <svg cIcon name="cilDescription" class="me-2"></svg>Informations légales
+        </h6>
+        <c-row>
+          <c-col md="6">
+            <div class="mb-3">
+              <label cFormLabel for="tax_number">Numéro de TVA</label>
+              <input
+                cFormControl
+                type="text"
+                id="tax_number"
+                formControlName="tax_number"
+                placeholder="FR12345678901"
+              />
+            </div>
+          </c-col>
+          <c-col md="6">
+            <div class="mb-3">
+              <label cFormLabel for="registration_number">SIRET</label>
+              <input
+                cFormControl
+                type="text"
+                id="registration_number"
+                formControlName="registration_number"
+                placeholder="12345678901234"
+              />
+            </div>
+          </c-col>
+        </c-row>
+
+        <h6 class="mt-4 mb-3">
+          <svg cIcon name="cilBank" class="me-2"></svg>Informations bancaires
+        </h6>
+        <c-row>
+          <c-col xs="12">
+            <div class="mb-3">
+              <label cFormLabel for="bank_details">Coordonnées bancaires</label>
+              <textarea
+                cFormControl
+                id="bank_details"
+                formControlName="bank_details"
+                rows="3"
+                placeholder="IBAN: FR76 1234 5678 9012 3456 7890 123&#10;BIC: ABCDEFGH"
+              ></textarea>
+            </div>
+          </c-col>
+        </c-row>
+
+        <h6 class="mt-4 mb-3">
+          <svg cIcon name="cilNotes" class="me-2"></svg>Pied de page
+        </h6>
+        <c-row>
+          <c-col xs="12">
+            <div class="mb-3">
+              <label cFormLabel for="footer_text">Texte du pied de page</label>
+              <textarea
+                cFormControl
+                id="footer_text"
+                formControlName="footer_text"
+                rows="2"
+                placeholder="Merci de votre confiance"
+              ></textarea>
+            </div>
+          </c-col>
+        </c-row>
+
+        <c-row>
+          <c-col xs="12">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="is_default"
+                formControlName="is_default"
+              />
+              <label class="form-check-label" for="is_default">
+                Définir comme en-tête par défaut
+              </label>
+            </div>
+          </c-col>
+        </c-row>
+      </form>
+    </div>
+
+    <!-- Aperçu -->
+    <div *ngIf="previewMode" class="preview-container">
+      <div class="invoice-preview border p-4 bg-white">
+        <div class="header-section mb-4">
+          <div class="row align-items-start">
+            <div class="col-md-8">
+              <h2 class="company-name mb-2">{{ previewData.company_name || 'Nom de l\'entreprise' }}</h2>
+              <div class="company-address text-muted">
+                <div>{{ previewData.address || 'Adresse' }}</div>
+                <div>{{ previewData.postal_code || 'Code postal' }} {{ previewData.city || 'Ville' }}</div>
+                <div>{{ previewData.country || 'Pays' }}</div>
+              </div>
+            </div>
+            <div class="col-md-4 text-end">
+              <div *ngIf="previewData.logo_url" class="logo mb-3">
+                <img [src]="previewData.logo_url" alt="Logo" class="img-fluid" style="max-height: 80px;">
+              </div>
+              <div class="contact-info text-muted small">
+                <div>{{ previewData.phone || 'Téléphone' }}</div>
+                <div>{{ previewData.email || 'Email' }}</div>
+                <div *ngIf="previewData.website">{{ previewData.website }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="legal-info text-muted small mb-3" *ngIf="previewData.tax_number || previewData.registration_number">
+          <div class="row">
+            <div class="col-md-6" *ngIf="previewData.tax_number">
+              TVA: {{ previewData.tax_number }}
+            </div>
+            <div class="col-md-6" *ngIf="previewData.registration_number">
+              SIRET: {{ previewData.registration_number }}
+            </div>
+          </div>
+        </div>
+
+        <div class="bank-details mb-3" *ngIf="previewData.bank_details">
+          <h6>Coordonnées bancaires</h6>
+          <pre class="text-muted small">{{ previewData.bank_details }}</pre>
+        </div>
+
+        <div class="footer-text text-center text-muted small mt-4" *ngIf="previewData.footer_text">
+          {{ previewData.footer_text }}
+        </div>
+      </div>
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="closeModal()" [disabled]="saving">
+      Annuler
+    </button>
+    <button cButton color="primary" (click)="onSubmit()" [disabled]="headerForm.invalid || saving" *ngIf="!previewMode">
+      <c-spinner *ngIf="saving" size="sm" class="me-2"></c-spinner>
+      {{ saving ? 'Enregistrement...' : (editingHeader ? 'Modifier' : 'Créer') }}
+    </button>
+  </c-modal-footer>
+</c-modal>

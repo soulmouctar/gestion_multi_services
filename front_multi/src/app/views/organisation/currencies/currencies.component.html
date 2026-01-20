@@ -1,0 +1,257 @@
+<c-row>
+  <c-col xs="12">
+    <c-card class="mb-4">
+      <c-card-header class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong><svg cIcon name="cilDollar" class="me-2"></svg>Gestion des Devises</strong>
+          <small class="text-muted ms-2">Configurez les devises utilisées dans votre organisation</small>
+        </div>
+        <button cButton color="primary" (click)="openModal()">
+          <svg cIcon name="cilPlus" class="me-1"></svg>
+          Ajouter une devise
+        </button>
+      </c-card-header>
+      <c-card-body>
+        <div *ngIf="loading" class="text-center py-4">
+          <c-spinner></c-spinner>
+          <p class="text-muted mt-2">Chargement des devises...</p>
+        </div>
+
+        <div *ngIf="!loading && currencies.length === 0" class="text-center py-5">
+          <svg cIcon name="cilDollar" size="3xl" class="text-muted mb-3"></svg>
+          <h5 class="text-muted">Aucune devise configurée</h5>
+          <p class="text-muted">Ajoutez votre première devise pour commencer</p>
+          <button cButton color="primary" variant="outline" (click)="openModal()">
+            <svg cIcon name="cilPlus" class="me-1"></svg>
+            Ajouter une devise
+          </button>
+        </div>
+
+        <div *ngIf="!loading && currencies.length > 0">
+          <table cTable [hover]="true" [responsive]="true">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Nom</th>
+                <th>Symbole</th>
+                <th>Taux de change</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let currency of currencies">
+                <td>
+                  <strong>{{ currency.code }}</strong>
+                  <c-badge *ngIf="currency.is_default" color="primary" class="ms-2">Par défaut</c-badge>
+                </td>
+                <td>{{ currency.name }}</td>
+                <td class="fw-bold">{{ currency.symbol }}</td>
+                <td>
+                  <span *ngIf="currency.is_default">1.00 (Base)</span>
+                  <span *ngIf="!currency.is_default">{{ currency.exchange_rate | number:'1.4-4' }}</span>
+                </td>
+                <td>
+                  <c-badge [color]="currency.is_active ? 'success' : 'secondary'">
+                    {{ currency.is_active ? 'Actif' : 'Inactif' }}
+                  </c-badge>
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <button
+                      cButton
+                      size="sm"
+                      color="primary"
+                      variant="ghost"
+                      (click)="openModal(currency)"
+                      title="Modifier"
+                    >
+                      <svg cIcon name="cilPencil" size="sm"></svg>
+                    </button>
+                    <button
+                      *ngIf="!currency.is_default"
+                      cButton
+                      size="sm"
+                      color="success"
+                      variant="ghost"
+                      (click)="setAsDefault(currency)"
+                      title="Définir par défaut"
+                    >
+                      <svg cIcon name="cilStar" size="sm"></svg>
+                    </button>
+                    <button
+                      cButton
+                      size="sm"
+                      [color]="currency.is_active ? 'warning' : 'success'"
+                      variant="ghost"
+                      (click)="toggleStatus(currency)"
+                      [title]="currency.is_active ? 'Désactiver' : 'Activer'"
+                      [disabled]="currency.is_default && currency.is_active"
+                    >
+                      <svg cIcon [name]="currency.is_active ? 'cilMediaPause' : 'cilMediaPlay'" size="sm"></svg>
+                    </button>
+                    <button
+                      *ngIf="!currency.is_default"
+                      cButton
+                      size="sm"
+                      color="danger"
+                      variant="ghost"
+                      (click)="deleteCurrency(currency)"
+                      title="Supprimer"
+                    >
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<!-- Modal pour ajouter/modifier une devise -->
+<c-modal [visible]="showModal" (visibleChange)="showModal = $event" size="lg">
+  <c-modal-header>
+    <h4 cModalTitle>
+      {{ editingCurrency ? 'Modifier la devise' : 'Ajouter une devise' }}
+    </h4>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="currencyForm" (ngSubmit)="onSubmit()">
+      <!-- Devises communes -->
+      <div class="mb-4" *ngIf="!editingCurrency">
+        <label class="form-label">Devises communes</label>
+        <div class="d-flex flex-wrap gap-2">
+          <button
+            *ngFor="let currency of commonCurrencies"
+            type="button"
+            cButton
+            size="sm"
+            color="light"
+            variant="outline"
+            (click)="selectCommonCurrency(currency)"
+          >
+            {{ currency.code }} - {{ currency.symbol }}
+          </button>
+        </div>
+        <small class="text-muted">Cliquez sur une devise pour pré-remplir les champs</small>
+      </div>
+
+      <c-row>
+        <c-col md="4">
+          <div class="mb-3">
+            <label cFormLabel for="code">Code devise *</label>
+            <input
+              cFormControl
+              type="text"
+              id="code"
+              formControlName="code"
+              placeholder="EUR"
+              maxlength="3"
+              style="text-transform: uppercase"
+              [class.is-invalid]="f['code'].invalid && f['code'].touched"
+            />
+            <div *ngIf="f['code'].invalid && f['code'].touched" class="invalid-feedback">
+              <div *ngIf="f['code'].errors?.['required']">Le code est requis</div>
+              <div *ngIf="f['code'].errors?.['minlength'] || f['code'].errors?.['maxlength']">
+                Le code doit contenir exactement 3 caractères
+              </div>
+            </div>
+          </div>
+        </c-col>
+        <c-col md="4">
+          <div class="mb-3">
+            <label cFormLabel for="symbol">Symbole *</label>
+            <input
+              cFormControl
+              type="text"
+              id="symbol"
+              formControlName="symbol"
+              placeholder="€"
+              [class.is-invalid]="f['symbol'].invalid && f['symbol'].touched"
+            />
+            <div *ngIf="f['symbol'].invalid && f['symbol'].touched" class="invalid-feedback">
+              Le symbole est requis
+            </div>
+          </div>
+        </c-col>
+        <c-col md="4">
+          <div class="mb-3">
+            <label cFormLabel for="exchange_rate">Taux de change *</label>
+            <input
+              cFormControl
+              type="number"
+              id="exchange_rate"
+              formControlName="exchange_rate"
+              placeholder="1.0000"
+              step="0.0001"
+              min="0.0001"
+              [class.is-invalid]="f['exchange_rate'].invalid && f['exchange_rate'].touched"
+            />
+            <div *ngIf="f['exchange_rate'].invalid && f['exchange_rate'].touched" class="invalid-feedback">
+              <div *ngIf="f['exchange_rate'].errors?.['required']">Le taux de change est requis</div>
+              <div *ngIf="f['exchange_rate'].errors?.['min']">Le taux doit être supérieur à 0</div>
+            </div>
+            <small class="text-muted">Taux par rapport à la devise de base</small>
+          </div>
+        </c-col>
+        <c-col xs="12">
+          <div class="mb-3">
+            <label cFormLabel for="name">Nom complet *</label>
+            <input
+              cFormControl
+              type="text"
+              id="name"
+              formControlName="name"
+              placeholder="Euro"
+              [class.is-invalid]="f['name'].invalid && f['name'].touched"
+            />
+            <div *ngIf="f['name'].invalid && f['name'].touched" class="invalid-feedback">
+              <div *ngIf="f['name'].errors?.['required']">Le nom est requis</div>
+              <div *ngIf="f['name'].errors?.['minlength']">Le nom doit contenir au moins 2 caractères</div>
+            </div>
+          </div>
+        </c-col>
+        <c-col xs="12">
+          <div class="d-flex gap-4">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="is_default"
+                formControlName="is_default"
+              />
+              <label class="form-check-label" for="is_default">
+                Devise par défaut
+              </label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="is_active"
+                formControlName="is_active"
+              />
+              <label class="form-check-label" for="is_active">
+                Devise active
+              </label>
+            </div>
+          </div>
+          <small class="text-muted">La devise par défaut sert de base pour les taux de change</small>
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="closeModal()" [disabled]="saving">
+      Annuler
+    </button>
+    <button cButton color="primary" (click)="onSubmit()" [disabled]="currencyForm.invalid || saving">
+      <c-spinner *ngIf="saving" size="sm" class="me-2"></c-spinner>
+      {{ saving ? 'Enregistrement...' : (editingCurrency ? 'Modifier' : 'Ajouter') }}
+    </button>
+  </c-modal-footer>
+</c-modal>

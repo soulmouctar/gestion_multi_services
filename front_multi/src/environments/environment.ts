@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8000/api',
+  apiUrl: 'http://127.0.0.1:8000/api',
   appUrl: 'http://localhost:4200',
   
   // Multi-tenant configuration
@@ -69,7 +69,7 @@ export const environment = {
   upload: {
     maxFileSize: 5 * 1024 * 1024, // 5MB
     allowedTypes: ['image/jpeg', 'image/png', 'application/pdf'],
-    uploadUrl: 'http://localhost:8000/api/upload'
+    uploadUrl: 'http://127.0.0.1:8005/api/upload'
   },
   
   // PDF configuration

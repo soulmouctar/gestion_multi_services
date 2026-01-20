@@ -33,25 +33,28 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    try {
+      this.#router.events.pipe(
+          takeUntilDestroyed(this.#destroyRef)
+        ).subscribe((evt) => {
+        if (!(evt instanceof NavigationEnd)) {
+          return;
+        }
+      });
 
-    this.#router.events.pipe(
-        takeUntilDestroyed(this.#destroyRef)
-      ).subscribe((evt) => {
-      if (!(evt instanceof NavigationEnd)) {
-        return;
-      }
-    });
-
-    this.#activatedRoute.queryParams
-      .pipe(
-        delay(1),
-        map(params => <string>params['theme']?.match(/^[A-Za-z0-9\s]+/)?.[0]),
-        filter(theme => ['dark', 'light', 'auto'].includes(theme)),
-        tap(theme => {
-          this.#colorModeService.colorMode.set(theme);
-        }),
-        takeUntilDestroyed(this.#destroyRef)
-      )
-      .subscribe();
+      this.#activatedRoute.queryParams
+        .pipe(
+          delay(1),
+          map(params => <string>params['theme']?.match(/^[A-Za-z0-9\s]+/)?.[0]),
+          filter(theme => ['dark', 'light', 'auto'].includes(theme)),
+          tap(theme => {
+            this.#colorModeService.colorMode.set(theme);
+          }),
+          takeUntilDestroyed(this.#destroyRef)
+        )
+        .subscribe();
+    } catch (error) {
+      console.error('Error in AppComponent initialization:', error);
+    }
   }
 }

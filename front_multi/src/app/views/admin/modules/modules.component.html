@@ -1,14 +1,4 @@
-<!-- Success/Error Messages -->
-<div *ngIf="showMessage" class="alert alert-dismissible fade show mb-4" 
-     [class.alert-success]="successMessage" 
-     [class.alert-danger]="errorMessage">
-  <div class="d-flex align-items-center">
-    <svg *ngIf="successMessage" cIcon name="cil-check-circle" class="me-2"></svg>
-    <svg *ngIf="errorMessage" cIcon name="cil-warning" class="me-2"></svg>
-    <span>{{ successMessage || errorMessage }}</span>
-  </div>
-  <button type="button" class="btn-close" (click)="dismissMessage()"></button>
-</div>
+<!-- Messages maintenant gérés par SweetAlert2 -->
 
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -336,45 +326,4 @@
   </c-modal-footer>
 </c-modal>
 
-<!-- Delete Confirmation Modal -->
-<c-modal 
-  [visible]="deleteModalOpen" 
-  (visibleChange)="deleteModalOpen = $event">
-  <c-modal-header>
-    <h4 cModalTitle>
-      <svg cIcon name="cil-warning" class="me-2 text-warning"></svg>
-      Confirmer la suppression
-    </h4>
-    <button 
-      cButtonClose 
-      (click)="closeDeleteModal()"
-      [disabled]="loading">
-    </button>
-  </c-modal-header>
-  
-  <c-modal-body>
-    <p>Êtes-vous sûr de vouloir supprimer le module "<strong>{{ moduleToDelete?.name }}</strong>" ?</p>
-    <div class="alert alert-warning">
-      <svg cIcon name="cil-warning" class="me-2"></svg>
-      <strong>Attention :</strong> Cette action est irréversible et peut affecter les tenants qui utilisent ce module.
-    </div>
-  </c-modal-body>
-  
-  <c-modal-footer>
-    <button 
-      type="button" 
-      class="btn btn-secondary" 
-      (click)="closeDeleteModal()"
-      [disabled]="loading">
-      Annuler
-    </button>
-    <button 
-      type="button" 
-      class="btn btn-danger" 
-      (click)="confirmDelete()"
-      [disabled]="loading">
-      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-      Supprimer
-    </button>
-  </c-modal-footer>
-</c-modal>
+<!-- Modal de suppression supprimé - maintenant géré par SweetAlert2 -->

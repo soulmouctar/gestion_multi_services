@@ -1,13 +1,14 @@
 export interface Tenant {
-  id: string;
+  id: number;
   name: string;
   email: string;
   phone: string;
   subscriptionStatus: 'ACTIVE' | 'SUSPENDED';
+  subscription_status: 'ACTIVE' | 'SUSPENDED';
   createdAt: Date;
   updatedAt: Date;
   subscription?: Subscription;
-  modules?: TenantModule[];
+  modules?: Module[];
 }
 
 export interface User {
@@ -15,12 +16,13 @@ export interface User {
   tenant_id?: string;
   name: string;
   email: string;
-  email_verified_at?: string;
+  password?: string;
+  role?: 'SUPER_ADMIN' | 'ADMIN' | 'USER';
+  roles?: Role[];
+  permissions?: Permission[];
   created_at: string;
   updated_at: string;
   tenant?: Tenant;
-  roles?: Role[];
-  permissions?: Permission[];
 }
 
 export interface Role {
@@ -45,10 +47,18 @@ export interface Permission {
 }
 
 export interface Module {
-  id: string;
+  id: number;
   code: string;
   name: string;
-  description: string;
+  icon: string;
+  enabled: boolean;
+  pivot?: {
+    tenant_id: number;
+    module_id: number;
+    is_active: boolean;
+    created_at?: string;
+    updated_at?: string;
+  };
 }
 
 export interface TenantModule {
