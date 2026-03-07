@@ -85,4 +85,69 @@ class DriverController extends BaseController
 
         return $this->sendResponse([], 'Driver deleted successfully');
     }
+
+    public function toggleStatus($id)
+    {
+        $driver = Driver::find($id);
+
+        if (!$driver) {
+            return $this->sendError('Driver not found');
+        }
+
+        $newStatus = $driver->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        $driver->update(['status' => $newStatus]);
+
+        return $this->sendResponse($driver, 'Driver status updated successfully');
+    }
+
+    public function suspend($id)
+    {
+        $driver = Driver::find($id);
+
+        if (!$driver) {
+            return $this->sendError('Driver not found');
+        }
+
+        $driver->update(['status' => 'SUSPENDED']);
+
+        return $this->sendResponse($driver, 'Driver suspended successfully');
+    }
+
+    public function activate($id)
+    {
+        $driver = Driver::find($id);
+
+        if (!$driver) {
+            return $this->sendError('Driver not found');
+        }
+
+        $driver->update(['status' => 'ACTIVE']);
+
+        return $this->sendResponse($driver, 'Driver activated successfully');
+    }
+
+    public function statistics(Request $request)
+    {
+        $tenantId = $request->get('tenant_id', 1);
+
+        $totalDrivers = Driver::where('tenant_id', $tenantId)->count();
+        $activeDrivers = Driver::where('tenant_id', $tenantId)->where('status', 'ACTIVE')->count();
+        $inactiveDrivers = Driver::where('tenant_id', $tenantId)->where('status', 'INACTIVE')->count();
+        $suspendedDrivers = Driver::where('tenant_id', $tenantId)->where('status', 'SUSPENDED')->count();
+
+        // Drivers with active assignments
+        $driversWithAssignments = Driver::where('tenant_id', $tenantId)
+            ->whereHas('taxiAssignments', function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now());
+            })
+            ->count();
+
+        return $this->sendResponse([
+            'total_drivers' => $totalDrivers,
+            'active_drivers' => $activeDrivers,
+            'inactive_drivers' => $inactiveDrivers,
+            'suspended_drivers' => $suspendedDrivers,
+            'drivers_with_assignments' => $driversWithAssignments,
+        ], 'Driver statistics retrieved successfully');
+    }
 }

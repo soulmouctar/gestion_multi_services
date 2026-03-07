@@ -18,7 +18,7 @@ import {
 } from '@coreui/angular';
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
-import { NavigationService } from '../../core/services/navigation.service';
+import { navItems } from './_nav';
 
 function isOverflown(element: HTMLElement) {
   return (
@@ -51,21 +51,11 @@ function isOverflown(element: HTMLElement) {
   ]
 })
 export class DefaultLayoutComponent implements OnInit {
-  public navItems: INavData[] = [];
+  public navItems: INavData[] = navItems;
 
-  constructor(private navigationService: NavigationService) {}
+  constructor() {}
 
   ngOnInit(): void {
-    // Load navigation items dynamically based on user's tenant modules
-    this.navigationService.getNavigationItems().subscribe({
-      next: (items) => {
-        this.navItems = items;
-        console.log('Dynamic navigation items loaded:', this.navItems);
-      },
-      error: (error) => {
-        console.error('Error loading navigation items:', error);
-        this.navItems = [];
-      }
-    });
+    console.log('Static navigation items loaded:', this.navItems);
   }
 }

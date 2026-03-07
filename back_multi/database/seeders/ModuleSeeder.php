@@ -30,7 +30,7 @@ class ModuleSeeder extends Seeder
                 'code' => 'IMMOBILIER',
                 'name' => 'Module Immobilier',
                 'description' => 'Gestion des locations, bâtiments et logements',
-                'is_active' => false,
+                'is_active' => true,
                 'icon' => 'home',
                 'permissions' => ['view', 'create', 'edit', 'delete', 'manage_contracts']
             ],
@@ -38,7 +38,7 @@ class ModuleSeeder extends Seeder
                 'code' => 'TAXI',
                 'name' => 'Module Taxi',
                 'description' => 'Gestion des taxis et chauffeurs',
-                'is_active' => false,
+                'is_active' => true,
                 'icon' => 'car',
                 'permissions' => ['view', 'create', 'edit', 'delete', 'assign_drivers']
             ],
@@ -61,7 +61,10 @@ class ModuleSeeder extends Seeder
         ];
 
         foreach ($modules as $module) {
-            Module::create($module);
+            Module::updateOrCreate(
+                ['code' => $module['code']],
+                $module
+            );
         }
     }
 }

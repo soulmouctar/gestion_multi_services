@@ -81,6 +81,35 @@ class ExchangeRateController extends BaseController
 
         $rate->delete();
 
-        return $this->sendResponse([], 'Exchange rate deleted successfully');
+        return $this->sendResponse($rate, 'Exchange rate deleted successfully');
+    }
+
+    public function publicIndex(Request $request)
+    {
+        $query = ExchangeRate::with('currency');
+
+        if ($request->has('currency_id')) {
+            $query->where('currency_id', $request->currency_id);
+        }
+
+        $rates = $query->orderBy('rate_date', 'desc')->paginate(15);
+        return $this->sendResponse($rates, 'Exchange rates retrieved successfully');
+    }
+
+    public function publicStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'currency_id' => 'required|exists:currencies,id',
+            'rate' => 'required|numeric|min:0',
+            'rate_date' => 'required|date',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $rate = ExchangeRate::create($request->all());
+
+        return $this->sendResponse($rate->load('currency'), 'Exchange rate created successfully', 201);
     }
 }

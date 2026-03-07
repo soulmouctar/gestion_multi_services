@@ -10,5 +10,25 @@ export const routes: Routes = [
     path: 'dashboard',
     loadComponent: () => import('./dashboard/finance-dashboard.component').then(m => m.FinanceDashboardComponent),
     title: 'Tableau de Bord Financier'
+  },
+  {
+    path: 'currencies',
+    loadComponent: () => import('./currencies/currencies.component').then(m => m.FinanceCurrenciesComponent),
+    title: 'Gestion des Devises'
+  },
+  {
+    path: 'exchange-rates',
+    loadComponent: () => import('./exchange-rates/exchange-rates.component').then(m => m.ExchangeRatesComponent),
+    title: 'Taux de Change'
+  },
+  {
+    path: 'invoices',
+    loadComponent: () => import('./invoices/invoices.component').then(m => m.InvoicesComponent),
+    title: 'Gestion des Factures'
+  },
+  {
+    path: 'currencies-advanced',
+    loadComponent: () => import('./currencies-advanced/currencies-advanced.component').then(m => m.CurrenciesAdvancedComponent),
+    title: 'Gestion Avancée des Devises'
   }
 ];

@@ -1,0 +1,132 @@
+<c-container>
+  <c-row>
+    <c-col xs="12">
+      <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
+      <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
+    </c-col>
+  </c-row>
+
+  <c-row>
+    <!-- Settings Options -->
+    <c-col md="6">
+      <c-card class="mb-4">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <div><strong>Options de Configuration</strong></div>
+          <button cButton color="primary" size="sm" (click)="refreshData()">
+            <svg cIcon name="cilReload" class="me-1"></svg> Actualiser
+          </button>
+        </c-card-header>
+        <c-card-body>
+          <div *ngIf="optionsLoading" class="text-center p-3"><c-spinner></c-spinner></div>
+          
+          <div *ngIf="!optionsLoading && !settingsOptions" class="text-center text-muted p-3">
+            Aucune option disponible
+          </div>
+
+          <div *ngIf="!optionsLoading && settingsOptions">
+            <div *ngFor="let option of settingsOptions | keyvalue" class="border-bottom pb-2 mb-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-1">{{ option.key | titlecase }}</h6>
+                  <small class="text-muted">Configuration système</small>
+                </div>
+                <div>
+                  <c-badge [color]="getOptionColor(option.value)">
+                    {{ getOptionValue(option.value) }}
+                  </c-badge>
+                </div>
+              </div>
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+
+      <!-- Next Numbers -->
+      <c-card class="mb-4">
+        <c-card-header><strong>Prochains Numéros</strong></c-card-header>
+        <c-card-body>
+          <div *ngIf="numbersLoading" class="text-center p-3"><c-spinner></c-spinner></div>
+          
+          <div *ngIf="!numbersLoading">
+            <c-row>
+              <c-col md="6">
+                <c-card class="text-center mb-3">
+                  <c-card-body>
+                    <h4 class="text-primary">{{ nextInvoiceNumber }}</h4>
+                    <small class="text-muted">Prochaine facture</small>
+                  </c-card-body>
+                </c-card>
+              </c-col>
+              <c-col md="6">
+                <c-card class="text-center mb-3">
+                  <c-card-body>
+                    <h4 class="text-info">{{ nextQuoteNumber }}</h4>
+                    <small class="text-muted">Prochain devis</small>
+                  </c-card-body>
+                </c-card>
+              </c-col>
+            </c-row>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Test Notifications -->
+    <c-col md="6">
+      <c-card class="mb-4">
+        <c-card-header><strong>Test des Notifications</strong></c-card-header>
+        <c-card-body>
+          <form [formGroup]="testNotificationForm" (ngSubmit)="testNotifications()">
+            <div class="mb-3">
+              <label cLabel>Type de notification *</label>
+              <select cSelect formControlName="type">
+                <option value="email">Email</option>
+                <option value="sms">SMS</option>
+                <option value="browser">Navigateur</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label cLabel>Destinataire</label>
+              <input cFormControl type="text" formControlName="recipient" 
+                     placeholder="Email ou numéro de téléphone" />
+              <small class="form-text text-muted">Laissez vide pour utiliser les paramètres par défaut</small>
+            </div>
+            <div class="mb-3">
+              <label cLabel>Message de test</label>
+              <textarea cFormControl formControlName="message" rows="3"></textarea>
+            </div>
+            <button cButton type="submit" color="success" [disabled]="testLoading" class="w-100">
+              <c-spinner *ngIf="testLoading" size="sm" class="me-1"></c-spinner>
+              <svg *ngIf="!testLoading" cIcon name="cilSend" class="me-1"></svg>
+              Envoyer Test
+            </button>
+          </form>
+        </c-card-body>
+      </c-card>
+
+      <!-- System Information -->
+      <c-card class="mb-4">
+        <c-card-header><strong>Informations Système</strong></c-card-header>
+        <c-card-body>
+          <div class="row">
+            <div class="col-12">
+              <h6>Fonctionnalités avancées:</h6>
+              <ul class="list-unstyled">
+                <li><svg cIcon name="cilSettings" class="me-2 text-primary"></svg> Consultation des options de configuration</li>
+                <li><svg cIcon name="cilCalculator" class="me-2 text-info"></svg> Aperçu des prochains numéros de documents</li>
+                <li><svg cIcon name="cilBell" class="me-2 text-success"></svg> Test des systèmes de notification</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="mt-3 p-3 bg-light rounded">
+            <small class="text-muted">
+              <strong>Note:</strong> Ces fonctionnalités permettent de vérifier le bon fonctionnement 
+              des paramètres système et des notifications avant leur utilisation en production.
+            </small>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</c-container>

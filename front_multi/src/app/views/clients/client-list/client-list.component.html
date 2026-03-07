@@ -1,0 +1,154 @@
+<c-container>
+  <c-row>
+    <c-col xs="12">
+      <c-card class="mb-4">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong>Gestion des Clients</strong>
+            <small class="text-medium-emphasis ms-2">{{ totalItems }} client(s)</small>
+          </div>
+          <button cButton color="primary" size="sm" (click)="openCreateModal()">
+            <svg cIcon name="cilPlus" class="me-1"></svg>
+            Nouveau client
+          </button>
+        </c-card-header>
+
+        <c-card-body>
+          <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">
+            {{ successMessage }}
+          </c-alert>
+          <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">
+            {{ error }}
+          </c-alert>
+
+          <div class="mb-3" *ngIf="selectedClients.size > 0">
+            <button cButton color="danger" variant="outline" size="sm" (click)="deleteSelectedClients()">
+              <svg cIcon name="cilTrash" class="me-1"></svg>
+              Supprimer ({{ selectedClients.size }})
+            </button>
+          </div>
+
+          <div *ngIf="loading" class="text-center p-4">
+            <c-spinner></c-spinner>
+            <p class="mt-2">Chargement des clients...</p>
+          </div>
+
+          <div class="table-responsive" *ngIf="!loading">
+            <table class="table table-striped table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 40px;">
+                    <input type="checkbox" [checked]="selectAll" (change)="toggleSelectAll()" />
+                  </th>
+                  <th>Nom</th>
+                  <th>Téléphone 1</th>
+                  <th>Téléphone 2</th>
+                  <th>Date création</th>
+                  <th style="width: 150px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let client of clients; trackBy: trackByClientId">
+                  <td>
+                    <input type="checkbox" [checked]="isClientSelected(client.id)" (change)="toggleClientSelection(client.id)" />
+                  </td>
+                  <td><strong>{{ client.name }}</strong></td>
+                  <td>{{ client.phone1 || '-' }}</td>
+                  <td>{{ client.phone2 || '-' }}</td>
+                  <td>{{ client.created_at | date:'dd/MM/yyyy' }}</td>
+                  <td>
+                    <c-button-group size="sm">
+                      <button cButton color="warning" variant="outline" size="sm" title="Modifier" (click)="openEditModal(client)">
+                        <svg cIcon name="cilPencil"></svg>
+                      </button>
+                      <button cButton color="danger" variant="outline" size="sm" title="Supprimer" (click)="confirmDelete(client)">
+                        <svg cIcon name="cilTrash"></svg>
+                      </button>
+                    </c-button-group>
+                  </td>
+                </tr>
+                <tr *ngIf="clients.length === 0">
+                  <td colspan="6" class="text-center text-medium-emphasis p-4">
+                    Aucun client trouvé
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <nav *ngIf="!loading && totalPages > 1" class="d-flex justify-content-center mt-3">
+            <ul class="pagination">
+              <li class="page-item" [class.disabled]="currentPage === 1">
+                <a class="page-link" (click)="onPageChange(currentPage - 1)">Précédent</a>
+              </li>
+              <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+                <a class="page-link" (click)="onPageChange(page)">{{ page }}</a>
+              </li>
+              <li class="page-item" [class.disabled]="currentPage === totalPages">
+                <a class="page-link" (click)="onPageChange(currentPage + 1)">Suivant</a>
+              </li>
+            </ul>
+          </nav>
+
+          <div *ngIf="!loading && totalItems > 0" class="d-flex justify-content-between align-items-center mt-2">
+            <small class="text-medium-emphasis">
+              Affichage de {{ (currentPage - 1) * itemsPerPage + 1 }} à
+              {{ Math.min(currentPage * itemsPerPage, totalItems) }} sur {{ totalItems }} clients
+            </small>
+            <small class="text-medium-emphasis">Page {{ currentPage }} sur {{ totalPages }}</small>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</c-container>
+
+<!-- Modal Création/Modification -->
+<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editMode ? 'Modifier le client' : 'Nouveau client' }}</h5>
+    <button type="button" class="btn-close" (click)="showFormModal = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="clientForm">
+      <div class="mb-3">
+        <label cLabel for="clientName">Nom *</label>
+        <input cFormControl type="text" id="clientName" formControlName="name" placeholder="Nom du client"
+               [class.is-invalid]="submitted && clientForm.get('name')?.invalid" />
+        <div class="invalid-feedback" *ngIf="submitted && clientForm.get('name')?.hasError('required')">
+          Le nom est obligatoire
+        </div>
+      </div>
+      <div class="mb-3">
+        <label cLabel for="phone1">Téléphone 1</label>
+        <input cFormControl type="text" id="phone1" formControlName="phone1" placeholder="+224 xxx xxx xxx" />
+      </div>
+      <div class="mb-3">
+        <label cLabel for="phone2">Téléphone 2</label>
+        <input cFormControl type="text" id="phone2" formControlName="phone2" placeholder="+224 xxx xxx xxx" />
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showFormModal = false">Annuler</button>
+    <button cButton color="primary" (click)="saveClient()">
+      {{ editMode ? 'Mettre à jour' : 'Créer' }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- Modal Suppression -->
+<c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Confirmer la suppression</h5>
+    <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <p>Êtes-vous sûr de vouloir supprimer le client <strong>{{ clientToDelete?.name }}</strong> ?</p>
+    <p class="text-danger"><small>Cette action est irréversible.</small></p>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="deleteModalOpen = false">Annuler</button>
+    <button cButton color="danger" (click)="deleteClient()">Supprimer</button>
+  </c-modal-footer>
+</c-modal>

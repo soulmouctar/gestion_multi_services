@@ -75,4 +75,27 @@ class UnitController extends BaseController
 
         return $this->sendResponse([], 'Unit deleted successfully');
     }
+
+    public function publicIndex()
+    {
+        $units = Unit::orderBy('name')->get();
+        return $this->sendResponse($units, 'Units retrieved successfully');
+    }
+
+    public function publicStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:50',
+            'symbol' => 'required|string|max:10',
+            'conversion_value' => 'nullable|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $unit = Unit::create($request->all());
+
+        return $this->sendResponse($unit, 'Unit created successfully', 201);
+    }
 }

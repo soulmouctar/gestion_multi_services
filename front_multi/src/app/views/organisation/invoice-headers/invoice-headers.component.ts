@@ -12,25 +12,8 @@ import {
   GridModule 
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-
-interface InvoiceHeader {
-  id?: number;
-  name: string;
-  logo_url?: string;
-  company_name: string;
-  address: string;
-  city: string;
-  postal_code: string;
-  country: string;
-  phone: string;
-  email: string;
-  website?: string;
-  tax_number?: string;
-  registration_number?: string;
-  bank_details?: string;
-  footer_text?: string;
-  is_default: boolean;
-}
+import { InvoiceHeaderService, InvoiceHeader } from '../../../core/services/invoice-header.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-invoice-headers',
@@ -62,7 +45,8 @@ export class InvoiceHeadersComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private invoiceHeaderService: InvoiceHeaderService
   ) {
     this.headerForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
@@ -89,29 +73,24 @@ export class InvoiceHeadersComponent implements OnInit {
 
   loadHeaders(): void {
     this.loading = true;
-    // Simulate API call
-    setTimeout(() => {
-      this.headers = [
-        {
-          id: 1,
-          name: 'En-tête Standard',
-          company_name: 'SAAR AUTO INDUSTRIE',
-          address: '123 Rue de la Paix',
-          city: 'Paris',
-          postal_code: '75001',
-          country: 'France',
-          phone: '+33 1 23 45 67 89',
-          email: 'contact@saar-auto.com',
-          website: 'www.saar-auto.com',
-          tax_number: 'FR12345678901',
-          registration_number: '12345678901234',
-          bank_details: 'IBAN: FR76 1234 5678 9012 3456 7890 123\nBIC: ABCDEFGH',
-          footer_text: 'Merci de votre confiance',
-          is_default: true
+    this.invoiceHeaderService.getHeaders().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.headers = response.data;
         }
-      ];
-      this.loading = false;
-    }, 1000);
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading headers:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Impossible de charger les en-têtes de factures.',
+          confirmButtonColor: '#dc3545'
+        });
+        this.loading = false;
+      }
+    });
   }
 
   openModal(header?: InvoiceHeader): void {
@@ -144,64 +123,160 @@ export class InvoiceHeadersComponent implements OnInit {
       this.saving = true;
       const formData = this.headerForm.value;
       
-      // Simulate API call
-      setTimeout(() => {
-        if (this.editingHeader) {
-          // Update existing header
-          const index = this.headers.findIndex(h => h.id === this.editingHeader!.id);
-          if (index !== -1) {
-            this.headers[index] = { ...this.editingHeader, ...formData };
-          }
-        } else {
-          // Add new header
-          const newHeader: InvoiceHeader = {
-            id: Date.now(),
-            ...formData
-          };
-          this.headers.push(newHeader);
-        }
-        
-        // If setting as default, remove default from others
-        if (formData.is_default) {
-          this.headers.forEach(h => {
-            if (h.id !== (this.editingHeader?.id || Date.now())) {
-              h.is_default = false;
+      if (this.editingHeader) {
+        // Update existing header
+        this.invoiceHeaderService.updateHeader(this.editingHeader.id!, formData).subscribe({
+          next: (response) => {
+            if (response.success) {
+              const index = this.headers.findIndex(h => h.id === this.editingHeader!.id);
+              if (index !== -1) {
+                this.headers[index] = response.data;
+              }
+              this.saving = false;
+              this.closeModal();
+              Swal.fire({
+                icon: 'success',
+                title: 'Succès',
+                text: 'En-tête mis à jour avec succès!',
+                confirmButtonColor: '#28a745'
+              });
             }
-          });
-        }
-        
-        this.saving = false;
-        this.closeModal();
-      }, 1000);
+          },
+          error: (error) => {
+            console.error('Error updating header:', error);
+            this.saving = false;
+            Swal.fire({
+              icon: 'error',
+              title: 'Erreur',
+              text: 'Impossible de mettre à jour l\'en-tête.',
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
+      } else {
+        // Create new header
+        this.invoiceHeaderService.createHeader(formData).subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.headers.push(response.data);
+              this.saving = false;
+              this.closeModal();
+              Swal.fire({
+                icon: 'success',
+                title: 'Succès',
+                text: 'En-tête créé avec succès!',
+                confirmButtonColor: '#28a745'
+              });
+            }
+          },
+          error: (error) => {
+            console.error('Error creating header:', error);
+            this.saving = false;
+            Swal.fire({
+              icon: 'error',
+              title: 'Erreur',
+              text: 'Impossible de créer l\'en-tête.',
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
+      }
     }
   }
 
   setAsDefault(header: InvoiceHeader): void {
-    // Remove default from all headers
-    this.headers.forEach(h => h.is_default = false);
-    // Set this header as default
-    header.is_default = true;
+    this.invoiceHeaderService.setAsDefault(header.id!).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Update local headers array
+          this.headers.forEach(h => {
+            h.is_default = h.id === header.id;
+          });
+          Swal.fire({
+            icon: 'success',
+            title: 'Succès',
+            text: 'En-tête défini comme par défaut.',
+            confirmButtonColor: '#28a745'
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Error setting header as default:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Impossible de définir l\'en-tête comme par défaut.',
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    });
   }
 
   deleteHeader(header: InvoiceHeader): void {
-    if (header.is_default) {
-      alert('Impossible de supprimer l\'en-tête par défaut');
-      return;
-    }
-    
-    if (confirm(`Êtes-vous sûr de vouloir supprimer l'en-tête "${header.name}" ?`)) {
-      this.headers = this.headers.filter(h => h.id !== header.id);
-    }
+    Swal.fire({
+      title: 'Êtes-vous sûr?',
+      text: `Voulez-vous vraiment supprimer l'en-tête "${header.name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler'
+    }).then((result: any) => {
+      if (result.isConfirmed) {
+        this.invoiceHeaderService.deleteHeader(header.id!).subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.headers = this.headers.filter(h => h.id !== header.id);
+              Swal.fire({
+                icon: 'success',
+                title: 'Supprimé!',
+                text: 'L\'en-tête a été supprimé.',
+                confirmButtonColor: '#28a745'
+              });
+            }
+          },
+          error: (error) => {
+            console.error('Error deleting header:', error);
+            let errorMessage = 'Impossible de supprimer l\'en-tête.';
+            if (error.status === 400) {
+              errorMessage = 'Impossible de supprimer le seul en-tête de facture.';
+            }
+            Swal.fire({
+              icon: 'error',
+              title: 'Erreur',
+              text: errorMessage,
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
+      }
+    });
   }
 
   duplicateHeader(header: InvoiceHeader): void {
-    const duplicate: InvoiceHeader = {
-      ...header,
-      id: Date.now(),
-      name: `${header.name} (Copie)`,
-      is_default: false
-    };
-    this.headers.push(duplicate);
+    this.invoiceHeaderService.duplicateHeader(header.id!).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.headers.push(response.data);
+          Swal.fire({
+            icon: 'success',
+            title: 'Succès',
+            text: 'En-tête dupliqué avec succès!',
+            confirmButtonColor: '#28a745'
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Error duplicating header:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Impossible de dupliquer l\'en-tête.',
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    });
   }
 
   get f() {

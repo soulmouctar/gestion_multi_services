@@ -1,0 +1,112 @@
+<c-container>
+  <c-row>
+    <c-col xs="12">
+      <c-card class="mb-4">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <div><strong>Conducteurs</strong><small class="text-medium-emphasis ms-2">{{ totalItems }} conducteur(s)</small></div>
+          <button cButton color="primary" size="sm" (click)="openCreateModal()"><svg cIcon name="cilPlus" class="me-1"></svg> Nouveau conducteur</button>
+        </c-card-header>
+        <c-card-body>
+          <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
+          <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
+          <div *ngIf="loading" class="text-center p-4"><c-spinner></c-spinner><p class="mt-2">Chargement...</p></div>
+          <div class="table-responsive" *ngIf="!loading">
+            <table class="table table-striped table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Nom</th>
+                  <th>Téléphone</th>
+                  <th>Statut</th>
+                  <th class="text-end">Tarif journalier</th>
+                  <th>Fin contrat</th>
+                  <th style="width:180px">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of drivers">
+                  <td><strong>{{ item.name }}</strong></td>
+                  <td>{{ item.phone || '-' }}</td>
+                  <td><c-badge [color]="getStatusClass(item.status)">{{ getStatusLabel(item.status) }}</c-badge></td>
+                  <td class="text-end">{{ item.daily_rate | number:'1.0-0' }} GNF</td>
+                  <td>{{ item.contract_end | date:'dd/MM/yyyy' }}</td>
+                  <td>
+                    <c-button-group size="sm">
+                      <button cButton [color]="item.status === 'ACTIVE' ? 'secondary' : 'success'" variant="ghost" size="sm" 
+                              (click)="toggleStatus(item)" [title]="item.status === 'ACTIVE' ? 'Désactiver' : 'Activer'">
+                        <svg cIcon [name]="item.status === 'ACTIVE' ? 'cilBan' : 'cilCheckCircle'"></svg>
+                      </button>
+                      <button cButton color="info" variant="ghost" size="sm" (click)="openEditModal(item)" title="Modifier">
+                        <svg cIcon name="cilPencil"></svg>
+                      </button>
+                      <button cButton color="danger" variant="ghost" size="sm" (click)="confirmDelete(item)" title="Supprimer">
+                        <svg cIcon name="cilTrash"></svg>
+                      </button>
+                    </c-button-group>
+                  </td>
+                </tr>
+                <tr *ngIf="drivers.length === 0"><td colspan="6" class="text-center text-medium-emphasis p-4">Aucun conducteur trouvé</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <nav *ngIf="!loading && totalPages > 1" class="d-flex justify-content-center mt-3">
+            <ul class="pagination">
+              <li class="page-item" [class.disabled]="currentPage === 1"><a class="page-link" (click)="onPageChange(currentPage - 1)">Précédent</a></li>
+              <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage"><a class="page-link" (click)="onPageChange(page)">{{ page }}</a></li>
+              <li class="page-item" [class.disabled]="currentPage === totalPages"><a class="page-link" (click)="onPageChange(currentPage + 1)">Suivant</a></li>
+            </ul>
+          </nav>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</c-container>
+
+<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
+  <c-modal-header><h5 cModalTitle>{{ editMode ? 'Modifier' : 'Nouveau conducteur' }}</h5><button type="button" class="btn-close" (click)="showFormModal = false"></button></c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="driverForm">
+      <div class="mb-3">
+        <label cLabel>Nom *</label>
+        <input cFormControl type="text" formControlName="name" [class.is-invalid]="submitted && driverForm.get('name')?.invalid" />
+        <div class="invalid-feedback" *ngIf="submitted && driverForm.get('name')?.hasError('required')">Le nom est obligatoire</div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label cLabel>Téléphone</label>
+          <input cFormControl type="text" formControlName="phone" />
+        </div>
+        <div class="col-md-6 mb-3">
+          <label cLabel>Tarif journalier (GNF)</label>
+          <input cFormControl type="number" formControlName="daily_rate" min="0" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label cLabel>Statut</label>
+          <select cSelect formControlName="status">
+            <option value="ACTIVE">Actif</option>
+            <option value="INACTIVE">Inactif</option>
+            <option value="SUSPENDED">Suspendu</option>
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label cLabel>Fin de contrat</label>
+          <input cFormControl type="date" formControlName="contract_end" />
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showFormModal = false">Annuler</button>
+    <button cButton color="primary" (click)="save()">{{ editMode ? 'Mettre à jour' : 'Créer' }}</button>
+  </c-modal-footer>
+</c-modal>
+
+<c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
+  <c-modal-header><h5 cModalTitle>Confirmer la suppression</h5><button type="button" class="btn-close" (click)="deleteModalOpen = false"></button></c-modal-header>
+  <c-modal-body><p>Supprimer le conducteur <strong>{{ itemToDelete?.name }}</strong> ?</p><p class="text-danger"><small>Cette action est irréversible.</small></p></c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="deleteModalOpen = false">Annuler</button>
+    <button cButton color="danger" (click)="deleteItem()">Supprimer</button>
+  </c-modal-footer>
+</c-modal>

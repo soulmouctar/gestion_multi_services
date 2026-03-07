@@ -1,31 +1,21 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ContactService, Contact, ContactType } from '../../../core/services/contact.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { 
   CardModule, 
   ButtonModule, 
-  TableModule, 
-  ModalModule, 
   FormModule, 
-  BadgeModule, 
+  ModalModule, 
+  TableModule, 
+  BadgeModule,
   SpinnerModule,
   AlertModule,
   GridModule 
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
-
-interface Contact {
-  id?: number;
-  type: 'primary' | 'billing' | 'shipping' | 'support';
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  postal_code: string;
-  country: string;
-  is_default: boolean;
-}
+import { IconModule } from '@coreui/icons-angular';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-contacts',
@@ -35,14 +25,14 @@ interface Contact {
     ReactiveFormsModule,
     CardModule,
     ButtonModule,
-    TableModule,
-    ModalModule,
     FormModule,
+    ModalModule,
+    TableModule,
     BadgeModule,
     SpinnerModule,
     AlertModule,
     GridModule,
-    IconDirective
+    IconModule
   ],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.scss']
@@ -50,69 +40,105 @@ interface Contact {
 export class ContactsComponent implements OnInit {
   contactForm: FormGroup;
   contacts: Contact[] = [];
+  contactTypes: { [key: string]: string } = {};
   loading = false;
   saving = false;
   editingContact: Contact | null = null;
   showModal = false;
 
-  contactTypes = [
-    { value: 'primary', label: 'Contact Principal', icon: 'cilUser' },
-    { value: 'billing', label: 'Facturation', icon: 'cilCreditCard' },
-    { value: 'shipping', label: 'Livraison', icon: 'cilTruck' },
-    { value: 'support', label: 'Support', icon: 'cilSupport' }
-  ];
-
-  constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private contactService: ContactService,
+    private cdr: ChangeDetectorRef
+  ) {
     this.contactForm = this.fb.group({
-      type: ['primary', Validators.required],
+      type: ['phone', Validators.required],
       name: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
-      phone: ['', Validators.required],
-      address: ['', Validators.required],
-      city: ['', Validators.required],
-      postal_code: ['', Validators.required],
-      country: ['France', Validators.required],
-      is_default: [false]
+      value: ['', [Validators.required]],
+      email: ['', [Validators.email]],
+      phone: [''],
+      address: [''],
+      city: [''],
+      postal_code: [''],
+      country: [''],
+      description: [''],
+      is_default: [false],
+      is_active: [true]
     });
   }
 
   ngOnInit(): void {
+    this.loadContactTypes();
     this.loadContacts();
+  }
+
+  loadContactTypes(): void {
+    this.contactService.getContactTypes().subscribe({
+      next: (response) => {
+        setTimeout(() => {
+          if (response.success) {
+            this.contactTypes = response.data;
+          }
+          this.cdr.detectChanges();
+        }, 0);
+      },
+      error: (error) => {
+        setTimeout(() => {
+          console.error('Error loading contact types:', error);
+          this.contactService.showErrorMessage('Erreur lors du chargement des types de contact');
+          this.cdr.detectChanges();
+        }, 0);
+      }
+    });
   }
 
   loadContacts(): void {
     this.loading = true;
-    // Simulate API call
-    setTimeout(() => {
-      this.contacts = [
-        {
-          id: 1,
-          type: 'primary',
-          name: 'Jean Dupont',
-          email: 'jean.dupont@entreprise.com',
-          phone: '+33 1 23 45 67 89',
-          address: '123 Rue de la Paix',
-          city: 'Paris',
-          postal_code: '75001',
-          country: 'France',
-          is_default: true
-        }
-      ];
-      this.loading = false;
-    }, 1000);
+    this.contactService.getContacts({ active: true }).subscribe({
+      next: (response) => {
+        setTimeout(() => {
+          if (response.success) {
+            this.contacts = response.data?.data || response.data || [];
+          }
+          this.loading = false;
+          this.cdr.detectChanges();
+        }, 0);
+      },
+      error: (error) => {
+        setTimeout(() => {
+          console.error('Error loading contacts:', error);
+          this.contactService.showErrorMessage('Erreur lors du chargement des contacts');
+          this.loading = false;
+          this.cdr.detectChanges();
+        }, 0);
+      }
+    });
   }
 
   openModal(contact?: Contact): void {
     this.editingContact = contact || null;
+    
     if (contact) {
-      this.contactForm.patchValue(contact);
+      this.contactForm.patchValue({
+        type: contact.type,
+        name: contact.name,
+        value: contact.value,
+        description: contact.description || '',
+        is_default: contact.is_default,
+        is_active: contact.is_active
+      });
     } else {
       this.contactForm.reset({
-        type: 'primary',
-        country: 'France',
-        is_default: false
+        type: 'phone',
+        name: '',
+        value: '',
+        description: '',
+        is_default: false,
+        is_active: true
       });
     }
+    
     this.showModal = true;
   }
 
@@ -125,55 +151,108 @@ export class ContactsComponent implements OnInit {
   onSubmit(): void {
     if (this.contactForm.valid) {
       this.saving = true;
-      const formData = this.contactForm.value;
-      
-      // Simulate API call
-      setTimeout(() => {
-        if (this.editingContact) {
-          // Update existing contact
-          const index = this.contacts.findIndex(c => c.id === this.editingContact!.id);
-          if (index !== -1) {
-            this.contacts[index] = { ...this.editingContact, ...formData };
-          }
-        } else {
-          // Add new contact
-          const newContact: Contact = {
-            id: Date.now(),
-            ...formData
-          };
-          this.contacts.push(newContact);
-        }
-        
-        this.saving = false;
-        this.closeModal();
-      }, 1000);
-    }
-  }
+      const contactData = this.contactForm.value;
 
-  deleteContact(contact: Contact): void {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer le contact "${contact.name}" ?`)) {
-      this.contacts = this.contacts.filter(c => c.id !== contact.id);
+      if (this.editingContact) {
+        // Update existing contact
+        this.contactService.updateContact(this.editingContact.id!, contactData).subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.loadContacts();
+              this.closeModal();
+            }
+            this.saving = false;
+          },
+          error: (error) => {
+            console.error('Error updating contact:', error);
+            this.contactService.showErrorMessage('Erreur lors de la mise à jour du contact');
+            this.saving = false;
+          }
+        });
+      } else {
+        // Create new contact
+        this.contactService.createContact(contactData).subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.loadContacts();
+              this.closeModal();
+            }
+            this.saving = false;
+          },
+          error: (error) => {
+            console.error('Error creating contact:', error);
+            this.contactService.showErrorMessage('Erreur lors de la création du contact');
+            this.saving = false;
+          }
+        });
+      }
     }
   }
 
   setAsDefault(contact: Contact): void {
-    // Remove default from all contacts
-    this.contacts.forEach(c => c.is_default = false);
-    // Set this contact as default
-    contact.is_default = true;
+    this.contactService.setAsDefault(contact.id!).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Update local contacts array
+          this.contacts.forEach(c => {
+            c.is_default = c.id === contact.id && c.type === contact.type;
+          });
+          Swal.fire({
+            icon: 'success',
+            title: 'Succès',
+            text: 'Contact défini comme par défaut.',
+            confirmButtonColor: '#28a745'
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Error setting contact as default:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Impossible de définir le contact comme par défaut.',
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    });
+  }
+
+  deleteContact(contact: Contact): void {
+    this.contactService.showDeleteConfirmation(contact.name).then((result) => {
+      if (result.isConfirmed) {
+        this.contactService.deleteContact(contact.id!).subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.loadContacts();
+            }
+          },
+          error: (error) => {
+            console.error('Error deleting contact:', error);
+            this.contactService.showErrorMessage('Erreur lors de la suppression du contact');
+          }
+        });
+      }
+    });
   }
 
   getContactTypeLabel(type: string): string {
-    const contactType = this.contactTypes.find(ct => ct.value === type);
-    return contactType ? contactType.label : type;
+    return this.contactTypes[type] || type;
   }
 
   getContactTypeIcon(type: string): string {
-    const contactType = this.contactTypes.find(ct => ct.value === type);
-    return contactType ? contactType.icon : 'cilUser';
+    const iconMap: { [key: string]: string } = {
+      'phone': 'cilPhone',
+      'email': 'cilEnvelopeClosed',
+      'address': 'cilLocationPin',
+      'website': 'cilGlobeAlt',
+      'fax': 'cilPrint',
+      'whatsapp': 'cilPhone',
+      'telegram': 'cilChat'
+    };
+    return iconMap[type] || 'cilUser';
   }
 
   get f() {
-    return this.contactForm.controls;
+    return this.contactForm?.controls || {};
   }
 }

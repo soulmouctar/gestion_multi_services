@@ -1,0 +1,335 @@
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">{{ isEditMode ? 'Modifier le Produit' : 'Nouveau Produit' }}</h2>
+          <p class="text-muted mb-0">{{ isEditMode ? 'Modifiez les informations du produit' : 'Créez un nouveau produit' }}</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button 
+            type="button" 
+            class="btn btn-outline-secondary"
+            (click)="cancel()"
+            [disabled]="saving">
+            <svg cIcon name="cilX" class="me-1"></svg>
+            Annuler
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary"
+            (click)="onSubmit()"
+            [disabled]="saving || productForm.invalid">
+            <c-spinner size="sm" class="me-2" *ngIf="saving"></c-spinner>
+            <svg cIcon name="cilCheckAlt" class="me-1" *ngIf="!saving"></svg>
+            {{ isEditMode ? 'Mettre à jour' : 'Créer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="text-center p-4" *ngIf="loading">
+    <c-spinner></c-spinner>
+    <p class="mt-2 mb-0">Chargement du produit...</p>
+  </div>
+
+  <!-- Error Alert -->
+  <c-alert color="danger" *ngIf="error" [dismissible]="true" (dismissed)="error = null">
+    {{ error }}
+  </c-alert>
+
+  <!-- Form -->
+  <form [formGroup]="productForm" (ngSubmit)="onSubmit()" *ngIf="!loading">
+    <div class="row">
+      <!-- Basic Information -->
+      <div class="col-lg-8">
+        <c-card class="mb-4">
+          <c-card-header>
+            <h5 class="mb-0">Informations de base</h5>
+          </c-card-header>
+          <c-card-body>
+            <div class="row g-3">
+              <!-- Name -->
+              <div class="col-md-8">
+                <label class="form-label">Nom du produit *</label>
+                <input 
+                  type="text" 
+                  class="form-control"
+                  formControlName="name"
+                  [class.is-invalid]="isFieldInvalid('name')"
+                  placeholder="Entrez le nom du produit">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('name')">
+                  {{ getFieldError('name') }}
+                </div>
+              </div>
+
+              <!-- SKU -->
+              <div class="col-md-4">
+                <label class="form-label">SKU</label>
+                <div class="input-group">
+                  <input 
+                    type="text" 
+                    class="form-control"
+                    formControlName="sku"
+                    [class.is-invalid]="isFieldInvalid('sku')"
+                    placeholder="SKU du produit">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    (click)="generateSKU()"
+                    title="Générer automatiquement">
+                    <svg cIcon name="cilReload"></svg>
+                  </button>
+                </div>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('sku')">
+                  {{ getFieldError('sku') }}
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div class="col-12">
+                <label class="form-label">Description</label>
+                <textarea 
+                  class="form-control"
+                  formControlName="description"
+                  [class.is-invalid]="isFieldInvalid('description')"
+                  rows="3"
+                  placeholder="Description détaillée du produit"></textarea>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('description')">
+                  {{ getFieldError('description') }}
+                </div>
+              </div>
+
+              <!-- Category and Unit -->
+              <div class="col-md-6">
+                <label class="form-label">Catégorie</label>
+                <select 
+                  class="form-select"
+                  formControlName="product_category_id"
+                  [class.is-invalid]="isFieldInvalid('product_category_id')"
+                  (change)="onCategoryChange()">
+                  <option value="">Sélectionner une catégorie</option>
+                  <option *ngFor="let category of categories" [value]="category.id">
+                    {{ category.name }}
+                  </option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('product_category_id')">
+                  {{ getFieldError('product_category_id') }}
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Unité de mesure</label>
+                <select 
+                  class="form-select"
+                  formControlName="unit_id"
+                  [class.is-invalid]="isFieldInvalid('unit_id')">
+                  <option value="">Sélectionner une unité</option>
+                  <option *ngFor="let unit of units" [value]="unit.id">
+                    {{ unit.name }} ({{ unit.symbol }})
+                  </option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('unit_id')">
+                  {{ getFieldError('unit_id') }}
+                </div>
+              </div>
+
+              <!-- Status -->
+              <div class="col-md-6">
+                <label class="form-label">Statut *</label>
+                <select 
+                  class="form-select"
+                  formControlName="status"
+                  [class.is-invalid]="isFieldInvalid('status')">
+                  <option value="ACTIVE">Actif</option>
+                  <option value="INACTIVE">Inactif</option>
+                  <option value="DISCONTINUED">Discontinué</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('status')">
+                  {{ getFieldError('status') }}
+                </div>
+              </div>
+
+              <!-- Barcode -->
+              <div class="col-md-6">
+                <label class="form-label">Code-barres</label>
+                <input 
+                  type="text" 
+                  class="form-control"
+                  formControlName="barcode"
+                  [class.is-invalid]="isFieldInvalid('barcode')"
+                  placeholder="Code-barres du produit">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('barcode')">
+                  {{ getFieldError('barcode') }}
+                </div>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <!-- Pricing -->
+        <c-card class="mb-4">
+          <c-card-header>
+            <h5 class="mb-0">Prix et marges</h5>
+          </c-card-header>
+          <c-card-body>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Prix d'achat</label>
+                <div class="input-group">
+                  <input 
+                    type="number" 
+                    class="form-control"
+                    formControlName="purchase_price"
+                    [class.is-invalid]="isFieldInvalid('purchase_price')"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0">
+                  <span class="input-group-text">GNF</span>
+                </div>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('purchase_price')">
+                  {{ getFieldError('purchase_price') }}
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label">Prix de vente</label>
+                <div class="input-group">
+                  <input 
+                    type="number" 
+                    class="form-control"
+                    formControlName="selling_price"
+                    [class.is-invalid]="isFieldInvalid('selling_price')"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0">
+                  <span class="input-group-text">GNF</span>
+                </div>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('selling_price')">
+                  {{ getFieldError('selling_price') }}
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label">Marge</label>
+                <div class="input-group">
+                  <input 
+                    type="text" 
+                    class="form-control"
+                    [value]="calculateMargin().toFixed(2)"
+                    readonly>
+                  <span class="input-group-text">%</span>
+                </div>
+                <small class="text-muted">Calculée automatiquement</small>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+
+      <!-- Stock Management -->
+      <div class="col-lg-4">
+        <c-card class="mb-4">
+          <c-card-header>
+            <h5 class="mb-0">Gestion du stock</h5>
+          </c-card-header>
+          <c-card-body>
+            <div class="mb-3">
+              <label class="form-label">Quantité en stock</label>
+              <input 
+                type="number" 
+                class="form-control"
+                formControlName="stock_quantity"
+                [class.is-invalid]="isFieldInvalid('stock_quantity')"
+                placeholder="0"
+                min="0">
+              <div class="invalid-feedback" *ngIf="isFieldInvalid('stock_quantity')">
+                {{ getFieldError('stock_quantity') }}
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Seuil de stock faible</label>
+              <input 
+                type="number" 
+                class="form-control"
+                formControlName="low_stock_threshold"
+                [class.is-invalid]="isFieldInvalid('low_stock_threshold')"
+                placeholder="10"
+                min="0">
+              <div class="invalid-feedback" *ngIf="isFieldInvalid('low_stock_threshold')">
+                {{ getFieldError('low_stock_threshold') }}
+              </div>
+              <small class="text-muted">Alerte quand le stock atteint ce niveau</small>
+            </div>
+
+            <!-- Stock Status -->
+            <div class="alert alert-info" *ngIf="productForm.get('stock_quantity')?.value !== null">
+              <div class="d-flex align-items-center">
+                <svg cIcon name="cilInfo" class="me-2"></svg>
+                <div>
+                  <strong>Statut du stock</strong>
+                  <div class="mt-1">
+                    <span 
+                      class="badge"
+                      [class.bg-danger]="productForm.get('stock_quantity')?.value === 0"
+                      [class.bg-warning]="productForm.get('stock_quantity')?.value > 0 && productForm.get('stock_quantity')?.value <= productForm.get('low_stock_threshold')?.value"
+                      [class.bg-success]="productForm.get('stock_quantity')?.value > productForm.get('low_stock_threshold')?.value">
+                      {{ 
+                        productForm.get('stock_quantity')?.value === 0 ? 'Rupture de stock' :
+                        productForm.get('stock_quantity')?.value <= productForm.get('low_stock_threshold')?.value ? 'Stock faible' :
+                        'Stock normal'
+                      }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <!-- Form Actions -->
+        <c-card>
+          <c-card-body>
+            <div class="d-grid gap-2">
+              <button 
+                type="submit" 
+                class="btn btn-primary"
+                [disabled]="saving || productForm.invalid">
+                <c-spinner size="sm" class="me-2" *ngIf="saving"></c-spinner>
+                <svg cIcon name="cilCheckAlt" class="me-1" *ngIf="!saving"></svg>
+                {{ isEditMode ? 'Mettre à jour le produit' : 'Créer le produit' }}
+              </button>
+              
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary"
+                (click)="cancel()"
+                [disabled]="saving">
+                <svg cIcon name="cilX" class="me-1"></svg>
+                Annuler
+              </button>
+            </div>
+
+            <!-- Form Status -->
+            <div class="mt-3 pt-3 border-top">
+              <small class="text-muted">
+                <div class="d-flex justify-content-between">
+                  <span>Champs requis: *</span>
+                  <span 
+                    [class.text-success]="productForm.valid"
+                    [class.text-danger]="productForm.invalid">
+                    {{ productForm.valid ? 'Formulaire valide' : 'Formulaire invalide' }}
+                  </span>
+                </div>
+              </small>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+    </div>
+  </form>
+</div>

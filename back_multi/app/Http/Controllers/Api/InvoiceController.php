@@ -93,4 +93,42 @@ class InvoiceController extends BaseController
 
         return $this->sendResponse([], 'Invoice deleted successfully');
     }
+
+    public function publicIndex(Request $request)
+    {
+        $query = Invoice::with('tenant', 'client');
+
+        // Use fixed tenant_id for testing
+        $tenantId = $request->get('tenant_id', 1);
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $invoices = $query->orderBy('created_at', 'desc')->paginate(15);
+        return $this->sendResponse($invoices, 'Invoices retrieved successfully');
+    }
+
+    public function publicStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'tenant_id' => 'required|exists:tenants,id',
+            'client_id' => 'nullable|exists:clients,id',
+            'invoice_number' => 'required|string|max:100',
+            'total_amount' => 'required|numeric|min:0',
+            'status' => 'nullable|in:PAYE,PARTIEL,IMPAYE',
+            'due_date' => 'nullable|date',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $invoice = Invoice::create($request->all());
+
+        return $this->sendResponse($invoice->load('client'), 'Invoice created successfully', 201);
+    }
 }

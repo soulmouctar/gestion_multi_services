@@ -11,11 +11,18 @@ class ContainerPhoto extends Model
 
     protected $fillable = [
         'container_id',
+        'product_id',
         'image_path',
+        'description',
     ];
 
     public function container()
     {
         return $this->belongsTo(Container::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
     }
 }

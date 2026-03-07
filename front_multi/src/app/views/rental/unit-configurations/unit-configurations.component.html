@@ -1,0 +1,76 @@
+<c-container>
+  <c-row>
+    <c-col xs="12">
+      <c-card class="mb-4">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <div><strong>Configurations d'Unités</strong><small class="text-medium-emphasis ms-2">{{ totalItems }} configuration(s)</small></div>
+          <button cButton color="primary" size="sm" (click)="openCreateModal()"><svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle configuration</button>
+        </c-card-header>
+        <c-card-body>
+          <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
+          <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
+          <div *ngIf="loading" class="text-center p-4"><c-spinner></c-spinner><p class="mt-2">Chargement...</p></div>
+          <div class="table-responsive" *ngIf="!loading">
+            <table class="table table-striped table-hover">
+              <thead class="table-light"><tr><th>Nom</th><th>Chambres</th><th>Salons</th><th>Salles de bain</th><th>Terrasse</th><th>Date création</th><th style="width:150px">Actions</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let item of configurations">
+                  <td><strong>{{ item.name }}</strong></td>
+                  <td>{{ item.bedrooms ?? '-' }}</td>
+                  <td>{{ item.living_rooms ?? '-' }}</td>
+                  <td>{{ item.bathrooms ?? '-' }}</td>
+                  <td><c-badge [color]="item.has_terrace ? 'success' : 'secondary'">{{ item.has_terrace ? 'Oui' : 'Non' }}</c-badge></td>
+                  <td>{{ item.created_at | date:'dd/MM/yyyy' }}</td>
+                  <td>
+                    <c-button-group size="sm">
+                      <button cButton color="warning" variant="outline" size="sm" (click)="openEditModal(item)"><svg cIcon name="cilPencil"></svg></button>
+                      <button cButton color="danger" variant="outline" size="sm" (click)="confirmDelete(item)"><svg cIcon name="cilTrash"></svg></button>
+                    </c-button-group>
+                  </td>
+                </tr>
+                <tr *ngIf="configurations.length === 0"><td colspan="7" class="text-center text-medium-emphasis p-4">Aucune configuration trouvée</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <nav *ngIf="!loading && totalPages > 1" class="d-flex justify-content-center mt-3">
+            <ul class="pagination">
+              <li class="page-item" [class.disabled]="currentPage === 1"><a class="page-link" (click)="onPageChange(currentPage - 1)">Précédent</a></li>
+              <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage"><a class="page-link" (click)="onPageChange(page)">{{ page }}</a></li>
+              <li class="page-item" [class.disabled]="currentPage === totalPages"><a class="page-link" (click)="onPageChange(currentPage + 1)">Suivant</a></li>
+            </ul>
+          </nav>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</c-container>
+
+<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
+  <c-modal-header><h5 cModalTitle>{{ editMode ? 'Modifier' : 'Nouvelle configuration' }}</h5><button type="button" class="btn-close" (click)="showFormModal = false"></button></c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="configForm">
+      <div class="mb-3">
+        <label cLabel>Nom *</label>
+        <input cFormControl type="text" formControlName="name" placeholder="T2, T3, Studio..." [class.is-invalid]="submitted && configForm.get('name')?.invalid" />
+        <div class="invalid-feedback" *ngIf="submitted && configForm.get('name')?.hasError('required')">Le nom est obligatoire</div>
+      </div>
+      <div class="mb-3"><label cLabel>Chambres</label><input cFormControl type="number" formControlName="bedrooms" min="0" /></div>
+      <div class="mb-3"><label cLabel>Salons</label><input cFormControl type="number" formControlName="living_rooms" min="0" /></div>
+      <div class="mb-3"><label cLabel>Salles de bain</label><input cFormControl type="number" formControlName="bathrooms" min="0" /></div>
+      <div class="mb-3 form-check"><input type="checkbox" class="form-check-input" formControlName="has_terrace" id="hasTerrace" /><label class="form-check-label" for="hasTerrace">Terrasse</label></div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showFormModal = false">Annuler</button>
+    <button cButton color="primary" (click)="save()">{{ editMode ? 'Mettre à jour' : 'Créer' }}</button>
+  </c-modal-footer>
+</c-modal>
+
+<c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
+  <c-modal-header><h5 cModalTitle>Confirmer la suppression</h5><button type="button" class="btn-close" (click)="deleteModalOpen = false"></button></c-modal-header>
+  <c-modal-body><p>Supprimer la configuration <strong>{{ itemToDelete?.name }}</strong> ?</p><p class="text-danger"><small>Cette action est irréversible.</small></p></c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="deleteModalOpen = false">Annuler</button>
+    <button cButton color="danger" (click)="deleteItem()">Supprimer</button>
+  </c-modal-footer>
+</c-modal>

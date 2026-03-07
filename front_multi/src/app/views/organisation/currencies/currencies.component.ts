@@ -13,16 +13,8 @@ import {
   GridModule 
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-
-interface Currency {
-  id?: number;
-  code: string;
-  name: string;
-  symbol: string;
-  exchange_rate: number;
-  is_default: boolean;
-  is_active: boolean;
-}
+import { OrganisationCurrencyService, OrganisationCurrency } from '../../../core/services/organisation-currency.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-currencies',
@@ -46,10 +38,10 @@ interface Currency {
 })
 export class CurrenciesComponent implements OnInit {
   currencyForm: FormGroup;
-  currencies: Currency[] = [];
+  currencies: OrganisationCurrency[] = [];
   loading = false;
   saving = false;
-  editingCurrency: Currency | null = null;
+  editingCurrency: OrganisationCurrency | null = null;
   showModal = false;
 
   commonCurrencies = [
@@ -65,7 +57,8 @@ export class CurrenciesComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private currencyService: OrganisationCurrencyService
   ) {
     this.currencyForm = this.fb.group({
       code: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(3)]],
@@ -83,33 +76,27 @@ export class CurrenciesComponent implements OnInit {
 
   loadCurrencies(): void {
     this.loading = true;
-    // Simulate API call
-    setTimeout(() => {
-      this.currencies = [
-        {
-          id: 1,
-          code: 'EUR',
-          name: 'Euro',
-          symbol: '€',
-          exchange_rate: 1,
-          is_default: true,
-          is_active: true
-        },
-        {
-          id: 2,
-          code: 'USD',
-          name: 'Dollar américain',
-          symbol: '$',
-          exchange_rate: 1.08,
-          is_default: false,
-          is_active: true
+    this.currencyService.getCurrencies().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.currencies = response.data;
         }
-      ];
-      this.loading = false;
-    }, 1000);
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading currencies:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Impossible de charger les devises.',
+          confirmButtonColor: '#dc3545'
+        });
+        this.loading = false;
+      }
+    });
   }
 
-  openModal(currency?: Currency): void {
+  openModal(currency?: OrganisationCurrency): void {
     this.editingCurrency = currency || null;
     if (currency) {
       this.currencyForm.patchValue(currency);
@@ -145,62 +132,176 @@ export class CurrenciesComponent implements OnInit {
       // Ensure code is uppercase
       formData.code = formData.code.toUpperCase();
       
-      // Simulate API call
-      setTimeout(() => {
-        if (this.editingCurrency) {
-          // Update existing currency
-          const index = this.currencies.findIndex(c => c.id === this.editingCurrency!.id);
-          if (index !== -1) {
-            this.currencies[index] = { ...this.editingCurrency, ...formData };
-          }
-        } else {
-          // Add new currency
-          const newCurrency: Currency = {
-            id: Date.now(),
-            ...formData
-          };
-          this.currencies.push(newCurrency);
-        }
-        
-        // If setting as default, remove default from others
-        if (formData.is_default) {
-          this.currencies.forEach(c => {
-            if (c.id !== (this.editingCurrency?.id || Date.now())) {
-              c.is_default = false;
+      if (this.editingCurrency) {
+        // Update existing currency
+        this.currencyService.updateCurrency(this.editingCurrency.id!, formData).subscribe({
+          next: (response) => {
+            if (response.success) {
+              const index = this.currencies.findIndex(c => c.id === this.editingCurrency!.id);
+              if (index !== -1) {
+                this.currencies[index] = response.data;
+              }
+              this.saving = false;
+              this.closeModal();
+              Swal.fire({
+                icon: 'success',
+                title: 'Succès',
+                text: 'Devise mise à jour avec succès!',
+                confirmButtonColor: '#28a745'
+              });
             }
+          },
+          error: (error) => {
+            console.error('Error updating currency:', error);
+            this.saving = false;
+            let errorMessage = 'Impossible de mettre à jour la devise.';
+            if (error.error?.message?.includes('already exists')) {
+              errorMessage = 'Ce code de devise existe déjà.';
+            }
+            Swal.fire({
+              icon: 'error',
+              title: 'Erreur',
+              text: errorMessage,
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
+      } else {
+        // Create new currency
+        this.currencyService.createCurrency(formData).subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.currencies.push(response.data);
+              this.saving = false;
+              this.closeModal();
+              Swal.fire({
+                icon: 'success',
+                title: 'Succès',
+                text: 'Devise créée avec succès!',
+                confirmButtonColor: '#28a745'
+              });
+            }
+          },
+          error: (error) => {
+            console.error('Error creating currency:', error);
+            this.saving = false;
+            let errorMessage = 'Impossible de créer la devise.';
+            if (error.error?.message?.includes('already exists')) {
+              errorMessage = 'Ce code de devise existe déjà.';
+            }
+            Swal.fire({
+              icon: 'error',
+              title: 'Erreur',
+              text: errorMessage,
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
+      }
+    }
+  }
+
+  setAsDefault(currency: OrganisationCurrency): void {
+    this.currencyService.setAsDefault(currency.id!).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Update local currencies array
+          this.currencies.forEach(c => {
+            c.is_default = c.id === currency.id;
+          });
+          Swal.fire({
+            icon: 'success',
+            title: 'Succès',
+            text: 'Devise définie comme par défaut.',
+            confirmButtonColor: '#28a745'
           });
         }
-        
-        this.saving = false;
-        this.closeModal();
-      }, 1000);
-    }
+      },
+      error: (error) => {
+        console.error('Error setting currency as default:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Impossible de définir la devise comme par défaut.',
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    });
   }
 
-  setAsDefault(currency: Currency): void {
-    // Remove default from all currencies
-    this.currencies.forEach(c => c.is_default = false);
-    // Set this currency as default
-    currency.is_default = true;
+  toggleStatus(currency: OrganisationCurrency): void {
+    this.currencyService.toggleStatus(currency.id!).subscribe({
+      next: (response) => {
+        if (response.success) {
+          const index = this.currencies.findIndex(c => c.id === currency.id);
+          if (index !== -1) {
+            this.currencies[index] = response.data;
+          }
+          const status = response.data.is_active ? 'activée' : 'désactivée';
+          Swal.fire({
+            icon: 'success',
+            title: 'Succès',
+            text: `Devise ${status} avec succès.`,
+            confirmButtonColor: '#28a745'
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Error toggling currency status:', error);
+        let errorMessage = 'Impossible de changer le statut de la devise.';
+        if (error.error?.message?.includes('Cannot deactivate')) {
+          errorMessage = 'Impossible de désactiver la devise par défaut.';
+        }
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: errorMessage,
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    });
   }
 
-  toggleStatus(currency: Currency): void {
-    if (currency.is_default && !currency.is_active) {
-      alert('Impossible de désactiver la devise par défaut');
-      return;
-    }
-    currency.is_active = !currency.is_active;
-  }
-
-  deleteCurrency(currency: Currency): void {
-    if (currency.is_default) {
-      alert('Impossible de supprimer la devise par défaut');
-      return;
-    }
-    
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la devise "${currency.name}" ?`)) {
-      this.currencies = this.currencies.filter(c => c.id !== currency.id);
-    }
+  deleteCurrency(currency: OrganisationCurrency): void {
+    Swal.fire({
+      title: 'Êtes-vous sûr?',
+      text: `Voulez-vous vraiment supprimer la devise "${currency.name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler'
+    }).then((result: any) => {
+      if (result.isConfirmed) {
+        this.currencyService.deleteCurrency(currency.id!).subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.currencies = this.currencies.filter(c => c.id !== currency.id);
+              Swal.fire({
+                icon: 'success',
+                title: 'Supprimé!',
+                text: 'La devise a été supprimée.',
+                confirmButtonColor: '#28a745'
+              });
+            }
+          },
+          error: (error) => {
+            console.error('Error deleting currency:', error);
+            let errorMessage = 'Impossible de supprimer la devise.';
+            if (error.error?.message?.includes('Cannot delete')) {
+              errorMessage = 'Impossible de supprimer la seule devise.';
+            }
+            Swal.fire({
+              icon: 'error',
+              title: 'Erreur',
+              text: errorMessage,
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
+      }
+    });
   }
 
   get f() {

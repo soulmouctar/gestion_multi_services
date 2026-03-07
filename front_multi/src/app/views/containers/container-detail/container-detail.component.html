@@ -1,0 +1,205 @@
+<c-container>
+  <c-row>
+    <c-col xs="12">
+      <!-- Header with back button -->
+      <div class="d-flex align-items-center mb-3">
+        <button cButton color="secondary" variant="outline" size="sm" (click)="goBack()" class="me-3">
+          <svg cIcon name="cilArrowLeft" class="me-1"></svg> Retour
+        </button>
+        <h4 class="mb-0" *ngIf="container">
+          Détail du Conteneur: <strong>{{ container.container_number }}</strong>
+        </h4>
+      </div>
+
+      <!-- Container Info Card -->
+      <c-card class="mb-4" *ngIf="container">
+        <c-card-header>
+          <strong>Informations du Conteneur</strong>
+        </c-card-header>
+        <c-card-body>
+          <c-row>
+            <c-col md="3">
+              <strong>N° Conteneur:</strong><br>
+              <span class="text-primary">{{ container.container_number }}</span>
+            </c-col>
+            <c-col md="3">
+              <strong>Capacité Min:</strong><br>
+              {{ container.capacity_min || '-' }}
+            </c-col>
+            <c-col md="3">
+              <strong>Capacité Max:</strong><br>
+              {{ container.capacity_max || '-' }}
+            </c-col>
+            <c-col md="3">
+              <strong>Taux d'intérêt:</strong><br>
+              <c-badge color="info">{{ container.interest_rate ? container.interest_rate + ' %' : '-' }}</c-badge>
+            </c-col>
+          </c-row>
+        </c-card-body>
+      </c-card>
+
+      <!-- Photos Management Card -->
+      <c-card class="mb-4">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong>Photos des Produits d'Arrivage</strong>
+            <small class="text-medium-emphasis ms-2">{{ totalItems }} photo(s)</small>
+          </div>
+          <button cButton color="primary" size="sm" (click)="openPhotoModal()">
+            <svg cIcon name="cilCamera" class="me-1"></svg> Ajouter une photo
+          </button>
+        </c-card-header>
+        <c-card-body>
+          <!-- Alerts -->
+          <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">
+            {{ successMessage }}
+          </c-alert>
+          <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">
+            {{ error }}
+          </c-alert>
+
+          <!-- Loading -->
+          <div *ngIf="loading" class="text-center p-4">
+            <c-spinner></c-spinner>
+            <p class="mt-2">Chargement...</p>
+          </div>
+
+          <!-- Photos Grid -->
+          <div *ngIf="!loading" class="row g-3">
+            <div class="col-md-4 col-lg-3" *ngFor="let photo of containerPhotos">
+              <c-card class="h-100">
+                <div class="position-relative">
+                  <img 
+                    [src]="getPhotoUrl(photo.image_path)" 
+                    class="card-img-top" 
+                    style="height: 200px; object-fit: cover;"
+                    [alt]="'Photo du conteneur ' + container?.container_number"
+                    (error)="$event.target.src = 'assets/images/placeholder.png'"
+                  >
+                  <button 
+                    cButton 
+                    color="danger" 
+                    size="sm" 
+                    class="position-absolute top-0 end-0 m-2"
+                    (click)="deletePhoto(photo)"
+                    title="Supprimer la photo"
+                  >
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </div>
+                <c-card-body class="p-2">
+                  <small class="text-muted d-block">
+                    <strong>Produit:</strong> {{ getProductName(photo.product_id) }}
+                  </small>
+                  <small class="text-muted d-block" *ngIf="photo.description">
+                    <strong>Description:</strong> {{ photo.description }}
+                  </small>
+                  <small class="text-muted d-block">
+                    <strong>Ajoutée le:</strong> {{ photo.created_at | date:'dd/MM/yyyy HH:mm' }}
+                  </small>
+                </c-card-body>
+              </c-card>
+            </div>
+            
+            <!-- Empty state -->
+            <div class="col-12" *ngIf="containerPhotos.length === 0">
+              <div class="text-center p-5 text-muted">
+                <svg cIcon name="cilCamera" size="3xl" class="mb-3"></svg>
+                <h5>Aucune photo d'arrivage</h5>
+                <p>Commencez par ajouter des photos des produits de ce conteneur.</p>
+                <button cButton color="primary" (click)="openPhotoModal()">
+                  <svg cIcon name="cilCamera" class="me-1"></svg> Ajouter la première photo
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <nav *ngIf="!loading && totalPages > 1" class="d-flex justify-content-center mt-4">
+            <ul class="pagination">
+              <li class="page-item" [class.disabled]="currentPage === 1">
+                <a class="page-link" (click)="onPageChange(currentPage - 1)" style="cursor: pointer;">Précédent</a>
+              </li>
+              <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+                <a class="page-link" (click)="onPageChange(page)" style="cursor: pointer;">{{ page }}</a>
+              </li>
+              <li class="page-item" [class.disabled]="currentPage === totalPages">
+                <a class="page-link" (click)="onPageChange(currentPage + 1)" style="cursor: pointer;">Suivant</a>
+              </li>
+            </ul>
+          </nav>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</c-container>
+
+<!-- Photo Upload Modal -->
+<c-modal [visible]="showPhotoModal" (visibleChange)="showPhotoModal = $event" size="lg">
+  <c-modal-header>
+    <h4 cModalTitle>Ajouter une Photo de Produit</h4>
+  </c-modal-header>
+  <form [formGroup]="photoForm" (ngSubmit)="uploadPhoto()">
+    <c-modal-body>
+      <c-row>
+        <c-col md="12" class="mb-3">
+          <label cLabel for="product_id">Produit (optionnel)</label>
+          <select cSelect formControlName="product_id" id="product_id" class="form-control">
+            <option value="">-- Produit général --</option>
+            <option *ngFor="let product of products" [value]="product.id">
+              {{ product.name }} ({{ product.sku || 'Sans SKU' }})
+            </option>
+          </select>
+        </c-col>
+        
+        <c-col md="12" class="mb-3">
+          <label cLabel for="description">Description (optionnel)</label>
+          <textarea 
+            cFormControl 
+            formControlName="description" 
+            id="description" 
+            rows="3"
+            placeholder="Description de la photo ou du produit..."
+          ></textarea>
+        </c-col>
+        
+        <c-col md="12" class="mb-3">
+          <label cLabel for="image">Photo *</label>
+          <input 
+            type="file" 
+            class="form-control" 
+            id="image"
+            accept="image/jpeg,image/png,image/jpg,image/gif"
+            (change)="onFileSelected($event)"
+            required
+          >
+          <small class="text-muted">
+            Formats acceptés: JPEG, PNG, JPG, GIF. Taille maximum: 2MB.
+          </small>
+        </c-col>
+        
+        <c-col md="12" *ngIf="selectedFile">
+          <div class="alert alert-info">
+            <strong>Fichier sélectionné:</strong> {{ selectedFile.name }}
+            <br>
+            <strong>Taille:</strong> {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB
+          </div>
+        </c-col>
+      </c-row>
+    </c-modal-body>
+    <c-modal-footer>
+      <button cButton color="secondary" type="button" (click)="showPhotoModal = false" [disabled]="uploadingPhoto">
+        Annuler
+      </button>
+      <button 
+        cButton 
+        color="primary" 
+        type="submit" 
+        [disabled]="!selectedFile || uploadingPhoto"
+      >
+        <c-spinner *ngIf="uploadingPhoto" size="sm" class="me-2"></c-spinner>
+        {{ uploadingPhoto ? 'Upload en cours...' : 'Ajouter la photo' }}
+      </button>
+    </c-modal-footer>
+  </form>
+</c-modal>

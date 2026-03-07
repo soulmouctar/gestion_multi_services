@@ -77,4 +77,9 @@ class Tenant extends Model
     {
         return $this->hasMany(Taxi::class);
     }
+
+    public function organisationSetting()
+    {
+        return $this->hasOne(OrganisationSetting::class);
+    }
 }

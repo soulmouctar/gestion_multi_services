@@ -1,0 +1,198 @@
+<div class="container-fluid">
+  <!-- Loading Spinner -->
+  <div class="text-center p-5" *ngIf="loading">
+    <c-spinner></c-spinner>
+    <p class="mt-3 mb-0">Chargement des détails du produit...</p>
+  </div>
+
+  <!-- Product Details -->
+  <div *ngIf="!loading && product">
+    <!-- Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="mb-1">{{ product.name }}</h2>
+            <p class="text-muted mb-0">
+              <span *ngIf="product.sku">SKU: {{ product.sku }}</span>
+              <span *ngIf="product.sku && product.category"> | </span>
+              <span *ngIf="product.category">{{ product.category.name }}</span>
+            </p>
+          </div>
+          <div class="d-flex gap-2">
+            <button 
+              type="button" 
+              class="btn btn-outline-secondary"
+              (click)="goBack()">
+              <svg cIcon name="cilArrowLeft" class="me-1"></svg>
+              Retour
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary"
+              (click)="editProduct()">
+              <svg cIcon name="cilPencil" class="me-1"></svg>
+              Modifier
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-danger"
+              (click)="deleteProduct()">
+              <svg cIcon name="cilTrash" class="me-1"></svg>
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <c-row>
+      <!-- Left Column -->
+      <c-col lg="8">
+        <!-- Basic Information -->
+        <c-card class="mb-4">
+          <c-card-header>
+            <strong>Informations de base</strong>
+          </c-card-header>
+          <c-card-body>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="text-muted small">Nom du produit</label>
+                <p class="mb-0 fw-semibold">{{ product.name }}</p>
+              </div>
+              
+              <div class="col-md-3" *ngIf="product.sku">
+                <label class="text-muted small">SKU</label>
+                <p class="mb-0">{{ product.sku }}</p>
+              </div>
+
+              <div class="col-md-3">
+                <label class="text-muted small">Statut</label>
+                <div>
+                  <c-badge [color]="getStatusColor(product.status)">
+                    {{ getStatusText(product.status) }}
+                  </c-badge>
+                </div>
+              </div>
+
+              <div class="col-12" *ngIf="product.description">
+                <label class="text-muted small">Description</label>
+                <p class="mb-0">{{ product.description }}</p>
+              </div>
+
+              <div class="col-md-6" *ngIf="product.category">
+                <label class="text-muted small">Catégorie</label>
+                <p class="mb-0">{{ product.category.name }}</p>
+              </div>
+
+              <div class="col-md-6" *ngIf="product.unit">
+                <label class="text-muted small">Unité de mesure</label>
+                <p class="mb-0">{{ product.unit.name }} ({{ product.unit.symbol }})</p>
+              </div>
+
+              <div class="col-md-6" *ngIf="product.barcode">
+                <label class="text-muted small">Code-barres</label>
+                <p class="mb-0">{{ product.barcode }}</p>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <!-- Pricing Information -->
+        <c-card class="mb-4">
+          <c-card-header>
+            <strong>Prix et marges</strong>
+          </c-card-header>
+          <c-card-body>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="text-muted small">Prix d'achat</label>
+                <p class="mb-0 fs-5 fw-semibold">
+                  {{ product.purchase_price || 0 | number:'1.2-2' }} GNF
+                </p>
+              </div>
+
+              <div class="col-md-4">
+                <label class="text-muted small">Prix de vente</label>
+                <p class="mb-0 fs-5 fw-semibold text-success">
+                  {{ product.selling_price || 0 | number:'1.2-2' }} GNF
+                </p>
+              </div>
+
+              <div class="col-md-4">
+                <label class="text-muted small">Marge</label>
+                <p class="mb-0 fs-5 fw-semibold text-primary">
+                  {{ calculateMargin() | number:'1.2-2' }} %
+                </p>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <!-- Right Column -->
+      <c-col lg="4">
+        <!-- Stock Information -->
+        <c-card class="mb-4">
+          <c-card-header>
+            <strong>Gestion du stock</strong>
+          </c-card-header>
+          <c-card-body>
+            <div class="mb-3">
+              <label class="text-muted small">Quantité en stock</label>
+              <p class="mb-0 fs-3 fw-bold">{{ product.stock_quantity || 0 }}</p>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-muted small">Seuil d'alerte</label>
+              <p class="mb-0">{{ product.low_stock_threshold || 0 }}</p>
+              <small class="text-muted">Alerte quand le stock atteint ce niveau</small>
+            </div>
+
+            <div>
+              <label class="text-muted small">Statut du stock</label>
+              <div>
+                <c-badge [color]="getStockStatusColor()">
+                  {{ getStockStatusText() }}
+                </c-badge>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <!-- Metadata -->
+        <c-card>
+          <c-card-header>
+            <strong>Informations système</strong>
+          </c-card-header>
+          <c-card-body>
+            <div class="mb-3">
+              <label class="text-muted small">ID du produit</label>
+              <p class="mb-0">#{{ product.id }}</p>
+            </div>
+
+            <div class="mb-3" *ngIf="product.created_at">
+              <label class="text-muted small">Date de création</label>
+              <p class="mb-0">{{ product.created_at | date:'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+
+            <div *ngIf="product.updated_at">
+              <label class="text-muted small">Dernière modification</label>
+              <p class="mb-0">{{ product.updated_at | date:'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </div>
+
+  <!-- Error State -->
+  <div class="text-center p-5" *ngIf="!loading && !product">
+    <svg cIcon name="cilWarning" size="4xl" class="text-warning mb-3"></svg>
+    <h4>Produit introuvable</h4>
+    <p class="text-muted">Le produit demandé n'existe pas ou a été supprimé.</p>
+    <button type="button" class="btn btn-primary" (click)="goBack()">
+      Retour à la liste
+    </button>
+  </div>
+</div>

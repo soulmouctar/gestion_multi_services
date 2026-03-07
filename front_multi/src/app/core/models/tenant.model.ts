@@ -20,6 +20,7 @@ export interface User {
   role?: 'SUPER_ADMIN' | 'ADMIN' | 'USER';
   roles?: Role[];
   permissions?: Permission[];
+  module_permissions?: any[];
   created_at: string;
   updated_at: string;
   tenant?: Tenant;

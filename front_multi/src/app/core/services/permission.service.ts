@@ -29,30 +29,22 @@ export class PermissionService {
     private userService: UserService,
     private moduleService: ModuleService
   ) {
-    // Delay initialization to prevent blocking
-    setTimeout(() => {
-      this.initializePermissions();
-    }, 0);
+    // Initialize permissions when auth state changes
+    this.initializePermissions();
   }
 
   private initializePermissions(): void {
-    try {
-      // Load permissions when user logs in
+    // Load permissions when user logs in - avoid immediate subscription to prevent circular dependency
+    setTimeout(() => {
       this.authService.authState$.subscribe(authState => {
         if (authState.isAuthenticated && authState.user) {
-          // Use setTimeout to prevent blocking the main thread
           const userId = authState.user.id;
-          setTimeout(() => {
-            this.loadUserPermissions(Number(userId));
-          }, 100);
+          this.loadUserPermissions(Number(userId));
         } else {
           this.userPermissions.next(null);
         }
       });
-    } catch (error) {
-      console.error('Error initializing permissions:', error);
-      this.userPermissions.next(null);
-    }
+    }, 100);
   }
 
   /**

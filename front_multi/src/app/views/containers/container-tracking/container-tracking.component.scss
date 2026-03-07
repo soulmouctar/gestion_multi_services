@@ -1,0 +1,84 @@
+// Container Tracking Component Styles
+.container-tracking {
+  .status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .tracking-card {
+    border-left: 4px solid var(--cui-primary);
+    
+    &.available {
+      border-left-color: var(--cui-success);
+    }
+    
+    &.in-use {
+      border-left-color: var(--cui-primary);
+    }
+    
+    &.maintenance {
+      border-left-color: var(--cui-warning);
+    }
+    
+    &.damaged {
+      border-left-color: var(--cui-danger);
+    }
+    
+    &.retired {
+      border-left-color: var(--cui-secondary);
+    }
+  }
+
+  .location-info {
+    .location-pin {
+      color: var(--cui-primary);
+    }
+  }
+
+  .tracking-history {
+    .timeline-item {
+      position: relative;
+      padding-left: 2rem;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0.5rem;
+        width: 0.5rem;
+        height: 0.5rem;
+        background-color: var(--cui-primary);
+        border-radius: 50%;
+      }
+      
+      &:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 0.75rem;
+        top: 1rem;
+        width: 1px;
+        height: calc(100% - 1rem);
+        background-color: var(--cui-border-color);
+      }
+    }
+  }
+}
+
+.table {
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+
+.modal-xl {
+  .tracking-map {
+    height: 300px;
+    background-color: var(--cui-gray-100);
+    border-radius: var(--cui-border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cui-gray-600);
+  }
+}

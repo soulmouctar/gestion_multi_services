@@ -72,21 +72,30 @@ export class CompanyInfoComponent implements OnInit {
   }
 
   private initializeOrganisationFilter(): void {
-    this.currentUserRole = this.organisationFilterService.getCurrentUserRole();
-    this.canSelectOrganisation = this.organisationFilterService.canSelectOrganisation();
+    setTimeout(() => {
+      this.currentUserRole = this.organisationFilterService.getCurrentUserRole();
+      this.canSelectOrganisation = this.organisationFilterService.canSelectOrganisation();
 
-    // S'abonner aux changements d'organisation
-    this.organisationFilterService.selectedOrganisation$.subscribe(organisation => {
-      this.selectedOrganisation = organisation;
-      if (organisation) {
-        this.loadOrganisationInfo();
-      }
-    });
+      // S'abonner aux changements d'organisation
+      this.organisationFilterService.selectedOrganisation$.subscribe(organisation => {
+        setTimeout(() => {
+          this.selectedOrganisation = organisation;
+          if (organisation) {
+            this.loadOrganisationInfo();
+          }
+          this.cdr.detectChanges();
+        }, 0);
+      });
 
-    this.organisationFilterService.availableOrganisations$.subscribe(organisations => {
-      this.availableOrganisations = organisations;
+      this.organisationFilterService.availableOrganisations$.subscribe(organisations => {
+        setTimeout(() => {
+          this.availableOrganisations = organisations;
+          this.cdr.detectChanges();
+        }, 0);
+      });
+      
       this.cdr.detectChanges();
-    });
+    }, 0);
   }
 
   onOrganisationChange(organisationId: number): void {
@@ -170,17 +179,21 @@ export class CompanyInfoComponent implements OnInit {
       
       this.tenantService.updateTenant(this.currentOrganisation.id, formData).subscribe({
         next: (response: ApiResponse<any>) => {
-          if (response.data) {
-            this.currentOrganisation = response.data;
-            console.log('Organisation info updated successfully');
-          }
-          this.saving = false;
-          this.cdr.detectChanges();
+          setTimeout(() => {
+            if (response.data) {
+              this.currentOrganisation = response.data;
+              console.log('Organisation info updated successfully');
+            }
+            this.saving = false;
+            this.cdr.detectChanges();
+          }, 0);
         },
         error: (error) => {
-          console.error('Error updating organisation info:', error);
-          this.saving = false;
-          this.cdr.detectChanges();
+          setTimeout(() => {
+            console.error('Error updating organisation info:', error);
+            this.saving = false;
+            this.cdr.detectChanges();
+          }, 0);
         }
       });
     }

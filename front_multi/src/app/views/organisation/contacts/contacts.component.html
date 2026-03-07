@@ -49,20 +49,31 @@
                 <div class="contact-info">
                   <div class="mb-2">
                     <strong>{{ contact.name }}</strong>
+                    <span class="badge bg-secondary ms-2">{{ getContactTypeLabel(contact.type) }}</span>
                   </div>
                   <div class="mb-1">
-                    <svg cIcon name="cilEnvelopeOpen" size="sm" class="me-2 text-muted"></svg>
-                    <a [href]="'mailto:' + contact.email" class="text-decoration-none">{{ contact.email }}</a>
+                    <svg [cIcon]="getContactTypeIcon(contact.type)" size="sm" class="me-2 text-muted"></svg>
+                    <span *ngIf="contact.type === 'email'">
+                      <a [href]="'mailto:' + contact.value" class="text-decoration-none">{{ contact.value }}</a>
+                    </span>
+                    <span *ngIf="contact.type === 'phone'">
+                      <a [href]="'tel:' + contact.value" class="text-decoration-none">{{ contact.value }}</a>
+                    </span>
+                    <span *ngIf="contact.type === 'website'">
+                      <a [href]="contact.value" target="_blank" class="text-decoration-none">{{ contact.value }}</a>
+                    </span>
+                    <span *ngIf="contact.type === 'whatsapp'">
+                      <a [href]="'https://wa.me/' + contact.value" target="_blank" class="text-decoration-none">{{ contact.value }}</a>
+                    </span>
+                    <span *ngIf="contact.type === 'telegram'">
+                      <a [href]="'https://t.me/' + contact.value" target="_blank" class="text-decoration-none">{{ contact.value }}</a>
+                    </span>
+                    <span *ngIf="contact.type === 'address' || contact.type === 'fax'">
+                      {{ contact.value }}
+                    </span>
                   </div>
-                  <div class="mb-2">
-                    <svg cIcon name="cilPhone" size="sm" class="me-2 text-muted"></svg>
-                    <a [href]="'tel:' + contact.phone" class="text-decoration-none">{{ contact.phone }}</a>
-                  </div>
-                  <div class="text-muted small">
-                    <svg cIcon name="cilLocationPin" size="sm" class="me-2"></svg>
-                    {{ contact.address }}<br>
-                    {{ contact.postal_code }} {{ contact.city }}<br>
-                    {{ contact.country }}
+                  <div class="text-muted small" *ngIf="contact.description">
+                    {{ contact.description }}
                   </div>
                 </div>
                 <div class="mt-3" *ngIf="!contact.is_default">
@@ -93,9 +104,9 @@
         <c-col md="6">
           <div class="mb-3">
             <label cFormLabel for="type">Type de contact *</label>
-            <select cFormSelect id="type" formControlName="type" [class.is-invalid]="f['type'].invalid && f['type'].touched">
-              <option *ngFor="let type of contactTypes" [value]="type.value">
-                {{ type.label }}
+            <select cFormSelect id="type" formControlName="type" [class.is-invalid]="f['type']?.invalid && f['type']?.touched">
+              <option *ngFor="let type of contactTypes | keyvalue" [value]="type.key">
+                {{ type.value }}
               </option>
             </select>
           </div>
@@ -109,11 +120,11 @@
               id="name"
               formControlName="name"
               placeholder="Nom complet"
-              [class.is-invalid]="f['name'].invalid && f['name'].touched"
+              [class.is-invalid]="f['name']?.invalid && f['name']?.touched"
             />
-            <div *ngIf="f['name'].invalid && f['name'].touched" class="invalid-feedback">
-              <div *ngIf="f['name'].errors?.['required']">Le nom est requis</div>
-              <div *ngIf="f['name'].errors?.['minlength']">Le nom doit contenir au moins 2 caractères</div>
+            <div *ngIf="f['name']?.invalid && f['name']?.touched" class="invalid-feedback">
+              <div *ngIf="f['name']?.errors?.['required']">Le nom est requis</div>
+              <div *ngIf="f['name']?.errors?.['minlength']">Le nom doit contenir au moins 2 caractères</div>
             </div>
           </div>
         </c-col>
@@ -126,11 +137,11 @@
               id="email"
               formControlName="email"
               placeholder="contact@exemple.com"
-              [class.is-invalid]="f['email'].invalid && f['email'].touched"
+              [class.is-invalid]="f['email']?.invalid && f['email']?.touched"
             />
-            <div *ngIf="f['email'].invalid && f['email'].touched" class="invalid-feedback">
-              <div *ngIf="f['email'].errors?.['required']">L'email est requis</div>
-              <div *ngIf="f['email'].errors?.['email']">Format d'email invalide</div>
+            <div *ngIf="f['email']?.invalid && f['email']?.touched" class="invalid-feedback">
+              <div *ngIf="f['email']?.errors?.['required']">L'email est requis</div>
+              <div *ngIf="f['email']?.errors?.['email']">Format d'email invalide</div>
             </div>
           </div>
         </c-col>
@@ -143,9 +154,9 @@
               id="phone"
               formControlName="phone"
               placeholder="+33 1 23 45 67 89"
-              [class.is-invalid]="f['phone'].invalid && f['phone'].touched"
+              [class.is-invalid]="f['phone']?.invalid && f['phone']?.touched"
             />
-            <div *ngIf="f['phone'].invalid && f['phone'].touched" class="invalid-feedback">
+            <div *ngIf="f['phone']?.invalid && f['phone']?.touched" class="invalid-feedback">
               Le téléphone est requis
             </div>
           </div>
@@ -159,9 +170,9 @@
               id="address"
               formControlName="address"
               placeholder="123 Rue de la Paix"
-              [class.is-invalid]="f['address'].invalid && f['address'].touched"
+              [class.is-invalid]="f['address']?.invalid && f['address']?.touched"
             />
-            <div *ngIf="f['address'].invalid && f['address'].touched" class="invalid-feedback">
+            <div *ngIf="f['address']?.invalid && f['address']?.touched" class="invalid-feedback">
               L'adresse est requise
             </div>
           </div>
@@ -175,9 +186,9 @@
               id="city"
               formControlName="city"
               placeholder="Paris"
-              [class.is-invalid]="f['city'].invalid && f['city'].touched"
+              [class.is-invalid]="f['city']?.invalid && f['city']?.touched"
             />
-            <div *ngIf="f['city'].invalid && f['city'].touched" class="invalid-feedback">
+            <div *ngIf="f['city']?.invalid && f['city']?.touched" class="invalid-feedback">
               La ville est requise
             </div>
           </div>
@@ -191,9 +202,9 @@
               id="postal_code"
               formControlName="postal_code"
               placeholder="75001"
-              [class.is-invalid]="f['postal_code'].invalid && f['postal_code'].touched"
+              [class.is-invalid]="f['postal_code']?.invalid && f['postal_code']?.touched"
             />
-            <div *ngIf="f['postal_code'].invalid && f['postal_code'].touched" class="invalid-feedback">
+            <div *ngIf="f['postal_code']?.invalid && f['postal_code']?.touched" class="invalid-feedback">
               Le code postal est requis
             </div>
           </div>
@@ -207,9 +218,9 @@
               id="country"
               formControlName="country"
               placeholder="France"
-              [class.is-invalid]="f['country'].invalid && f['country'].touched"
+              [class.is-invalid]="f['country']?.invalid && f['country']?.touched"
             />
-            <div *ngIf="f['country'].invalid && f['country'].touched" class="invalid-feedback">
+            <div *ngIf="f['country']?.invalid && f['country']?.touched" class="invalid-feedback">
               Le pays est requis
             </div>
           </div>

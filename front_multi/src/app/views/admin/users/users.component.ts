@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { IconDirective } from '@coreui/icons-angular';
@@ -27,7 +27,7 @@ import { AlertService } from '../../../core/services/alert.service';
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
-export class UsersComponent implements OnInit {
+export class UsersComponent implements OnInit, AfterViewInit {
   users: UserProfile[] = [];
   filteredUsers: UserProfile[] = [];
   organisations: Tenant[] = [];
@@ -70,8 +70,17 @@ export class UsersComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadUsers();
-    this.loadOrganisations();
+    // Initialize data structures to avoid NG0100 error
+    this.filteredTenants = [];
+    this.organisations = [];
+  }
+
+  ngAfterViewInit(): void {
+    // Load async data after view initialization to prevent ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.loadOrganisations();
+      this.loadUsers();
+    });
   }
 
   private initializeForms(): void {
@@ -94,23 +103,51 @@ export class UsersComponent implements OnInit {
   // Data loading methods
   loadUsers(): void {
     this.loading = true;
-    this.cdr.detectChanges();
 
     this.userService.getUsers().subscribe({
       next: (response: ApiResponse<any>) => {
-        this.users = response.data?.data || [];
-        this.filteredUsers = [...this.users];
-        this.loading = false;
-        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.users = response.data?.data || [];
+          this.filteredUsers = [...this.users];
+          this.loading = false;
+          
+          // Load module permissions for each user après la mise à jour initiale
+          this.loadUsersModulePermissions();
+          
+          this.cdr.detectChanges();
+        }, 0);
       },
       error: (error) => {
         console.error('Error loading users:', error);
-        this.users = [];
-        this.filteredUsers = [];
-        this.showErrorMessage('Erreur lors du chargement des utilisateurs.');
-        this.loading = false;
-        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.users = [];
+          this.filteredUsers = [];
+          this.loading = false;
+          this.showErrorMessage('Erreur lors du chargement des utilisateurs.');
+          this.cdr.detectChanges();
+        }, 0);
       }
+    });
+  }
+
+  private loadUsersModulePermissions(): void {
+    this.users.forEach(user => {
+      this.userService.getUserModulePermissions(user.id).subscribe({
+        next: (response: ApiResponse<ModulePermission[]>) => {
+          // Utiliser setTimeout pour éviter l'erreur ExpressionChangedAfterItHasBeenCheckedError
+          setTimeout(() => {
+            user.module_permissions = response.data || [];
+            this.cdr.detectChanges();
+          }, 0);
+        },
+        error: (error) => {
+          console.error(`Error loading module permissions for user ${user.id}:`, error);
+          setTimeout(() => {
+            user.module_permissions = [];
+            this.cdr.detectChanges();
+          }, 0);
+        }
+      });
     });
   }
 
@@ -119,11 +156,18 @@ export class UsersComponent implements OnInit {
       next: (response: ApiResponse<any>) => {
         this.organisations = response.data?.data || [];
         this.filteredTenants = [...this.organisations];
+        // Force change detection after async operation
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        });
       },
       error: (error) => {
         console.error('Error loading organisations:', error);
         this.organisations = [];
         this.filteredTenants = [];
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -154,44 +198,46 @@ export class UsersComponent implements OnInit {
 
   // User management
   openUserModal(user?: UserProfile): void {
-    this.editMode = !!user;
-    this.selectedUser = user || null;
+    setTimeout(() => {
+      this.editMode = !!user;
+      this.selectedUser = user || null;
 
-    if (this.editMode && user) {
-      // Edit mode - populate form with user data
-      this.userForm.patchValue({
-        name: user.name,
-        email: user.email,
-        tenant_id: user.tenant_id,
-        role: user.role || 'USER'
-      });
+      if (this.editMode && user) {
+        // Edit mode - populate form with user data
+        this.userForm.patchValue({
+          name: user.name,
+          email: user.email,
+          tenant_id: user.tenant_id,
+          role: user.role || 'USER'
+        });
 
-      // Filter tenants based on current role
-      this.filterTenantsByRole(user.role || 'USER');
+        // Filter tenants based on current role
+        this.filterTenantsByRole(user.role || 'USER');
 
-      // Remove password validation for edit mode
-      this.userForm.get('password')?.clearValidators();
-    } else {
-      // Create mode - reset form
-      this.userForm.reset({
-        name: '',
-        email: '',
-        password: '',
-        tenant_id: '',
-        role: 'USER'
-      });
+        // Remove password validation for edit mode
+        this.userForm.get('password')?.clearValidators();
+      } else {
+        // Create mode - reset form
+        this.userForm.reset({
+          name: '',
+          email: '',
+          password: '',
+          tenant_id: '',
+          role: 'USER'
+        });
 
-      // Filter tenants for default role (USER)
-      this.filterTenantsByRole('USER');
+        // Filter tenants for default role (USER)
+        this.filterTenantsByRole('USER');
 
-      // Add password validation for create mode
-      this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(8)]);
-    }
+        // Add password validation for create mode
+        this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(8)]);
+      }
 
-    this.userForm.get('password')?.updateValueAndValidity();
-    this.submitted = false;
-    this.userModalOpen = true;
-    this.cdr.detectChanges();
+      this.userForm.get('password')?.updateValueAndValidity();
+      this.submitted = false;
+      this.userModalOpen = true;
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   closeUserModal(): void {

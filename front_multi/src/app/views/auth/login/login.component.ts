@@ -98,7 +98,7 @@ export class LoginComponent implements OnInit {
       remember: this.loginForm.value.remember
     };
     
-    this.authService.login(loginData).pipe(
+    this.authService.login(loginData.email, loginData.password).pipe(
       finalize(() => {
         this.isLoading = false; // Always stop the loader
       })

@@ -1,9 +1,26 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { Observable, BehaviorSubject, tap, catchError, timeout, retry, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { tap, catchError, throwError } from 'rxjs';
-import { Currency, ExchangeRate, ApiResponse } from '../models';
+import Swal from 'sweetalert2';
+import { ApiResponse } from '../models';
+
+export interface CurrencyData {
+  id: string;
+  code: string;
+  name: string;
+  symbol?: string;
+  exchange_rate?: number;
+  is_default?: boolean;
+  is_active?: boolean;
+}
+
+export interface ExchangeRate {
+  from_currency: string;
+  to_currency: string;
+  rate: number;
+  updated_at: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +37,7 @@ export class CurrencyService {
   lastUpdate$ = this.lastUpdate.asObservable();
   
   // Default currencies
-  readonly SUPPORTED_CURRENCIES: Currency[] = [
+  readonly SUPPORTED_CURRENCIES: CurrencyData[] = [
     { id: '1', code: 'USD', name: 'US Dollar' },
     { id: '2', code: 'GNF', name: 'Guinean Franc' }
   ];
@@ -51,7 +68,9 @@ export class CurrencyService {
   // Get exchange rates from API
   getExchangeRates(): Observable<ApiResponse<ExchangeRate[]>> {
     return this.http.get<ApiResponse<ExchangeRate[]>>(`${this.API_URL}/exchange-rates`).pipe(
-      catchError(error => this.handleError(error))
+      timeout(10000),
+      retry(2),
+      catchError(this.handleError.bind(this))
     );
   }
   
@@ -181,8 +200,8 @@ export class CurrencyService {
     const rateMap = new Map<string, number>();
     
     rates.forEach(rate => {
-      if (rate.currency?.code) {
-        rateMap.set(rate.currency.code, rate.rate);
+      if (rate.from_currency) {
+        rateMap.set(rate.from_currency, rate.rate);
       }
     });
     
@@ -192,8 +211,8 @@ export class CurrencyService {
   
   private updateSingleRate(rate: ExchangeRate): void {
     const currentRates = this.exchangeRates.value;
-    if (rate.currency?.code) {
-      currentRates.set(rate.currency.code, rate.rate);
+    if (rate.from_currency) {
+      currentRates.set(rate.from_currency, rate.rate);
       this.exchangeRates.next(new Map(currentRates));
     }
   }
@@ -207,16 +226,41 @@ export class CurrencyService {
     this.lastUpdate.next(new Date());
   }
   
-  private handleError(error: any): Observable<never> {
-    let errorMessage = 'Currency service error';
+  private getAuthHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token');
+    return new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+  }
+
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    let errorMessage = 'Une erreur est survenue';
     
-    if (error.error?.message) {
-      errorMessage = error.error.message;
-    } else if (error.message) {
-      errorMessage = error.message;
+    if (error.error instanceof ErrorEvent) {
+      // Erreur côté client
+      errorMessage = `Erreur: ${error.error.message}`;
+    } else {
+      // Erreur côté serveur
+      errorMessage = `Erreur ${error.status}: ${error.message}`;
+      if (error.error?.message) {
+        errorMessage = error.error.message;
+      }
     }
     
+    console.error('CurrencyService Error:', error);
+    this.showErrorMessage(errorMessage);
+    
     return throwError(() => new Error(errorMessage));
+  }
+
+  private showErrorMessage(message: string): void {
+    Swal.fire({
+      icon: 'error',
+      title: 'Erreur',
+      text: message,
+      confirmButtonText: 'OK'
+    });
   }
 }
 

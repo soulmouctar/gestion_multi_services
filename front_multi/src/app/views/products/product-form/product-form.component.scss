@@ -1,0 +1,212 @@
+.form-label {
+  font-weight: 500;
+  color: var(--cui-gray-700);
+  margin-bottom: 0.5rem;
+}
+
+.form-control,
+.form-select {
+  font-size: 0.875rem;
+  
+  &:focus {
+    border-color: var(--cui-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--cui-primary-rgb), 0.25);
+  }
+}
+
+.input-group-text {
+  background-color: var(--cui-gray-100);
+  border-color: var(--cui-border-color);
+  color: var(--cui-gray-600);
+  font-size: 0.875rem;
+}
+
+.btn {
+  font-size: 0.875rem;
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// Cards
+c-card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid var(--cui-border-color);
+  
+  c-card-header {
+    background-color: var(--cui-gray-50);
+    border-bottom: 1px solid var(--cui-border-color);
+    
+    h5 {
+      color: var(--cui-gray-700);
+      font-weight: 600;
+    }
+  }
+}
+
+// Form validation
+.is-invalid {
+  border-color: var(--cui-danger);
+  
+  &:focus {
+    border-color: var(--cui-danger);
+    box-shadow: 0 0 0 0.2rem rgba(var(--cui-danger-rgb), 0.25);
+  }
+}
+
+.invalid-feedback {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--cui-danger);
+  margin-top: 0.25rem;
+}
+
+// Badges
+.badge {
+  font-size: 0.75rem;
+  
+  &.bg-danger {
+    background-color: var(--cui-danger) !important;
+  }
+  
+  &.bg-warning {
+    background-color: var(--cui-warning) !important;
+  }
+  
+  &.bg-success {
+    background-color: var(--cui-success) !important;
+  }
+}
+
+// Alerts
+.alert {
+  border: none;
+  font-size: 0.875rem;
+  
+  &.alert-info {
+    background-color: var(--cui-info-bg);
+    color: var(--cui-info-text);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// Loading state
+.text-center {
+  c-spinner {
+    color: var(--cui-primary);
+  }
+}
+
+// Form sections spacing
+.row.g-3 > * {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+// Readonly inputs
+input[readonly] {
+  background-color: var(--cui-gray-100);
+  opacity: 1;
+}
+
+// Button spacing in input groups
+.input-group .btn {
+  border-color: var(--cui-border-color);
+  
+  &:hover {
+    background-color: var(--cui-gray-200);
+  }
+}
+
+// Textarea resize
+textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+// Small text
+small.text-muted {
+  color: var(--cui-gray-600) !important;
+  font-size: 0.75rem;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .d-flex.gap-2 {
+    flex-direction: column;
+    gap: 0.5rem !important;
+  }
+  
+  .btn {
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .form-control,
+  .form-select {
+    font-size: 0.8rem;
+  }
+  
+  .input-group-text {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+// Focus states
+.form-control:focus,
+.form-select:focus {
+  outline: none;
+}
+
+// Custom form styling
+.form-floating {
+  .form-control,
+  .form-select {
+    height: calc(3.5rem + 2px);
+    padding: 1rem 0.75rem;
+  }
+  
+  label {
+    padding: 1rem 0.75rem;
+  }
+}
+
+// Price input styling
+.input-group {
+  .form-control[type="number"] {
+    text-align: right;
+    
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    
+    &[type=number] {
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+  }
+}
+
+// Status indicators
+.stock-status {
+  &.normal {
+    color: var(--cui-success);
+  }
+  
+  &.low {
+    color: var(--cui-warning);
+  }
+  
+  &.out {
+    color: var(--cui-danger);
+  }
+}

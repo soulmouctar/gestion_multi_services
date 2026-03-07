@@ -1,0 +1,152 @@
+.table {
+  th {
+    border-top: none;
+    font-weight: 600;
+    color: var(--cui-gray-700);
+    font-size: 0.875rem;
+  }
+
+  td {
+    vertical-align: middle;
+    padding: 0.75rem;
+  }
+}
+
+.badge {
+  font-size: 0.75rem;
+  
+  &.bg-danger {
+    background-color: var(--cui-danger) !important;
+  }
+  
+  &.bg-warning {
+    background-color: var(--cui-warning) !important;
+  }
+  
+  &.bg-success {
+    background-color: var(--cui-success) !important;
+  }
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.form-check-input {
+  margin-top: 0.125rem;
+}
+
+.text-muted {
+  color: var(--cui-gray-600) !important;
+}
+
+.fw-semibold {
+  font-weight: 600;
+}
+
+// Loading state
+.table-responsive {
+  min-height: 200px;
+}
+
+// Empty state
+.text-center svg {
+  color: var(--cui-gray-400);
+}
+
+// Filter form
+.form-label {
+  font-weight: 500;
+  color: var(--cui-gray-700);
+  margin-bottom: 0.25rem;
+}
+
+.form-control,
+.form-select {
+  font-size: 0.875rem;
+}
+
+// Pagination
+c-pagination {
+  --cui-pagination-padding-x: 0.75rem;
+  --cui-pagination-padding-y: 0.5rem;
+}
+
+// Cards
+c-card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid var(--cui-border-color);
+}
+
+// Alerts
+c-alert {
+  border: none;
+  
+  &[color="info"] {
+    background-color: var(--cui-info-bg);
+    color: var(--cui-info-text);
+  }
+  
+  &[color="danger"] {
+    background-color: var(--cui-danger-bg);
+    color: var(--cui-danger-text);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .btn-group-sm .btn {
+    padding: 0.125rem 0.25rem;
+    
+    svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+  
+  .table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.875rem;
+  }
+  
+  .d-flex.gap-2 {
+    flex-direction: column;
+    gap: 0.5rem !important;
+  }
+}
+
+// Stock indicators
+.stock-indicator {
+  &.low-stock {
+    color: var(--cui-warning);
+  }
+  
+  &.out-of-stock {
+    color: var(--cui-danger);
+  }
+  
+  &.in-stock {
+    color: var(--cui-success);
+  }
+}
+
+// Product image placeholder
+.product-image {
+  width: 40px;
+  height: 40px;
+  background-color: var(--cui-gray-100);
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  svg {
+    color: var(--cui-gray-400);
+  }
+}

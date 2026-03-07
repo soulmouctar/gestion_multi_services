@@ -27,42 +27,303 @@ export const navItems: INavData[] = [
   {
     name: 'Commercial',
     url: '/commercial',
-    iconComponent: { name: 'cilBasket' }
+    iconComponent: { name: 'cilBasket' },
+    badge: {
+      color: 'success',
+      text: 'NOUVEAU'
+    },
+    children: [
+      {
+        name: 'Tableau de Bord',
+        url: '/commercial/dashboard',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Produits',
+        url: '/products/list',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'success',
+          text: 'COMPLET'
+        }
+      },
+      {
+        name: 'Gestion Avancée Produits',
+        url: '/products/advanced',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'info',
+          text: 'NOUVEAU'
+        }
+      },
+      {
+        name: 'Catégories',
+        url: '/product-categories/list',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Unités de Mesure',
+        url: '/units/list',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Clients',
+        url: '/clients/list',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Fournisseurs',
+        url: '/suppliers/list',
+        icon: 'nav-icon-bullet'
+      }
+    ]
   },
   {
     name: 'Finance',
     url: '/finance',
-    iconComponent: { name: 'cilDollar' }
-  },
-  {
-    name: 'Clients & Fournisseurs',
-    url: '/clients',
-    iconComponent: { name: 'cilPeople' }
-  },
-  {
-    name: 'Produits & Stock',
-    url: '/products',
-    iconComponent: { name: 'cilGrid' }
+    iconComponent: { name: 'cilDollar' },
+    badge: {
+      color: 'success',
+      text: 'NOUVEAU'
+    },
+    children: [
+      {
+        name: 'Tableau de Bord',
+        url: '/finance/dashboard',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Paiements',
+        url: '/payments/list',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'success',
+          text: 'COMPLET'
+        }
+      },
+      {
+        name: 'Gestion Avancée Paiements',
+        url: '/payments/advanced',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'info',
+          text: 'NOUVEAU'
+        }
+      },
+      {
+        name: 'Devises',
+        url: '/finance/currencies',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Gestion Avancée Devises',
+        url: '/finance/currencies-advanced',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'info',
+          text: 'NOUVEAU'
+        }
+      },
+      {
+        name: 'Taux de Change',
+        url: '/finance/exchange-rates',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Factures',
+        url: '/finance/invoices',
+        icon: 'nav-icon-bullet'
+      }
+    ]
   },
   {
     name: 'Conteneurs',
     url: '/containers',
-    iconComponent: { name: 'cilLayers' }
+    iconComponent: { name: 'cilLayers' },
+    children: [
+      {
+        name: 'Liste des Conteneurs',
+        url: '/containers/list',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Photos',
+        url: '/containers/photos',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Tracking',
+        url: '/containers/tracking',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Statistiques Avancées',
+        url: '/containers/statistics',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'info',
+          text: 'NOUVEAU'
+        }
+      }
+    ]
   },
   {
     name: 'Location',
     url: '/rental',
-    iconComponent: { name: 'cilHome' }
+    iconComponent: { name: 'cilHome' },
+    children: [
+      {
+        name: 'Emplacements',
+        url: '/rental/locations',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Bâtiments',
+        url: '/rental/buildings',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Étages',
+        url: '/rental/floors',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Unités de Logement',
+        url: '/rental/housing-units',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Configurations',
+        url: '/rental/unit-configurations',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Gestion Avancée Emplacements',
+        url: '/rental/locations-advanced',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'info',
+          text: 'NOUVEAU'
+        }
+      }
+    ]
   },
   {
     name: 'Taxi & Transport',
     url: '/taxi',
-    iconComponent: { name: 'cilLocationPin' }
+    iconComponent: { name: 'cilLocationPin' },
+    children: [
+      {
+        name: 'Véhicules',
+        url: '/taxi/vehicles',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Conducteurs',
+        url: '/taxi/drivers',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Affectations',
+        url: '/taxi/assignments',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Versements Journaliers',
+        url: '/taxi/daily-payments',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'success',
+          text: 'NOUVEAU'
+        }
+      },
+      {
+        name: 'Dépenses Véhicules',
+        url: '/taxi/vehicle-expenses',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'info',
+          text: 'NOUVEAU'
+        }
+      }
+    ]
   },
   {
     name: 'Statistiques',
     url: '/statistics',
-    iconComponent: { name: 'cilChart' }
+    iconComponent: { name: 'cilChart' },
+    children: [
+      {
+        name: 'Vue d\'ensemble',
+        url: '/statistics/overview',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Ventes',
+        url: '/statistics/sales',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Finances',
+        url: '/statistics/finance',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Inventaire',
+        url: '/statistics/inventory',
+        icon: 'nav-icon-bullet'
+      }
+    ]
+  },
+  {
+    title: true,
+    name: 'ORGANISATION'
+  },
+  {
+    name: 'Mon Organisation',
+    url: '/organisation',
+    iconComponent: { name: 'cilBuilding' },
+    children: [
+      {
+        name: 'Informations Entreprise',
+        url: '/organisation/company-info',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Utilisateurs',
+        url: '/organisation/users',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Contacts',
+        url: '/organisation/contacts',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Devises',
+        url: '/organisation/currencies',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'En-têtes Factures',
+        url: '/organisation/invoice-headers',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Paramètres',
+        url: '/organisation/settings',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Paramètres Avancés',
+        url: '/organisation/settings-advanced',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'info',
+          text: 'NOUVEAU'
+        }
+      }
+    ]
   },
   {
     title: true,

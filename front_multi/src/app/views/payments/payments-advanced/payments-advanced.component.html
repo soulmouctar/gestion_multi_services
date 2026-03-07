@@ -1,0 +1,222 @@
+<c-container>
+  <c-row>
+    <c-col xs="12">
+      <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
+      <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
+    </c-col>
+  </c-row>
+
+  <!-- Payment Statistics -->
+  <c-row class="mb-4">
+    <c-col xs="12">
+      <c-card>
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <div><strong>Statistiques des Paiements</strong></div>
+          <button cButton color="primary" size="sm" (click)="refreshData()"><svg cIcon name="cilReload" class="me-1"></svg> Actualiser</button>
+        </c-card-header>
+        <c-card-body>
+          <div *ngIf="statsLoading" class="text-center p-3"><c-spinner></c-spinner></div>
+          <c-row *ngIf="!statsLoading && paymentStats">
+            <c-col md="3">
+              <c-card class="text-center mb-3">
+                <c-card-body>
+                  <h4 class="text-primary">{{ paymentStats.total_payments || 0 }}</h4>
+                  <small class="text-muted">Total paiements</small>
+                </c-card-body>
+              </c-card>
+            </c-col>
+            <c-col md="3">
+              <c-card class="text-center mb-3">
+                <c-card-body>
+                  <h4 class="text-success">{{ paymentStats.total_amount | currency:'GNF':'symbol':'1.0-0' }}</h4>
+                  <small class="text-muted">Montant total</small>
+                </c-card-body>
+              </c-card>
+            </c-col>
+            <c-col md="3">
+              <c-card class="text-center mb-3">
+                <c-card-body>
+                  <h4 class="text-warning">{{ paymentStats.pending_payments || 0 }}</h4>
+                  <small class="text-muted">En attente</small>
+                </c-card-body>
+              </c-card>
+            </c-col>
+            <c-col md="3">
+              <c-card class="text-center mb-3">
+                <c-card-body>
+                  <h4 class="text-info">{{ paymentStats.completed_payments || 0 }}</h4>
+                  <small class="text-muted">Complétés</small>
+                </c-card-body>
+              </c-card>
+            </c-col>
+          </c-row>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <c-row>
+    <!-- Date Range Filter -->
+    <c-col md="4">
+      <c-card class="mb-4">
+        <c-card-header><strong>Filtrer par Période</strong></c-card-header>
+        <c-card-body>
+          <form [formGroup]="dateRangeForm" (ngSubmit)="loadPaymentsByDateRange()">
+            <div class="mb-3">
+              <label cLabel>Date début *</label>
+              <input cFormControl type="date" formControlName="start_date" />
+            </div>
+            <div class="mb-3">
+              <label cLabel>Date fin *</label>
+              <input cFormControl type="date" formControlName="end_date" />
+            </div>
+            <div class="mb-3">
+              <label cLabel>Méthode de paiement</label>
+              <select cSelect formControlName="payment_method">
+                <option value="">Toutes</option>
+                <option value="ORANGE_MONEY">Orange Money</option>
+                <option value="VIREMENT">Virement</option>
+                <option value="CHEQUE">Chèque</option>
+                <option value="ESPECES">Espèces</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label cLabel>Statut</label>
+              <select cSelect formControlName="status">
+                <option value="">Tous</option>
+                <option value="COMPLETED">Complété</option>
+                <option value="PENDING">En attente</option>
+                <option value="FAILED">Échoué</option>
+                <option value="CANCELLED">Annulé</option>
+              </select>
+            </div>
+            <button cButton type="submit" color="primary" [disabled]="dateRangeLoading" class="w-100">
+              <c-spinner *ngIf="dateRangeLoading" size="sm" class="me-1"></c-spinner>
+              <svg *ngIf="!dateRangeLoading" cIcon name="cilFilter" class="me-1"></svg>
+              Filtrer
+            </button>
+          </form>
+        </c-card-body>
+      </c-card>
+
+      <!-- Export -->
+      <c-card class="mb-4">
+        <c-card-header><strong>Exporter les Données</strong></c-card-header>
+        <c-card-body>
+          <form [formGroup]="exportForm" (ngSubmit)="exportPayments()">
+            <div class="mb-3">
+              <label cLabel>Format</label>
+              <select cSelect formControlName="format">
+                <option value="excel">Excel (.xlsx)</option>
+                <option value="csv">CSV (.csv)</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label cLabel>Période (optionnel)</label>
+              <div class="row">
+                <div class="col-6">
+                  <input cFormControl type="date" formControlName="start_date" placeholder="Date début" />
+                </div>
+                <div class="col-6">
+                  <input cFormControl type="date" formControlName="end_date" placeholder="Date fin" />
+                </div>
+              </div>
+            </div>
+            <button cButton type="submit" color="success" [disabled]="exportLoading" class="w-100">
+              <c-spinner *ngIf="exportLoading" size="sm" class="me-1"></c-spinner>
+              <svg *ngIf="!exportLoading" cIcon name="cilDataTransferDown" class="me-1"></svg>
+              Exporter
+            </button>
+          </form>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Payment Results -->
+    <c-col md="8">
+      <c-card class="mb-4">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <div><strong>Résultats</strong> <small class="text-muted">({{ dateRangePayments.length }} paiement(s))</small></div>
+          <div *ngIf="dateRangePayments.length > 0">
+            <button cButton color="warning" size="sm" (click)="selectAllPayments()" class="me-2">
+              {{ selectedPayments.size === dateRangePayments.length ? 'Désélectionner tout' : 'Sélectionner tout' }}
+            </button>
+            <button cButton color="danger" size="sm" (click)="openBulkDeleteModal()" [disabled]="selectedPayments.size === 0">
+              <svg cIcon name="cilTrash" class="me-1"></svg>
+              Supprimer ({{ selectedPayments.size }})
+            </button>
+          </div>
+        </c-card-header>
+        <c-card-body>
+          <div *ngIf="dateRangeLoading" class="text-center p-4"><c-spinner></c-spinner><p class="mt-2">Chargement...</p></div>
+          
+          <div *ngIf="!dateRangeLoading && dateRangePayments.length === 0" class="text-center text-muted p-4">
+            Aucun paiement trouvé pour cette période
+          </div>
+
+          <div *ngIf="!dateRangeLoading && dateRangePayments.length > 0" class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 40px">
+                    <input type="checkbox" class="form-check-input" 
+                           [checked]="selectedPayments.size === dateRangePayments.length && dateRangePayments.length > 0"
+                           (change)="selectAllPayments()" />
+                  </th>
+                  <th>Référence</th>
+                  <th>Montant</th>
+                  <th>Méthode</th>
+                  <th>Statut</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let payment of dateRangePayments">
+                  <td>
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="selectedPayments.has(payment.id)"
+                           (change)="togglePaymentSelection(payment.id)" />
+                  </td>
+                  <td><strong>{{ payment.reference || payment.id }}</strong></td>
+                  <td>{{ payment.amount | currency:'GNF':'symbol':'1.0-0' }}</td>
+                  <td>
+                    <c-badge [color]="getPaymentMethodColor(payment.payment_method)">
+                      {{ payment.payment_method }}
+                    </c-badge>
+                  </td>
+                  <td>
+                    <c-badge [color]="getStatusColor(payment.status)">
+                      {{ payment.status }}
+                    </c-badge>
+                  </td>
+                  <td>{{ payment.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</c-container>
+
+<!-- Bulk Delete Confirmation Modal -->
+<c-modal [visible]="showBulkDeleteModal" (visibleChange)="showBulkDeleteModal = $event" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Confirmer la suppression en masse</h5>
+    <button type="button" class="btn-close" (click)="showBulkDeleteModal = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <p>Êtes-vous sûr de vouloir supprimer <strong>{{ selectedPayments.size }}</strong> paiement(s) ?</p>
+    <p class="text-danger"><small>Cette action est irréversible.</small></p>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showBulkDeleteModal = false" [disabled]="bulkDeleteLoading">
+      Annuler
+    </button>
+    <button cButton color="danger" (click)="confirmBulkDelete()" [disabled]="bulkDeleteLoading">
+      <c-spinner *ngIf="bulkDeleteLoading" size="sm" class="me-1"></c-spinner>
+      Supprimer
+    </button>
+  </c-modal-footer>
+</c-modal>

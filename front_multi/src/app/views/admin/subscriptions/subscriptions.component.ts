@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SubscriptionService, Subscription, SubscriptionPlan, ApiResponse } from '../../../core/services/subscription.service';
@@ -37,7 +37,7 @@ import { IconModule } from '@coreui/icons-angular';
   templateUrl: './subscriptions.component.html',
   styleUrls: ['./subscriptions.component.scss']
 })
-export class SubscriptionsComponent implements OnInit {
+export class SubscriptionsComponent implements OnInit, AfterViewInit {
   subscriptions: Subscription[] = [];
   filteredSubscriptions: Subscription[] = [];
   plans: SubscriptionPlan[] = [];
@@ -90,9 +90,16 @@ export class SubscriptionsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadSubscriptions();
-    this.loadPlans();
+    // Initialize data structures to avoid NG0100 error
     this.loadTenants();
+  }
+
+  ngAfterViewInit(): void {
+    // Load async data after view initialization to prevent ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.loadPlans();
+      this.loadSubscriptions();
+    });
   }
 
   // Data loading
@@ -126,11 +133,18 @@ export class SubscriptionsComponent implements OnInit {
     this.subscriptionService.getSubscriptionPlans().subscribe({
       next: (response: any) => {
         this.plans = response.data?.data || response.data || [];
+        // Force change detection after async operation
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        });
       },
       error: (error) => {
         console.error('Error loading plans:', error);
         this.plans = [];
         this.showErrorMessage('Erreur lors du chargement des plans.');
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        });
       }
     });
   }

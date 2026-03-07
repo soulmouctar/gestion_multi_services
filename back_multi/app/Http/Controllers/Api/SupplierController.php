@@ -83,4 +83,35 @@ class SupplierController extends BaseController
 
         return $this->sendResponse([], 'Supplier deleted successfully');
     }
+
+    public function publicIndex(Request $request)
+    {
+        $query = Supplier::with('tenant');
+
+        // Use fixed tenant_id for testing
+        $tenantId = $request->get('tenant_id', 1);
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $suppliers = $query->orderBy('created_at', 'desc')->paginate(15);
+        return $this->sendResponse($suppliers, 'Suppliers retrieved successfully');
+    }
+
+    public function publicStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'tenant_id' => 'required|exists:tenants,id',
+            'name' => 'required|string|max:150',
+            'currency' => 'nullable|string|max:10',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $supplier = Supplier::create($request->all());
+
+        return $this->sendResponse($supplier->load('tenant'), 'Supplier created successfully', 201);
+    }
 }

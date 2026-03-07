@@ -16,6 +16,8 @@ import {
   TabsListComponent
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
+import { OrganisationSettingService, OrganisationSetting, SettingOptions } from '../../../core/services/organisation-setting.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-organisation-settings',
@@ -44,6 +46,7 @@ export class OrganisationSettingsComponent implements OnInit {
   settingsForm: FormGroup;
   loading = false;
   saving = false;
+  currentSettings: OrganisationSetting | null = null;
 
   timezones = [
     { value: 'Europe/Paris', label: 'Europe/Paris (GMT+1)' },
@@ -75,7 +78,8 @@ export class OrganisationSettingsComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private organisationSettingService: OrganisationSettingService
   ) {
     this.settingsForm = this.fb.group({
       // Paramètres généraux
@@ -113,32 +117,26 @@ export class OrganisationSettingsComponent implements OnInit {
 
   loadSettings(): void {
     this.loading = true;
-    // Simulate API call
-    setTimeout(() => {
-      // Load current settings from API
-      const currentSettings = {
-        timezone: 'Europe/Paris',
-        language: 'fr',
-        date_format: 'DD/MM/YYYY',
-        number_format: 'fr',
-        invoice_prefix: 'INV-',
-        invoice_counter: 1001,
-        quote_prefix: 'DEV-',
-        quote_counter: 501,
-        email_notifications: true,
-        sms_notifications: false,
-        browser_notifications: true,
-        session_timeout: 30,
-        password_expiry: 90,
-        two_factor_auth: false,
-        auto_archive_invoices: true,
-        archive_after_days: 365,
-        backup_frequency: 'weekly'
-      };
-      
-      this.settingsForm.patchValue(currentSettings);
-      this.loading = false;
-    }, 1000);
+    this.organisationSettingService.getSettings().subscribe({
+      next: (response) => {
+        if (response.success) {
+          const settings = response.data;
+          this.currentSettings = settings;
+          this.settingsForm.patchValue(settings);
+        }
+        this.loading = false;
+      },
+      error: (error: any) => {
+        console.error('Error loading settings:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Impossible de charger les paramètres. Veuillez réessayer.',
+          confirmButtonColor: '#dc3545'
+        });
+        this.loading = false;
+      }
+    });
   }
 
   onSubmit(): void {
@@ -146,37 +144,64 @@ export class OrganisationSettingsComponent implements OnInit {
       this.saving = true;
       const formData = this.settingsForm.value;
       
-      // Simulate API call
-      setTimeout(() => {
-        console.log('Settings saved:', formData);
-        this.saving = false;
-        // Show success message
-      }, 1000);
+      this.organisationSettingService.updateSettings(formData).subscribe({
+        next: (response) => {
+          if (response.success) {
+            const updatedSettings = response.data;
+            this.currentSettings = updatedSettings;
+          }
+          this.saving = false;
+        },
+        error: (error: any) => {
+          console.error('Error saving settings:', error);
+          this.saving = false;
+          Swal.fire({
+            icon: 'error',
+            title: 'Erreur',
+            text: 'Impossible d\'enregistrer les paramètres. Veuillez réessayer.',
+            confirmButtonColor: '#dc3545'
+          });
+        }
+      });
     }
   }
 
   resetToDefaults(): void {
-    if (confirm('Êtes-vous sûr de vouloir restaurer les paramètres par défaut ?')) {
-      this.settingsForm.reset({
-        timezone: 'Europe/Paris',
-        language: 'fr',
-        date_format: 'DD/MM/YYYY',
-        number_format: 'fr',
-        invoice_prefix: 'INV-',
-        invoice_counter: 1,
-        quote_prefix: 'DEV-',
-        quote_counter: 1,
-        email_notifications: true,
-        sms_notifications: false,
-        browser_notifications: true,
-        session_timeout: 30,
-        password_expiry: 90,
-        two_factor_auth: false,
-        auto_archive_invoices: true,
-        archive_after_days: 365,
-        backup_frequency: 'weekly'
-      });
-    }
+    Swal.fire({
+      title: 'Êtes-vous sûr?',
+      text: 'Cela va restaurer tous les paramètres à leurs valeurs par défaut.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Oui, restaurer',
+      cancelButtonText: 'Annuler'
+    }).then((result: any) => {
+      if (result.isConfirmed) {
+        this.saving = true;
+        
+        this.organisationSettingService.resetSettings().subscribe({
+          next: (response) => {
+            if (response.success) {
+              const resetSettings = response.data;
+              this.currentSettings = resetSettings;
+              this.settingsForm.patchValue(resetSettings);
+            }
+            this.saving = false;
+          },
+          error: (error: any) => {
+            console.error('Error resetting settings:', error);
+            this.saving = false;
+            Swal.fire({
+              icon: 'error',
+              title: 'Erreur',
+              text: 'Impossible de restaurer les paramètres. Veuillez réessayer.',
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
+      }
+    });
   }
 
   get f() {

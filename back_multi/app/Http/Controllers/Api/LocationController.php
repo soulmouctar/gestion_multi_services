@@ -81,4 +81,61 @@ class LocationController extends BaseController
 
         return $this->sendResponse([], 'Location deleted successfully');
     }
+
+    public function publicIndex(Request $request)
+    {
+        $query = Location::with('tenant', 'buildings');
+
+        // Use fixed tenant_id for testing
+        $tenantId = $request->get('tenant_id', 1);
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $locations = $query->orderBy('created_at', 'desc')->paginate(15);
+        return $this->sendResponse($locations, 'Locations retrieved successfully');
+    }
+
+    public function publicStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'tenant_id' => 'required|exists:tenants,id',
+            'name' => 'required|string|max:150',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $location = Location::create($request->all());
+
+        return $this->sendResponse($location->load('tenant', 'buildings'), 'Location created successfully', 201);
+    }
+
+    public function publicStatistics(Request $request)
+    {
+        $tenantId = $request->get('tenant_id', 1);
+        
+        $totalLocations = Location::where('tenant_id', $tenantId)->count();
+        $totalBuildings = \App\Models\Building::whereHas('location', function($q) use ($tenantId) {
+            $q->where('tenant_id', $tenantId);
+        })->count();
+        
+        $totalFloors = \App\Models\Floor::whereHas('building.location', function($q) use ($tenantId) {
+            $q->where('tenant_id', $tenantId);
+        })->count();
+        
+        $totalHousingUnits = \App\Models\HousingUnit::whereHas('floor.building.location', function($q) use ($tenantId) {
+            $q->where('tenant_id', $tenantId);
+        })->count();
+
+        $statistics = [
+            'total_locations' => $totalLocations,
+            'total_buildings' => $totalBuildings,
+            'total_floors' => $totalFloors,
+            'total_housing_units' => $totalHousingUnits,
+        ];
+
+        return $this->sendResponse($statistics, 'Location statistics retrieved successfully');
+    }
 }

@@ -55,8 +55,8 @@ export class AuthService {
     }
   }
   
-  login(credentials: { email: string; password: string; tenantDomain?: string }): Observable<ApiResponse<AuthState>> {
-    return this.http.post<ApiResponse<any>>(`${this.API_URL}/login`, credentials).pipe(
+  login(email: string, password: string): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/login`, { email, password }).pipe(
       tap(response => {
         if (response.success && response.data) {
           // Transform Laravel response to Angular AuthState format
@@ -67,10 +67,32 @@ export class AuthService {
             token: response.data.token
           };
           this.setAuthState(authState);
+          
+          // Load user module permissions after successful login
+          this.loadUserModulePermissions(response.data.user.id);
         }
       }),
       catchError(error => this.handleError(error))
     );
+  }
+  
+  private loadUserModulePermissions(userId: number): void {
+    this.http.get<ApiResponse<any>>(`${this.API_URL}/users/${userId}/module-permissions-public`).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          const currentState = this.authState.value;
+          if (currentState.user) {
+            currentState.user.module_permissions = response.data;
+            this.authState.next(currentState);
+            // Update localStorage with module permissions
+            localStorage.setItem(this.USER_KEY, JSON.stringify(currentState.user));
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error loading user module permissions:', error);
+      }
+    });
   }
   
   logout(): void {
@@ -234,10 +256,12 @@ export class AuthService {
   hasModuleAccess(moduleCode: string): boolean {
     if (this.isSuperAdmin) return true;
     
-    const tenant = this.currentTenant;
-    return tenant?.modules?.some((module: any) => 
-      module.module?.code === moduleCode && module.isActive
-    ) || false;
+    const user = this.currentUser;
+    if (!user || !user.module_permissions) return false;
+    
+    return user.module_permissions.some((permission: any) => 
+      permission.module_code === moduleCode && permission.is_active
+    );
   }
   
   // Permission check

@@ -1,0 +1,180 @@
+<c-container>
+  <c-row>
+    <c-col xs="12">
+      <c-card class="mb-4">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <div><strong>Paramètres de l'Organisation</strong></div>
+          <div>
+            <button cButton color="secondary" size="sm" (click)="resetToDefaults()" class="me-2">Réinitialiser</button>
+            <button cButton color="primary" size="sm" (click)="saveSettings()">Sauvegarder</button>
+          </div>
+        </c-card-header>
+        <c-card-body>
+          <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
+          <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
+          
+          <div *ngIf="loading" class="text-center p-4"><c-spinner></c-spinner><p class="mt-2">Chargement...</p></div>
+
+          <form [formGroup]="settingsForm" *ngIf="!loading">
+            <!-- Paramètres généraux -->
+            <c-card class="mb-4">
+              <c-card-header><strong>Paramètres généraux</strong></c-card-header>
+              <c-card-body>
+                <c-row>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Fuseau horaire *</label>
+                      <select cSelect formControlName="timezone" [class.is-invalid]="submitted && settingsForm.get('timezone')?.invalid">
+                        <option value="Europe/Paris">Europe/Paris (GMT+1)</option>
+                        <option value="Africa/Conakry">Africa/Conakry (GMT+0)</option>
+                        <option value="UTC">UTC (GMT+0)</option>
+                      </select>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Langue *</label>
+                      <select cSelect formControlName="language" [class.is-invalid]="submitted && settingsForm.get('language')?.invalid">
+                        <option value="fr">Français</option>
+                        <option value="en">English</option>
+                      </select>
+                    </div>
+                  </c-col>
+                </c-row>
+                <c-row>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Format de date *</label>
+                      <select cSelect formControlName="date_format" [class.is-invalid]="submitted && settingsForm.get('date_format')?.invalid">
+                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                      </select>
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Format numérique *</label>
+                      <select cSelect formControlName="number_format" [class.is-invalid]="submitted && settingsForm.get('number_format')?.invalid">
+                        <option value="fr">Français (1 234,56)</option>
+                        <option value="en">Anglais (1,234.56)</option>
+                      </select>
+                    </div>
+                  </c-col>
+                </c-row>
+              </c-card-body>
+            </c-card>
+
+            <!-- Paramètres de facturation -->
+            <c-card class="mb-4">
+              <c-card-header><strong>Paramètres de facturation</strong></c-card-header>
+              <c-card-body>
+                <c-row>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Préfixe factures *</label>
+                      <input cFormControl type="text" formControlName="invoice_prefix" [class.is-invalid]="submitted && settingsForm.get('invoice_prefix')?.invalid" />
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Compteur factures *</label>
+                      <input cFormControl type="number" formControlName="invoice_counter" min="1" [class.is-invalid]="submitted && settingsForm.get('invoice_counter')?.invalid" />
+                    </div>
+                  </c-col>
+                </c-row>
+                <c-row>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Préfixe devis *</label>
+                      <input cFormControl type="text" formControlName="quote_prefix" [class.is-invalid]="submitted && settingsForm.get('quote_prefix')?.invalid" />
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Compteur devis *</label>
+                      <input cFormControl type="number" formControlName="quote_counter" min="1" [class.is-invalid]="submitted && settingsForm.get('quote_counter')?.invalid" />
+                    </div>
+                  </c-col>
+                </c-row>
+              </c-card-body>
+            </c-card>
+
+            <!-- Paramètres de notification -->
+            <c-card class="mb-4">
+              <c-card-header><strong>Paramètres de notification</strong></c-card-header>
+              <c-card-body>
+                <div class="mb-3 form-check">
+                  <input type="checkbox" class="form-check-input" formControlName="email_notifications" id="emailNotif" />
+                  <label class="form-check-label" for="emailNotif">Notifications par email</label>
+                </div>
+                <div class="mb-3 form-check">
+                  <input type="checkbox" class="form-check-input" formControlName="sms_notifications" id="smsNotif" />
+                  <label class="form-check-label" for="smsNotif">Notifications par SMS</label>
+                </div>
+                <div class="mb-3 form-check">
+                  <input type="checkbox" class="form-check-input" formControlName="browser_notifications" id="browserNotif" />
+                  <label class="form-check-label" for="browserNotif">Notifications navigateur</label>
+                </div>
+              </c-card-body>
+            </c-card>
+
+            <!-- Paramètres de sécurité -->
+            <c-card class="mb-4">
+              <c-card-header><strong>Paramètres de sécurité</strong></c-card-header>
+              <c-card-body>
+                <c-row>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Timeout session (minutes) *</label>
+                      <input cFormControl type="number" formControlName="session_timeout" min="5" [class.is-invalid]="submitted && settingsForm.get('session_timeout')?.invalid" />
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Expiration mot de passe (jours) *</label>
+                      <input cFormControl type="number" formControlName="password_expiry" min="30" [class.is-invalid]="submitted && settingsForm.get('password_expiry')?.invalid" />
+                    </div>
+                  </c-col>
+                </c-row>
+                <div class="mb-3 form-check">
+                  <input type="checkbox" class="form-check-input" formControlName="two_factor_auth" id="twoFactor" />
+                  <label class="form-check-label" for="twoFactor">Authentification à deux facteurs</label>
+                </div>
+              </c-card-body>
+            </c-card>
+
+            <!-- Paramètres d'archivage -->
+            <c-card class="mb-4">
+              <c-card-header><strong>Paramètres d'archivage</strong></c-card-header>
+              <c-card-body>
+                <div class="mb-3 form-check">
+                  <input type="checkbox" class="form-check-input" formControlName="auto_archive_invoices" id="autoArchive" />
+                  <label class="form-check-label" for="autoArchive">Archivage automatique des factures</label>
+                </div>
+                <c-row>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Archiver après (jours) *</label>
+                      <input cFormControl type="number" formControlName="archive_after_days" min="30" [class.is-invalid]="submitted && settingsForm.get('archive_after_days')?.invalid" />
+                    </div>
+                  </c-col>
+                  <c-col md="6">
+                    <div class="mb-3">
+                      <label cLabel>Fréquence sauvegarde *</label>
+                      <select cSelect formControlName="backup_frequency" [class.is-invalid]="submitted && settingsForm.get('backup_frequency')?.invalid">
+                        <option value="daily">Quotidienne</option>
+                        <option value="weekly">Hebdomadaire</option>
+                        <option value="monthly">Mensuelle</option>
+                      </select>
+                    </div>
+                  </c-col>
+                </c-row>
+              </c-card-body>
+            </c-card>
+          </form>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</c-container>
