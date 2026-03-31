@@ -85,4 +85,17 @@ class BuildingController extends BaseController
 
         return $this->sendResponse([], 'Building deleted successfully');
     }
+
+    public function publicIndex(Request $request)
+    {
+        $perPage = $request->get('per_page', 200);
+        $query = Building::with('location');
+
+        if ($request->has('location_id')) {
+            $query->where('location_id', $request->location_id);
+        }
+
+        $buildings = $query->paginate($perPage);
+        return $this->sendResponse($buildings, 'Buildings retrieved successfully');
+    }
 }

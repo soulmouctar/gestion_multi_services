@@ -7,6 +7,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-container-photos',
@@ -34,6 +35,11 @@ export class ContainerPhotosComponent implements OnInit {
   deleteModalOpen = false; itemToDelete: any = null;
   selectedFile: File | null = null;
   Math = Math;
+  previewModalOpen = false;
+  previewItem: any = null;
+  
+  // Base URL for images (Laravel storage)
+  readonly storageBaseUrl = environment.urlBase + '/storage/';
 
   constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
     this.photoForm = this.fb.group({
@@ -279,6 +285,21 @@ export class ContainerPhotosComponent implements OnInit {
   getContainerNumber(id: number): string { 
     const c = this.containers.find(x => x.id === id); 
     return c ? c.container_number : `ID: ${id}`; 
+  }
+
+  getImageUrl(imagePath: string): string {
+    if (!imagePath) return 'assets/img/placeholder.png';
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    // Build the full URL to Laravel storage
+    return this.storageBaseUrl + imagePath;
+  }
+
+  previewImage(item: any): void {
+    this.previewItem = item;
+    this.previewModalOpen = true;
   }
 
   getPages(): number[] { const p: number[] = []; for (let i = 1; i <= this.totalPages; i++) p.push(i); return p; }

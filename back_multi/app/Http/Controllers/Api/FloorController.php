@@ -81,4 +81,17 @@ class FloorController extends BaseController
 
         return $this->sendResponse([], 'Floor deleted successfully');
     }
+
+    public function publicIndex(Request $request)
+    {
+        $perPage = $request->get('per_page', 200);
+        $query = Floor::with('building');
+
+        if ($request->has('building_id')) {
+            $query->where('building_id', $request->building_id);
+        }
+
+        $floors = $query->paginate($perPage);
+        return $this->sendResponse($floors, 'Floors retrieved successfully');
+    }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -52,6 +52,17 @@ export class ProductsListComponent implements OnInit {
   
   loading = false;
   error: string | null = null;
+  successMessage: string | null = null;
+  
+  // Statistics
+  stats = {
+    total_products: 0,
+    active_products: 0,
+    low_stock_products: 0,
+    out_of_stock_products: 0,
+    total_stock_value: 0
+  };
+  loadingStats = false;
   
   // Pagination
   currentPage = 1;
@@ -70,6 +81,18 @@ export class ProductsListComponent implements OnInit {
   deleteModalOpen = false;
   productToDelete: Product | null = null;
   bulkDeleteModalOpen = false;
+  
+  // Detail Modal
+  detailModalOpen = false;
+  selectedProduct: Product | null = null;
+  
+  // Sales History Modal
+  salesHistoryModalOpen = false;
+  salesHistory: any[] = [];
+  loadingSalesHistory = false;
+  
+  // Dropdown state
+  openDropdownId: number | null = null;
 
   // Math object for template
   Math = Math;
@@ -112,6 +135,25 @@ export class ProductsListComponent implements OnInit {
     // Load categories and units in background without blocking
     this.loadCategories();
     this.loadUnits();
+    this.loadStatistics();
+  }
+
+  loadStatistics(): void {
+    this.loadingStats = true;
+    this.apiService.get<any>('products-public/statistics?tenant_id=1').subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.stats = response.data;
+        }
+        this.loadingStats = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading statistics:', error);
+        this.loadingStats = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   private async loadCategoriesAsync(): Promise<void> {
@@ -264,17 +306,19 @@ export class ProductsListComponent implements OnInit {
     if (!this.productToDelete) return;
 
     this.loading = true;
-    this.productService.deleteProduct(this.productToDelete.id).subscribe({
+    this.apiService.delete<any>(`products-public/${this.productToDelete.id}`).subscribe({
       next: (response) => {
         if (response.success) {
-          this.productService.showSuccessMessage('Produit supprimé avec succès');
+          this.successMessage = 'Produit supprimé avec succès';
           this.loadProducts();
+          this.loadStatistics();
+          this.clearMessagesAfterDelay();
         }
         this.cancelDelete();
       },
       error: (error) => {
         console.error('Error deleting product:', error);
-        this.productService.showErrorMessage(error.message || 'Erreur lors de la suppression');
+        this.error = error?.error?.message || 'Erreur lors de la suppression';
         this.loading = false;
         this.cancelDelete();
       }
@@ -351,16 +395,25 @@ export class ProductsListComponent implements OnInit {
       tenant_id: 1
     };
 
+    this.loading = true;
     this.apiService.post<any>('products-public/bulk-update-status', data).subscribe({
       next: (response) => {
         if (response.success) {
+          this.successMessage = `${this.selectedProducts.length} produit(s) mis à jour avec succès`;
           this.loadProducts();
+          this.loadStatistics();
           this.selectedProducts = [];
           this.selectAll = false;
+          this.clearMessagesAfterDelay();
         }
+        this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error updating status:', error);
+        this.error = error?.error?.message || 'Erreur lors de la mise à jour';
+        this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -474,9 +527,176 @@ export class ProductsListComponent implements OnInit {
 
   getPages(): number[] {
     const pages: number[] = [];
-    for (let i = 1; i <= this.totalPages; i++) {
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
     return pages;
+  }
+
+  private clearMessagesAfterDelay(): void {
+    setTimeout(() => {
+      this.successMessage = null;
+      this.error = null;
+      this.cdr.detectChanges();
+    }, 3000);
+  }
+
+  getStockPercentage(product: Product): number {
+    if (!product.low_stock_threshold || product.low_stock_threshold === 0) return 100;
+    const percentage = ((product.stock_quantity || 0) / (product.low_stock_threshold * 2)) * 100;
+    return Math.min(100, Math.max(0, percentage));
+  }
+
+  getStockProgressClass(product: Product): string {
+    if (this.isOutOfStock(product)) return 'bg-danger';
+    if (this.isLowStock(product)) return 'bg-warning';
+    return 'bg-success';
+  }
+
+  duplicateProduct(product: Product): void {
+    const duplicateData = {
+      name: `${product.name} (copie)`,
+      description: product.description,
+      sku: product.sku ? `${product.sku}-COPY` : null,
+      product_category_id: product.product_category_id,
+      unit_id: product.unit_id,
+      purchase_price: product.purchase_price,
+      selling_price: product.selling_price,
+      stock_quantity: 0,
+      low_stock_threshold: product.low_stock_threshold,
+      status: 'INACTIVE',
+      tenant_id: 1
+    };
+
+    this.apiService.post<any>('products-public', duplicateData).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.successMessage = 'Produit dupliqué avec succès';
+          this.loadProducts();
+          this.loadStatistics();
+          this.clearMessagesAfterDelay();
+        }
+      },
+      error: (error) => {
+        this.error = error?.error?.message || 'Erreur lors de la duplication';
+      }
+    });
+  }
+
+  quickUpdateStock(product: Product, operation: 'ADD' | 'SUBTRACT'): void {
+    const quantity = prompt(`Quantité à ${operation === 'ADD' ? 'ajouter' : 'retirer'}:`);
+    if (!quantity || isNaN(Number(quantity))) return;
+
+    this.apiService.post<any>(`products-public/${product.id}/stock`, {
+      stock_quantity: Number(quantity),
+      operation: operation
+    }).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.successMessage = 'Stock mis à jour';
+          this.loadProducts();
+          this.loadStatistics();
+          this.clearMessagesAfterDelay();
+        }
+      },
+      error: (error) => {
+        this.error = error?.error?.message || 'Erreur lors de la mise à jour du stock';
+      }
+    });
+  }
+
+  // Dropdown toggle
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.dropdown')) {
+      this.openDropdownId = null;
+    }
+  }
+
+  toggleDropdown(productId: number): void {
+    this.openDropdownId = this.openDropdownId === productId ? null : productId;
+  }
+
+  isDropdownOpen(productId: number): boolean {
+    return this.openDropdownId === productId;
+  }
+
+  closeDropdown(): void {
+    this.openDropdownId = null;
+  }
+
+  // Detail Modal
+  openDetailModal(product: Product): void {
+    this.selectedProduct = product;
+    this.detailModalOpen = true;
+    this.closeDropdown();
+  }
+
+  closeDetailModal(): void {
+    this.detailModalOpen = false;
+    this.selectedProduct = null;
+  }
+
+  // Sales History Modal
+  openSalesHistoryModal(product: Product): void {
+    this.selectedProduct = product;
+    this.salesHistoryModalOpen = true;
+    this.loadSalesHistory(product.id);
+    this.closeDropdown();
+  }
+
+  closeSalesHistoryModal(): void {
+    this.salesHistoryModalOpen = false;
+    this.salesHistory = [];
+  }
+
+  loadSalesHistory(productId: number): void {
+    this.loadingSalesHistory = true;
+    this.apiService.get<any>(`products-public/${productId}/sales-history`).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.salesHistory = response.data || [];
+        }
+        this.loadingSalesHistory = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.salesHistory = [];
+        this.loadingSalesHistory = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // Calculate profit margin
+  getProfitMargin(product: Product): number {
+    if (!product.purchase_price || !product.selling_price || product.purchase_price === 0) return 0;
+    return ((product.selling_price - product.purchase_price) / product.purchase_price) * 100;
+  }
+
+  // Get stock status text
+  getStockStatusText(product: Product): string {
+    if (this.isOutOfStock(product)) return 'Rupture de stock';
+    if (this.isLowStock(product)) return 'Stock faible';
+    return 'En stock';
+  }
+
+  // Calculate total quantity sold
+  getTotalQuantitySold(): number {
+    return this.salesHistory.reduce((sum, s) => sum + (s.quantity || 0), 0);
+  }
+
+  // Calculate total sales amount
+  getTotalSalesAmount(): number {
+    return this.salesHistory.reduce((sum, s) => sum + (s.total || 0), 0);
   }
 }

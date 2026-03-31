@@ -116,15 +116,6 @@ export const navItems: INavData[] = [
         icon: 'nav-icon-bullet'
       },
       {
-        name: 'Gestion Avancée Devises',
-        url: '/finance/currencies-advanced',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'info',
-          text: 'NOUVEAU'
-        }
-      },
-      {
         name: 'Taux de Change',
         url: '/finance/exchange-rates',
         icon: 'nav-icon-bullet'
@@ -152,18 +143,18 @@ export const navItems: INavData[] = [
         icon: 'nav-icon-bullet'
       },
       {
-        name: 'Tracking',
-        url: '/containers/tracking',
-        icon: 'nav-icon-bullet'
+        name: 'Suivi Paiements',
+        url: '/containers/payments',
+        icon: 'nav-icon-bullet',
+        badge: {
+          color: 'success',
+          text: 'NOUVEAU'
+        }
       },
       {
         name: 'Statistiques Avancées',
         url: '/containers/statistics',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'info',
-          text: 'NOUVEAU'
-        }
+        icon: 'nav-icon-bullet'
       }
     ]
   },

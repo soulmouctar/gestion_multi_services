@@ -282,11 +282,11 @@ export class ProductService {
 
   getStatusClass(status: Product['status']): string {
     const classes = {
-      'ACTIVE': 'badge-success',
-      'INACTIVE': 'badge-warning',
-      'DISCONTINUED': 'badge-danger'
+      'ACTIVE': 'success',
+      'INACTIVE': 'warning',
+      'DISCONTINUED': 'danger'
     };
-    return classes[status] || 'badge-secondary';
+    return classes[status] || 'secondary';
   }
 
   isLowStock(product: Product): boolean {

@@ -74,11 +74,11 @@ export const environment = {
   
   // PDF configuration
   pdf: {
-    logoUrl: '/assets/images/logo.png',
-    companyName: 'SaaS Management Platform',
+    logoUrl: '/assets/images/logo/mat_kolla_hd.png',
+    companyName: 'Mat Kolla',
     companyAddress: 'Conakry, Guinée',
     companyPhone: '+224 XXX XXX XXX',
-    companyEmail: 'contact@saas-management.com'
+    companyEmail: 'contact@mat-kolla.com'
   },
   
   // Payment configuration

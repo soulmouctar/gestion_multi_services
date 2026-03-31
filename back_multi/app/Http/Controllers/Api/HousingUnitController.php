@@ -89,4 +89,36 @@ class HousingUnitController extends BaseController
 
         return $this->sendResponse([], 'Housing unit deleted successfully');
     }
+
+    public function publicIndex(Request $request)
+    {
+        $perPage = $request->get('per_page', 15);
+        $query = HousingUnit::with('floor.building', 'configuration');
+
+        if ($request->has('floor_id')) {
+            $query->where('floor_id', $request->floor_id);
+        }
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $units = $query->paginate($perPage);
+        return $this->sendResponse($units, 'Housing units retrieved successfully');
+    }
+
+    public function publicStore(Request $request)
+    {
+        return $this->store($request);
+    }
+
+    public function publicUpdate(Request $request, $id)
+    {
+        return $this->update($request, $id);
+    }
+
+    public function publicDestroy($id)
+    {
+        return $this->destroy($id);
+    }
 }

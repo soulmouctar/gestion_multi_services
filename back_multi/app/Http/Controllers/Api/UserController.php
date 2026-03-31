@@ -22,6 +22,21 @@ class UserController extends BaseController
         return $this->sendResponse($users, 'Users retrieved successfully');
     }
 
+    public function publicIndex(Request $request)
+    {
+        $tenantId = $request->get('tenant_id', 1);
+        $perPage = $request->get('per_page', 15);
+        
+        $query = User::with('tenant', 'roles');
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $users = $query->paginate($perPage);
+        return $this->sendResponse($users, 'Users retrieved successfully');
+    }
+
     public function store(Request $request)
     {
         $currentUser = auth()->user();

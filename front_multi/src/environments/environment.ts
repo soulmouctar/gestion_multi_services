@@ -1,6 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://127.0.0.1:8000/api',
+  urlBase: 'http://localhost:8001',
+  apiUrl: 'http://127.0.0.1:8001/api',
   appUrl: 'http://localhost:4200',
   
   // Multi-tenant configuration
@@ -74,11 +75,11 @@ export const environment = {
   
   // PDF configuration
   pdf: {
-    logoUrl: '/assets/images/logo.png',
-    companyName: 'SaaS Management Platform',
+    logoUrl: '/assets/images/logo/mat_kolla_hd.png',
+    companyName: 'Mat Kolla',
     companyAddress: 'Conakry, Guinée',
     companyPhone: '+224 XXX XXX XXX',
-    companyEmail: 'contact@saas-management.com'
+    companyEmail: 'contact@mat-kolla.com'
   },
   
   // Payment configuration

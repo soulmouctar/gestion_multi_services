@@ -169,10 +169,10 @@
     <form [formGroup]="paymentForm">
       <div class="mb-3">
         <label cLabel>Affectation (Chauffeur - Taxi) *</label>
-        <select cSelect formControlName="taxi_assignment_id" [class.is-invalid]="submitted && paymentForm.get('taxi_assignment_id')?.invalid">
+        <select cSelect formControlName="taxi_assignment_id" (change)="onAssignmentChange($event)" [class.is-invalid]="submitted && paymentForm.get('taxi_assignment_id')?.invalid">
           <option [ngValue]="null">-- Sélectionner --</option>
           <option *ngFor="let a of assignments" [ngValue]="a.id">
-            {{ a.driver?.name || 'Chauffeur' }} - {{ a.taxi?.plate_number || 'Taxi' }}
+            {{ a.driver?.name || 'Chauffeur' }} - {{ a.taxi?.plate_number || 'Taxi' }} ({{ a.driver?.daily_rate || 0 }} GNF/jour)
           </option>
         </select>
         <div class="invalid-feedback" *ngIf="submitted && paymentForm.get('taxi_assignment_id')?.hasError('required')">

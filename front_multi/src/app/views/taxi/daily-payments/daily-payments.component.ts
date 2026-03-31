@@ -197,6 +197,25 @@ export class DailyPaymentsComponent implements OnInit {
     this.showFormModal = true;
   }
 
+  onAssignmentChange(event: any): void {
+    const assignmentId = event?.target?.value || event;
+    if (!assignmentId) {
+      this.paymentForm.patchValue({ expected_amount: 0 });
+      return;
+    }
+    
+    const assignment = this.assignments.find(a => a.id == assignmentId);
+    if (assignment && assignment.driver) {
+      const dailyRate = assignment.driver.daily_rate || 0;
+      this.paymentForm.patchValue({ expected_amount: dailyRate });
+    } else if (assignment && assignment.driver_id) {
+      const driver = this.drivers.find(d => d.id === assignment.driver_id);
+      if (driver) {
+        this.paymentForm.patchValue({ expected_amount: driver.daily_rate || 0 });
+      }
+    }
+  }
+
   openEditModal(item: any): void {
     this.editMode = true;
     this.submitted = false;

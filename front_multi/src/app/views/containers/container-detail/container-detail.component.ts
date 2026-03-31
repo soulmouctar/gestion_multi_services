@@ -9,6 +9,8 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { environment } from '../../../../environments/environment';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-container-detail',
@@ -195,25 +197,49 @@ export class ContainerDetailComponent implements OnInit {
   }
 
   deletePhoto(photo: any): void {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette photo ?')) {
-      this.apiService.delete<any>(`container-photos-public/${photo.id}`).subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.successMessage = 'Photo supprimée avec succès';
-            this.loadContainerPhotos();
-            this.clearMessages();
+    Swal.fire({
+      title: 'Confirmer la suppression',
+      text: 'Êtes-vous sûr de vouloir supprimer cette photo ?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.apiService.delete<any>(`container-photos-public/${photo.id}`).subscribe({
+          next: (response) => {
+            if (response.success) {
+              Swal.fire({
+                title: 'Supprimé !',
+                text: 'La photo a été supprimée avec succès.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+              });
+              this.loadContainerPhotos();
+            }
+          },
+          error: (err) => {
+            console.error('Error deleting photo:', err);
+            Swal.fire({
+              title: 'Erreur',
+              text: 'Erreur lors de la suppression de la photo',
+              icon: 'error'
+            });
           }
-        },
-        error: (err) => {
-          console.error('Error deleting photo:', err);
-          this.error = 'Erreur lors de la suppression de la photo';
-        }
-      });
-    }
+        });
+      }
+    });
   }
 
   getPhotoUrl(imagePath: string): string {
-    return `http://127.0.0.1:8000/storage/${imagePath}`;
+    if (!imagePath) return 'assets/img/placeholder.png';
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    return `${environment.urlBase}/storage/${imagePath}`;
   }
 
   getProductName(productId: number): string {

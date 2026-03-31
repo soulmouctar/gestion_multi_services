@@ -352,4 +352,153 @@ class PaymentController extends BaseController
             ];
         });
     }
+
+    // ==================== PUBLIC METHODS ====================
+
+    public function publicIndex(Request $request)
+    {
+        try {
+            $tenantId = $request->get('tenant_id', 1);
+            
+            $query = Payment::where('tenant_id', $tenantId);
+
+            if ($request->has('type')) {
+                $query->where('type', $request->get('type'));
+            }
+            if ($request->has('method')) {
+                $query->where('method', $request->get('method'));
+            }
+            if ($request->has('date_from')) {
+                $query->whereDate('payment_date', '>=', $request->get('date_from'));
+            }
+            if ($request->has('date_to')) {
+                $query->whereDate('payment_date', '<=', $request->get('date_to'));
+            }
+
+            $query->orderBy('payment_date', 'desc');
+            $perPage = $request->get('per_page', 15);
+            $payments = $query->paginate($perPage);
+            
+            return $this->sendResponse($payments, 'Payments retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function publicStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'type' => 'required|in:CLIENT,SUPPLIER,DEPOT,RETRAIT',
+            'method' => 'required|in:ORANGE_MONEY,VIREMENT,CHEQUE,ESPECES',
+            'amount' => 'required|numeric|min:0',
+            'currency' => 'nullable|string|max:10',
+            'proof' => 'nullable|string|max:255',
+            'payment_date' => 'required|date',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $data = $request->all();
+        $data['tenant_id'] = $request->get('tenant_id', 1);
+
+        $payment = Payment::create($data);
+
+        return $this->sendResponse($payment, 'Payment created successfully', 201);
+    }
+
+    public function publicStatistics(Request $request)
+    {
+        try {
+            $tenantId = $request->get('tenant_id', 1);
+
+            $query = Payment::where('tenant_id', $tenantId);
+
+            // Total by type
+            $totalByType = Payment::where('tenant_id', $tenantId)
+                ->selectRaw('type, SUM(amount) as total, COUNT(*) as count')
+                ->groupBy('type')
+                ->get()
+                ->keyBy('type');
+
+            // Total by method
+            $totalByMethod = Payment::where('tenant_id', $tenantId)
+                ->selectRaw('method, SUM(amount) as total, COUNT(*) as count')
+                ->groupBy('method')
+                ->get()
+                ->keyBy('method');
+
+            // Monthly trend (last 6 months)
+            $monthlyTrend = Payment::where('tenant_id', $tenantId)
+                ->selectRaw('YEAR(payment_date) as year, MONTH(payment_date) as month, SUM(amount) as total, COUNT(*) as count')
+                ->where('payment_date', '>=', Carbon::now()->subMonths(6)->startOfMonth())
+                ->groupBy('year', 'month')
+                ->orderBy('year')
+                ->orderBy('month')
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'period' => $item->year . '-' . str_pad($item->month, 2, '0', STR_PAD_LEFT),
+                        'amount' => $item->total,
+                        'count' => $item->count
+                    ];
+                });
+
+            $stats = [
+                'total_payments' => $query->count(),
+                'total_amount' => $query->sum('amount'),
+                'by_type' => $totalByType,
+                'by_method' => $totalByMethod,
+                'monthly_trend' => $monthlyTrend,
+                'average_payment' => $query->avg('amount') ?? 0
+            ];
+
+            return $this->sendResponse($stats, 'Payment statistics retrieved successfully');
+        } catch (\Exception $e) {
+            \Log::error('Error retrieving payment statistics: ' . $e->getMessage());
+            return $this->sendError('Error retrieving statistics', [], 500);
+        }
+    }
+
+    public function publicUpdate(Request $request, $id)
+    {
+        $tenantId = $request->get('tenant_id', 1);
+        $payment = Payment::where('tenant_id', $tenantId)->find($id);
+
+        if (!$payment) {
+            return $this->sendError('Payment not found', [], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'type' => 'sometimes|in:CLIENT,SUPPLIER,DEPOT,RETRAIT',
+            'method' => 'sometimes|in:ORANGE_MONEY,VIREMENT,CHEQUE,ESPECES',
+            'amount' => 'sometimes|numeric|min:0',
+            'currency' => 'nullable|string|max:10',
+            'proof' => 'nullable|string|max:255',
+            'payment_date' => 'sometimes|date',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $payment->update($request->all());
+
+        return $this->sendResponse($payment, 'Payment updated successfully');
+    }
+
+    public function publicDestroy($id)
+    {
+        $tenantId = 1;
+        $payment = Payment::where('tenant_id', $tenantId)->find($id);
+
+        if (!$payment) {
+            return $this->sendError('Payment not found', [], 404);
+        }
+
+        $payment->delete();
+
+        return $this->sendResponse([], 'Payment deleted successfully');
+    }
 }

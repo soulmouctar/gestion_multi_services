@@ -20,8 +20,15 @@ export class DashboardComponent implements OnInit {
   stats: any = null;
   activities: any[] = [];
   subscriptionTrends: any[] = [];
-  revenueChart: any = null;
+  revenueChart: { labels: string[], datasets: any[] } | null = null;
+  revenueLabels: string[] = [];
+  revenueData: number[] = [];
   moduleUsage: any[] = [];
+  
+  // Subscription trends data
+  subscriptionLabels: string[] = [];
+  subscriptionNewData: number[] = [];
+  subscriptionCancelledData: number[] = [];
 
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
@@ -70,7 +77,16 @@ export class DashboardComponent implements OnInit {
     this.apiService.get<any>('dashboard/subscription-trends').subscribe({
       next: (r) => {
         if (r.success && r.data) {
-          this.subscriptionTrends = r.data;
+          // Handle object with labels/datasets structure
+          if (r.data.labels && Array.isArray(r.data.labels)) {
+            this.subscriptionLabels = r.data.labels;
+          }
+          if (r.data.datasets && r.data.datasets[0] && Array.isArray(r.data.datasets[0].data)) {
+            this.subscriptionNewData = r.data.datasets[0].data;
+          }
+          if (r.data.datasets && r.data.datasets[1] && Array.isArray(r.data.datasets[1].data)) {
+            this.subscriptionCancelledData = r.data.datasets[1].data;
+          }
         }
         this.cdr.detectChanges();
       },
@@ -85,6 +101,12 @@ export class DashboardComponent implements OnInit {
       next: (r) => {
         if (r.success && r.data) {
           this.revenueChart = r.data;
+          if (r.data.labels && Array.isArray(r.data.labels)) {
+            this.revenueLabels = r.data.labels;
+          }
+          if (r.data.datasets && r.data.datasets[0] && Array.isArray(r.data.datasets[0].data)) {
+            this.revenueData = r.data.datasets[0].data;
+          }
         }
         this.loading = false;
         this.cdr.detectChanges();
@@ -100,7 +122,7 @@ export class DashboardComponent implements OnInit {
   loadModuleUsage(): void {
     this.apiService.get<any>('dashboard/module-usage').subscribe({
       next: (r) => {
-        if (r.success && r.data) {
+        if (r.success && r.data && Array.isArray(r.data)) {
           this.moduleUsage = r.data;
         }
         this.cdr.detectChanges();

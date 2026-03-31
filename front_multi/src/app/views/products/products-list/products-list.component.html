@@ -10,6 +10,14 @@
         <div class="d-flex gap-2">
           <button 
             type="button" 
+            class="btn btn-outline-secondary"
+            (click)="loadProducts(); loadStatistics()"
+            [disabled]="loading">
+            <svg cIcon name="cilReload" class="me-1"></svg>
+            Actualiser
+          </button>
+          <button 
+            type="button" 
             class="btn btn-outline-primary"
             (click)="exportProducts('csv')"
             [disabled]="loading">
@@ -25,6 +33,70 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <c-card class="border-start border-primary border-4 h-100">
+        <c-card-body class="py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small text-uppercase fw-semibold">Total Produits</div>
+              <div class="fs-4 fw-bold text-primary">{{ stats.total_products }}</div>
+            </div>
+            <div class="bg-primary bg-opacity-10 p-3 rounded">
+              <svg cIcon name="cilBasket" size="xl" class="text-primary"></svg>
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <c-card class="border-start border-success border-4 h-100">
+        <c-card-body class="py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small text-uppercase fw-semibold">Produits Actifs</div>
+              <div class="fs-4 fw-bold text-success">{{ stats.active_products }}</div>
+            </div>
+            <div class="bg-success bg-opacity-10 p-3 rounded">
+              <svg cIcon name="cilCheckCircle" size="xl" class="text-success"></svg>
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <c-card class="border-start border-warning border-4 h-100">
+        <c-card-body class="py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small text-uppercase fw-semibold">Stock Faible</div>
+              <div class="fs-4 fw-bold text-warning">{{ stats.low_stock_products }}</div>
+            </div>
+            <div class="bg-warning bg-opacity-10 p-3 rounded">
+              <svg cIcon name="cilWarning" size="xl" class="text-warning"></svg>
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <c-card class="border-start border-danger border-4 h-100">
+        <c-card-body class="py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small text-uppercase fw-semibold">Rupture de Stock</div>
+              <div class="fs-4 fw-bold text-danger">{{ stats.out_of_stock_products }}</div>
+            </div>
+            <div class="bg-danger bg-opacity-10 p-3 rounded">
+              <svg cIcon name="cilXCircle" size="xl" class="text-danger"></svg>
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
     </div>
   </div>
 
@@ -131,6 +203,11 @@
     </c-alert>
   </div>
 
+  <!-- Success Alert -->
+  <c-alert color="success" *ngIf="successMessage" [dismissible]="true" (dismissed)="successMessage = null">
+    {{ successMessage }}
+  </c-alert>
+
   <!-- Error Alert -->
   <c-alert color="danger" *ngIf="error" [dismissible]="true" (dismissed)="error = null">
     {{ error }}
@@ -163,7 +240,7 @@
               <th>Prix</th>
               <th>Stock</th>
               <th>Statut</th>
-              <th style="width: 150px;">Actions</th>
+              <th style="width: 180px;" class="text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -230,33 +307,17 @@
               
               <td>
                 <div class="btn-group btn-group-sm" role="group">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-primary"
-                    (click)="viewProduct(product)"
-                    title="Voir">
-                    <svg cIcon name="cilEye"></svg>
+                  <button type="button" class="btn btn-info" (click)="openDetailModal(product)" title="Détails">
+                    ℹ️
                   </button>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary"
-                    (click)="editProduct(product)"
-                    title="Modifier">
-                    <svg cIcon name="cilPencil"></svg>
+                  <button type="button" class="btn btn-primary" (click)="editProduct(product)" title="Modifier">
+                    ✏️
                   </button>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-info"
-                    (click)="manageStock(product)"
-                    title="Gérer le stock">
-                    <svg cIcon name="cilStorage"></svg>
+                  <button type="button" class="btn btn-success" (click)="openSalesHistoryModal(product)" title="Historique ventes">
+                    📊
                   </button>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-danger"
-                    (click)="deleteProduct(product)"
-                    title="Supprimer">
-                    <svg cIcon name="cilTrash"></svg>
+                  <button type="button" class="btn btn-danger" (click)="deleteProduct(product)" title="Supprimer">
+                    🗑️
                   </button>
                 </div>
               </td>
@@ -359,5 +420,191 @@
       <c-spinner size="sm" class="me-2" *ngIf="loading"></c-spinner>
       Supprimer tout
     </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- Product Detail Modal -->
+<c-modal 
+  [visible]="detailModalOpen" 
+  (visibleChange)="detailModalOpen = $event"
+  size="lg">
+  <c-modal-header>
+    <h4 cModalTitle>Détails du Produit</h4>
+    <button type="button" class="btn-close" (click)="closeDetailModal()"></button>
+  </c-modal-header>
+  <c-modal-body *ngIf="selectedProduct">
+    <div class="row">
+      <!-- Informations générales -->
+      <div class="col-md-6 mb-4">
+        <c-card class="h-100">
+          <c-card-header class="bg-primary text-white">
+            <strong>Informations Générales</strong>
+          </c-card-header>
+          <c-card-body>
+            <table class="table table-sm table-borderless mb-0">
+              <tr>
+                <td class="text-muted" style="width: 40%;">Nom</td>
+                <td><strong>{{ selectedProduct.name }}</strong></td>
+              </tr>
+              <tr>
+                <td class="text-muted">SKU</td>
+                <td><code>{{ selectedProduct.sku || '-' }}</code></td>
+              </tr>
+              <tr>
+                <td class="text-muted">Code-barres</td>
+                <td>{{ selectedProduct.barcode || '-' }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Catégorie</td>
+                <td>{{ getCategoryName(selectedProduct.product_category_id) }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Unité</td>
+                <td>{{ getUnitName(selectedProduct.unit_id) }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Statut</td>
+                <td>
+                  <c-badge [color]="getStatusClass(selectedProduct.status)">
+                    {{ getStatusLabel(selectedProduct.status) }}
+                  </c-badge>
+                </td>
+              </tr>
+            </table>
+          </c-card-body>
+        </c-card>
+      </div>
+
+      <!-- Prix et Stock -->
+      <div class="col-md-6 mb-4">
+        <c-card class="h-100">
+          <c-card-header class="bg-success text-white">
+            <strong>Prix & Stock</strong>
+          </c-card-header>
+          <c-card-body>
+            <table class="table table-sm table-borderless mb-0">
+              <tr>
+                <td class="text-muted" style="width: 40%;">Prix d'achat</td>
+                <td><strong class="text-danger">{{ formatPrice(selectedProduct.purchase_price) }}</strong></td>
+              </tr>
+              <tr>
+                <td class="text-muted">Prix de vente</td>
+                <td><strong class="text-success">{{ formatPrice(selectedProduct.selling_price) }}</strong></td>
+              </tr>
+              <tr>
+                <td class="text-muted">Marge bénéficiaire</td>
+                <td>
+                  <c-badge [color]="getProfitMargin(selectedProduct) > 0 ? 'success' : 'danger'">
+                    {{ getProfitMargin(selectedProduct) | number:'1.1-1' }}%
+                  </c-badge>
+                </td>
+              </tr>
+              <tr>
+                <td class="text-muted">Stock actuel</td>
+                <td>
+                  <span class="badge" [class.bg-success]="!isLowStock(selectedProduct)" [class.bg-warning]="isLowStock(selectedProduct) && !isOutOfStock(selectedProduct)" [class.bg-danger]="isOutOfStock(selectedProduct)">
+                    {{ selectedProduct.stock_quantity || 0 }}
+                  </span>
+                  {{ getUnitName(selectedProduct.unit_id) }}
+                </td>
+              </tr>
+              <tr>
+                <td class="text-muted">Seuil d'alerte</td>
+                <td>{{ selectedProduct.low_stock_threshold || 0 }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">État du stock</td>
+                <td>
+                  <c-badge [color]="isOutOfStock(selectedProduct) ? 'danger' : (isLowStock(selectedProduct) ? 'warning' : 'success')">
+                    {{ getStockStatusText(selectedProduct) }}
+                  </c-badge>
+                </td>
+              </tr>
+            </table>
+          </c-card-body>
+        </c-card>
+      </div>
+
+      <!-- Description -->
+      <div class="col-12" *ngIf="selectedProduct.description">
+        <c-card>
+          <c-card-header>
+            <strong>Description</strong>
+          </c-card-header>
+          <c-card-body>
+            <p class="mb-0">{{ selectedProduct.description }}</p>
+          </c-card-body>
+        </c-card>
+      </div>
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button type="button" class="btn btn-secondary" (click)="closeDetailModal()">Fermer</button>
+    <button type="button" class="btn btn-primary" (click)="editProduct(selectedProduct!); closeDetailModal()">
+      <svg cIcon name="cilPencil" class="me-1"></svg> Modifier
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- Sales History Modal -->
+<c-modal 
+  [visible]="salesHistoryModalOpen" 
+  (visibleChange)="salesHistoryModalOpen = $event"
+  size="xl">
+  <c-modal-header>
+    <h4 cModalTitle>Historique des Ventes - {{ selectedProduct?.name }}</h4>
+    <button type="button" class="btn-close" (click)="closeSalesHistoryModal()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <!-- Loading -->
+    <div class="text-center p-4" *ngIf="loadingSalesHistory">
+      <c-spinner></c-spinner>
+      <p class="mt-2">Chargement de l'historique...</p>
+    </div>
+
+    <!-- Sales History Table -->
+    <div *ngIf="!loadingSalesHistory">
+      <div class="table-responsive" *ngIf="salesHistory.length > 0">
+        <table class="table table-striped table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>N° Facture</th>
+              <th>Client</th>
+              <th class="text-end">Quantité</th>
+              <th class="text-end">Prix Unitaire</th>
+              <th class="text-end">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let sale of salesHistory">
+              <td>{{ sale.date | date:'dd/MM/yyyy' }}</td>
+              <td><code>{{ sale.invoice_number || '-' }}</code></td>
+              <td>{{ sale.client_name || 'Client anonyme' }}</td>
+              <td class="text-end">{{ sale.quantity }}</td>
+              <td class="text-end">{{ formatPrice(sale.unit_price) }}</td>
+              <td class="text-end"><strong>{{ formatPrice(sale.total) }}</strong></td>
+            </tr>
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="3"><strong>Total</strong></td>
+              <td class="text-end"><strong>{{ getTotalQuantitySold() }}</strong></td>
+              <td></td>
+              <td class="text-end"><strong class="text-success">{{ formatPrice(getTotalSalesAmount()) }}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div class="text-center p-4" *ngIf="salesHistory.length === 0">
+        <svg cIcon name="cilChart" size="3xl" class="text-muted mb-3"></svg>
+        <p class="text-muted mb-0">Aucune vente enregistrée pour ce produit</p>
+      </div>
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button type="button" class="btn btn-secondary" (click)="closeSalesHistoryModal()">Fermer</button>
   </c-modal-footer>
 </c-modal>

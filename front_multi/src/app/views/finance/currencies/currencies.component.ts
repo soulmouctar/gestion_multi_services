@@ -53,15 +53,22 @@ export class FinanceCurrenciesComponent implements OnInit {
   loadCurrencies(): void {
     this.loading = true;
     this.error = null;
-    this.apiService.get<any>(`currencies?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`currencies-public?page=${this.currentPage}`).subscribe({
       next: (response) => {
         if (response.success && response.data) {
-          const p = response.data;
-          this.currencies = p.data || [];
-          this.currentPage = p.current_page || 1;
-          this.totalPages = p.last_page || 1;
-          this.totalItems = p.total || 0;
-          this.itemsPerPage = p.per_page || 15;
+          // Handle both paginated and non-paginated responses
+          if (Array.isArray(response.data)) {
+            this.currencies = response.data;
+            this.totalItems = response.data.length;
+            this.totalPages = 1;
+          } else {
+            const p = response.data;
+            this.currencies = p.data || [];
+            this.currentPage = p.current_page || 1;
+            this.totalPages = p.last_page || 1;
+            this.totalItems = p.total || 0;
+            this.itemsPerPage = p.per_page || 15;
+          }
         }
         this.loading = false;
         this.cdr.detectChanges();
@@ -91,10 +98,10 @@ export class FinanceCurrenciesComponent implements OnInit {
   saveCurrency(): void {
     this.submitted = true;
     if (this.currencyForm.invalid) return;
-    const data = this.currencyForm.value;
+    const data = { ...this.currencyForm.value, tenant_id: 1 };
     const obs = this.editMode && this.selectedCurrency
-      ? this.apiService.put<any>(`currencies/${this.selectedCurrency.id}`, data)
-      : this.apiService.post<any>('currencies', data);
+      ? this.apiService.put<any>(`currencies-public/${this.selectedCurrency.id}`, data)
+      : this.apiService.post<any>('currencies-public', data);
     obs.subscribe({
       next: (r) => {
         if (r.success) {
@@ -110,7 +117,7 @@ export class FinanceCurrenciesComponent implements OnInit {
 
   deleteCurrency(): void {
     if (!this.currencyToDelete) return;
-    this.apiService.delete<any>(`currencies/${this.currencyToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`currencies-public/${this.currencyToDelete.id}`).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = 'Devise supprimée'; this.deleteModalOpen = false;

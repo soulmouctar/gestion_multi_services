@@ -27,8 +27,13 @@ export const routes: Routes = [
     title: 'Photos des Conteneurs'
   },
   {
-    path: 'tracking',
-    loadComponent: () => import('./container-tracking/container-tracking.component').then(m => m.ContainerTrackingComponent),
-    title: 'Suivi des Conteneurs'
+    path: 'payments',
+    loadComponent: () => import('./container-payments/container-payments.component').then(m => m.ContainerPaymentsComponent),
+    title: 'Suivi des Paiements'
+  },
+  {
+    path: 'client-account/:id',
+    loadComponent: () => import('./client-account/client-account.component').then(m => m.ClientAccountComponent),
+    title: 'Situation du Client'
   }
 ];

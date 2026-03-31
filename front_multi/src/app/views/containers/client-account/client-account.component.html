@@ -1,0 +1,239 @@
+<c-container fluid>
+  <!-- Header -->
+  <c-row class="mb-4">
+    <c-col>
+      <c-card>
+        <c-card-body>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <button cButton color="light" size="sm" (click)="goBack()" class="me-3">
+                ← Retour
+              </button>
+              <h4 class="d-inline mb-0">
+                <strong>Situation du Client: {{ client?.name || 'Chargement...' }}</strong>
+              </h4>
+            </div>
+            <div *ngIf="client">
+              <small class="text-muted">
+                📞 {{ client.phone || '-' }} | 📧 {{ client.email || '-' }}
+              </small>
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- Loading State -->
+  <c-row *ngIf="loading">
+    <c-col class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-3">Chargement des données...</p>
+    </c-col>
+  </c-row>
+
+  <!-- Error State -->
+  <c-alert *ngIf="error && !loading" color="danger" dismissible>
+    {{ error }}
+  </c-alert>
+
+  <!-- Statistics Cards -->
+  <c-row *ngIf="clientStats && !loading" class="mb-4">
+    <c-col xs="12" md="6" lg="3" class="mb-3">
+      <c-card class="text-center border-primary">
+        <c-card-body>
+          <div class="text-muted small mb-1">Total des Achats</div>
+          <h3 class="mb-0 text-primary">{{ formatAmount(clientStats.total_sales, 'GNF') }}</h3>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <c-col xs="12" md="6" lg="3" class="mb-3">
+      <c-card class="text-center border-success">
+        <c-card-body>
+          <div class="text-muted small mb-1">Total Payé</div>
+          <h3 class="mb-0 text-success">{{ formatAmount(clientStats.total_paid, 'GNF') }}</h3>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <c-col xs="12" md="6" lg="3" class="mb-3">
+      <c-card class="text-center border-danger">
+        <c-card-body>
+          <div class="text-muted small mb-1">Dette (Reste à Payer)</div>
+          <h3 class="mb-0 text-danger">{{ formatAmount(clientStats.total_debt, 'GNF') }}</h3>
+          <small class="text-muted">{{ clientStats.pending_sales_count }} vente(s) en cours</small>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <c-col xs="12" md="6" lg="3" class="mb-3">
+      <c-card class="text-center border-warning">
+        <c-card-body>
+          <div class="text-muted small mb-1">Avances Disponibles</div>
+          <h3 class="mb-0 text-warning">{{ formatAmount(clientStats.total_advances, 'GNF') }}</h3>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- Balance Card -->
+  <c-row *ngIf="clientStats && !loading" class="mb-4">
+    <c-col>
+      <c-card [ngClass]="clientStats.balance >= 0 ? 'border-success' : 'border-danger'">
+        <c-card-body class="text-center py-4">
+          <h5 class="mb-2">Balance (Avances - Dettes)</h5>
+          <h2 [ngClass]="clientStats.balance >= 0 ? 'text-success' : 'text-danger'">
+            {{ formatAmount(clientStats.balance, 'GNF') }}
+          </h2>
+          <p class="mb-0 mt-2">
+            <c-badge [color]="clientStats.balance >= 0 ? 'success' : 'danger'">
+              {{ clientStats.balance >= 0 ? '✓ Le client a un crédit disponible' : '⚠ Le client a une dette' }}
+            </c-badge>
+          </p>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- Sales List -->
+  <c-row *ngIf="!loading">
+    <c-col xs="12" class="mb-4">
+      <c-card>
+        <c-card-header>
+          <strong>📦 Historique des Achats ({{ sales.length }})</strong>
+        </c-card-header>
+        <c-card-body>
+          <div class="table-responsive">
+            <table class="table table-hover table-striped">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Conteneur</th>
+                  <th>Type</th>
+                  <th>Quantité</th>
+                  <th>Prix de Vente</th>
+                  <th>Montant Payé</th>
+                  <th>Reste à Payer</th>
+                  <th>Statut</th>
+                  <th>Progression</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let sale of sales">
+                  <td>{{ sale.sale_date | date:'dd/MM/yyyy' }}</td>
+                  <td><code>#{{ sale.container_arrival_id }}</code></td>
+                  <td>{{ sale.sale_type }}</td>
+                  <td>{{ sale.quantity_sold }}</td>
+                  <td>{{ formatAmountWithConversion(sale.sale_price, sale.currency || 'GNF') }}</td>
+                  <td class="text-success">{{ formatAmountWithConversion(sale.amount_paid || 0, sale.currency || 'GNF') }}</td>
+                  <td class="text-danger">{{ formatAmountWithConversion(sale.remaining_amount || 0, sale.currency || 'GNF') }}</td>
+                  <td>
+                    <c-badge [color]="getStatusColor(sale.status)">
+                      {{ getStatusLabel(sale.status) }}
+                    </c-badge>
+                  </td>
+                  <td style="min-width: 120px;">
+                    <c-progress thin class="mb-1">
+                      <c-progress-bar [value]="getPaymentProgress(sale)" [color]="getPaymentProgress(sale) === 100 ? 'success' : 'info'"></c-progress-bar>
+                    </c-progress>
+                    <small class="text-muted">{{ getPaymentProgress(sale) }}%</small>
+                  </td>
+                </tr>
+                <tr *ngIf="sales.length === 0">
+                  <td colspan="9" class="text-center text-muted py-4">
+                    Aucun achat enregistré
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- Payments List -->
+  <c-row *ngIf="!loading">
+    <c-col xs="12" lg="6" class="mb-4">
+      <c-card>
+        <c-card-header>
+          <strong>💰 Historique des Versements ({{ payments.length }})</strong>
+        </c-card-header>
+        <c-card-body>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Vente</th>
+                  <th>Montant</th>
+                  <th>Méthode</th>
+                  <th>Référence</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let payment of payments">
+                  <td>{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
+                  <td><code>#{{ payment.container_sale_id }}</code></td>
+                  <td class="text-success"><strong>{{ formatAmountWithConversion(payment.amount, payment.currency || 'GNF') }}</strong></td>
+                  <td>
+                    <c-badge color="info">{{ payment.payment_method }}</c-badge>
+                  </td>
+                  <td><small>{{ payment.reference || '-' }}</small></td>
+                </tr>
+                <tr *ngIf="payments.length === 0">
+                  <td colspan="5" class="text-center text-muted py-3">
+                    Aucun versement enregistré
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Advances List -->
+    <c-col xs="12" lg="6" class="mb-4">
+      <c-card>
+        <c-card-header>
+          <strong>💵 Avances Clients ({{ advances.length }})</strong>
+        </c-card-header>
+        <c-card-body>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Montant</th>
+                  <th>Utilisé</th>
+                  <th>Reste</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let advance of advances">
+                  <td>{{ advance.payment_date | date:'dd/MM/yyyy' }}</td>
+                  <td class="text-primary"><strong>{{ formatAmountWithConversion(advance.amount, advance.currency || 'GNF') }}</strong></td>
+                  <td class="text-muted">{{ formatAmountWithConversion(advance.used_amount || 0, advance.currency || 'GNF') }}</td>
+                  <td class="text-success">{{ formatAmountWithConversion(advance.remaining_amount || 0, advance.currency || 'GNF') }}</td>
+                  <td>
+                    <c-badge [color]="getStatusColor(advance.status)">
+                      {{ getStatusLabel(advance.status) }}
+                    </c-badge>
+                  </td>
+                </tr>
+                <tr *ngIf="advances.length === 0">
+                  <td colspan="5" class="text-center text-muted py-3">
+                    Aucune avance enregistrée
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</c-container>

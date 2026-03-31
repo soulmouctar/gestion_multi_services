@@ -82,7 +82,7 @@ export class PaymentsAdvancedComponent implements OnInit {
   // Payment Statistics
   loadPaymentStatistics(): void {
     this.statsLoading = true;
-    this.apiService.get<any>('payments/statistics').subscribe({
+    this.apiService.get<any>('payments-public/statistics').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.paymentStats = r.data;
@@ -111,7 +111,7 @@ export class PaymentsAdvancedComponent implements OnInit {
       }
     });
     
-    this.apiService.get<any>(`payments/date-range?${params.toString()}`).subscribe({
+    this.apiService.get<any>(`payments-public?${params.toString()}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.dateRangePayments = r.data;
@@ -159,7 +159,7 @@ export class PaymentsAdvancedComponent implements OnInit {
     this.bulkDeleteLoading = true;
     const paymentIds = Array.from(this.selectedPayments);
     
-    this.apiService.post<any>('payments/bulk-delete', { payment_ids: paymentIds }).subscribe({
+    this.apiService.post<any>('payments-public/bulk-delete', { payment_ids: paymentIds }).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = `${paymentIds.length} paiement(s) supprimé(s)`;
@@ -193,7 +193,7 @@ export class PaymentsAdvancedComponent implements OnInit {
       }
     });
     
-    this.apiService.get<any>(`payments/export?${params.toString()}`).subscribe({
+    this.apiService.get<any>(`payments-public?${params.toString()}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           // Create download link

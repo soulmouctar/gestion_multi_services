@@ -253,9 +253,10 @@ class CurrencyController extends BaseController
 
     public function publicStore(Request $request)
     {
+        $tenantId = $request->get('tenant_id', 1);
+        
         $validator = Validator::make($request->all(), [
-            'tenant_id' => 'required|exists:tenants,id',
-            'code' => 'required|string|max:10|unique:currencies,code',
+            'code' => 'required|string|max:10',
             'name' => 'required|string|max:100',
             'symbol' => 'required|string|max:10',
             'exchange_rate' => 'required|numeric|min:0',
@@ -267,12 +268,27 @@ class CurrencyController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // If this is set as default, unset other defaults for this tenant
-        if ($request->get('is_default', false)) {
-            Currency::where('tenant_id', $request->tenant_id)->update(['is_default' => false]);
+        $code = strtoupper($request->code);
+        
+        // Check uniqueness per tenant
+        $existingCurrency = Currency::where('tenant_id', $tenantId)
+                                   ->where('code', $code)
+                                   ->first();
+
+        if ($existingCurrency) {
+            return $this->sendError('Ce code devise existe déjà', [], 422);
         }
 
-        $currency = Currency::create($request->all());
+        // If this is set as default, unset other defaults for this tenant
+        if ($request->get('is_default', false)) {
+            Currency::where('tenant_id', $tenantId)->update(['is_default' => false]);
+        }
+
+        $data = $request->all();
+        $data['tenant_id'] = $tenantId;
+        $data['code'] = $code;
+        
+        $currency = Currency::create($data);
 
         return $this->sendResponse($currency, 'Currency created successfully', 201);
     }
@@ -295,5 +311,78 @@ class CurrencyController extends BaseController
         $currency->update(['is_default' => true, 'is_active' => true]);
 
         return $this->sendResponse($currency, 'Currency set as default successfully');
+    }
+
+    public function publicUpdate(Request $request, $id)
+    {
+        $tenantId = $request->get('tenant_id', 1);
+
+        $currency = Currency::where('tenant_id', $tenantId)->find($id);
+
+        if (!$currency) {
+            return $this->sendError('Currency not found', [], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'code' => 'sometimes|string|max:10',
+            'name' => 'sometimes|string|max:100',
+            'symbol' => 'sometimes|string|max:10',
+            'exchange_rate' => 'sometimes|numeric|min:0',
+            'is_default' => 'boolean',
+            'is_active' => 'boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $data = $request->all();
+        if (isset($data['code'])) {
+            $data['code'] = strtoupper($data['code']);
+            
+            // Check uniqueness per tenant (except current)
+            $existingCurrency = Currency::where('tenant_id', $tenantId)
+                                       ->where('code', $data['code'])
+                                       ->where('id', '!=', $id)
+                                       ->first();
+
+            if ($existingCurrency) {
+                return $this->sendError('Ce code devise existe déjà', [], 422);
+            }
+        }
+
+        // If this is set as default, unset other defaults
+        if ($request->boolean('is_default')) {
+            Currency::where('tenant_id', $tenantId)
+                    ->where('id', '!=', $id)
+                    ->update(['is_default' => false]);
+        }
+
+        $currency->update($data);
+
+        return $this->sendResponse($currency, 'Currency updated successfully');
+    }
+
+    public function publicDestroy($id)
+    {
+        $tenantId = 1;
+
+        $currency = Currency::where('tenant_id', $tenantId)->find($id);
+
+        if (!$currency) {
+            return $this->sendError('Currency not found', [], 404);
+        }
+
+        // Prevent deleting default currency if it's the only one
+        if ($currency->is_default) {
+            $currencyCount = Currency::where('tenant_id', $tenantId)->count();
+            if ($currencyCount <= 1) {
+                return $this->sendError('Impossible de supprimer la seule devise', [], 400);
+            }
+        }
+
+        $currency->delete();
+
+        return $this->sendResponse([], 'Currency deleted successfully');
     }
 }

@@ -9,25 +9,51 @@
         <c-card-body>
           <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
           <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
+          
+          <!-- Filtres -->
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label cLabel class="small">Filtrer par bâtiment</label>
+              <select cSelect [(ngModel)]="selectedBuildingId" (change)="selectedFloorId = null">
+                <option [ngValue]="null">-- Tous les bâtiments --</option>
+                <option *ngFor="let b of buildings" [ngValue]="b.id">{{ b.name }}</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label cLabel class="small">Filtrer par étage</label>
+              <select cSelect [(ngModel)]="selectedFloorId">
+                <option [ngValue]="null">-- Tous les étages --</option>
+                <option *ngFor="let f of floors" [ngValue]="f.id" [hidden]="selectedBuildingId && f.building_id !== selectedBuildingId">
+                  {{ f.building?.name }} - Étage {{ f.floor_number }}
+                </option>
+              </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end gap-2">
+              <button cButton color="primary" size="sm" (click)="applyFilter()">Filtrer</button>
+              <button cButton color="secondary" size="sm" variant="outline" (click)="resetFilter()">Réinitialiser</button>
+            </div>
+          </div>
+          
           <div *ngIf="loading" class="text-center p-4"><c-spinner></c-spinner><p class="mt-2">Chargement...</p></div>
           <div class="table-responsive" *ngIf="!loading">
             <table class="table table-striped table-hover">
-              <thead class="table-light"><tr><th>Étage</th><th>Configuration</th><th>Loyer</th><th>Statut</th><th>Date création</th><th style="width:150px">Actions</th></tr></thead>
+              <thead class="table-light"><tr><th>Bâtiment</th><th>Étage</th><th>Configuration</th><th>Détails</th><th class="text-end">Loyer (GNF)</th><th>Statut</th><th style="width:120px">Actions</th></tr></thead>
               <tbody>
                 <tr *ngFor="let item of housingUnits">
-                  <td>{{ getFloorLabel(item.floor_id) }}</td>
-                  <td>{{ getConfigName(item.unit_configuration_id) }}</td>
-                  <td class="text-end"><strong>{{ item.rent_amount | number:'1.2-2' }}</strong></td>
+                  <td>{{ getBuildingName(item.floor_id) }}</td>
+                  <td>Étage {{ item.floor?.floor_number }}</td>
+                  <td><strong>{{ getConfigName(item.unit_configuration_id) }}</strong></td>
+                  <td><small class="text-muted">{{ getConfigDetails(item.unit_configuration_id) }}</small></td>
+                  <td class="text-end"><strong class="text-primary">{{ item.rent_amount | number:'1.0-0' }}</strong></td>
                   <td><c-badge [color]="getStatusClass(item.status)">{{ getStatusLabel(item.status) }}</c-badge></td>
-                  <td>{{ item.created_at | date:'dd/MM/yyyy' }}</td>
                   <td>
                     <c-button-group size="sm">
-                      <button cButton color="warning" variant="outline" size="sm" (click)="openEditModal(item)"><svg cIcon name="cilPencil"></svg></button>
-                      <button cButton color="danger" variant="outline" size="sm" (click)="confirmDelete(item)"><svg cIcon name="cilTrash"></svg></button>
+                      <button cButton color="info" variant="ghost" size="sm" (click)="openEditModal(item)" title="Modifier"><svg cIcon name="cilPencil"></svg></button>
+                      <button cButton color="danger" variant="ghost" size="sm" (click)="confirmDelete(item)" title="Supprimer"><svg cIcon name="cilTrash"></svg></button>
                     </c-button-group>
                   </td>
                 </tr>
-                <tr *ngIf="housingUnits.length === 0"><td colspan="6" class="text-center text-medium-emphasis p-4">Aucune unité trouvée</td></tr>
+                <tr *ngIf="housingUnits.length === 0"><td colspan="7" class="text-center text-medium-emphasis p-4">Aucune unité trouvée</td></tr>
               </tbody>
             </table>
           </div>
@@ -44,34 +70,68 @@
   </c-row>
 </c-container>
 
-<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
-  <c-modal-header><h5 cModalTitle>{{ editMode ? 'Modifier' : 'Nouvelle unité de logement' }}</h5><button type="button" class="btn-close" (click)="showFormModal = false"></button></c-modal-header>
+<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static" size="lg">
+  <c-modal-header><h5 cModalTitle>{{ editMode ? 'Modifier l\'unité de logement' : 'Nouvelle unité de logement' }}</h5><button type="button" class="btn-close" (click)="showFormModal = false"></button></c-modal-header>
   <c-modal-body>
     <form [formGroup]="unitForm">
-      <div class="mb-3">
-        <label cLabel>Étage *</label>
-        <select cSelect formControlName="floor_id" [class.is-invalid]="submitted && unitForm.get('floor_id')?.invalid">
-          <option [ngValue]="null">-- Sélectionner --</option>
-          <option *ngFor="let f of floors" [ngValue]="f.id">Étage {{ f.floor_number }}</option>
-        </select>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label cLabel>Bâtiment</label>
+          <select cSelect formControlName="building_id" (change)="onBuildingChange($event)">
+            <option [ngValue]="null">-- Sélectionner un bâtiment --</option>
+            <option *ngFor="let b of buildings" [ngValue]="b.id">{{ b.name }}</option>
+          </select>
+          <small class="text-muted">Sélectionnez d'abord le bâtiment pour filtrer les étages</small>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label cLabel>Étage *</label>
+          <select cSelect formControlName="floor_id" [class.is-invalid]="submitted && unitForm.get('floor_id')?.invalid">
+            <option [ngValue]="null">-- Sélectionner un étage --</option>
+            <option *ngFor="let f of filteredFloors" [ngValue]="f.id">{{ f.building?.name }} - Étage {{ f.floor_number }}</option>
+          </select>
+          <div class="invalid-feedback" *ngIf="submitted && unitForm.get('floor_id')?.hasError('required')">L'étage est obligatoire</div>
+          <small *ngIf="unitForm.get('building_id')?.value && filteredFloors.length === 0" class="text-warning">
+            ⚠️ Aucun étage n'existe pour ce bâtiment. Veuillez d'abord créer des étages.
+          </small>
+        </div>
       </div>
-      <div class="mb-3">
-        <label cLabel>Configuration</label>
-        <select cSelect formControlName="unit_configuration_id">
-          <option [ngValue]="null">-- Aucune --</option>
-          <option *ngFor="let c of configurations" [ngValue]="c.id">{{ c.name }}</option>
-        </select>
+      
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label cLabel>Configuration</label>
+          <select cSelect formControlName="unit_configuration_id" (change)="onConfigurationChange($event)">
+            <option [ngValue]="null">-- Aucune configuration --</option>
+            <option *ngFor="let c of configurations" [ngValue]="c.id">
+              {{ c.name }} 
+              <span *ngIf="c.bedrooms || c.living_rooms || c.bathrooms">
+                ({{ c.bedrooms || 0 }} ch, {{ c.living_rooms || 0 }} salon, {{ c.bathrooms || 0 }} sdb)
+              </span>
+            </option>
+          </select>
+          <small class="text-muted">La configuration définit le type de logement (studio, F2, F3...)</small>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label cLabel>Loyer mensuel (GNF) *</label>
+          <input cFormControl type="number" formControlName="rent_amount" min="0" [class.is-invalid]="submitted && unitForm.get('rent_amount')?.invalid" />
+          <div class="invalid-feedback" *ngIf="submitted && unitForm.get('rent_amount')?.hasError('required')">Le loyer est obligatoire</div>
+          <div class="invalid-feedback" *ngIf="submitted && unitForm.get('rent_amount')?.hasError('min')">Le loyer doit être positif</div>
+        </div>
       </div>
-      <div class="mb-3">
-        <label cLabel>Loyer *</label>
-        <input cFormControl type="number" formControlName="rent_amount" step="0.01" [class.is-invalid]="submitted && unitForm.get('rent_amount')?.invalid" />
+      
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label cLabel>Statut</label>
+          <select cSelect formControlName="status">
+            <option value="LIBRE">Libre</option>
+            <option value="OCCUPE">Occupé</option>
+          </select>
+        </div>
       </div>
-      <div class="mb-3">
-        <label cLabel>Statut</label>
-        <select cSelect formControlName="status">
-          <option value="LIBRE">Libre</option>
-          <option value="OCCUPE">Occupé</option>
-        </select>
+      
+      <!-- Résumé de la configuration sélectionnée -->
+      <div *ngIf="unitForm.get('unit_configuration_id')?.value" class="alert alert-info mt-3">
+        <strong>Configuration sélectionnée:</strong> {{ getConfigName(unitForm.get('unit_configuration_id')?.value) }}
+        <br><small>{{ getConfigDetails(unitForm.get('unit_configuration_id')?.value) }}</small>
       </div>
     </form>
   </c-modal-body>

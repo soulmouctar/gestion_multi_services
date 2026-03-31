@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\ExchangeRateController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\ContainerPhotoController;
+use App\Http\Controllers\Api\ContainerPaymentController;
+use App\Http\Controllers\Api\ContainerSalesController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\BuildingController;
 use App\Http\Controllers\Api\FloorController;
@@ -79,7 +81,7 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
     Route::get('/modules-public', [ModuleController::class, 'index']);
     Route::get('/subscriptions-public', [\App\Http\Controllers\Api\SubscriptionController::class, 'index']);
     Route::get('/subscription-plans-public', [\App\Http\Controllers\Api\SubscriptionPlanController::class, 'index']);
-    Route::get('/users-public', [\App\Http\Controllers\Api\UserController::class, 'index']);
+    Route::get('/users-public', [\App\Http\Controllers\Api\UserController::class, 'publicIndex']);
     Route::get('/roles-public', [\App\Http\Controllers\Api\RolePermissionController::class, 'indexRoles']);
     Route::get('/permissions-public', [\App\Http\Controllers\Api\RolePermissionController::class, 'indexPermissions']);
 
@@ -101,14 +103,47 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
 
     // Public routes (for testing/development)
     Route::get('tenants-public', [TenantController::class, 'index']);
-    Route::get('users-public', [UserController::class, 'getUsers']);
+    Route::get('users-public', [UserController::class, 'publicIndex']);
     Route::get('users/{id}/module-permissions-public', [UserController::class, 'getUserModulePermissions']);
     Route::get('modules-public', [ModuleController::class, 'index']);
     Route::get('subscription-plans-public', [SubscriptionPlanController::class, 'index']);
     Route::get('products-public', [ProductController::class, 'publicIndex']);
+    Route::post('products-public', [ProductController::class, 'publicStore']);
+    Route::put('products-public/{id}', [ProductController::class, 'publicUpdate']);
+    Route::delete('products-public/{id}', [ProductController::class, 'publicDestroy']);
+    Route::post('products-public/{id}/stock', [ProductController::class, 'publicUpdateStock']);
     Route::post('products-public/bulk-update-status', [ProductController::class, 'publicBulkUpdateStatus']);
     Route::get('products-public/low-stock', [ProductController::class, 'getLowStockProducts']);
     Route::get('products-public/statistics', [ProductController::class, 'getStatistics']);
+    Route::get('products-public/{id}/sales-history', [ProductController::class, 'publicSalesHistory']);
+    
+    // Container Payments
+    Route::get('container-payments-public', [ContainerPaymentController::class, 'index']);
+    Route::post('container-payments-public', [ContainerPaymentController::class, 'store']);
+    Route::get('container-payments-public/statistics', [ContainerPaymentController::class, 'statistics']);
+    Route::get('container-payments-public/{id}', [ContainerPaymentController::class, 'show']);
+    Route::put('container-payments-public/{id}', [ContainerPaymentController::class, 'update']);
+    Route::delete('container-payments-public/{id}', [ContainerPaymentController::class, 'destroy']);
+    
+    // Container Sales System
+    Route::get('container-arrivals-public', [ContainerSalesController::class, 'getArrivals']);
+    Route::post('container-arrivals-public', [ContainerSalesController::class, 'storeArrival']);
+    Route::put('container-arrivals-public/{id}', [ContainerSalesController::class, 'updateArrival']);
+    Route::delete('container-arrivals-public/{id}', [ContainerSalesController::class, 'deleteArrival']);
+    
+    Route::get('container-sales-public', [ContainerSalesController::class, 'getSales']);
+    Route::post('container-sales-public', [ContainerSalesController::class, 'storeSale']);
+    Route::put('container-sales-public/{id}', [ContainerSalesController::class, 'updateSale']);
+    
+    Route::get('container-sale-payments-public', [ContainerSalesController::class, 'getPayments']);
+    Route::post('container-sale-payments-public', [ContainerSalesController::class, 'storePayment']);
+    Route::delete('container-sale-payments-public/{id}', [ContainerSalesController::class, 'deletePayment']);
+    
+    Route::get('client-advances-public', [ContainerSalesController::class, 'getAdvances']);
+    Route::post('client-advances-public', [ContainerSalesController::class, 'storeAdvance']);
+    
+    Route::get('container-sales-public/client-stats/{clientId}', [ContainerSalesController::class, 'getClientStats']);
+    Route::get('container-sales-public/global-stats', [ContainerSalesController::class, 'getGlobalStats']);
     Route::get('containers-public', [ContainerController::class, 'index']);
     Route::get('containers-public/{id}', [ContainerController::class, 'show']);
     Route::post('containers-public', [ContainerController::class, 'store']);
@@ -131,10 +166,29 @@ Route::post('units-public', [UnitController::class, 'publicStore']);
     Route::post('exchange-rates-public', [ExchangeRateController::class, 'publicStore']);
     Route::get('currencies-public', [CurrencyController::class, 'publicIndex']);
     Route::post('currencies-public', [CurrencyController::class, 'publicStore']);
+    Route::put('currencies-public/{id}', [CurrencyController::class, 'publicUpdate']);
+    Route::delete('currencies-public/{id}', [CurrencyController::class, 'publicDestroy']);
+    
+    // Payments public routes
+    Route::get('payments-public', [PaymentController::class, 'publicIndex']);
+    Route::post('payments-public', [PaymentController::class, 'publicStore']);
+    Route::get('payments-public/statistics', [PaymentController::class, 'publicStatistics']);
+    Route::put('payments-public/{id}', [PaymentController::class, 'publicUpdate']);
+    Route::delete('payments-public/{id}', [PaymentController::class, 'publicDestroy']);
     Route::get('invoices-public', [InvoiceController::class, 'publicIndex']);
     Route::post('invoices-public', [InvoiceController::class, 'publicStore']);
     Route::get('container-photos-public', [ContainerPhotoController::class, 'publicIndex']);
     Route::post('container-photos-public', [ContainerPhotoController::class, 'publicStore']);
+
+    // Rental Module - Public routes
+    Route::get('buildings-public', [BuildingController::class, 'publicIndex']);
+    Route::get('floors-public', [FloorController::class, 'publicIndex']);
+    Route::get('unit-configurations-public', [UnitConfigurationController::class, 'publicIndex']);
+    Route::post('unit-configurations-public', [UnitConfigurationController::class, 'publicStore']);
+    Route::get('housing-units-public', [HousingUnitController::class, 'publicIndex']);
+    Route::post('housing-units-public', [HousingUnitController::class, 'publicStore']);
+    Route::put('housing-units-public/{id}', [HousingUnitController::class, 'publicUpdate']);
+    Route::delete('housing-units-public/{id}', [HousingUnitController::class, 'publicDestroy']);
 
     // Daily Payments (Versements journaliers)
     Route::get('daily-payments', [DailyPaymentController::class, 'index']);
@@ -312,12 +366,12 @@ Route::post('units-public', [UnitController::class, 'publicStore']);
         Route::apiResource('currencies', CurrencyController::class);
         Route::apiResource('exchange-rates', ExchangeRateController::class);
 
-        // Payments
-        Route::apiResource('payments', PaymentController::class);
+        // Payments - specific routes MUST come before apiResource
         Route::get('payments/statistics', [PaymentController::class, 'getStatistics']);
         Route::get('payments/date-range', [PaymentController::class, 'getByDateRange']);
         Route::post('payments/bulk-delete', [PaymentController::class, 'bulkDelete']);
         Route::get('payments/export', [PaymentController::class, 'export']);
+        Route::apiResource('payments', PaymentController::class);
 
         // Invoices
         Route::apiResource('invoices', InvoiceController::class);

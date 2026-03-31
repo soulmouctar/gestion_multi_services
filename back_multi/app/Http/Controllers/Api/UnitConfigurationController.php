@@ -81,4 +81,16 @@ class UnitConfigurationController extends BaseController
 
         return $this->sendResponse([], 'Unit configuration deleted successfully');
     }
+
+    public function publicIndex(Request $request)
+    {
+        $perPage = $request->get('per_page', 200);
+        $configurations = UnitConfiguration::paginate($perPage);
+        return $this->sendResponse($configurations, 'Unit configurations retrieved successfully');
+    }
+
+    public function publicStore(Request $request)
+    {
+        return $this->store($request);
+    }
 }

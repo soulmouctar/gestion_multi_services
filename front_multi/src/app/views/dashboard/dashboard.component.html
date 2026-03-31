@@ -85,13 +85,13 @@
             </div>
             <div *ngFor="let module of moduleUsage" class="mb-3">
               <div class="d-flex justify-content-between mb-1">
-                <span>{{ module.name }}</span>
-                <span>{{ module.usage_percentage }}%</span>
+                <span>{{ module.module_name }}</span>
+                <span>{{ module.percentage }}%</span>
               </div>
               <div class="progress" style="height: 8px;">
                 <div class="progress-bar" 
-                     [style.width.%]="module.usage_percentage"
-                     [class]="'bg-' + (module.usage_percentage > 70 ? 'success' : module.usage_percentage > 40 ? 'warning' : 'danger')">
+                     [style.width.%]="module.percentage"
+                     [class]="'bg-' + (module.percentage > 70 ? 'success' : module.percentage > 40 ? 'warning' : 'danger')">
                 </div>
               </div>
             </div>
@@ -108,15 +108,30 @@
             <strong>Tendances d'Abonnement</strong>
           </c-card-header>
           <c-card-body>
-            <div *ngIf="subscriptionTrends.length === 0" class="text-center text-muted p-3">
+            <div *ngIf="subscriptionLabels.length === 0" class="text-center text-muted p-3">
               Aucune donnée de tendance disponible
             </div>
-            <div *ngFor="let trend of subscriptionTrends" class="d-flex justify-content-between align-items-center mb-2">
-              <span>{{ trend.period }}</span>
-              <span class="badge" 
-                    [class]="'bg-' + (trend.growth > 0 ? 'success' : trend.growth < 0 ? 'danger' : 'secondary')">
-                {{ trend.growth > 0 ? '+' : '' }}{{ trend.growth }}%
-              </span>
+            <div *ngIf="subscriptionLabels.length > 0">
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th *ngFor="let label of subscriptionLabels">{{ label }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><small class="text-success">Nouveaux</small></td>
+                      <td *ngFor="let value of subscriptionNewData" class="text-success">{{ value }}</td>
+                    </tr>
+                    <tr>
+                      <td><small class="text-danger">Annulés</small></td>
+                      <td *ngFor="let value of subscriptionCancelledData" class="text-danger">{{ value }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </c-card-body>
         </c-card>
@@ -128,19 +143,26 @@
             <strong>Graphique des Revenus</strong>
           </c-card-header>
           <c-card-body>
-            <div *ngIf="!revenueChart" class="text-center text-muted p-3">
+            <div *ngIf="revenueLabels.length === 0" class="text-center text-muted p-3">
               Aucune donnée de revenus disponible
             </div>
-            <div *ngIf="revenueChart" class="text-center">
-              <p class="mb-2">Revenus mensuels: <strong>{{ revenueChart.current_month | currency:'GNF':'symbol':'1.0-0' }}</strong></p>
-              <p class="mb-0">
-                <small class="text-muted">
-                  Évolution: 
-                  <span [class]="'text-' + (revenueChart.growth > 0 ? 'success' : revenueChart.growth < 0 ? 'danger' : 'muted')">
-                    {{ revenueChart.growth > 0 ? '+' : '' }}{{ revenueChart.growth }}%
-                  </span>
-                </small>
-              </p>
+            <div *ngIf="revenueLabels.length > 0">
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th *ngFor="let label of revenueLabels">{{ label }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td *ngFor="let value of revenueData" class="text-success">
+                        {{ value | number:'1.0-0' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </c-card-body>
         </c-card>
