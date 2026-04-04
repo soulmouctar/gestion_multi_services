@@ -124,4 +124,29 @@ class TenantController extends BaseController
 
         return $this->sendResponse($tenant->load('modules'), 'Module removed successfully');
     }
+
+    public function getTenantModules($tenantId)
+    {
+        $tenant = Tenant::find($tenantId);
+
+        if (!$tenant) {
+            return $this->sendError('Tenant not found');
+        }
+
+        // Get only activated modules for this tenant
+        $modules = $tenant->modules()
+            ->wherePivot('is_active', true)
+            ->get()
+            ->map(function($module) {
+                return [
+                    'id' => $module->id,
+                    'code' => $module->code,
+                    'name' => $module->name,
+                    'description' => $module->description,
+                    'is_active' => true
+                ];
+            });
+
+        return $this->sendResponse($modules, 'Tenant modules retrieved successfully');
+    }
 }

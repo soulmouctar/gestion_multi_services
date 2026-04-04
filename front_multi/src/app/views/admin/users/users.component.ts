@@ -6,6 +6,7 @@ import { CardModule, ButtonModule, FormModule, AlertModule, GridModule, ModalMod
 import { UserService, UserProfile, ModulePermission, CreateUserRequest, UpdateUserRequest } from '../../../core/services/user.service';
 import { TenantService, Tenant, ApiResponse } from '../../../core/services/tenant.service';
 import { AlertService } from '../../../core/services/alert.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-users',
@@ -61,6 +62,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   constructor(
     private userService: UserService,
     private tenantService: TenantService,
+    private authService: AuthService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
     private alertService: AlertService
@@ -154,8 +156,17 @@ export class UsersComponent implements OnInit, AfterViewInit {
   loadOrganisations(): void {
     this.tenantService.getTenants().subscribe({
       next: (response: ApiResponse<any>) => {
-        this.organisations = response.data?.data || [];
+        // tenants-public returns direct array in response.data
+        if (response.success && Array.isArray(response.data)) {
+          this.organisations = response.data;
+        } else if (response.data?.data && Array.isArray(response.data.data)) {
+          // Fallback for paginated response
+          this.organisations = response.data.data;
+        } else {
+          this.organisations = [];
+        }
         this.filteredTenants = [...this.organisations];
+        console.log('Organisations loaded:', this.organisations.length, 'tenants');
         // Force change detection after async operation
         setTimeout(() => {
           this.cdr.detectChanges();
@@ -354,7 +365,13 @@ export class UsersComponent implements OnInit, AfterViewInit {
   openPermissionModal(user: UserProfile): void {
     this.selectedUserForPermissions = user;
     this.permissionModalOpen = true;
-    this.loadUserModulePermissions(user);
+    
+    // Load tenant modules first, then user permissions
+    if (user.tenant_id) {
+      this.loadTenantModulesAndUserPermissions(user);
+    } else {
+      this.loadUserModulePermissions(user);
+    }
   }
 
   closePermissionModal(): void {
@@ -375,6 +392,75 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   saveRolePermissions(): void {
     this.closeRoleModal();
+  }
+
+  private loadTenantModulesAndUserPermissions(user: UserProfile): void {
+    this.loading = true;
+    this.cdr.detectChanges();
+
+    // First, load modules activated for the tenant
+    this.tenantService.getTenantModules(user.tenant_id!).subscribe({
+      next: (tenantResponse: ApiResponse<any>) => {
+        const tenantModules = tenantResponse.data || [];
+        console.log('Tenant modules loaded:', tenantModules.length, 'modules');
+        
+        // Then, load user's module permissions
+        this.userService.getUserModulePermissions(user.id).subscribe({
+          next: (userResponse: ApiResponse<ModulePermission[]>) => {
+            // Start with all available modules
+            let modules = userResponse.data || this.userService.getAvailableModules();
+            
+            // Filter to show only modules activated for the tenant
+            this.availableModules = modules.filter(module => 
+              tenantModules.some((tm: any) => tm.code === module.module_code)
+            );
+            
+            console.log('Filtered modules for tenant:', this.availableModules.length, 'modules');
+            this.loading = false;
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Error loading user module permissions:', error);
+            // Fallback: show all tenant modules
+            this.availableModules = tenantModules.map((tm: any) => ({
+              module_code: tm.code,
+              module_name: tm.name,
+              is_active: false,
+              permissions: []
+            }));
+            this.loading = false;
+            this.cdr.detectChanges();
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error loading tenant modules:', error);
+        // Fallback: load user permissions without tenant filtering
+        this.loadUserModulePermissions(user);
+      }
+    });
+  }
+
+  private loadTenantModules(tenantId: number): void {
+    // Load modules activated for the tenant
+    this.tenantService.getTenantModules(tenantId).subscribe({
+      next: (response: ApiResponse<any>) => {
+        // Get tenant modules from response
+        const tenantModules = response.data || [];
+        console.log('Tenant modules loaded:', tenantModules.length, 'modules');
+        
+        // Filter availableModules to show only tenant's activated modules
+        this.availableModules = this.availableModules.filter(module => 
+          tenantModules.some((tm: any) => tm.code === module.module_code)
+        );
+        
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading tenant modules:', error);
+        // If error, show all modules as fallback
+      }
+    });
   }
 
   private loadUserModulePermissions(user: UserProfile): void {
@@ -424,6 +510,22 @@ export class UsersComponent implements OnInit, AfterViewInit {
         this.applyFilters();
         this.closePermissionModal();
         this.showSuccessMessage('Permissions mises à jour avec succès!');
+        
+        // If the current user's permissions were updated, reload their data to refresh the menu
+        const currentUser = this.authService.currentUser;
+        if (currentUser && Number(currentUser.id) === this.selectedUserForPermissions!.id) {
+          console.log('Reloading current user data to refresh menu...');
+          this.authService.reloadCurrentUser().subscribe({
+            next: () => {
+              console.log('Current user data reloaded, menu should refresh');
+              this.cdr.detectChanges();
+            },
+            error: (err: any) => {
+              console.error('Error reloading current user:', err);
+            }
+          });
+        }
+        
         this.loading = false;
         this.cdr.detectChanges();
       },

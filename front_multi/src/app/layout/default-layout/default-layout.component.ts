@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
 import { CommonModule } from '@angular/common';
+import { Observable } from 'rxjs';
 
 import { IconDirective } from '@coreui/icons-angular';
 import {
@@ -18,7 +19,7 @@ import {
 } from '@coreui/angular';
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
-import { navItems } from './_nav';
+import { NavigationService } from '../../core/services/navigation.service';
 
 function isOverflown(element: HTMLElement) {
   return (
@@ -50,11 +51,25 @@ function isOverflown(element: HTMLElement) {
   ]
 })
 export class DefaultLayoutComponent implements OnInit {
-  public navItems: INavData[] = navItems;
+  public navItems: INavData[] = [];
+  public navItems$: Observable<INavData[]>;
 
-  constructor() {}
+  constructor(private navigationService: NavigationService) {
+    this.navItems$ = this.navigationService.getNavigationItems();
+  }
 
   ngOnInit(): void {
-    console.log('Static navigation items loaded:', this.navItems);
+    // Subscribe to dynamic navigation updates
+    // This will automatically update whenever auth state changes
+    this.navItems$.subscribe({
+      next: (items: INavData[]) => {
+        this.navItems = items;
+        console.log('Navigation items updated:', items.length, 'items');
+      },
+      error: (err: any) => {
+        console.error('Error loading navigation items:', err);
+        this.navItems = [];
+      }
+    });
   }
 }

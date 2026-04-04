@@ -59,17 +59,26 @@ export class AuthService {
     return this.http.post<ApiResponse<any>>(`${this.API_URL}/login`, { email, password }).pipe(
       tap(response => {
         if (response.success && response.data) {
-          // Transform Laravel response to Angular AuthState format
-          const authState: AuthState = {
-            user: response.data.user,
+          console.log('AuthService - Login response:', response.data);
+          console.log('AuthService - tenant_active_modules from backend:', response.data.tenant_active_modules);
+          console.log('AuthService - user_module_permissions from backend:', response.data.user_module_permissions);
+          
+          const authData: AuthState = {
+            user: {
+              ...response.data.user,
+              tenant_active_modules: response.data.tenant_active_modules || [],
+              module_permissions: response.data.user_module_permissions || []
+            },
             tenant: response.data.user?.tenant || null,
-            isAuthenticated: response.data.isAuthenticated || true,
+            isAuthenticated: true,
             token: response.data.token
           };
-          this.setAuthState(authState);
           
-          // Load user module permissions after successful login
-          this.loadUserModulePermissions(response.data.user.id);
+          console.log('AuthService - Final user object:', authData.user);
+          console.log('AuthService - Final tenant_active_modules:', authData.user?.tenant_active_modules);
+          console.log('AuthService - Final module_permissions:', authData.user?.module_permissions);
+          
+          this.setAuthState(authData);
         }
       }),
       catchError(error => this.handleError(error))
@@ -252,16 +261,100 @@ export class AuthService {
     return tenant?.subscription?.status === 'ACTIVE' || this.isSuperAdmin;
   }
   
-  // Module access check
+  // Module access check - vérifie à la fois la souscription du tenant et les permissions utilisateur
   hasModuleAccess(moduleCode: string): boolean {
     if (this.isSuperAdmin) return true;
     
     const user = this.currentUser;
-    if (!user || !user.module_permissions) return false;
+    if (!user) return false;
     
-    return user.module_permissions.some((permission: any) => 
+    // Vérifier si le tenant a souscrit au module
+    const tenantHasModule = user.tenant_active_modules?.some((module: any) => 
+      module.code === moduleCode && module.is_active
+    );
+    
+    if (!tenantHasModule) {
+      console.warn(`Tenant n'a pas souscrit au module: ${moduleCode}`);
+      return false;
+    }
+    
+    // Vérifier si l'utilisateur a la permission d'accéder au module
+    const userHasPermission = user.module_permissions?.some((permission: any) => 
       permission.module_code === moduleCode && permission.is_active
     );
+    
+    if (!userHasPermission) {
+      console.warn(`Utilisateur n'a pas la permission pour le module: ${moduleCode}`);
+      return false;
+    }
+    
+    return true;
+  }
+  
+  // Get list of tenant's active modules
+  getTenantActiveModules(): any[] {
+    const user = this.currentUser;
+    if (this.isSuperAdmin) {
+      // Super admin has access to all modules
+      return [
+        { code: 'COMMERCE', name: 'Module Commerce', is_active: true },
+        { code: 'FINANCE', name: 'Module Finance', is_active: true },
+        { code: 'CONTAINER', name: 'Gestion Conteneurs', is_active: true },
+        { code: 'IMMOBILIER', name: 'Location Immobilière', is_active: true },
+        { code: 'TAXI', name: 'Gestion Taxi', is_active: true },
+        { code: 'STATISTICS', name: 'Statistiques', is_active: true }
+      ];
+    }
+    return user?.tenant_active_modules || [];
+  }
+  
+  // Get list of user's accessible modules (intersection of tenant modules and user permissions)
+  getUserAccessibleModules(): any[] {
+    const user = this.currentUser;
+    if (!user) {
+      console.log('AuthService - getUserAccessibleModules: No user');
+      return [];
+    }
+    
+    console.log('AuthService - getUserAccessibleModules for:', user.email);
+    console.log('AuthService - User role:', this.userRole);
+    console.log('AuthService - tenant_active_modules:', user.tenant_active_modules);
+    console.log('AuthService - module_permissions:', user.module_permissions);
+    
+    // SUPER_ADMIN has access to all modules
+    if (this.isSuperAdmin) {
+      const modules = this.getTenantActiveModules();
+      console.log('AuthService - SUPER_ADMIN modules:', modules);
+      return modules;
+    }
+    
+    // ADMIN has access to all tenant modules (to manage users and assign permissions)
+    if (this.isTenantAdmin) {
+      const modules = user.tenant_active_modules || [];
+      console.log('AuthService - ADMIN modules:', modules);
+      return modules;
+    }
+    
+    // USER has access only to modules with explicit permissions
+    const tenantModules = user.tenant_active_modules || [];
+    const userPermissions = user.module_permissions || [];
+    
+    console.log('AuthService - USER filtering...');
+    console.log('AuthService - Tenant modules:', tenantModules);
+    console.log('AuthService - User permissions:', userPermissions);
+    
+    // Return only modules that are both subscribed by tenant AND permitted for user
+    const filtered = tenantModules.filter((module: any) => {
+      const hasPermission = userPermissions.some((perm: any) => {
+        const match = perm.module_code === module.code && perm.is_active;
+        console.log(`AuthService - Checking module ${module.code} vs permission ${perm.module_code}: ${match}`);
+        return match;
+      });
+      return hasPermission;
+    });
+    
+    console.log('AuthService - Filtered modules:', filtered);
+    return filtered;
   }
   
   // Permission check
@@ -283,6 +376,43 @@ export class AuthService {
     }
   }
   
+  reloadCurrentUser(): Observable<any> {
+    const currentUser = this.currentUser;
+    if (!currentUser || !currentUser.id) {
+      return throwError(() => new Error('No current user'));
+    }
+
+    // Fetch fresh user data from backend
+    return this.http.get<ApiResponse<any>>(`${this.API_URL}/users/${currentUser.id}/module-permissions-public`).pipe(
+      tap(response => {
+        if (response.success && response.data) {
+          // Update user with fresh module permissions
+          const updatedUser = {
+            ...currentUser,
+            module_permissions: response.data.module_permissions || [],
+            tenant_active_modules: response.data.tenant_active_modules || []
+          };
+          
+          // Update auth state
+          const currentState = this.authState.value;
+          this.authState.next({
+            ...currentState,
+            user: updatedUser
+          });
+          
+          // Update localStorage
+          localStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));
+          
+          console.log('Current user data reloaded with fresh permissions');
+        }
+      }),
+      catchError(error => {
+        console.error('Error reloading current user:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
   private clearAuthData(): void {
     this.authState.next({
       user: null,

@@ -55,13 +55,11 @@ export class OrganisationSettingService {
   constructor(private http: HttpClient) {}
 
   getSettings(): Observable<ApiResponse<OrganisationSetting>> {
-    return this.http.get<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings`, {
-      headers: this.getAuthHeaders()
-    }).pipe(
+    return this.http.get<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings-public`).pipe(
       timeout(10000),
       retry(2),
       tap(response => {
-        if (response.success) {
+        if (response.success && response.data) {
           this.settingsSubject.next(response.data);
         }
       }),
@@ -70,28 +68,26 @@ export class OrganisationSettingService {
   }
 
   updateSettings(settings: Partial<OrganisationSetting>): Observable<ApiResponse<OrganisationSetting>> {
-    return this.http.put<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings`, settings, {
-      headers: this.getAuthHeaders()
-    }).pipe(
+    return this.http.put<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings-public`, settings).pipe(
       tap(response => {
-        if (response.success) {
+        if (response.success && response.data) {
           this.settingsSubject.next(response.data);
           this.showSuccessMessage('Paramètres mis à jour avec succès!');
         }
-      })
+      }),
+      catchError(this.handleError.bind(this))
     );
   }
 
   resetSettings(): Observable<ApiResponse<OrganisationSetting>> {
-    return this.http.post<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings/reset`, {}, {
-      headers: this.getAuthHeaders()
-    }).pipe(
+    return this.http.post<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings-public/reset`, {}).pipe(
       tap(response => {
-        if (response.success) {
+        if (response.success && response.data) {
           this.settingsSubject.next(response.data);
           this.showSuccessMessage('Paramètres réinitialisés aux valeurs par défaut!');
         }
-      })
+      }),
+      catchError(this.handleError.bind(this))
     );
   }
 

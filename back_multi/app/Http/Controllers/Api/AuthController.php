@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
 
@@ -73,11 +74,44 @@ class AuthController extends BaseController
             // Load relationships with error handling
             $userData = $user->load(['tenant.modules', 'roles', 'permissions']);
 
+            // Get active modules for the tenant
+            $activeModules = [];
+            if ($userData->tenant) {
+                $activeModules = $userData->tenant->modules()
+                    ->wherePivot('is_active', true)
+                    ->get()
+                    ->map(function($module) {
+                        return [
+                            'id' => $module->id,
+                            'code' => $module->code,
+                            'name' => $module->name,
+                            'description' => $module->description,
+                            'is_active' => true
+                        ];
+                    });
+            }
+
+            // Get user's module permissions
+            $userModulePermissions = DB::table('user_module_permissions')
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->get()
+                ->map(function($perm) {
+                    return [
+                        'module_code' => $perm->module_code,
+                        'module_name' => $perm->module_name,
+                        'permissions' => json_decode($perm->permissions, true),
+                        'is_active' => (bool) $perm->is_active
+                    ];
+                });
+
             return $this->sendResponse([
                 'user' => $userData,
                 'token' => $token,
                 'token_type' => 'Bearer',
-                'isAuthenticated' => true
+                'isAuthenticated' => true,
+                'tenant_active_modules' => $activeModules,
+                'user_module_permissions' => $userModulePermissions
             ], 'Login successful');
             
         } catch (\Exception $e) {

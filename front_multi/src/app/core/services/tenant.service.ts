@@ -47,23 +47,23 @@ export class TenantService {
 
   // Tenants CRUD
   getTenants(): Observable<ApiResponse<Tenant[]>> {
-    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants`);
+    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants-public`);
   }
 
   getTenant(id: number): Observable<ApiResponse<Tenant>> {
-    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`);
+    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/tenants-public/${id}`);
   }
 
   createTenant(tenant: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
-    return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants`, tenant);
+    return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants-public`, tenant);
   }
 
   updateTenant(id: number, tenant: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
-    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`, tenant);
+    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/tenants-public/${id}`, tenant);
   }
 
   deleteTenant(id: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.API_URL}/tenants/${id}`);
+    return this.http.delete<ApiResponse<void>>(`${this.API_URL}/tenants-public/${id}`);
   }
 
   // Module management

@@ -300,16 +300,8 @@ class UserController extends BaseController
 
     public function getModulePermissions($id)
     {
-        $user = User::find($id);
-
-        if (!$user) {
-            return $this->sendError('User not found');
-        }
-
-        // Get user's module permissions from database or return default structure
-        $modulePermissions = $this->getUserModulePermissions($user);
-
-        return $this->sendResponse($modulePermissions, 'Module permissions retrieved successfully');
+        // Delegate to getUserModulePermissions which already handles the response
+        return $this->getUserModulePermissions($id);
     }
 
     public function updateModulePermissions(Request $request, $id)
@@ -328,7 +320,7 @@ class UserController extends BaseController
         ]);
 
         $validator = Validator::make($request->all(), [
-            'module_permissions' => 'required|array|min:1',
+            'module_permissions' => 'required|array',
             'module_permissions.*.module_code' => 'required|string',
             'module_permissions.*.module_name' => 'required|string',
             'module_permissions.*.permissions' => 'present|array',
@@ -412,8 +404,14 @@ class UserController extends BaseController
         }
     }
 
-    private function getUserModulePermissions($user)
+    public function getUserModulePermissions($id)
     {
+        $user = User::find($id);
+        
+        if (!$user) {
+            return $this->sendError('User not found', [], 404);
+        }
+        
         $availableModules = [
             ['module_code' => 'COMMERCIAL', 'module_name' => 'Gestion Commerciale', 'permissions' => [], 'is_active' => false],
             ['module_code' => 'FINANCE', 'module_name' => 'Gestion Financière', 'permissions' => [], 'is_active' => false],
@@ -461,6 +459,6 @@ class UserController extends BaseController
             }, $availableModules)
         ]);
 
-        return $availableModules;
+        return $this->sendResponse($availableModules, 'User module permissions retrieved successfully');
     }
 }

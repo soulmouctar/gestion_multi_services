@@ -21,6 +21,7 @@ export interface User {
   roles?: Role[];
   permissions?: Permission[];
   module_permissions?: any[];
+  tenant_active_modules?: any[];
   created_at: string;
   updated_at: string;
   tenant?: Tenant;

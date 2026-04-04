@@ -30,6 +30,11 @@ export class NavigationService {
           return of([]);
         }
 
+        // Get user role from authState
+        const userRole = this.getUserRole(authState.user);
+        const isSuperAdmin = userRole === 'SUPER_ADMIN';
+        const isTenantAdmin = userRole === 'ADMIN';
+
         const baseNavigation: NavigationItem[] = [
           {
             name: 'Dashboard',
@@ -38,236 +43,21 @@ export class NavigationService {
           }
         ];
 
-        // Admin sections        // Business modules section
+        // Business modules section - Add title and modules
         baseNavigation.push({
           name: 'GESTION MULTI-MODULES',
           title: true
         });
 
-        // SUPER_ADMIN navigation items
-        if (this.authService.isSuperAdmin) {
-          baseNavigation.push(
-            {
-              name: 'Commercial',
-              url: '/commercial',
-              iconComponent: { name: 'cilBasket' },
-              children: [
-                {
-                  name: 'Tableau de Bord',
-                  url: '/commercial/dashboard',
-                  iconComponent: { name: 'cilSpeedometer' }
-                },
-                {
-                  name: 'Produits ✓',
-                  url: '/products/list',
-                  iconComponent: { name: 'cilGrid' }
-                },
-                {
-                  name: 'Catégories',
-                  url: '/product-categories',
-                  iconComponent: { name: 'cilTags' }
-                },
-                {
-                  name: 'Unités de Mesure',
-                  url: '/units',
-                  iconComponent: { name: 'cilCalculator' }
-                },
-                {
-                  name: 'Clients',
-                  url: '/clients',
-                  iconComponent: { name: 'cilPeople' }
-                },
-                {
-                  name: 'Fournisseurs',
-                  url: '/suppliers',
-                  iconComponent: { name: 'cilTruck' }
-                }
-              ]
-            },
-            {
-              name: 'Finance',
-              url: '/finance',
-              iconComponent: { name: 'cilDollar' },
-              children: [
-                {
-                  name: 'Tableau de Bord',
-                  url: '/finance/dashboard',
-                  iconComponent: { name: 'cilSpeedometer' }
-                },
-                {
-                  name: 'Paiements ✓',
-                  url: '/payments',
-                  iconComponent: { name: 'cilCreditCard' }
-                },
-                {
-                  name: 'Devises',
-                  url: '/currencies',
-                  iconComponent: { name: 'cilMoney' }
-                },
-                {
-                  name: 'Taux de Change',
-                  url: '/exchange-rates',
-                  iconComponent: { name: 'cilChart' }
-                },
-                {
-                  name: 'Factures',
-                  url: '/invoices',
-                  iconComponent: { name: 'cilDescription' }
-                }
-              ]
-            },
-            {
-              name: 'Conteneurs',
-              url: '/containers',
-              iconComponent: { name: 'cilLayers' },
-              children: [
-                {
-                  name: 'Liste des Conteneurs',
-                  url: '/containers/list',
-                  iconComponent: { name: 'cilList' }
-                },
-                {
-                  name: 'Tracking',
-                  url: '/containers/tracking',
-                  iconComponent: { name: 'cilLocationPin' }
-                },
-                {
-                  name: 'Statistiques',
-                  url: '/containers/statistics',
-                  iconComponent: { name: 'cilChart' }
-                }
-              ]
-            },
-            {
-              name: 'Location',
-              url: '/rental',
-              iconComponent: { name: 'cilHome' },
-              children: [
-                {
-                  name: 'Emplacements',
-                  url: '/locations',
-                  iconComponent: { name: 'cilMap' }
-                },
-                {
-                  name: 'Bâtiments',
-                  url: '/buildings',
-                  iconComponent: { name: 'cilBuilding' }
-                },
-                {
-                  name: 'Étages',
-                  url: '/floors',
-                  iconComponent: { name: 'cilLayers' }
-                },
-                {
-                  name: 'Unités de Logement',
-                  url: '/housing-units',
-                  iconComponent: { name: 'cilHome' }
-                },
-                {
-                  name: 'Configurations',
-                  url: '/unit-configurations',
-                  iconComponent: { name: 'cilSettings' }
-                }
-              ]
-            },
-            {
-              name: 'Taxi & Transport',
-              url: '/taxi',
-              iconComponent: { name: 'cilLocationPin' },
-              children: [
-                {
-                  name: 'Véhicules',
-                  url: '/taxis',
-                  iconComponent: { name: 'cilCarAlt' }
-                },
-                {
-                  name: 'Conducteurs',
-                  url: '/drivers',
-                  iconComponent: { name: 'cilUser' }
-                },
-                {
-                  name: 'Affectations',
-                  url: '/taxi-assignments',
-                  iconComponent: { name: 'cilTask' }
-                },
-                {
-                  name: 'Courses',
-                  url: '/rides',
-                  iconComponent: { name: 'cilSpeedometer' }
-                }
-              ]
-            },
-            {
-              name: 'Statistiques',
-              url: '/statistics',
-              iconComponent: { name: 'cilChart' },
-              children: [
-                {
-                  name: 'Vue d\'ensemble',
-                  url: '/statistics/overview',
-                  iconComponent: { name: 'cilSpeedometer' }
-                },
-                {
-                  name: 'Ventes',
-                  url: '/statistics/sales',
-                  iconComponent: { name: 'cilBasket' }
-                },
-                {
-                  name: 'Finances',
-                  url: '/statistics/finance',
-                  iconComponent: { name: 'cilDollar' }
-                },
-                {
-                  name: 'Inventaire',
-                  url: '/statistics/inventory',
-                  iconComponent: { name: 'cilGrid' }
-                }
-              ]
-            }
-          );
+        // Add modules right after the section title
+        const tenantModules = this.getTenantModulesNavigation(authState.user);
+        if (tenantModules.length > 0) {
+          baseNavigation.push(...tenantModules);
+        }
 
+        // SUPER_ADMIN - Section ADMINISTRATION (gestion globale)
+        if (isSuperAdmin) {
           baseNavigation.push(
-            {
-              name: 'ORGANISATION',
-              title: true
-            },
-            {
-              name: 'Mon Organisation',
-              url: '/organisation',
-              iconComponent: { name: 'cilBuilding' },
-              children: [
-                {
-                  name: 'Informations Entreprise',
-                  url: '/organisation/company-info',
-                  icon: 'nav-icon-bullet'
-                },
-                {
-                  name: 'Utilisateurs',
-                  url: '/organisation/users',
-                  icon: 'nav-icon-bullet'
-                },
-                {
-                  name: 'Contacts',
-                  url: '/organisation/contacts',
-                  icon: 'nav-icon-bullet'
-                },
-                {
-                  name: 'Devises',
-                  url: '/organisation/currencies',
-                  icon: 'nav-icon-bullet'
-                },
-                {
-                  name: 'En-têtes Factures',
-                  url: '/organisation/invoice-headers',
-                  icon: 'nav-icon-bullet'
-                },
-                {
-                  name: 'Paramètres',
-                  url: '/organisation/settings',
-                  icon: 'nav-icon-bullet'
-                }
-              ]
-            },
             {
               name: 'ADMINISTRATION',
               title: true
@@ -306,12 +96,17 @@ export class NavigationService {
               name: 'Statistiques Globales',
               url: '/admin/statistics',
               iconComponent: { name: 'cilChartPie' }
+            },
+            {
+              name: 'Configuration',
+              url: '/settings',
+              iconComponent: { name: 'cilSettings' }
             }
           );
         }
 
-        // ADMIN navigation items for organisation management
-        if (this.authService.isTenantAdmin || this.authService.isSuperAdmin) {
+        // ADMIN & SUPER_ADMIN - Section ORGANISATION (gestion de leur organisation)
+        if (isTenantAdmin || isSuperAdmin) {
           baseNavigation.push(
             {
               name: 'ORGANISATION',
@@ -350,130 +145,98 @@ export class NavigationService {
           );
         }
 
-        // Modules section - for SUPER_ADMIN show all modules, for others show tenant modules
-        if (this.authService.isSuperAdmin) {
-          // SUPER_ADMIN sees all available modules
-          baseNavigation.push(
-            {
-              name: 'MODULES DISPONIBLES',
-              title: true
-            },
-            {
-              name: 'Commercial',
-              url: '/commercial',
-              iconComponent: { name: 'cilBasket' },
-              requiredModule: 'COMMERCE'
-            },
-            {
-              name: 'Finance',
-              url: '/finance',
-              iconComponent: { name: 'cilDollar' },
-              requiredModule: 'FINANCE'
-            },
-            {
-              name: 'Conteneurs',
-              url: '/containers',
-              iconComponent: { name: 'cilLayers' },
-              requiredModule: 'CONTAINER'
-            },
-            {
-              name: 'Location',
-              url: '/rental',
-              iconComponent: { name: 'cilHome' },
-              requiredModule: 'IMMOBILIER'
-            },
-            {
-              name: 'Taxi & Transport',
-              url: '/taxi',
-              iconComponent: { name: 'cilLocationPin' },
-              requiredModule: 'TAXI'
-            },
-            {
-              name: 'Statistiques',
-              url: '/statistics',
-              iconComponent: { name: 'cilChart' },
-              requiredModule: 'STATISTICS'
-            }
-          );
-        } else {
-          // Regular users see only their tenant's active modules
-          const tenantModules = this.getTenantModulesNavigation(authState.user);
-          if (tenantModules.length > 0) {
-            baseNavigation.push(
-              {
-                name: 'MODULES DISPONIBLES',
-                title: true
-              },
-              ...tenantModules
-            );
-          }
-        }
-
-        // Settings for all users
-        baseNavigation.push({
-          name: 'Paramètres',
-          url: '/settings',
-          iconComponent: { name: 'cilSettings' }
-        });
-
         return of(baseNavigation);
       })
     );
   }
 
   /**
+   * Get user role from user object
+   */
+  private getUserRole(user: any): string | null {
+    if (!user || !user.roles || !Array.isArray(user.roles) || user.roles.length === 0) {
+      return null;
+    }
+    return user.roles[0].name;
+  }
+
+  /**
    * Get navigation items for tenant modules based on user's assigned modules
+   * Uses user_module_permissions to filter accessible modules
    */
   private getTenantModulesNavigation(user: any): NavigationItem[] {
-    if (!user || !user.tenant || !user.tenant.modules) {
+    if (!user) {
+      console.log('NavigationService - getTenantModulesNavigation: No user');
       return [];
     }
 
     const moduleNavigation: NavigationItem[] = [];
     
-    // Filter only active modules for the user's tenant
-    const activeModules = user.tenant.modules.filter((module: any) => 
-      module.pivot && module.pivot.is_active
-    );
+    // Get user's accessible modules (intersection of tenant modules and user permissions)
+    const accessibleModules = this.authService.getUserAccessibleModules();
+    
+    console.log('NavigationService - Accessible modules for user:', user.email, accessibleModules);
+    
+    if (!accessibleModules || accessibleModules.length === 0) {
+      console.log('NavigationService - No accessible modules found');
+      return [];
+    }
 
-    activeModules.forEach((module: any) => {
+    accessibleModules.forEach((module: any) => {
+      console.log('NavigationService - Processing module:', module.code, module);
       switch (module.code) {
         case 'COMMERCE':
           moduleNavigation.push({
             name: 'Commercial',
             url: '/commercial',
             iconComponent: { name: 'cilBasket' },
-            requiredModule: 'COMMERCE',
+            badge: {
+              color: 'success',
+              text: 'NOUVEAU'
+            },
             children: [
               {
                 name: 'Tableau de Bord',
                 url: '/commercial/dashboard',
-                iconComponent: { name: 'cilSpeedometer' }
+                icon: 'nav-icon-bullet'
               },
               {
-                name: 'Produits ✓',
+                name: 'Produits',
                 url: '/products/list',
-                iconComponent: { name: 'cilGrid' }
+                icon: 'nav-icon-bullet',
+                badge: {
+                  color: 'success',
+                  text: 'COMPLET'
+                }
+              },
+              {
+                name: 'Gestion Avancée Produits',
+                url: '/products/advanced',
+                icon: 'nav-icon-bullet',
+                badge: {
+                  color: 'info',
+                  text: 'NOUVEAU'
+                }
               },
               {
                 name: 'Catégories',
-                url: '/product-categories',
-                iconComponent: { name: 'cilTags' }
+                url: '/product-categories/list',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Unités de Mesure',
-                url: '/units',
-                iconComponent: { name: 'cilCalculator' }
+                url: '/units/list',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Clients',
-                url: '/clients',
-                iconComponent: { name: 'cilPeople' }
+                url: '/clients/list',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Fournisseurs',
-                url: '/suppliers',
-                iconComponent: { name: 'cilTruck' }
+                url: '/suppliers/list',
+                icon: 'nav-icon-bullet'
               }
             ]
           });
@@ -483,32 +246,48 @@ export class NavigationService {
             name: 'Finance',
             url: '/finance',
             iconComponent: { name: 'cilDollar' },
-            requiredModule: 'FINANCE',
+            badge: {
+              color: 'success',
+              text: 'NOUVEAU'
+            },
             children: [
               {
                 name: 'Tableau de Bord',
                 url: '/finance/dashboard',
-                iconComponent: { name: 'cilSpeedometer' }
+                icon: 'nav-icon-bullet'
               },
               {
-                name: 'Paiements ✓',
-                url: '/payments',
-                iconComponent: { name: 'cilCreditCard' }
+                name: 'Paiements',
+                url: '/payments/list',
+                icon: 'nav-icon-bullet',
+                badge: {
+                  color: 'success',
+                  text: 'COMPLET'
+                }
+              },
+              {
+                name: 'Gestion Avancée Paiements',
+                url: '/payments/advanced',
+                icon: 'nav-icon-bullet',
+                badge: {
+                  color: 'info',
+                  text: 'NOUVEAU'
+                }
               },
               {
                 name: 'Devises',
-                url: '/currencies',
-                iconComponent: { name: 'cilMoney' }
+                url: '/finance/currencies',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Taux de Change',
-                url: '/exchange-rates',
-                iconComponent: { name: 'cilChart' }
+                url: '/finance/exchange-rates',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Factures',
-                url: '/invoices',
-                iconComponent: { name: 'cilDescription' }
+                url: '/finance/invoices',
+                icon: 'nav-icon-bullet'
               }
             ]
           });
@@ -518,22 +297,30 @@ export class NavigationService {
             name: 'Conteneurs',
             url: '/containers',
             iconComponent: { name: 'cilLayers' },
-            requiredModule: 'CONTAINER',
             children: [
               {
                 name: 'Liste des Conteneurs',
                 url: '/containers/list',
-                iconComponent: { name: 'cilList' }
+                icon: 'nav-icon-bullet'
               },
               {
-                name: 'Tracking',
-                url: '/containers/tracking',
-                iconComponent: { name: 'cilLocationPin' }
+                name: 'Photos',
+                url: '/containers/photos',
+                icon: 'nav-icon-bullet'
               },
               {
-                name: 'Statistiques',
+                name: 'Suivi Paiements',
+                url: '/containers/payments',
+                icon: 'nav-icon-bullet',
+                badge: {
+                  color: 'success',
+                  text: 'NOUVEAU'
+                }
+              },
+              {
+                name: 'Statistiques Avancées',
                 url: '/containers/statistics',
-                iconComponent: { name: 'cilChart' }
+                icon: 'nav-icon-bullet'
               }
             ]
           });
@@ -543,32 +330,40 @@ export class NavigationService {
             name: 'Location',
             url: '/rental',
             iconComponent: { name: 'cilHome' },
-            requiredModule: 'IMMOBILIER',
             children: [
               {
                 name: 'Emplacements',
-                url: '/locations',
-                iconComponent: { name: 'cilMap' }
+                url: '/rental/locations',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Bâtiments',
-                url: '/buildings',
-                iconComponent: { name: 'cilBuilding' }
+                url: '/rental/buildings',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Étages',
-                url: '/floors',
-                iconComponent: { name: 'cilLayers' }
+                url: '/rental/floors',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Unités de Logement',
-                url: '/housing-units',
-                iconComponent: { name: 'cilHome' }
+                url: '/rental/housing-units',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Configurations',
-                url: '/unit-configurations',
-                iconComponent: { name: 'cilSettings' }
+                url: '/rental/unit-configurations',
+                icon: 'nav-icon-bullet'
+              },
+              {
+                name: 'Gestion Avancée Emplacements',
+                url: '/rental/locations-advanced',
+                icon: 'nav-icon-bullet',
+                badge: {
+                  color: 'info',
+                  text: 'NOUVEAU'
+                }
               }
             ]
           });
@@ -578,27 +373,39 @@ export class NavigationService {
             name: 'Taxi & Transport',
             url: '/taxi',
             iconComponent: { name: 'cilLocationPin' },
-            requiredModule: 'TAXI',
             children: [
               {
                 name: 'Véhicules',
-                url: '/taxis',
-                iconComponent: { name: 'cilCarAlt' }
+                url: '/taxi/vehicles',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Conducteurs',
-                url: '/drivers',
-                iconComponent: { name: 'cilUser' }
+                url: '/taxi/drivers',
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Affectations',
-                url: '/taxi-assignments',
-                iconComponent: { name: 'cilTask' }
+                url: '/taxi/assignments',
+                icon: 'nav-icon-bullet'
               },
               {
-                name: 'Courses',
-                url: '/rides',
-                iconComponent: { name: 'cilSpeedometer' }
+                name: 'Versements Journaliers',
+                url: '/taxi/daily-payments',
+                icon: 'nav-icon-bullet',
+                badge: {
+                  color: 'success',
+                  text: 'NOUVEAU'
+                }
+              },
+              {
+                name: 'Dépenses Véhicules',
+                url: '/taxi/vehicle-expenses',
+                icon: 'nav-icon-bullet',
+                badge: {
+                  color: 'info',
+                  text: 'NOUVEAU'
+                }
               }
             ]
           });
@@ -608,27 +415,26 @@ export class NavigationService {
             name: 'Statistiques',
             url: '/statistics',
             iconComponent: { name: 'cilChart' },
-            requiredModule: 'STATISTICS',
             children: [
               {
                 name: 'Vue d\'ensemble',
                 url: '/statistics/overview',
-                iconComponent: { name: 'cilSpeedometer' }
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Ventes',
                 url: '/statistics/sales',
-                iconComponent: { name: 'cilBasket' }
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Finances',
                 url: '/statistics/finance',
-                iconComponent: { name: 'cilDollar' }
+                icon: 'nav-icon-bullet'
               },
               {
                 name: 'Inventaire',
                 url: '/statistics/inventory',
-                iconComponent: { name: 'cilGrid' }
+                icon: 'nav-icon-bullet'
               }
             ]
           });

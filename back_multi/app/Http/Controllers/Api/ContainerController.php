@@ -88,6 +88,162 @@ class ContainerController extends BaseController
         return $this->sendResponse([], 'Container deleted successfully');
     }
 
+    public function statisticsGeneral(Request $request)
+    {
+        $tenantId = $request->get('tenant_id', 1);
+        $period = $request->get('period', '30days');
+        $status = $request->get('status', '');
+        
+        // Calculate date range based on period
+        $days = 30;
+        if ($period === '7days') $days = 7;
+        elseif ($period === '3months') $days = 90;
+        elseif ($period === '6months') $days = 180;
+        elseif ($period === 'year') $days = 365;
+        
+        $startDate = now()->subDays($days);
+        
+        // Total containers
+        $query = Container::where('tenant_id', $tenantId);
+        $totalContainers = $query->count();
+        
+        // Containers created in period
+        $containersCreated = Container::where('tenant_id', $tenantId)
+            ->where('created_at', '>=', $startDate)
+            ->count();
+        
+        // Containers with photos
+        $containersWithPhotos = Container::where('tenant_id', $tenantId)
+            ->whereHas('photos')
+            ->count();
+        
+        // Average capacity
+        $avgCapacityMin = Container::where('tenant_id', $tenantId)
+            ->whereNotNull('capacity_min')
+            ->avg('capacity_min');
+        
+        $avgCapacityMax = Container::where('tenant_id', $tenantId)
+            ->whereNotNull('capacity_max')
+            ->avg('capacity_max');
+        
+        // Average interest rate
+        $avgInterestRate = Container::where('tenant_id', $tenantId)
+            ->whereNotNull('interest_rate')
+            ->avg('interest_rate');
+        
+        $statistics = [
+            'period' => $period,
+            'total_containers' => $totalContainers,
+            'containers_created' => $containersCreated,
+            'containers_with_photos' => $containersWithPhotos,
+            'avg_capacity_min' => round($avgCapacityMin ?? 0, 2),
+            'avg_capacity_max' => round($avgCapacityMax ?? 0, 2),
+            'avg_interest_rate' => round($avgInterestRate ?? 0, 2)
+        ];
+        
+        return $this->sendResponse($statistics, 'General statistics retrieved successfully');
+    }
+
+    public function statisticsCapacity(Request $request)
+    {
+        $tenantId = $request->get('tenant_id', 1);
+        $period = $request->get('period', '30days');
+        
+        // Group containers by capacity ranges
+        $containers = Container::where('tenant_id', $tenantId)
+            ->whereNotNull('capacity_min')
+            ->whereNotNull('capacity_max')
+            ->get();
+        
+        $ranges = [
+            ['label' => '0-1000', 'min' => 0, 'max' => 1000, 'count' => 0],
+            ['label' => '1001-5000', 'min' => 1001, 'max' => 5000, 'count' => 0],
+            ['label' => '5001-10000', 'min' => 5001, 'max' => 10000, 'count' => 0],
+            ['label' => '10001-20000', 'min' => 10001, 'max' => 20000, 'count' => 0],
+            ['label' => '20000+', 'min' => 20001, 'max' => PHP_INT_MAX, 'count' => 0]
+        ];
+        
+        foreach ($containers as $container) {
+            $avgCapacity = ($container->capacity_min + $container->capacity_max) / 2;
+            
+            foreach ($ranges as &$range) {
+                if ($avgCapacity >= $range['min'] && $avgCapacity <= $range['max']) {
+                    $range['count']++;
+                    break;
+                }
+            }
+        }
+        
+        return $this->sendResponse($ranges, 'Capacity statistics retrieved successfully');
+    }
+
+    public function statisticsStatus(Request $request)
+    {
+        $tenantId = $request->get('tenant_id', 1);
+        $period = $request->get('period', '30days');
+        
+        // Calculate date range based on period
+        $days = 30;
+        if ($period === '7days') $days = 7;
+        elseif ($period === '3months') $days = 90;
+        elseif ($period === '6months') $days = 180;
+        elseif ($period === 'year') $days = 365;
+        
+        $startDate = now()->subDays($days);
+        
+        // Count containers with/without photos
+        $withPhotos = Container::where('tenant_id', $tenantId)
+            ->whereHas('photos')
+            ->count();
+        
+        $withoutPhotos = Container::where('tenant_id', $tenantId)
+            ->whereDoesntHave('photos')
+            ->count();
+        
+        // Count by interest rate ranges
+        $lowInterest = Container::where('tenant_id', $tenantId)
+            ->where('interest_rate', '<', 5)
+            ->count();
+        
+        $mediumInterest = Container::where('tenant_id', $tenantId)
+            ->whereBetween('interest_rate', [5, 10])
+            ->count();
+        
+        $highInterest = Container::where('tenant_id', $tenantId)
+            ->where('interest_rate', '>', 10)
+            ->count();
+        
+        $statistics = [
+            [
+                'label' => 'Avec photos',
+                'count' => $withPhotos,
+                'percentage' => $withPhotos + $withoutPhotos > 0 ? round(($withPhotos / ($withPhotos + $withoutPhotos)) * 100, 2) : 0
+            ],
+            [
+                'label' => 'Sans photos',
+                'count' => $withoutPhotos,
+                'percentage' => $withPhotos + $withoutPhotos > 0 ? round(($withoutPhotos / ($withPhotos + $withoutPhotos)) * 100, 2) : 0
+            ],
+            [
+                'label' => 'Taux faible (<5%)',
+                'count' => $lowInterest,
+                'percentage' => 0
+            ],
+            [
+                'label' => 'Taux moyen (5-10%)',
+                'count' => $mediumInterest,
+                'percentage' => 0
+            ],
+            [
+                'label' => 'Taux élevé (>10%)',
+                'count' => $highInterest,
+                'percentage' => 0
+            ]
+        ];
+        
+        return $this->sendResponse($statistics, 'Status statistics retrieved successfully');
+    }
+
     public function statisticsMonthly(Request $request)
     {
         $tenantId = $request->get('tenant_id', 1);

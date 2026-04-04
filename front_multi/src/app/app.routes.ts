@@ -30,6 +30,11 @@ export const routes: Routes = [
             title: 'Gestion des Organisations'
           },
           {
+            path: 'tenants',
+            loadComponent: () => import('./views/admin/tenants/tenants.component').then(m => m.TenantsComponent),
+            title: 'Gestion des Tenants'
+          },
+          {
             path: 'modules',
             loadComponent: () => import('./views/admin/modules/modules.component').then(m => m.ModulesComponent),
             title: 'Gestion des Modules'

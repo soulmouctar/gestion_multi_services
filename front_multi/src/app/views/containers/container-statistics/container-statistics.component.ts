@@ -237,6 +237,7 @@ export class ContainerStatisticsComponent implements OnInit {
   }
 
   getStatusColor(status: string): string {
+    if (!status) return 'secondary';
     switch (status.toLowerCase()) {
       case 'active': return 'success';
       case 'maintenance': return 'warning';

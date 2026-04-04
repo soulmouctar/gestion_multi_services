@@ -79,21 +79,27 @@ export class TenantsComponent implements OnInit {
     this.tenantService.getTenants().subscribe({
       next: (response: ApiResponse<any>) => {
         console.log('Organisation API response:', response);
-        // L'API retourne une structure paginée: response.data.data
-        if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          this.organisations = response.data.data;
-        } else if (Array.isArray(response.data)) {
+        console.log('Response data type:', typeof response.data);
+        console.log('Is response.data an array?', Array.isArray(response.data));
+        
+        // L'API tenants-public retourne directement un tableau dans response.data
+        if (response.success && Array.isArray(response.data)) {
           this.organisations = response.data;
+          console.log('Organisations loaded (direct array):', this.organisations.length, 'items');
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          // Fallback pour structure paginée
+          this.organisations = response.data.data;
+          console.log('Organisations loaded (paginated):', this.organisations.length, 'items');
         } else {
+          console.warn('Unexpected response structure:', response);
           this.organisations = [];
         }
-        console.log('Organisations loaded:', this.organisations);
+        
         this.loading = false;
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading organisations from database:', error);
-        // En cas d'erreur, afficher un tableau vide
         this.organisations = [];
         this.loading = false;
         this.cdr.detectChanges();

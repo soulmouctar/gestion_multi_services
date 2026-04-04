@@ -1,7 +1,7 @@
 export const environment = {
   production: false,
-  urlBase: 'http://localhost:8001',
-  apiUrl: 'http://127.0.0.1:8001/api',
+  urlBase: 'http://localhost:8000',
+  apiUrl: 'http://127.0.0.1:8000/api',
   appUrl: 'http://localhost:4200',
   
   // Multi-tenant configuration

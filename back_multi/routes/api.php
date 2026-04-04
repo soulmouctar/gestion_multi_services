@@ -103,6 +103,10 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
 
     // Public routes (for testing/development)
     Route::get('tenants-public', [TenantController::class, 'index']);
+    Route::get('tenants-public/{id}', [TenantController::class, 'show']);
+    Route::post('tenants-public', [TenantController::class, 'store']);
+    Route::put('tenants-public/{id}', [TenantController::class, 'update']);
+    Route::delete('tenants-public/{id}', [TenantController::class, 'destroy']);
     Route::get('users-public', [UserController::class, 'publicIndex']);
     Route::get('users/{id}/module-permissions-public', [UserController::class, 'getUserModulePermissions']);
     Route::get('modules-public', [ModuleController::class, 'index']);
@@ -147,6 +151,9 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
     Route::get('containers-public', [ContainerController::class, 'index']);
     Route::get('containers-public/{id}', [ContainerController::class, 'show']);
     Route::post('containers-public', [ContainerController::class, 'store']);
+    Route::get('containers/statistics/general', [ContainerController::class, 'statisticsGeneral']);
+    Route::get('containers/statistics/capacity', [ContainerController::class, 'statisticsCapacity']);
+    Route::get('containers/statistics/status', [ContainerController::class, 'statisticsStatus']);
     Route::get('containers/statistics/monthly', [ContainerController::class, 'statisticsMonthly']);
     Route::get('containers/statistics/top-performers', [ContainerController::class, 'statisticsTopPerformers']);
     Route::get('taxis-public', [TaxiController::class, 'index']);
@@ -254,6 +261,7 @@ Route::post('units-public', [UnitController::class, 'publicStore']);
             Route::apiResource('tenants', \App\Http\Controllers\Api\TenantController::class);
             Route::post('tenants/{id}/assign-module', [\App\Http\Controllers\Api\TenantController::class, 'assignModule']);
             Route::post('tenants/{id}/remove-module', [\App\Http\Controllers\Api\TenantController::class, 'removeModule']);
+            Route::get('tenants/{tenantId}/modules', [\App\Http\Controllers\Api\TenantController::class, 'getTenantModules']);
         });
 
         // Users management (Admin & Super Admin)

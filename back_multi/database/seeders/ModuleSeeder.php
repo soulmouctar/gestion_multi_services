@@ -12,50 +12,66 @@ class ModuleSeeder extends Seeder
         $modules = [
             [
                 'code' => 'COMMERCE',
-                'name' => 'Module Commerce',
+                'name' => 'Gestion Commerciale',
                 'description' => 'Gestion des produits, clients, fournisseurs et factures',
                 'is_active' => true,
-                'icon' => 'chart-line',
+                'icon' => 'cil-cart',
                 'permissions' => ['view', 'create', 'edit', 'delete']
             ],
             [
+                'code' => 'CLIENTS_SUPPLIERS',
+                'name' => 'Clients & Fournisseurs',
+                'description' => 'Gestion des clients et fournisseurs',
+                'is_active' => true,
+                'icon' => 'cil-people',
+                'permissions' => ['view', 'create', 'edit', 'delete']
+            ],
+            [
+                'code' => 'PRODUCTS_STOCK',
+                'name' => 'Produits & Stock',
+                'description' => 'Gestion des produits et inventaire',
+                'is_active' => true,
+                'icon' => 'cil-box',
+                'permissions' => ['view', 'create', 'edit', 'delete', 'manage_inventory']
+            ],
+            [
                 'code' => 'CONTAINER',
-                'name' => 'Module Conteneurs',
+                'name' => 'Gestion Conteneurs',
                 'description' => 'Gestion des conteneurs et taux d\'intérêt',
                 'is_active' => true,
-                'icon' => 'layers',
+                'icon' => 'cil-truck',
                 'permissions' => ['view', 'create', 'edit', 'delete', 'track']
             ],
             [
-                'code' => 'IMMOBILIER',
-                'name' => 'Module Immobilier',
+                'code' => 'RENTAL',
+                'name' => 'Location Immobilière',
                 'description' => 'Gestion des locations, bâtiments et logements',
                 'is_active' => true,
-                'icon' => 'home',
+                'icon' => 'cil-home',
                 'permissions' => ['view', 'create', 'edit', 'delete', 'manage_contracts']
             ],
             [
                 'code' => 'TAXI',
-                'name' => 'Module Taxi',
+                'name' => 'Gestion Taxi',
                 'description' => 'Gestion des taxis et chauffeurs',
                 'is_active' => true,
-                'icon' => 'car',
+                'icon' => 'cil-car-alt',
                 'permissions' => ['view', 'create', 'edit', 'delete', 'assign_drivers']
             ],
             [
                 'code' => 'FINANCE',
-                'name' => 'Module Finance',
-                'description' => 'Gestion des paiements et devises',
+                'name' => 'Gestion Financière',
+                'description' => 'Gestion des paiements, devises et rapports financiers',
                 'is_active' => true,
-                'icon' => 'dollar-sign',
-                'permissions' => ['view', 'create', 'edit', 'delete', 'approve']
+                'icon' => 'cil-dollar',
+                'permissions' => ['view', 'create', 'edit', 'delete', 'approve', 'export']
             ],
             [
                 'code' => 'STATISTICS',
-                'name' => 'Module Statistiques',
+                'name' => 'Statistiques',
                 'description' => 'Rapports et analyses statistiques',
                 'is_active' => true,
-                'icon' => 'graph',
+                'icon' => 'cil-chart-pie',
                 'permissions' => ['view', 'export']
             ],
         ];
