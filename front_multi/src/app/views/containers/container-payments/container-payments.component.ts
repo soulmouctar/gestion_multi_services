@@ -177,41 +177,41 @@ export class ContainerPaymentsComponent implements OnInit {
   // ==================== LOAD DATA ====================
 
   loadContainers(): void {
-    this.apiService.get<any>('containers-public?per_page=200').subscribe({
+    this.apiService.get<any>('containers?per_page=200').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.containers = Array.isArray(r.data) ? r.data : (r.data.data || []);
         }
       },
-      error: (err) => console.error('Error loading containers:', err)
+      error: () => { this.containers = []; }
     });
   }
 
   loadSuppliers(): void {
-    this.apiService.get<any>('suppliers-public?per_page=200').subscribe({
+    this.apiService.get<any>('suppliers?per_page=200').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.suppliers = Array.isArray(r.data) ? r.data : (r.data.data || []);
         }
       },
-      error: (err) => console.error('Error loading suppliers:', err)
+      error: () => { this.suppliers = []; }
     });
   }
 
   loadClients(): void {
-    this.apiService.get<any>('clients-public?per_page=200').subscribe({
+    this.apiService.get<any>('clients?per_page=200').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.clients = Array.isArray(r.data) ? r.data : (r.data.data || []);
         }
       },
-      error: (err) => console.error('Error loading clients:', err)
+      error: () => { this.clients = []; }
     });
   }
 
   loadArrivals(): void {
     this.loading = true;
-    this.apiService.get<any>(`container-arrivals-public?page=${this.arrivalsPage}`).subscribe({
+    this.apiService.get<any>(`container-arrivals?page=${this.arrivalsPage}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data;
@@ -223,8 +223,7 @@ export class ContainerPaymentsComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Error loading arrivals:', err);
+      error: () => {
         this.arrivals = [];
         this.loading = false;
         this.cdr.detectChanges();
@@ -233,7 +232,7 @@ export class ContainerPaymentsComponent implements OnInit {
   }
 
   loadSales(): void {
-    this.apiService.get<any>(`container-sales-public?page=${this.salesPage}`).subscribe({
+    this.apiService.get<any>(`container-sales?page=${this.salesPage}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data;
@@ -244,15 +243,12 @@ export class ContainerPaymentsComponent implements OnInit {
         }
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Error loading sales:', err);
-        this.sales = [];
-      }
+      error: () => { this.sales = []; }
     });
   }
 
   loadPayments(): void {
-    this.apiService.get<any>(`container-sale-payments-public?page=${this.paymentsPage}`).subscribe({
+    this.apiService.get<any>(`container-sale-payments?page=${this.paymentsPage}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data;
@@ -263,15 +259,12 @@ export class ContainerPaymentsComponent implements OnInit {
         }
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Error loading payments:', err);
-        this.clientPayments = [];
-      }
+      error: () => { this.clientPayments = []; }
     });
   }
 
   loadAdvances(): void {
-    this.apiService.get<any>(`client-advances-public?page=${this.advancesPage}`).subscribe({
+    this.apiService.get<any>(`client-advances?page=${this.advancesPage}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data;
@@ -282,22 +275,19 @@ export class ContainerPaymentsComponent implements OnInit {
         }
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Error loading advances:', err);
-        this.advances = [];
-      }
+      error: () => { this.advances = []; }
     });
   }
 
   loadStats(): void {
-    this.apiService.get<any>('container-sales-public/global-stats').subscribe({
+    this.apiService.get<any>('container-sales/global-stats').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.stats = r.data;
         }
         this.cdr.detectChanges();
       },
-      error: (err) => console.error('Error loading stats:', err)
+      error: () => {}
     });
   }
 
@@ -344,11 +334,11 @@ export class ContainerPaymentsComponent implements OnInit {
     this.submitted = true;
     if (this.arrivalForm.invalid) return;
 
-    const data = { ...this.arrivalForm.value, tenant_id: 1 };
-    
+    const data = this.arrivalForm.value;
+
     const obs = this.editMode && this.selectedArrival
-      ? this.apiService.put<any>(`container-arrivals-public/${this.selectedArrival.id}`, data)
-      : this.apiService.post<any>('container-arrivals-public', data);
+      ? this.apiService.put<any>(`container-arrivals/${this.selectedArrival.id}`, data)
+      : this.apiService.post<any>('container-arrivals', data);
 
     obs.subscribe({
       next: (r) => {
@@ -377,7 +367,7 @@ export class ContainerPaymentsComponent implements OnInit {
       cancelButtonText: 'Annuler'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.apiService.delete<any>(`container-arrivals-public/${arrival.id}`).subscribe({
+        this.apiService.delete<any>(`container-arrivals/${arrival.id}`).subscribe({
           next: () => {
             Swal.fire({ title: 'Supprimé', icon: 'success', timer: 1500, showConfirmButton: false });
             this.loadArrivals();
@@ -414,9 +404,9 @@ export class ContainerPaymentsComponent implements OnInit {
     this.submitted = true;
     if (this.saleForm.invalid) return;
 
-    const data = { ...this.saleForm.value, tenant_id: 1 };
+    const data = this.saleForm.value;
 
-    this.apiService.post<any>('container-sales-public', data).subscribe({
+    this.apiService.post<any>('container-sales', data).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ title: 'Succès', text: 'Vente enregistrée', icon: 'success', timer: 2000, showConfirmButton: false });
@@ -453,9 +443,9 @@ export class ContainerPaymentsComponent implements OnInit {
     this.submitted = true;
     if (this.paymentForm.invalid) return;
 
-    const data = { ...this.paymentForm.value, tenant_id: 1 };
+    const data = this.paymentForm.value;
 
-    this.apiService.post<any>('container-sale-payments-public', data).subscribe({
+    this.apiService.post<any>('container-sale-payments', data).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ title: 'Succès', text: 'Versement enregistré', icon: 'success', timer: 2000, showConfirmButton: false });
@@ -491,9 +481,9 @@ export class ContainerPaymentsComponent implements OnInit {
     this.submitted = true;
     if (this.advanceForm.invalid) return;
 
-    const data = { ...this.advanceForm.value, tenant_id: 1 };
+    const data = this.advanceForm.value;
 
-    this.apiService.post<any>('client-advances-public', data).subscribe({
+    this.apiService.post<any>('client-advances', data).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ title: 'Succès', text: 'Avance enregistrée', icon: 'success', timer: 2000, showConfirmButton: false });
@@ -512,7 +502,7 @@ export class ContainerPaymentsComponent implements OnInit {
 
   viewClientStats(client: any): void {
     this.selectedClient = client;
-    this.apiService.get<any>(`container-sales-public/client-stats/${client.id}`).subscribe({
+    this.apiService.get<any>(`container-sales/client-stats/${client.id}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.clientStats = r.data;

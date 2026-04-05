@@ -36,36 +36,36 @@ export class RoleService {
 
   // Role CRUD operations
   getRoles(): Observable<ApiResponse<Role[]>> {
-    return this.http.get<ApiResponse<Role[]>>(`${this.API_URL}/roles-public`);
+    return this.http.get<ApiResponse<Role[]>>(`${this.API_URL}/roles`);
   }
 
   getRole(id: number): Observable<ApiResponse<Role>> {
-    return this.http.get<ApiResponse<Role>>(`${this.API_URL}/roles-public/${id}`);
+    return this.http.get<ApiResponse<Role>>(`${this.API_URL}/roles/${id}`);
   }
 
   createRole(role: Partial<Role>): Observable<ApiResponse<Role>> {
-    return this.http.post<ApiResponse<Role>>(`${this.API_URL}/roles-public`, role);
+    return this.http.post<ApiResponse<Role>>(`${this.API_URL}/roles`, role);
   }
 
   updateRole(id: number, role: Partial<Role>): Observable<ApiResponse<Role>> {
-    return this.http.put<ApiResponse<Role>>(`${this.API_URL}/roles-public/${id}`, role);
+    return this.http.put<ApiResponse<Role>>(`${this.API_URL}/roles/${id}`, role);
   }
 
   deleteRole(id: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.API_URL}/roles-public/${id}`);
+    return this.http.delete<ApiResponse<void>>(`${this.API_URL}/roles/${id}`);
   }
 
   // Permission operations
   getPermissions(): Observable<ApiResponse<Permission[]>> {
-    return this.http.get<ApiResponse<Permission[]>>(`${this.API_URL}/permissions-public`);
+    return this.http.get<ApiResponse<Permission[]>>(`${this.API_URL}/permissions`);
   }
 
   createPermission(permission: Partial<Permission>): Observable<ApiResponse<Permission>> {
-    return this.http.post<ApiResponse<Permission>>(`${this.API_URL}/permissions-public`, permission);
+    return this.http.post<ApiResponse<Permission>>(`${this.API_URL}/permissions`, permission);
   }
 
   deletePermission(id: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.API_URL}/permissions-public/${id}`);
+    return this.http.delete<ApiResponse<void>>(`${this.API_URL}/permissions/${id}`);
   }
 
   // Utility methods

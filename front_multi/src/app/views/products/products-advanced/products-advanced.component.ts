@@ -62,7 +62,7 @@ export class ProductsAdvancedComponent implements OnInit {
   // Low Stock Products
   loadLowStockProducts(): void {
     this.loadingLowStock = true;
-    this.apiService.get<any>('products-public/low-stock').subscribe({
+    this.apiService.get<any>('products/low-stock').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.lowStockProducts = r.data;
@@ -70,8 +70,7 @@ export class ProductsAdvancedComponent implements OnInit {
         this.loadingLowStock = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Low stock products error:', err);
+      error: () => {
         this.loadingLowStock = false;
         this.error = 'Erreur lors du chargement des produits en rupture';
         this.cdr.detectChanges();
@@ -112,7 +111,7 @@ export class ProductsAdvancedComponent implements OnInit {
   // Product Statistics
   loadProductStatistics(): void {
     this.statsLoading = true;
-    this.apiService.get<any>('products-public/statistics').subscribe({
+    this.apiService.get<any>('products/statistics').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.productStats = r.data;
@@ -120,8 +119,7 @@ export class ProductsAdvancedComponent implements OnInit {
         this.statsLoading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Statistics error:', err);
+      error: () => {
         this.statsLoading = false;
         this.cdr.detectChanges();
       }

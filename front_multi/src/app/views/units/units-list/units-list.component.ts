@@ -100,9 +100,8 @@ export class UnitsListComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        this.error = 'Erreur lors du chargement des unités';
-        console.error('Error loading units:', err);
+      error: () => {
+        this.error   = 'Erreur lors du chargement des unités';
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -240,7 +239,7 @@ export class UnitsListComponent implements OnInit {
     });
   }
 
-  trackByUnitId(index: number, unit: any): number {
+  trackByUnitId(_index: number, unit: any): number {
     return unit.id;
   }
 

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ApiResponse } from './tenant.service';
+import { ApiResponse } from '../models/tenant.model';
 import { environment } from '../../../environments/environment';
 
 export interface Role {
@@ -80,7 +80,7 @@ export class UserService {
   // CRUD Operations
   getUsers(tenantId?: number): Observable<ApiResponse<any>> {
     const params = tenantId ? `?tenant_id=${tenantId}` : '';
-    return this.http.get<ApiResponse<any>>(`${this.API_URL}/users-public${params}`);
+    return this.http.get<ApiResponse<any>>(`${this.API_URL}/users${params}`);
   }
 
   getUser(id: number): Observable<ApiResponse<UserProfile>> {
@@ -124,17 +124,17 @@ export class UserService {
 
   // Get available roles
   getRoles(): Observable<ApiResponse<Role[]>> {
-    return this.http.get<ApiResponse<Role[]>>(`${this.API_URL}/roles-public`);
+    return this.http.get<ApiResponse<Role[]>>(`${this.API_URL}/roles`);
   }
 
   // Get available permissions
   getPermissions(): Observable<ApiResponse<Permission[]>> {
-    return this.http.get<ApiResponse<Permission[]>>(`${this.API_URL}/permissions-public`);
+    return this.http.get<ApiResponse<Permission[]>>(`${this.API_URL}/permissions`);
   }
 
   // Module-based permissions
   getUserModulePermissions(userId: number): Observable<ApiResponse<ModulePermission[]>> {
-    return this.http.get<ApiResponse<ModulePermission[]>>(`${this.API_URL}/users/${userId}/module-permissions-public`);
+    return this.http.get<ApiResponse<ModulePermission[]>>(`${this.API_URL}/users/${userId}/module-permissions`);
   }
 
   updateUserModulePermissions(userId: number, modulePermissions: ModulePermission[]): Observable<ApiResponse<any>> {
@@ -147,11 +147,7 @@ export class UserService {
     
     const payload = { module_permissions: sanitizedPermissions };
     
-    // Debug: Log the exact payload being sent
-    console.log('UserService - Sending payload:', JSON.stringify(payload, null, 2));
-    console.log('UserService - URL:', `${this.API_URL}/users/${userId}/module-permissions-public`);
-    
-    return this.http.post<ApiResponse<any>>(`${this.API_URL}/users/${userId}/module-permissions-public`, payload);
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/users/${userId}/module-permissions`, payload);
   }
 
   // Available modules (from tenant component)

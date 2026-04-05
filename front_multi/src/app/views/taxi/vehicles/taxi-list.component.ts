@@ -58,28 +58,20 @@ export class TaxiListComponent implements OnInit {
   save(): void {
     this.submitted = true; if (this.taxiForm.invalid) return;
     
-    // Add tenant_id to form data
-    const data = {
-      ...this.taxiForm.value,
-      tenant_id: 1 // Fixed for testing
-    };
-    
+    const data = this.taxiForm.value;
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`taxis/${this.selectedItem.id}`, data)
-      : this.apiService.post<any>('taxis-public', data);
+      : this.apiService.post<any>('taxis', data);
     obs.subscribe({
-      next: (r) => { 
-        if (r.success) { 
-          this.successMessage = this.editMode ? 'Véhicule mis à jour avec succès' : 'Véhicule créé avec succès'; 
-          this.showFormModal = false; 
-          this.loadData(); 
-          this.clearMessages(); 
-        } 
+      next: (r) => {
+        if (r.success) {
+          this.successMessage = this.editMode ? 'Véhicule mis à jour avec succès' : 'Véhicule créé avec succès';
+          this.showFormModal = false;
+          this.loadData();
+          this.clearMessages();
+        }
       },
-      error: (err) => { 
-        console.error('Taxi save error:', err);
-        this.error = err?.error?.message || err?.message || 'Erreur lors de la sauvegarde'; 
-      }
+      error: (err) => { this.error = err?.error?.message || 'Erreur lors de la sauvegarde'; }
     });
   }
 

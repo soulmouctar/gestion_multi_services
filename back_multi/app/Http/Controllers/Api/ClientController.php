@@ -5,15 +5,23 @@ namespace App\Http\Controllers\Api;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class ClientController extends BaseController
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
+        $tenantId = $user->tenant_id ?? $request->get('tenant_id');
+        
+        if (!$tenantId && !$user->hasRole('SUPER_ADMIN')) {
+            return $this->sendError('Tenant ID required', [], 400);
+        }
+
         $query = Client::with('tenant', 'invoices');
 
-        if ($request->has('tenant_id')) {
-            $query->where('tenant_id', $request->tenant_id);
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
         }
 
         $clients = $query->paginate(15);
@@ -58,10 +66,9 @@ class ClientController extends BaseController
         }
 
         $validator = Validator::make($request->all(), [
-            'tenant_id' => 'sometimes|exists:tenants,id',
             'name' => 'sometimes|string|max:150',
-            'phone1' => 'nullable|string|max:50',
-            'phone2' => 'nullable|string|max:50',
+            'phone1' => 'sometimes|string|max:50',
+            'phone2' => 'sometimes|string|max:50',
         ]);
 
         if ($validator->fails()) {
@@ -84,5 +91,41 @@ class ClientController extends BaseController
         $client->delete();
 
         return $this->sendResponse([], 'Client deleted successfully');
+    }
+
+    /**
+     * Get client statistics
+     */
+    public function getStatistics(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $tenantId = $user->tenant_id ?? $request->get('tenant_id');
+            
+            if (!$tenantId && !$user->hasRole('SUPER_ADMIN')) {
+                return $this->sendError('Tenant ID required', [], 400);
+            }
+
+            $query = Client::query();
+            
+            if ($tenantId) {
+                $query->where('tenant_id', $tenantId);
+            }
+
+            $stats = [
+                'total_clients' => $query->count(),
+                'active_clients' => $query->whereHas('invoices', function($q) {
+                    $q->where('created_at', '>=', now()->subMonths(6));
+                })->count(),
+                'new_clients_this_month' => $query->where('created_at', '>=', now()->startOfMonth())->count(),
+                'new_clients_this_year' => $query->where('created_at', '>=', now()->startOfYear())->count()
+            ];
+
+            return $this->sendResponse($stats, 'Client statistics retrieved successfully');
+            
+        } catch (\Exception $e) {
+            \Log::error('Error retrieving client statistics: ' . $e->getMessage());
+            return $this->sendError('Error retrieving statistics', [], 500);
+        }
     }
 }

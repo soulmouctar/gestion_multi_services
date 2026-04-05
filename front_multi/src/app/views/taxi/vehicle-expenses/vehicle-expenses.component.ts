@@ -89,7 +89,7 @@ export class VehicleExpensesComponent implements OnInit {
   }
 
   loadTaxis(): void {
-    this.apiService.get<any>('taxis-public?per_page=200').subscribe({
+    this.apiService.get<any>('taxis?per_page=200').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.taxis = r.data.data || r.data || [];
@@ -110,7 +110,7 @@ export class VehicleExpensesComponent implements OnInit {
 
   loadData(): void {
     this.loading = true; this.error = null;
-    let url = `vehicle-expenses?page=${this.currentPage}&tenant_id=1`;
+    let url = `vehicle-expenses?page=${this.currentPage}`;
     
     const filters = this.filterForm.value;
     if (filters.taxi_id) url += `&taxi_id=${filters.taxi_id}`;
@@ -143,7 +143,7 @@ export class VehicleExpensesComponent implements OnInit {
   loadStatistics(): void {
     this.loadingStats = true;
     const filters = this.filterForm.value;
-    let url = `vehicle-expenses/statistics?tenant_id=1`;
+    let url = `vehicle-expenses/statistics`;
     if (filters.date_from) url += `&date_from=${filters.date_from}`;
     if (filters.date_to) url += `&date_to=${filters.date_to}`;
 
@@ -222,7 +222,7 @@ export class VehicleExpensesComponent implements OnInit {
     this.submitted = true;
     if (this.expenseForm.invalid) return;
 
-    const data = { ...this.expenseForm.value, tenant_id: 1 };
+    const data = this.expenseForm.value;
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`vehicle-expenses/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('vehicle-expenses', data);

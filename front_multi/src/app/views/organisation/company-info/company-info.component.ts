@@ -2,7 +2,8 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
-import { TenantService, ApiResponse, Tenant } from '../../../core/services/tenant.service';
+import { TenantService } from '../../../core/services/tenant.service';
+import { ApiResponse, Tenant } from '../../../core/models/tenant.model';
 import { OrganisationFilterService } from '../../../core/services/organisation-filter.service';
 import { 
   CardModule, 

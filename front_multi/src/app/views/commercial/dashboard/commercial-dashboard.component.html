@@ -1,0 +1,176 @@
+<div class="container-fluid">
+
+  <!-- Header -->
+  <div class="row mb-4 align-items-center">
+    <div class="col">
+      <h2 class="mb-0">
+        <svg cIcon name="cilBasket" class="me-2 text-primary"></svg>
+        Tableau de Bord Commercial
+      </h2>
+      <p class="text-body-secondary mb-0">Vue d'ensemble de votre activité commerciale</p>
+    </div>
+    <div class="col-auto">
+      <button type="button" class="btn btn-primary" routerLink="/products/list">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau Produit
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="mt-2 text-body-secondary">Chargement des données...</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- KPI Cards -->
+    <c-row class="mb-4 g-3">
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-primary border-3">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-body-secondary small text-uppercase fw-semibold">Produits</div>
+                <div class="fs-3 fw-bold">{{ stats.totalProducts }}</div>
+                <div class="small text-danger mt-1" *ngIf="stats.lowStockProducts > 0">
+                  <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+                  {{ stats.lowStockProducts }} stock faible
+                </div>
+              </div>
+              <svg cIcon name="cilBoxAlt" size="xl" class="text-primary opacity-50"></svg>
+            </div>
+          </c-card-body>
+          <c-card-footer class="border-0 bg-transparent">
+            <a routerLink="/products/list" class="btn btn-sm btn-outline-primary">Voir produits →</a>
+          </c-card-footer>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-success border-3">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-body-secondary small text-uppercase fw-semibold">Clients</div>
+                <div class="fs-3 fw-bold">{{ stats.totalClients }}</div>
+              </div>
+              <svg cIcon name="cilPeople" size="xl" class="text-success opacity-50"></svg>
+            </div>
+          </c-card-body>
+          <c-card-footer class="border-0 bg-transparent">
+            <a routerLink="/clients/list" class="btn btn-sm btn-outline-success">Voir clients →</a>
+          </c-card-footer>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-warning border-3">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-body-secondary small text-uppercase fw-semibold">Fournisseurs</div>
+                <div class="fs-3 fw-bold">{{ stats.totalSuppliers }}</div>
+              </div>
+              <svg cIcon name="cilTruck" size="xl" class="text-warning opacity-50"></svg>
+            </div>
+          </c-card-body>
+          <c-card-footer class="border-0 bg-transparent">
+            <a routerLink="/suppliers/list" class="btn btn-sm btn-outline-warning">Voir fournisseurs →</a>
+          </c-card-footer>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-info border-3">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-body-secondary small text-uppercase fw-semibold">Paiements</div>
+                <div class="fs-3 fw-bold">{{ stats.totalPayments }}</div>
+                <div class="small text-body-secondary">{{ stats.revenueMonth | number:'1.0-0' }} ce mois</div>
+              </div>
+              <svg cIcon name="cilCreditCard" size="xl" class="text-info opacity-50"></svg>
+            </div>
+          </c-card-body>
+          <c-card-footer class="border-0 bg-transparent">
+            <a routerLink="/payments/list" class="btn btn-sm btn-outline-info">Voir paiements →</a>
+          </c-card-footer>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <!-- Accès rapides -->
+    <c-row class="mb-4">
+      <c-col xs="12">
+        <c-card>
+          <c-card-header><strong>Accès rapides</strong></c-card-header>
+          <c-card-body>
+            <div class="d-flex flex-wrap gap-2">
+              <a routerLink="/products/list"          class="btn btn-outline-primary"><svg cIcon name="cilBoxAlt" class="me-1"></svg> Produits</a>
+              <a routerLink="/products/advanced"      class="btn btn-outline-primary"><svg cIcon name="cilSettings" class="me-1"></svg> Stock avancé</a>
+              <a routerLink="/product-categories/list" class="btn btn-outline-secondary"><svg cIcon name="cilList" class="me-1"></svg> Catégories</a>
+              <a routerLink="/units/list"             class="btn btn-outline-secondary"><svg cIcon name="cilBalanceScale" class="me-1"></svg> Unités</a>
+              <a routerLink="/clients/list"           class="btn btn-outline-success"><svg cIcon name="cilPeople" class="me-1"></svg> Clients</a>
+              <a routerLink="/suppliers/list"         class="btn btn-outline-warning"><svg cIcon name="cilTruck" class="me-1"></svg> Fournisseurs</a>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row class="g-4">
+      <!-- Stock faible -->
+      <c-col xs="12" lg="6">
+        <c-card class="h-100">
+          <c-card-header class="d-flex justify-content-between align-items-center">
+            <strong><svg cIcon name="cilWarning" class="me-1 text-danger"></svg> Produits à stock faible</strong>
+            <a routerLink="/products/list" class="btn btn-sm btn-outline-danger">Voir tout</a>
+          </c-card-header>
+          <c-card-body>
+            <div *ngIf="lowStockItems.length === 0" class="text-center py-3 text-body-secondary">
+              <svg cIcon name="cilCheckCircle" size="xl" class="text-success mb-2"></svg>
+              <p class="mb-0">Tous les stocks sont suffisants</p>
+            </div>
+            <table *ngIf="lowStockItems.length > 0" class="table table-sm table-hover mb-0">
+              <thead><tr><th>Produit</th><th class="text-end">Stock</th><th class="text-end">Min</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let item of lowStockItems">
+                  <td>{{ item.name }}</td>
+                  <td class="text-end"><span class="badge bg-danger">{{ item.stock_quantity ?? item.quantity ?? 0 }}</span></td>
+                  <td class="text-end text-body-secondary">{{ item.min_stock ?? item.minimum_stock ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <!-- Clients récents -->
+      <c-col xs="12" lg="6">
+        <c-card class="h-100">
+          <c-card-header class="d-flex justify-content-between align-items-center">
+            <strong><svg cIcon name="cilPeople" class="me-1 text-success"></svg> Clients récents</strong>
+            <a routerLink="/clients/list" class="btn btn-sm btn-outline-success">Voir tout</a>
+          </c-card-header>
+          <c-card-body>
+            <div *ngIf="recentClients.length === 0" class="text-center py-3 text-body-secondary">
+              <svg cIcon name="cilPeople" size="xl" class="mb-2 opacity-25"></svg>
+              <p class="mb-0">Aucun client enregistré</p>
+            </div>
+            <table *ngIf="recentClients.length > 0" class="table table-sm table-hover mb-0">
+              <thead><tr><th>Nom</th><th>Téléphone</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let client of recentClients">
+                  <td>{{ client.name }}</td>
+                  <td class="text-body-secondary">{{ client.phone1 || client.phone || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+  </ng-container>
+</div>

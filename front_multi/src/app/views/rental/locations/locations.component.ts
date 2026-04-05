@@ -38,7 +38,7 @@ export class LocationsComponent implements OnInit {
 
   loadData(): void {
     this.loading = true;
-    this.apiService.get<any>(`locations-public?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`locations?page=${this.currentPage}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data; this.locations = p.data || [];
@@ -58,10 +58,10 @@ export class LocationsComponent implements OnInit {
 
   save(): void {
     this.submitted = true; if (this.locationForm.invalid) return;
-    const data = { ...this.locationForm.value, tenant_id: 1 };
+    const data = this.locationForm.value;
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`locations/${this.selectedItem.id}`, data)
-      : this.apiService.post<any>('locations-public', data);
+      : this.apiService.post<any>('locations', data);
     obs.subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Emplacement mis à jour' : 'Emplacement créé'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
       error: (err) => { this.error = err?.error?.message || 'Erreur'; }

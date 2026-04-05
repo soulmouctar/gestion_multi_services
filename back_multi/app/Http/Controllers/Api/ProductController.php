@@ -47,7 +47,7 @@ class ProductController extends BaseController
             }
 
             // Filter by stock level
-            if ($request->has('low_stock')) {
+            if ($request->boolean('low_stock')) {
                 $query->whereRaw('stock_quantity <= low_stock_threshold');
             }
 
@@ -57,9 +57,16 @@ class ProductController extends BaseController
             $query->orderBy($sortBy, $sortOrder);
 
             $perPage = $request->get('per_page', 15);
-            $products = $query->paginate($perPage);
             
-            return $this->sendResponse($products, 'Products retrieved successfully');
+            // Check if pagination is requested
+            if ($request->has('per_page') || $request->has('page')) {
+                $products = $query->paginate($perPage);
+                return $this->sendResponse($products, 'Products retrieved successfully');
+            } else {
+                // Return all products without pagination
+                $products = $query->get();
+                return $this->sendResponse($products, 'Products retrieved successfully');
+            }
             
         } catch (\Exception $e) {
             \Log::error('Error retrieving products: ' . $e->getMessage());
@@ -589,6 +596,145 @@ class ProductController extends BaseController
             \Log::error('Error updating product stock: ' . $e->getMessage());
             return $this->sendError('Error updating stock', [], 500);
         }
+    }
+
+    public function export(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $tenantId = $user->tenant_id ?? $request->get('tenant_id');
+            
+            if (!$tenantId && !$user->hasRole('SUPER_ADMIN')) {
+                return $this->sendError('Tenant ID required', [], 400);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'format' => 'required|in:csv,excel,pdf',
+                'category_id' => 'nullable|exists:product_categories,id',
+                'status' => 'nullable|in:ACTIVE,INACTIVE,DISCONTINUED',
+                'low_stock' => 'nullable|boolean',
+                'sort_by' => 'nullable|string',
+                'sort_order' => 'nullable|in:asc,desc'
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+            }
+
+            $query = Product::with('tenant', 'category', 'unit');
+            
+            // Filter by tenant for non-super-admin users
+            if ($tenantId) {
+                $query->where('tenant_id', $tenantId);
+            }
+
+            // Apply filters
+            if ($request->has('category_id')) {
+                $query->where('product_category_id', $request->get('category_id'));
+            }
+
+            if ($request->has('status')) {
+                $query->where('status', $request->get('status'));
+            }
+
+            if ($request->has('low_stock') && $request->get('low_stock')) {
+                $query->whereRaw('stock_quantity <= low_stock_threshold');
+            }
+
+            // Sort options
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+
+            $products = $query->get();
+
+            $format = $request->get('format', 'csv');
+            
+            switch ($format) {
+                case 'csv':
+                    return $this->exportCSV($products);
+                case 'excel':
+                    return $this->exportExcel($products);
+                case 'pdf':
+                    return $this->exportPDF($products);
+                default:
+                    return $this->sendError('Unsupported format', [], 400);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Error exporting products: ' . $e->getMessage());
+            return $this->sendError('Error exporting products', [], 500);
+        }
+    }
+
+    private function exportCSV($products)
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="products_export_' . date('Y-m-d') . '.csv"'
+        ];
+
+        $callback = function() use ($products) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV Header
+            fputcsv($file, [
+                'ID',
+                'Name',
+                'Description',
+                'SKU',
+                'Category',
+                'Unit',
+                'Purchase Price',
+                'Selling Price',
+                'Stock Quantity',
+                'Low Stock Threshold',
+                'Status',
+                'Barcode',
+                'Weight',
+                'Dimensions',
+                'Created At'
+            ]);
+
+            // CSV Data
+            foreach ($products as $product) {
+                fputcsv($file, [
+                    $product->id,
+                    $product->name,
+                    $product->description,
+                    $product->sku,
+                    $product->category ? $product->category->name : '',
+                    $product->unit ? $product->unit->name : '',
+                    $product->purchase_price,
+                    $product->selling_price,
+                    $product->stock_quantity,
+                    $product->low_stock_threshold,
+                    $product->status,
+                    $product->barcode,
+                    $product->weight,
+                    $product->dimensions,
+                    $product->created_at
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    private function exportExcel($products)
+    {
+        // For now, return CSV format for Excel export as well
+        // You can implement proper Excel export using Laravel Excel package
+        return $this->exportCSV($products);
+    }
+
+    private function exportPDF($products)
+    {
+        // For now, return error for PDF export
+        // You can implement PDF export using DOMPDF or similar package
+        return $this->sendError('PDF export not implemented yet', [], 501);
     }
 
     public function publicSalesHistory($id)

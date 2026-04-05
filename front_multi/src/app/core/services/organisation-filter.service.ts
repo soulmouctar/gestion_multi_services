@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { AuthService } from './auth.service';
-import { TenantService, Tenant, ApiResponse } from './tenant.service';
+import { TenantService } from './tenant.service';
+import { Tenant, ApiResponse } from '../models/tenant.model';
 
 @Injectable({
   providedIn: 'root'

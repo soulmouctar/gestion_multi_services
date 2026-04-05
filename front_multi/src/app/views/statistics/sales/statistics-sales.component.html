@@ -1,0 +1,78 @@
+<div class="container-fluid">
+  <div class="row mb-4 align-items-center">
+    <div class="col">
+      <h2 class="mb-0"><svg cIcon name="cilChart" class="me-2 text-primary"></svg>Statistiques des Ventes</h2>
+    </div>
+    <div class="col-auto">
+      <select class="form-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
+        <option *ngFor="let p of periods" [value]="p.value">{{ p.label }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <c-row class="mb-4 g-3">
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-primary border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold">{{ stats.totalPayments }}</div>
+            <div class="text-body-secondary">Paiements reçus</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-success border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold">{{ stats.totalAmount | number:'1.0-0' }}</div>
+            <div class="text-body-secondary">Montant total</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-warning border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold">{{ stats.avgPayment | number:'1.0-0' }}</div>
+            <div class="text-body-secondary">Paiement moyen</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-info border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold">{{ stats.totalClients }}</div>
+            <div class="text-body-secondary">Clients actifs</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row>
+      <c-col xs="12">
+        <c-card>
+          <c-card-header><strong>Paiements récents</strong></c-card-header>
+          <c-card-body>
+            <div *ngIf="recentPayments.length === 0" class="text-center py-4 text-body-secondary">
+              Aucun paiement sur la période sélectionnée.
+            </div>
+            <table *ngIf="recentPayments.length > 0" class="table table-hover mb-0">
+              <thead><tr><th>Référence</th><th>Client</th><th>Méthode</th><th class="text-end">Montant</th><th>Date</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let pay of recentPayments">
+                  <td>{{ pay.reference || pay.id }}</td>
+                  <td>{{ pay.client?.name || '—' }}</td>
+                  <td><span class="badge bg-secondary">{{ pay.payment_method || pay.method || '—' }}</span></td>
+                  <td class="text-end fw-bold">{{ pay.amount | number:'1.0-0' }} {{ pay.currency || '' }}</td>
+                  <td class="text-body-secondary small">{{ pay.payment_date || pay.created_at | date:'dd/MM/yyyy' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </ng-container>
+</div>

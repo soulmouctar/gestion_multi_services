@@ -8,25 +8,14 @@ use Illuminate\Support\Facades\DB;
 
 class CheckTenantModule
 {
-    /**
-     * Handle an incoming request.
-     * Vérifie si le tenant a accès au module demandé
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @param  string  $moduleCode
-     * @return mixed
-     */
     public function handle(Request $request, Closure $next, string $moduleCode)
     {
         $user = $request->user();
 
-        // Super Admin a accès à tout
         if ($user && $user->hasRole('SUPER_ADMIN')) {
             return $next($request);
         }
 
-        // Vérifier si l'utilisateur a un tenant
         if (!$user || !$user->tenant_id) {
             return response()->json([
                 'success' => false,
@@ -34,23 +23,27 @@ class CheckTenantModule
             ], 403);
         }
 
-        // Vérifier si le tenant a souscrit au module et qu'il est actif
-        $hasModuleAccess = DB::table('tenant_modules')
+        // Vérifier en une seule requête si le tenant a souscrit au module ET que l'utilisateur a la permission
+        $tenantHasModule = DB::table('tenant_modules')
             ->join('modules', 'tenant_modules.module_id', '=', 'modules.id')
             ->where('tenant_modules.tenant_id', $user->tenant_id)
             ->where('modules.code', $moduleCode)
             ->where('tenant_modules.is_active', true)
             ->exists();
 
-        if (!$hasModuleAccess) {
+        if (!$tenantHasModule) {
             return response()->json([
-                'success' => false,
-                'message' => "Accès refusé: Votre organisation n'a pas souscrit au module $moduleCode",
+                'success'     => false,
+                'message'     => "Accès refusé: Votre organisation n'a pas souscrit au module $moduleCode",
                 'module_code' => $moduleCode,
             ], 403);
         }
 
-        // Vérifier si l'utilisateur a la permission d'accéder au module
+        // ADMIN peut accéder à tous les modules actifs du tenant (pour la gestion des utilisateurs)
+        if ($user->hasRole('ADMIN')) {
+            return $next($request);
+        }
+
         $userHasPermission = DB::table('user_module_permissions')
             ->where('user_id', $user->id)
             ->where('module_code', $moduleCode)
@@ -59,8 +52,8 @@ class CheckTenantModule
 
         if (!$userHasPermission) {
             return response()->json([
-                'success' => false,
-                'message' => "Accès refusé: Vous n'avez pas la permission d'accéder au module $moduleCode",
+                'success'     => false,
+                'message'     => "Accès refusé: Vous n'avez pas la permission d'accéder au module $moduleCode",
                 'module_code' => $moduleCode,
             ], 403);
         }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\User;
+use App\Models\Module;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -24,13 +25,16 @@ class UserController extends BaseController
 
     public function publicIndex(Request $request)
     {
-        $tenantId = $request->get('tenant_id', 1);
+        $currentUser = auth()->user();
         $perPage = $request->get('per_page', 15);
-        
+
         $query = User::with('tenant', 'roles');
 
-        if ($tenantId) {
-            $query->where('tenant_id', $tenantId);
+        // ADMIN ne voit que les utilisateurs de son tenant
+        if ($currentUser && $currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
+            $query->where('tenant_id', $currentUser->tenant_id);
+        } elseif ($request->has('tenant_id')) {
+            $query->where('tenant_id', $request->tenant_id);
         }
 
         $users = $query->paginate($perPage);
@@ -40,13 +44,13 @@ class UserController extends BaseController
     public function store(Request $request)
     {
         $currentUser = auth()->user();
-        
+
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:150',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8',
+            'name'      => 'required|string|max:150',
+            'email'     => 'required|email|unique:users,email',
+            'password'  => 'required|min:8',
             'tenant_id' => 'nullable|exists:tenants,id',
-            'role' => 'nullable|string|exists:roles,name',
+            'role'      => 'nullable|string|exists:roles,name',
         ]);
 
         if ($validator->fails()) {
@@ -54,27 +58,22 @@ class UserController extends BaseController
         }
 
         $requestedRole = $request->get('role', 'USER');
-        
-        // Vérification de la hiérarchie des rôles pour la création
+
         if ($requestedRole === 'SUPER_ADMIN' && !$currentUser->hasRole('SUPER_ADMIN')) {
-            return $this->sendError('Vous n\'avez pas l\'autorisation de créer un utilisateur avec le rôle SUPER_ADMIN', [], 403);
+            return $this->sendError('Vous n\'avez pas l\'autorisation de créer un utilisateur SUPER_ADMIN', [], 403);
         }
-        
-        // ADMIN ne peut créer que des utilisateurs USER dans son tenant
+
         if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
-            // Forcer le tenant_id à celui de l'ADMIN
             $request->merge(['tenant_id' => $currentUser->tenant_id]);
-            
-            // ADMIN ne peut créer que des utilisateurs avec le rôle USER
             if ($requestedRole !== 'USER') {
                 return $this->sendError('Vous ne pouvez créer que des utilisateurs avec le rôle USER', [], 403);
             }
         }
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name'      => $request->name,
+            'email'     => $request->email,
+            'password'  => Hash::make($request->password),
             'tenant_id' => $request->tenant_id,
         ]);
 
@@ -104,54 +103,45 @@ class UserController extends BaseController
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:150',
-            'email' => 'sometimes|email|unique:users,email,' . $id,
-            'password' => 'nullable|min:8',
+            'name'      => 'sometimes|string|max:150',
+            'email'     => 'sometimes|email|unique:users,email,' . $id,
+            'password'  => 'nullable|min:8',
             'tenant_id' => 'nullable|exists:tenants,id',
-            'role' => 'nullable|string|exists:roles,name',
+            'role'      => 'nullable|string|exists:roles,name',
         ]);
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // Vérification de la hiérarchie des rôles pour la modification
         if ($request->has('role')) {
             $requestedRole = $request->role;
-            
-            // Seul SUPER_ADMIN peut assigner le rôle SUPER_ADMIN
+
             if ($requestedRole === 'SUPER_ADMIN' && !$currentUser->hasRole('SUPER_ADMIN')) {
                 return $this->sendError('Vous n\'avez pas l\'autorisation d\'assigner le rôle SUPER_ADMIN', [], 403);
             }
-            
-            // ADMIN ne peut modifier que des utilisateurs USER dans son tenant
+
             if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
-                // Vérifier que l'utilisateur cible est dans le même tenant
                 if ($user->tenant_id !== $currentUser->tenant_id) {
                     return $this->sendError('Vous ne pouvez gérer que les utilisateurs de votre organisation', [], 403);
                 }
-                
-                // ADMIN ne peut assigner que le rôle USER
                 if ($requestedRole !== 'USER') {
                     return $this->sendError('Vous ne pouvez assigner que le rôle USER', [], 403);
                 }
             }
         }
 
-        // ADMIN ne peut modifier que les utilisateurs de son tenant
         if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
             if ($user->tenant_id !== $currentUser->tenant_id) {
                 return $this->sendError('Vous ne pouvez gérer que les utilisateurs de votre organisation', [], 403);
             }
-            
-            // Empêcher la modification du tenant_id par un ADMIN
             if ($request->has('tenant_id') && $request->tenant_id !== $currentUser->tenant_id) {
                 return $this->sendError('Vous ne pouvez pas déplacer un utilisateur vers une autre organisation', [], 403);
             }
         }
 
         $data = $request->only(['name', 'email', 'tenant_id']);
-        
+
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
@@ -174,24 +164,18 @@ class UserController extends BaseController
             return $this->sendError('User not found');
         }
 
-        // Empêcher l'auto-suppression
         if ($user->id === $currentUser->id) {
             return $this->sendError('Vous ne pouvez pas supprimer votre propre compte', [], 403);
         }
 
-        // Seul SUPER_ADMIN peut supprimer des utilisateurs SUPER_ADMIN
         if ($user->hasRole('SUPER_ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
             return $this->sendError('Vous n\'avez pas l\'autorisation de supprimer un utilisateur SUPER_ADMIN', [], 403);
         }
 
-        // ADMIN ne peut supprimer que des utilisateurs USER dans son tenant
         if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
-            // Vérifier que l'utilisateur cible est dans le même tenant
             if ($user->tenant_id !== $currentUser->tenant_id) {
                 return $this->sendError('Vous ne pouvez gérer que les utilisateurs de votre organisation', [], 403);
             }
-            
-            // ADMIN ne peut supprimer que des utilisateurs avec le rôle USER
             if (!$user->hasRole('USER')) {
                 return $this->sendError('Vous ne pouvez supprimer que des utilisateurs avec le rôle USER', [], 403);
             }
@@ -219,28 +203,21 @@ class UserController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // Vérification de la hiérarchie des rôles
         $requestedRole = $request->role;
-        
-        // Seul SUPER_ADMIN peut assigner le rôle SUPER_ADMIN
+
         if ($requestedRole === 'SUPER_ADMIN' && !$currentUser->hasRole('SUPER_ADMIN')) {
             return $this->sendError('Vous n\'avez pas l\'autorisation d\'assigner le rôle SUPER_ADMIN', [], 403);
         }
-        
-        // ADMIN ne peut assigner que des rôles USER dans son tenant
+
         if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
-            // Vérifier que l'utilisateur cible est dans le même tenant
             if ($user->tenant_id !== $currentUser->tenant_id) {
                 return $this->sendError('Vous ne pouvez gérer que les utilisateurs de votre organisation', [], 403);
             }
-            
-            // ADMIN ne peut assigner que le rôle USER
             if ($requestedRole !== 'USER') {
                 return $this->sendError('Vous ne pouvez assigner que le rôle USER', [], 403);
             }
         }
-        
-        // Empêcher l'auto-promotion
+
         if ($user->id === $currentUser->id && $requestedRole === 'SUPER_ADMIN') {
             return $this->sendError('Vous ne pouvez pas vous auto-promouvoir au rôle SUPER_ADMIN', [], 403);
         }
@@ -267,28 +244,21 @@ class UserController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // Vérification de la hiérarchie des rôles
         $roleToRemove = $request->role;
-        
-        // Seul SUPER_ADMIN peut supprimer le rôle SUPER_ADMIN
+
         if ($roleToRemove === 'SUPER_ADMIN' && !$currentUser->hasRole('SUPER_ADMIN')) {
             return $this->sendError('Vous n\'avez pas l\'autorisation de supprimer le rôle SUPER_ADMIN', [], 403);
         }
-        
-        // ADMIN ne peut supprimer que des rôles USER dans son tenant
+
         if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
-            // Vérifier que l'utilisateur cible est dans le même tenant
             if ($user->tenant_id !== $currentUser->tenant_id) {
                 return $this->sendError('Vous ne pouvez gérer que les utilisateurs de votre organisation', [], 403);
             }
-            
-            // ADMIN ne peut supprimer que le rôle USER
             if ($roleToRemove !== 'USER') {
                 return $this->sendError('Vous ne pouvez supprimer que le rôle USER', [], 403);
             }
         }
-        
-        // Empêcher l'auto-dégradation du SUPER_ADMIN
+
         if ($user->id === $currentUser->id && $roleToRemove === 'SUPER_ADMIN') {
             return $this->sendError('Vous ne pouvez pas supprimer votre propre rôle SUPER_ADMIN', [], 403);
         }
@@ -300,7 +270,6 @@ class UserController extends BaseController
 
     public function getModulePermissions($id)
     {
-        // Delegate to getUserModulePermissions which already handles the response
         return $this->getUserModulePermissions($id);
     }
 
@@ -311,153 +280,81 @@ class UserController extends BaseController
             return $this->sendError('User not found', [], 404);
         }
 
-        // Log the incoming request for debugging
-        \Log::info('Update module permissions request', [
-            'user_id' => $user->id,
-            'request_data' => $request->all(),
-            'content_type' => $request->header('Content-Type'),
-            'raw_content' => $request->getContent()
-        ]);
-
         $validator = Validator::make($request->all(), [
-            'module_permissions' => 'required|array',
-            'module_permissions.*.module_code' => 'required|string',
-            'module_permissions.*.module_name' => 'required|string',
-            'module_permissions.*.permissions' => 'present|array',
-            'module_permissions.*.is_active' => 'required|boolean',
+            'module_permissions'                  => 'required|array',
+            'module_permissions.*.module_code'    => 'required|string',
+            'module_permissions.*.module_name'    => 'required|string',
+            'module_permissions.*.permissions'    => 'present|array',
+            'module_permissions.*.is_active'      => 'required|boolean',
         ]);
 
         if ($validator->fails()) {
-            \Log::error('Validation failed for module permissions', [
-                'user_id' => $user->id,
-                'errors' => $validator->errors()->toArray(),
-                'request_data' => $request->all(),
-                'raw_input' => $request->getContent(),
-                'validation_rules' => [
-                    'module_permissions' => 'required|array|min:1',
-                    'module_permissions.*.module_code' => 'required|string',
-                    'module_permissions.*.module_name' => 'required|string',
-                    'module_permissions.*.permissions' => 'present|array',
-                    'module_permissions.*.is_active' => 'required|boolean',
-                ]
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation Error',
-                'errors' => $validator->errors()->toArray(),
-                'debug_data' => [
-                    'received_data' => $request->all(),
-                    'expected_format' => [
-                        'module_permissions' => [
-                            [
-                                'module_code' => 'string (required)',
-                                'module_name' => 'string (required)',
-                                'permissions' => 'array (can be empty)',
-                                'is_active' => 'boolean (required)'
-                            ]
-                        ]
-                    ]
-                ]
-            ], 422);
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // Store module permissions in user_module_permissions table
         DB::beginTransaction();
         try {
-            // Delete existing permissions for this user
             DB::table('user_module_permissions')->where('user_id', $user->id)->delete();
 
-            // Insert new permissions
-            $insertedCount = 0;
             foreach ($request->module_permissions as $modulePermission) {
                 if ($modulePermission['is_active']) {
                     DB::table('user_module_permissions')->insert([
-                        'user_id' => $user->id,
+                        'user_id'     => $user->id,
                         'module_code' => $modulePermission['module_code'],
                         'module_name' => $modulePermission['module_name'],
                         'permissions' => json_encode($modulePermission['permissions'] ?? []),
-                        'is_active' => $modulePermission['is_active'],
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'is_active'   => $modulePermission['is_active'],
+                        'created_at'  => now(),
+                        'updated_at'  => now(),
                     ]);
-                    $insertedCount++;
                 }
             }
 
             DB::commit();
-            
-            \Log::info('Module permissions updated successfully', [
-                'user_id' => $user->id,
-                'inserted_count' => $insertedCount,
-                'total_modules' => count($request->module_permissions)
-            ]);
-            
+
             return $this->sendResponse([], 'Module permissions updated successfully');
         } catch (\Exception $e) {
             DB::rollback();
             \Log::error('Error updating module permissions', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error'   => $e->getMessage(),
             ]);
-            return $this->sendError('Error updating module permissions', ['error' => $e->getMessage()], 500);
+            return $this->sendError('Error updating module permissions', [], 500);
         }
     }
 
     public function getUserModulePermissions($id)
     {
         $user = User::find($id);
-        
+
         if (!$user) {
             return $this->sendError('User not found', [], 404);
         }
-        
-        $availableModules = [
-            ['module_code' => 'COMMERCIAL', 'module_name' => 'Gestion Commerciale', 'permissions' => [], 'is_active' => false],
-            ['module_code' => 'FINANCE', 'module_name' => 'Gestion Financière', 'permissions' => [], 'is_active' => false],
-            ['module_code' => 'CLIENTS_SUPPLIERS', 'module_name' => 'Clients & Fournisseurs', 'permissions' => [], 'is_active' => false],
-            ['module_code' => 'PRODUCTS_STOCK', 'module_name' => 'Produits & Stock', 'permissions' => [], 'is_active' => false],
-            ['module_code' => 'CONTAINERS', 'module_name' => 'Conteneurs', 'permissions' => [], 'is_active' => false],
-            ['module_code' => 'RENTAL', 'module_name' => 'Location Immobilière', 'permissions' => [], 'is_active' => false],
-            ['module_code' => 'TAXI', 'module_name' => 'Gestion Taxi', 'permissions' => [], 'is_active' => false],
-            ['module_code' => 'STATISTICS', 'module_name' => 'Statistiques', 'permissions' => [], 'is_active' => false],
-        ];
 
-        // Get user's existing permissions
+        // Récupérer les modules disponibles depuis la base de données
+        $availableModules = Module::all()->map(function ($module) {
+            return [
+                'module_code' => $module->code,
+                'module_name' => $module->name,
+                'permissions' => [],
+                'is_active'   => false,
+            ];
+        })->toArray();
+
+        // Récupérer les permissions existantes de l'utilisateur
         $userPermissions = DB::table('user_module_permissions')
             ->where('user_id', $user->id)
-            ->get();
+            ->get()
+            ->keyBy('module_code');
 
-        \Log::info('Getting user module permissions', [
-            'user_id' => $user->id,
-            'found_permissions' => $userPermissions->count(),
-            'permissions_data' => $userPermissions->toArray()
-        ]);
-
-        // Merge with available modules
-        foreach ($userPermissions as $userPerm) {
-            $moduleIndex = array_search($userPerm->module_code, array_column($availableModules, 'module_code'));
-            if ($moduleIndex !== false) {
-                $availableModules[$moduleIndex]['permissions'] = json_decode($userPerm->permissions, true) ?: [];
-                $availableModules[$moduleIndex]['is_active'] = (bool) $userPerm->is_active;
-                
-                \Log::info('Merged module permission', [
-                    'module_code' => $userPerm->module_code,
-                    'is_active' => $availableModules[$moduleIndex]['is_active'],
-                    'permissions_count' => count($availableModules[$moduleIndex]['permissions'])
-                ]);
+        // Fusionner avec les permissions utilisateur
+        foreach ($availableModules as &$module) {
+            if ($userPermissions->has($module['module_code'])) {
+                $userPerm = $userPermissions->get($module['module_code']);
+                $module['permissions'] = json_decode($userPerm->permissions, true) ?: [];
+                $module['is_active']   = (bool) $userPerm->is_active;
             }
         }
-
-        \Log::info('Final available modules', [
-            'user_id' => $user->id,
-            'modules' => array_map(function($module) {
-                return [
-                    'module_code' => $module['module_code'],
-                    'is_active' => $module['is_active']
-                ];
-            }, $availableModules)
-        ]);
 
         return $this->sendResponse($availableModules, 'User module permissions retrieved successfully');
     }

@@ -1,171 +1,85 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { 
-  CardModule, 
-  ButtonModule, 
-  AlertModule,
-  BadgeModule 
+import { Subject, forkJoin, takeUntil } from 'rxjs';
+import { catchError, of } from 'rxjs';
+import {
+  CardModule, ButtonModule, BadgeModule, SpinnerModule,
+  RowComponent, ColComponent, ContainerComponent, TableModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
+import { ApiService } from '../../../core/services/api.service';
 
 @Component({
   selector: 'app-finance-dashboard',
   standalone: true,
   imports: [
-    CommonModule, 
-    RouterModule,
-    CardModule, 
-    ButtonModule, 
-    AlertModule,
-    BadgeModule,
-    IconDirective
+    CommonModule, RouterModule, IconDirective,
+    CardModule, ButtonModule, BadgeModule, SpinnerModule,
+    RowComponent, ColComponent, ContainerComponent, TableModule
   ],
-  template: `
-    <div class="container-fluid">
-      <!-- Header -->
-      <div class="row mb-4">
-        <div class="col-12">
-          <h2 class="mb-0">
-            <svg cIcon name="cilDollar" class="me-2"></svg>
-            Tableau de Bord Financier
-          </h2>
-          <p class="text-muted mb-0">Vue d'ensemble de vos finances et transactions</p>
-        </div>
-      </div>
-
-      <!-- Quick Stats -->
-      <div class="row mb-4">
-        <div class="col-md-3">
-          <c-card class="text-center">
-            <c-card-body>
-              <svg cIcon name="cilCreditCard" size="xl" class="text-success mb-3"></svg>
-              <h4 class="text-success">0</h4>
-              <p class="text-muted mb-0">Revenus du mois</p>
-            </c-card-body>
-          </c-card>
-        </div>
-        <div class="col-md-3">
-          <c-card class="text-center">
-            <c-card-body>
-              <svg cIcon name="cilMoney" size="xl" class="text-danger mb-3"></svg>
-              <h4 class="text-danger">0</h4>
-              <p class="text-muted mb-0">Dépenses du mois</p>
-            </c-card-body>
-          </c-card>
-        </div>
-        <div class="col-md-3">
-          <c-card class="text-center">
-            <c-card-body>
-              <svg cIcon name="cilChart" size="xl" class="text-primary mb-3"></svg>
-              <h4 class="text-primary">0</h4>
-              <p class="text-muted mb-0">Bénéfice net</p>
-            </c-card-body>
-          </c-card>
-        </div>
-        <div class="col-md-3">
-          <c-card class="text-center">
-            <c-card-body>
-              <svg cIcon name="cilDescription" size="xl" class="text-warning mb-3"></svg>
-              <h4 class="text-warning">0</h4>
-              <p class="text-muted mb-0">Factures en attente</p>
-            </c-card-body>
-          </c-card>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="row mb-4">
-        <div class="col-12">
-          <c-card>
-            <c-card-header>
-              <h5 class="mb-0">
-                <svg cIcon name="cilSettings" class="me-2"></svg>
-                Actions Rapides
-              </h5>
-            </c-card-header>
-            <c-card-body>
-              <div class="row g-3">
-                <div class="col-md-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-primary w-100"
-                    routerLink="/finance/currencies">
-                    <svg cIcon name="cilGlobeAlt" class="me-2"></svg>
-                    Gestion des Devises
-                  </button>
-                </div>
-                <div class="col-md-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-success w-100"
-                    routerLink="/finance/exchange-rates">
-                    <svg cIcon name="cilSwapHorizontal" class="me-2"></svg>
-                    Taux de Change
-                  </button>
-                </div>
-                <div class="col-md-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-warning w-100"
-                    routerLink="/finance/invoices">
-                    <svg cIcon name="cilDescription" class="me-2"></svg>
-                    Factures
-                  </button>
-                </div>
-                <div class="col-md-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-info w-100"
-                    routerLink="/finance/currencies-advanced">
-                    <svg cIcon name="cilStar" class="me-2"></svg>
-                    Gestion Avancée
-                    <span class="badge bg-info ms-2">NOUVEAU</span>
-                  </button>
-                </div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </div>
-      </div>
-
-      <!-- Recent Activity -->
-      <div class="row">
-        <div class="col-md-8">
-          <c-card>
-            <c-card-header>
-              <h5 class="mb-0">
-                <svg cIcon name="cilHistory" class="me-2"></svg>
-                Activité Récente
-              </h5>
-            </c-card-header>
-            <c-card-body>
-              <c-alert color="info">
-                <svg cIcon name="cilInfo" class="me-2"></svg>
-                Aucune activité récente. Les transactions apparaîtront ici une fois que vous commencerez à utiliser le module financier.
-              </c-alert>
-            </c-card-body>
-          </c-card>
-        </div>
-        <div class="col-md-4">
-          <c-card>
-            <c-card-header>
-              <h5 class="mb-0">
-                <svg cIcon name="cilBell" class="me-2"></svg>
-                Notifications
-              </h5>
-            </c-card-header>
-            <c-card-body>
-              <c-alert color="warning">
-                <svg cIcon name="cilWarning" class="me-2"></svg>
-                <strong>Configuration requise</strong><br>
-                Configurez vos devises et taux de change pour commencer.
-              </c-alert>
-            </c-card-body>
-          </c-card>
-        </div>
-      </div>
-    </div>
-  `
+  templateUrl: './finance-dashboard.component.html'
 })
-export class FinanceDashboardComponent {}
+export class FinanceDashboardComponent implements OnInit, OnDestroy {
+  loading = true;
+
+  stats = {
+    totalPayments:   0,
+    totalAmount:     0,
+    monthlyAmount:   0,
+    pendingInvoices: 0,
+    totalInvoices:   0,
+    totalCurrencies: 0
+  };
+
+  recentPayments: any[] = [];
+  recentInvoices: any[] = [];
+
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(private apiService: ApiService) {}
+
+  ngOnInit(): void {
+    this.loadDashboard();
+  }
+
+  loadDashboard(): void {
+    this.loading = true;
+
+    forkJoin({
+      paymentStats: this.apiService.get<any>('payments/statistics').pipe(catchError(() => of({ success: false, data: null }))),
+      recentPay:    this.apiService.get<any>('payments?per_page=5').pipe(catchError(() => of({ success: false, data: null }))),
+      invoices:     this.apiService.get<any>('invoices?per_page=5').pipe(catchError(() => of({ success: false, data: null }))),
+      currencies:   this.apiService.get<any>('currencies?per_page=100').pipe(catchError(() => of({ success: false, data: null })))
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (results) => {
+        if (results.paymentStats.success && results.paymentStats.data) {
+          const p = results.paymentStats.data;
+          this.stats.totalPayments = p.total_count  ?? p.total         ?? 0;
+          this.stats.totalAmount   = p.total_amount ?? p.total_sum     ?? 0;
+          this.stats.monthlyAmount = p.monthly_total ?? p.this_month   ?? 0;
+        }
+        if (results.recentPay.success && results.recentPay.data) {
+          const rp = results.recentPay.data;
+          this.recentPayments = rp.data ?? (Array.isArray(rp) ? rp.slice(0, 5) : []);
+        }
+        if (results.invoices.success && results.invoices.data) {
+          const inv = results.invoices.data;
+          this.stats.totalInvoices   = inv.total ?? (Array.isArray(inv) ? inv.length : 0);
+          this.recentInvoices = inv.data ?? (Array.isArray(inv) ? inv.slice(0, 5) : []);
+        }
+        if (results.currencies.success && results.currencies.data) {
+          const cur = results.currencies.data;
+          this.stats.totalCurrencies = cur.total ?? (Array.isArray(cur) ? cur.length : (cur.data?.length ?? 0));
+        }
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}

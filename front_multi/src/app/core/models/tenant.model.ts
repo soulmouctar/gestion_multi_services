@@ -3,12 +3,25 @@ export interface Tenant {
   name: string;
   email: string;
   phone: string;
-  subscriptionStatus: 'ACTIVE' | 'SUSPENDED';
   subscription_status: 'ACTIVE' | 'SUSPENDED';
-  createdAt: Date;
-  updatedAt: Date;
+  created_at?: string;
+  updated_at?: string;
   subscription?: Subscription;
   modules?: Module[];
+}
+
+export interface UserModulePermission {
+  module_code: string;
+  module_name?: string;
+  is_active: boolean;
+  permissions?: string[];
+}
+
+export interface TenantActiveModule {
+  id?: number;
+  code: string;
+  name: string;
+  is_active: boolean;
 }
 
 export interface User {
@@ -20,8 +33,8 @@ export interface User {
   role?: 'SUPER_ADMIN' | 'ADMIN' | 'USER';
   roles?: Role[];
   permissions?: Permission[];
-  module_permissions?: any[];
-  tenant_active_modules?: any[];
+  module_permissions?: UserModulePermission[];
+  tenant_active_modules?: TenantActiveModule[];
   created_at: string;
   updated_at: string;
   tenant?: Tenant;
@@ -52,8 +65,9 @@ export interface Module {
   id: number;
   code: string;
   name: string;
+  description?: string;
   icon: string;
-  enabled: boolean;
+  is_active?: boolean;
   pivot?: {
     tenant_id: number;
     module_id: number;
@@ -106,4 +120,10 @@ export interface AuthState {
   tenant: Tenant | null;
   isAuthenticated: boolean;
   token: string | null;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string;
 }

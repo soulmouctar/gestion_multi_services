@@ -71,7 +71,7 @@ export class ContainerDetailComponent implements OnInit {
     if (!this.containerId) return;
     
     this.loading = true;
-    this.apiService.get<any>(`containers-public/${this.containerId}`).subscribe({
+    this.apiService.get<any>(`containers/${this.containerId}`).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.container = response.data;
@@ -79,8 +79,7 @@ export class ContainerDetailComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Error loading container:', err);
+      error: () => {
         this.error = 'Erreur lors du chargement du conteneur';
         this.loading = false;
         this.cdr.detectChanges();
@@ -91,7 +90,7 @@ export class ContainerDetailComponent implements OnInit {
   loadContainerPhotos(): void {
     if (!this.containerId) return;
     
-    this.apiService.get<any>(`container-photos-public?container_id=${this.containerId}&page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`container-photos?container_id=${this.containerId}&page=${this.currentPage}`).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const p = response.data;
@@ -103,8 +102,7 @@ export class ContainerDetailComponent implements OnInit {
         }
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Error loading container photos:', err);
+      error: () => {
         this.containerPhotos = [];
         this.cdr.detectChanges();
       }
@@ -112,17 +110,14 @@ export class ContainerDetailComponent implements OnInit {
   }
 
   loadProducts(): void {
-    this.apiService.get<any>('products-public?per_page=100').subscribe({
+    this.apiService.get<any>('products?per_page=100').subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.products = response.data.data || [];
         }
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Error loading products:', err);
-        this.products = [];
-      }
+      error: () => { this.products = []; }
     });
   }
 
@@ -133,24 +128,59 @@ export class ContainerDetailComponent implements OnInit {
   }
 
   onFileSelected(event: any): void {
-    const file = event.target.files[0];
-    if (file) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-      if (!allowedTypes.includes(file.type)) {
-        this.error = 'Format de fichier non supporté. Utilisez JPEG, PNG, JPG ou GIF.';
-        return;
-      }
-      
-      // Validate file size (2MB max)
-      if (file.size > 2 * 1024 * 1024) {
-        this.error = 'Le fichier est trop volumineux. Taille maximum: 2MB.';
-        return;
-      }
-      
-      this.selectedFile = file;
-      this.error = null;
+    const file: File = event.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      this.error = 'Format non supporté. Utilisez JPEG, PNG, GIF ou WebP.';
+      return;
     }
+
+    this.error = null;
+    this.compressImage(file).then(compressed => {
+      this.selectedFile = compressed;
+      this.cdr.detectChanges();
+    }).catch(() => {
+      // Fallback to original if compression fails
+      this.selectedFile = file;
+      this.cdr.detectChanges();
+    });
+  }
+
+  private compressImage(file: File, maxWidth = 1200, quality = 0.82): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { reject(new Error('Compression échouée')); return; }
+            const name = file.name.replace(/\.[^.]+$/, '.jpg');
+            resolve(new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() }));
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Chargement image échoué')); };
+      img.src = objectUrl;
+    });
   }
 
   uploadPhoto(): void {
@@ -161,7 +191,6 @@ export class ContainerDetailComponent implements OnInit {
     
     const formData = new FormData();
     formData.append('container_id', this.containerId.toString());
-    formData.append('tenant_id', '1');
     formData.append('image', this.selectedFile);
     
     const productId = this.photoForm.get('product_id')?.value;
@@ -174,9 +203,7 @@ export class ContainerDetailComponent implements OnInit {
       formData.append('description', description);
     }
 
-    console.log('Uploading photo for container:', this.containerId);
-    
-    this.apiService.post<any>('container-photos-public', formData).subscribe({
+    this.apiService.post<any>('container-photos', formData).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Photo ajoutée avec succès';
@@ -188,7 +215,6 @@ export class ContainerDetailComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Error uploading photo:', err);
         this.error = err?.error?.message || 'Erreur lors de l\'upload de la photo';
         this.uploadingPhoto = false;
         this.cdr.detectChanges();
@@ -208,26 +234,15 @@ export class ContainerDetailComponent implements OnInit {
       cancelButtonText: 'Annuler'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.apiService.delete<any>(`container-photos-public/${photo.id}`).subscribe({
+        this.apiService.delete<any>(`container-photos/${photo.id}`).subscribe({
           next: (response) => {
             if (response.success) {
-              Swal.fire({
-                title: 'Supprimé !',
-                text: 'La photo a été supprimée avec succès.',
-                icon: 'success',
-                timer: 2000,
-                showConfirmButton: false
-              });
+              Swal.fire({ title: 'Supprimé !', text: 'La photo a été supprimée avec succès.', icon: 'success', timer: 2000, showConfirmButton: false });
               this.loadContainerPhotos();
             }
           },
-          error: (err) => {
-            console.error('Error deleting photo:', err);
-            Swal.fire({
-              title: 'Erreur',
-              text: 'Erreur lors de la suppression de la photo',
-              icon: 'error'
-            });
+          error: () => {
+            Swal.fire({ title: 'Erreur', text: 'Erreur lors de la suppression de la photo', icon: 'error' });
           }
         });
       }

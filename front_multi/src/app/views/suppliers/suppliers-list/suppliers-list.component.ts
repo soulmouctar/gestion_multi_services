@@ -90,22 +90,21 @@ export class SuppliersListComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.apiService.get<any>(`suppliers-public?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`suppliers?page=${this.currentPage}`).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const paginated = response.data;
-          this.suppliers = paginated.data || [];
-          this.currentPage = paginated.current_page || 1;
-          this.totalPages = paginated.last_page || 1;
-          this.totalItems = paginated.total || 0;
-          this.itemsPerPage = paginated.per_page || 15;
+          this.suppliers    = paginated.data         || [];
+          this.currentPage  = paginated.current_page || 1;
+          this.totalPages   = paginated.last_page    || 1;
+          this.totalItems   = paginated.total        || 0;
+          this.itemsPerPage = paginated.per_page     || 15;
         }
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        this.error = 'Erreur lors du chargement des fournisseurs';
-        console.error('Error loading suppliers:', err);
+      error: () => {
+        this.error   = 'Erreur lors du chargement des fournisseurs';
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -148,7 +147,7 @@ export class SuppliersListComponent implements OnInit {
         next: (response) => {
           if (response.success) {
             this.successMessage = 'Fournisseur mis à jour avec succès';
-            this.showFormModal = false;
+            this.showFormModal  = false;
             this.loadSuppliers();
             this.clearMessages();
           }
@@ -158,13 +157,11 @@ export class SuppliersListComponent implements OnInit {
         }
       });
     } else {
-      // Add tenant_id for testing
-      const supplierData = { ...data, tenant_id: 1 };
-      this.apiService.post<any>('suppliers-public', supplierData).subscribe({
+      this.apiService.post<any>('suppliers', data).subscribe({
         next: (response) => {
           if (response.success) {
             this.successMessage = 'Fournisseur créé avec succès';
-            this.showFormModal = false;
+            this.showFormModal  = false;
             this.loadSuppliers();
             this.clearMessages();
           }
@@ -247,7 +244,7 @@ export class SuppliersListComponent implements OnInit {
     });
   }
 
-  trackBySupplierId(index: number, supplier: any): number {
+  trackBySupplierId(_index: number, supplier: any): number {
     return supplier.id;
   }
 

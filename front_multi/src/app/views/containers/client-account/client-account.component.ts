@@ -55,7 +55,7 @@ export class ClientAccountComponent implements OnInit {
     this.error = null;
 
     // Load client info
-    this.apiService.get<any>(`clients-public/${this.clientId}`).subscribe({
+    this.apiService.get<any>(`clients/${this.clientId}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.client = r.data;
@@ -70,7 +70,7 @@ export class ClientAccountComponent implements OnInit {
   }
 
   loadClientStats(): void {
-    this.apiService.get<any>(`container-sales-public/client-stats/${this.clientId}`).subscribe({
+    this.apiService.get<any>(`container-sales/client-stats/${this.clientId}`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.clientStats = r.data;
@@ -85,7 +85,7 @@ export class ClientAccountComponent implements OnInit {
   }
 
   loadSales(): void {
-    this.apiService.get<any>(`container-sales-public?client_id=${this.clientId}&per_page=100`).subscribe({
+    this.apiService.get<any>(`container-sales?client_id=${this.clientId}&per_page=100`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.sales = r.data.data || r.data || [];
@@ -100,7 +100,7 @@ export class ClientAccountComponent implements OnInit {
   }
 
   loadPayments(): void {
-    this.apiService.get<any>(`container-sale-payments-public?client_id=${this.clientId}&per_page=100`).subscribe({
+    this.apiService.get<any>(`container-sale-payments?client_id=${this.clientId}&per_page=100`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.payments = r.data.data || r.data || [];
@@ -115,7 +115,7 @@ export class ClientAccountComponent implements OnInit {
   }
 
   loadAdvances(): void {
-    this.apiService.get<any>(`client-advances-public?client_id=${this.clientId}&per_page=100`).subscribe({
+    this.apiService.get<any>(`client-advances?client_id=${this.clientId}&per_page=100`).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.advances = r.data.data || r.data || [];

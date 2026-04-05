@@ -2,40 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-
-export interface Tenant {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  subscription_status: 'ACTIVE' | 'SUSPENDED';
-  modules?: Module[];
-  subscriptions?: any[];
-  users?: any[];
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface Module {
-  id: number;
-  code: string;
-  name: string;
-  icon: string;
-  enabled: boolean;
-  pivot?: {
-    tenant_id: number;
-    module_id: number;
-    is_active: boolean;
-    created_at?: string;
-    updated_at?: string;
-  };
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message: string;
-}
+import { Tenant, Module, ApiResponse } from '../models/tenant.model';
 
 @Injectable({
   providedIn: 'root'
@@ -47,23 +14,23 @@ export class TenantService {
 
   // Tenants CRUD
   getTenants(): Observable<ApiResponse<Tenant[]>> {
-    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants-public`);
+    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants`);
   }
 
   getTenant(id: number): Observable<ApiResponse<Tenant>> {
-    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/tenants-public/${id}`);
+    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`);
   }
 
   createTenant(tenant: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
-    return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants-public`, tenant);
+    return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants`, tenant);
   }
 
   updateTenant(id: number, tenant: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
-    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/tenants-public/${id}`, tenant);
+    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`, tenant);
   }
 
   deleteTenant(id: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.API_URL}/tenants-public/${id}`);
+    return this.http.delete<ApiResponse<void>>(`${this.API_URL}/tenants/${id}`);
   }
 
   // Module management
@@ -153,19 +120,6 @@ export class TenantService {
   // Get tenant statistics for dashboard
   getTenantDashboardStats(tenantId: number): Observable<ApiResponse<any>> {
     return this.http.get<ApiResponse<any>>(`${this.API_URL}/tenants/${tenantId}/dashboard-stats`);
-  }
-
-  // Module management for tenants
-  assignModuleToTenant(tenantId: number, moduleId: number): Observable<ApiResponse<any>> {
-    return this.http.post<ApiResponse<any>>(`${this.API_URL}/tenants/${tenantId}/assign-module`, {
-      module_id: moduleId
-    });
-  }
-
-  removeModuleFromTenant(tenantId: number, moduleId: number): Observable<ApiResponse<any>> {
-    return this.http.post<ApiResponse<any>>(`${this.API_URL}/tenants/${tenantId}/remove-module`, {
-      module_id: moduleId
-    });
   }
 
   // Get all modules from database

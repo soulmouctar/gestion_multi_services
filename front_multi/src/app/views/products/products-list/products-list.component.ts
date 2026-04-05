@@ -140,7 +140,7 @@ export class ProductsListComponent implements OnInit {
 
   loadStatistics(): void {
     this.loadingStats = true;
-    this.apiService.get<any>('products-public/statistics?tenant_id=1').subscribe({
+    this.apiService.get<any>('products/statistics').subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.stats = response.data;
@@ -148,8 +148,7 @@ export class ProductsListComponent implements OnInit {
         this.loadingStats = false;
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('Error loading statistics:', error);
+      error: () => {
         this.loadingStats = false;
         this.cdr.detectChanges();
       }
@@ -191,53 +190,48 @@ export class ProductsListComponent implements OnInit {
       per_page: this.itemsPerPage
     };
 
-    // Remove empty values
+    // Remove empty/false values
     Object.keys(filters).forEach(key => {
       const value = (filters as any)[key];
-      if (value === '' || value === null || value === undefined) {
+      if (value === '' || value === null || value === undefined || value === false) {
         delete (filters as any)[key];
       }
     });
 
-    // Use public API route for testing
-    const queryParams = new URLSearchParams();
-    Object.keys(filters).forEach(key => {
-      const value = (filters as any)[key];
-      if (value !== undefined && value !== null && value !== '') {
-        queryParams.append(key, value.toString());
-      }
-    });
-    
-    const url = `products-public?${queryParams.toString()}`;
-    console.log('Loading products from URL:', url);
-    console.log('Filters applied:', filters);
-    
-    this.apiService.get<any>(url).subscribe({
+    this.productService.getProducts(filters).subscribe({
       next: (response) => {
         console.log('Products API response:', response);
         if (response && response.success) {
-          this.products = response.data?.data || [];
-          this.totalItems = response.data?.total || 0;
-          this.totalPages = response.data?.last_page || 1;
-          this.currentPage = response.data?.current_page || 1;
+          // Handle paginated response format
+          const responseData = response.data;
+          if (responseData && Array.isArray(responseData.data)) {
+            // Standard paginated format: { data: [...], total: X, current_page: Y }
+            this.products = responseData.data;
+            this.totalItems = responseData.total || 0;
+            this.totalPages = responseData.last_page || 1;
+            this.currentPage = responseData.current_page || 1;
+          } else if (Array.isArray(responseData)) {
+            // Non-paginated format: [...]
+            this.products = responseData;
+            this.totalItems = responseData.length;
+            this.totalPages = 1;
+            this.currentPage = 1;
+          } else {
+            this.products = [];
+            this.totalItems = 0;
+            this.totalPages = 1;
+          }
           this.error = null;
         } else {
           this.products = [];
-          this.error = 'Aucun produit trouvé';
+          this.error = response?.message || 'Aucun produit trouvé';
         }
         this.loading = false;
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading products:', error);
-        console.error('Error details:', {
-          status: error.status,
-          statusText: error.statusText,
-          url: error.url,
-          message: error.message
-        });
-        
-        this.error = `Erreur ${error.status || 'inconnue'}: ${error.message || 'Erreur lors du chargement des produits'}`;
+        this.error = error?.message || 'Erreur lors du chargement des produits';
         this.products = [];
         this.loading = false;
         this.cdr.detectChanges();
@@ -256,8 +250,7 @@ export class ProductsListComponent implements OnInit {
           this.cdr.detectChanges();
         }
       },
-      error: (error) => {
-        console.error('Error loading categories:', error);
+      error: () => {
         this.categories = [];
         this.cdr.detectChanges();
       }
@@ -275,8 +268,7 @@ export class ProductsListComponent implements OnInit {
           this.cdr.detectChanges();
         }
       },
-      error: (error) => {
-        console.error('Error loading units:', error);
+      error: () => {
         this.units = [];
         this.cdr.detectChanges();
       }
@@ -306,7 +298,7 @@ export class ProductsListComponent implements OnInit {
     if (!this.productToDelete) return;
 
     this.loading = true;
-    this.apiService.delete<any>(`products-public/${this.productToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`products/${this.productToDelete.id}`).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Produit supprimé avec succès';
@@ -391,12 +383,11 @@ export class ProductsListComponent implements OnInit {
 
     const data = {
       product_ids: this.selectedProducts,
-      status: status,
-      tenant_id: 1
+      status: status
     };
 
     this.loading = true;
-    this.apiService.post<any>('products-public/bulk-update-status', data).subscribe({
+    this.apiService.post<any>('products/bulk-update-status', data).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = `${this.selectedProducts.length} produit(s) mis à jour avec succès`;
@@ -521,7 +512,7 @@ export class ProductsListComponent implements OnInit {
   }
 
   // TrackBy function for performance
-  trackByProductId(index: number, product: Product): number {
+  trackByProductId(_index: number, product: Product): number {
     return product.id;
   }
 
@@ -572,11 +563,10 @@ export class ProductsListComponent implements OnInit {
       selling_price: product.selling_price,
       stock_quantity: 0,
       low_stock_threshold: product.low_stock_threshold,
-      status: 'INACTIVE',
-      tenant_id: 1
+      status: 'INACTIVE'
     };
 
-    this.apiService.post<any>('products-public', duplicateData).subscribe({
+    this.apiService.post<any>('products', duplicateData).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Produit dupliqué avec succès';
@@ -595,7 +585,7 @@ export class ProductsListComponent implements OnInit {
     const quantity = prompt(`Quantité à ${operation === 'ADD' ? 'ajouter' : 'retirer'}:`);
     if (!quantity || isNaN(Number(quantity))) return;
 
-    this.apiService.post<any>(`products-public/${product.id}/stock`, {
+    this.apiService.post<any>(`products/${product.id}/update-stock`, {
       stock_quantity: Number(quantity),
       operation: operation
     }).subscribe({
@@ -661,7 +651,7 @@ export class ProductsListComponent implements OnInit {
 
   loadSalesHistory(productId: number): void {
     this.loadingSalesHistory = true;
-    this.apiService.get<any>(`products-public/${productId}/sales-history`).subscribe({
+    this.apiService.get<any>(`products/${productId}/sales-history`).subscribe({
       next: (response) => {
         if (response.success) {
           this.salesHistory = response.data || [];

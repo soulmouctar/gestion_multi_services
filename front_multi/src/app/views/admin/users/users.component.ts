@@ -4,7 +4,8 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } fr
 import { IconDirective } from '@coreui/icons-angular';
 import { CardModule, ButtonModule, FormModule, AlertModule, GridModule, ModalModule, TableModule, BadgeModule, ButtonGroupModule } from '@coreui/angular';
 import { UserService, UserProfile, ModulePermission, CreateUserRequest, UpdateUserRequest } from '../../../core/services/user.service';
-import { TenantService, Tenant, ApiResponse } from '../../../core/services/tenant.service';
+import { TenantService } from '../../../core/services/tenant.service';
+import { Tenant, ApiResponse } from '../../../core/models/tenant.model';
 import { AlertService } from '../../../core/services/alert.service';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -156,7 +157,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   loadOrganisations(): void {
     this.tenantService.getTenants().subscribe({
       next: (response: ApiResponse<any>) => {
-        // tenants-public returns direct array in response.data
+        // tenants returns direct array or paginated response.data
         if (response.success && Array.isArray(response.data)) {
           this.organisations = response.data;
         } else if (response.data?.data && Array.isArray(response.data.data)) {
@@ -411,7 +412,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
             let modules = userResponse.data || this.userService.getAvailableModules();
             
             // Filter to show only modules activated for the tenant
-            this.availableModules = modules.filter(module => 
+            this.availableModules = modules.filter((module: ModulePermission) => 
               tenantModules.some((tm: any) => tm.code === module.module_code)
             );
             

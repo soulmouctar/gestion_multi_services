@@ -52,23 +52,20 @@ export class ExchangeRatesComponent implements OnInit {
   }
 
   loadCurrencies(): void {
-    this.apiService.get<any>('currencies-public?per_page=100').subscribe({
+    this.apiService.get<any>('currencies?per_page=100').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.currencies = Array.isArray(r.data) ? r.data : (r.data.data || []);
         }
       },
-      error: (err) => {
-        console.error('Error loading currencies:', err);
-        this.currencies = [];
-      }
+      error: () => { this.currencies = []; }
     });
   }
 
   loadExchangeRates(): void {
     this.loading = true;
     this.error = null;
-    this.apiService.get<any>(`exchange-rates-public?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`exchange-rates?page=${this.currentPage}`).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const p = response.data;
@@ -81,11 +78,10 @@ export class ExchangeRatesComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => { 
-        console.error('Error loading exchange rates:', err);
-        this.error = 'Erreur lors du chargement des taux'; 
-        this.loading = false; 
-        this.cdr.detectChanges(); 
+      error: () => {
+        this.error = 'Erreur lors du chargement des taux';
+        this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -117,8 +113,8 @@ export class ExchangeRatesComponent implements OnInit {
     if (this.rateForm.invalid) return;
     const data = this.rateForm.value;
     const obs = this.editMode && this.selectedRate
-      ? this.apiService.put<any>(`exchange-rates-public/${this.selectedRate.id}`, data)
-      : this.apiService.post<any>('exchange-rates-public', data);
+      ? this.apiService.put<any>(`exchange-rates/${this.selectedRate.id}`, data)
+      : this.apiService.post<any>('exchange-rates', data);
     obs.subscribe({
       next: (r) => {
         if (r.success) {
@@ -126,10 +122,7 @@ export class ExchangeRatesComponent implements OnInit {
           this.showFormModal = false; this.loadExchangeRates(); this.clearMessages();
         }
       },
-      error: (err) => { 
-        console.error('Error saving exchange rate:', err);
-        this.error = err?.error?.message || 'Erreur lors de la sauvegarde'; 
-      }
+      error: (err) => { this.error = err?.error?.message || 'Erreur lors de la sauvegarde'; }
     });
   }
 

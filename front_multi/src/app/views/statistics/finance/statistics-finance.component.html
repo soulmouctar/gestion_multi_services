@@ -1,0 +1,96 @@
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col">
+      <h2 class="mb-0"><svg cIcon name="cilDollar" class="me-2 text-success"></svg>Statistiques Financières</h2>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="success"></c-spinner>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <c-row class="mb-4 g-3">
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-success border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold text-success">{{ stats.totalRevenue | number:'1.0-0' }}</div>
+            <div class="text-body-secondary">Revenus totaux</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-primary border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold">{{ stats.totalPayments }}</div>
+            <div class="text-body-secondary">Nb. paiements</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-warning border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold">{{ stats.totalInvoices }}</div>
+            <div class="text-body-secondary">Factures</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-info border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold">{{ stats.totalCurrencies }}</div>
+            <div class="text-body-secondary">Devises actives</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row class="g-4">
+      <c-col xs="12" lg="6">
+        <c-card class="h-100">
+          <c-card-header><strong>Devises configurées</strong></c-card-header>
+          <c-card-body>
+            <div *ngIf="currencies.length === 0" class="text-center py-3 text-body-secondary">Aucune devise configurée.</div>
+            <table *ngIf="currencies.length > 0" class="table table-sm mb-0">
+              <thead><tr><th>Code</th><th>Nom</th><th>Statut</th><th>Par défaut</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let c of currencies">
+                  <td><strong>{{ c.code }}</strong></td>
+                  <td>{{ c.name }}</td>
+                  <td>
+                    <span class="badge" [class.bg-success]="c.is_active" [class.bg-secondary]="!c.is_active">
+                      {{ c.is_active ? 'Active' : 'Inactive' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span *ngIf="c.is_default" class="badge bg-primary">Défaut</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" lg="6">
+        <c-card class="h-100">
+          <c-card-header><strong>Taux de change récents</strong></c-card-header>
+          <c-card-body>
+            <div *ngIf="exchangeRates.length === 0" class="text-center py-3 text-body-secondary">Aucun taux de change configuré.</div>
+            <table *ngIf="exchangeRates.length > 0" class="table table-sm mb-0">
+              <thead><tr><th>Depuis</th><th>Vers</th><th class="text-end">Taux</th><th>Date</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let er of exchangeRates">
+                  <td>{{ er.from_currency || er.base_currency }}</td>
+                  <td>{{ er.to_currency   || er.target_currency }}</td>
+                  <td class="text-end fw-bold">{{ er.rate | number:'1.2-4' }}</td>
+                  <td class="text-body-secondary small">{{ er.rate_date || er.created_at | date:'dd/MM/yyyy' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </ng-container>
+</div>

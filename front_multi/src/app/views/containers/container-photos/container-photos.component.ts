@@ -53,36 +53,30 @@ export class ContainerPhotosComponent implements OnInit {
   ngOnInit(): void { this.loadData(); this.loadContainers(); this.loadProducts(); }
 
   loadContainers(): void {
-    this.apiService.get<any>('containers-public?per_page=200').subscribe({
-      next: (r) => { 
+    this.apiService.get<any>('containers?per_page=200').subscribe({
+      next: (r) => {
         if (r.success && r.data) {
           this.containers = Array.isArray(r.data) ? r.data : (r.data.data || []);
         }
       },
-      error: (err) => {
-        console.error('Error loading containers:', err);
-        this.containers = [];
-      }
+      error: () => { this.containers = []; }
     });
   }
 
   loadProducts(): void {
-    this.apiService.get<any>('products-public?per_page=200').subscribe({
-      next: (r) => { 
+    this.apiService.get<any>('products?per_page=200').subscribe({
+      next: (r) => {
         if (r.success && r.data) {
           this.products = Array.isArray(r.data) ? r.data : (r.data.data || []);
         }
       },
-      error: (err) => {
-        console.error('Error loading products:', err);
-        this.products = [];
-      }
+      error: () => { this.products = []; }
     });
   }
 
   loadData(): void {
     this.loading = true; this.error = null;
-    this.apiService.get<any>(`container-photos-public?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`container-photos?page=${this.currentPage}`).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const p = response.data;
@@ -92,11 +86,10 @@ export class ContainerPhotosComponent implements OnInit {
         }
         this.loading = false; this.cdr.detectChanges();
       },
-      error: (err) => { 
-        console.error('Error loading container photos:', err);
-        this.error = 'Erreur lors du chargement'; 
-        this.loading = false; 
-        this.cdr.detectChanges(); 
+      error: () => {
+        this.error = 'Erreur lors du chargement';
+        this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -130,10 +123,7 @@ export class ContainerPhotosComponent implements OnInit {
   }
 
   onFileSelected(event: any): void {
-    console.log('File selection event triggered:', event);
     const file = event.target.files && event.target.files[0];
-    console.log('Selected file:', file);
-    
     if (file) {
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
@@ -157,7 +147,6 @@ export class ContainerPhotosComponent implements OnInit {
       this.selectedFile = file;
       this.photoForm.patchValue({ image_path: file.name });
       this.error = null;
-      console.log('File successfully selected:', file.name, file.size);
       this.cdr.detectChanges();
     } else {
       console.log('No file selected');
@@ -178,7 +167,6 @@ export class ContainerPhotosComponent implements OnInit {
       console.log('Dynamic file input - file selected:', file);
       
       if (file) {
-        // Validate file type
         const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
         if (!allowedTypes.includes(file.type)) {
           this.error = 'Format de fichier non supporté. Utilisez JPEG, PNG, JPG ou GIF.';
@@ -188,8 +176,6 @@ export class ContainerPhotosComponent implements OnInit {
           document.body.removeChild(input);
           return;
         }
-        
-        // Validate file size (5MB max)
         if (file.size > 5 * 1024 * 1024) {
           this.error = 'Le fichier est trop volumineux. Taille maximum: 5MB.';
           this.selectedFile = null;
@@ -198,15 +184,11 @@ export class ContainerPhotosComponent implements OnInit {
           document.body.removeChild(input);
           return;
         }
-        
         this.selectedFile = file;
         this.photoForm.patchValue({ image_path: file.name });
         this.error = null;
-        console.log('File successfully selected:', file.name, file.size);
         this.cdr.detectChanges();
       }
-      
-      // Clean up
       document.body.removeChild(input);
     };
     
@@ -221,7 +203,6 @@ export class ContainerPhotosComponent implements OnInit {
     
     const formData = new FormData();
     formData.append('container_id', this.photoForm.get('container_id')?.value);
-    formData.append('tenant_id', '1'); // Fixed for testing
     
     // Add product_id if selected
     const productId = this.photoForm.get('product_id')?.value;
@@ -241,29 +222,18 @@ export class ContainerPhotosComponent implements OnInit {
       formData.append('image_path', this.photoForm.get('image_path')?.value);
     }
 
-    console.log('Uploading container photo with data:', {
-      container_id: this.photoForm.get('container_id')?.value,
-      product_id: productId,
-      description: description,
-      file: this.selectedFile?.name,
-      tenant_id: 1
-    });
-
     const obs = this.editMode && this.selectedItem
-      ? this.apiService.put<any>(`container-photos-public/${this.selectedItem.id}`, formData)
-      : this.apiService.post<any>('container-photos-public', formData);
-    
+      ? this.apiService.put<any>(`container-photos/${this.selectedItem.id}`, formData)
+      : this.apiService.post<any>('container-photos', formData);
+
     obs.subscribe({
-      next: (r) => { 
-        if (r.success) { 
-          this.successMessage = this.editMode ? 'Photo mise à jour' : 'Photo ajoutée'; 
-          this.showFormModal = false; this.loadData(); this.clearMessages(); 
-        } 
+      next: (r) => {
+        if (r.success) {
+          this.successMessage = this.editMode ? 'Photo mise à jour' : 'Photo ajoutée';
+          this.showFormModal = false; this.loadData(); this.clearMessages();
+        }
       },
-      error: (err) => { 
-        console.error('Container photo save error:', err);
-        this.error = err?.error?.message || err?.message || 'Erreur lors de la sauvegarde'; 
-      }
+      error: (err) => { this.error = err?.error?.message || 'Erreur lors de la sauvegarde'; }
     });
   }
 

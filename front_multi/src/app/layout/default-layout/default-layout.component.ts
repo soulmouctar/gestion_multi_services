@@ -1,10 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
 import { CommonModule } from '@angular/common';
-import { Observable } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 
-import { IconDirective } from '@coreui/icons-angular';
 import {
   ContainerComponent,
   ShadowOnScrollDirective,
@@ -20,13 +19,6 @@ import {
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { NavigationService } from '../../core/services/navigation.service';
-
-function isOverflown(element: HTMLElement) {
-  return (
-    element.scrollHeight > element.clientHeight ||
-    element.scrollWidth > element.clientWidth
-  );
-}
 
 @Component({
   selector: 'app-default-layout',
@@ -50,26 +42,28 @@ function isOverflown(element: HTMLElement) {
     ShadowOnScrollDirective
   ]
 })
-export class DefaultLayoutComponent implements OnInit {
+export class DefaultLayoutComponent implements OnInit, OnDestroy {
   public navItems: INavData[] = [];
-  public navItems$: Observable<INavData[]>;
 
-  constructor(private navigationService: NavigationService) {
-    this.navItems$ = this.navigationService.getNavigationItems();
-  }
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(private navigationService: NavigationService) {}
 
   ngOnInit(): void {
-    // Subscribe to dynamic navigation updates
-    // This will automatically update whenever auth state changes
-    this.navItems$.subscribe({
+    this.navigationService.getNavigationItems().pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: (items: INavData[]) => {
         this.navItems = items;
-        console.log('Navigation items updated:', items.length, 'items');
       },
-      error: (err: any) => {
-        console.error('Error loading navigation items:', err);
+      error: () => {
         this.navItems = [];
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

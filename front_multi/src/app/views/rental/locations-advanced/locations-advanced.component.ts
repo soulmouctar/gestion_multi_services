@@ -78,7 +78,7 @@ export class LocationsAdvancedComponent implements OnInit {
   loadLocations(page: number = 1): void {
     this.loading = true;
     const filters = this.filterForm.value;
-    let url = `locations-public?page=${page}`;
+    let url = `locations?page=${page}`;
     
     if (filters.search) {
       url += `&search=${encodeURIComponent(filters.search)}`;
@@ -108,7 +108,7 @@ export class LocationsAdvancedComponent implements OnInit {
 
   loadLocationStatistics(): void {
     this.statsLoading = true;
-    this.apiService.get<any>('locations-public/statistics?tenant_id=1').subscribe({
+    this.apiService.get<any>('locations/statistics').subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.locationStats = r.data;
@@ -116,10 +116,7 @@ export class LocationsAdvancedComponent implements OnInit {
         this.statsLoading = false;
         this.cdr.detectChanges();
       },
-      error: () => {
-        this.statsLoading = false;
-        console.error('Erreur lors du chargement des statistiques');
-      }
+      error: () => { this.statsLoading = false; }
     });
   }
 
@@ -161,14 +158,11 @@ export class LocationsAdvancedComponent implements OnInit {
     this.submitted = true;
     if (this.locationForm.invalid) return;
 
-    const data = {
-      ...this.locationForm.value,
-      tenant_id: 1
-    };
+    const data = this.locationForm.value;
 
-    const request = this.isEditing 
+    const request = this.isEditing
       ? this.apiService.put<any>(`locations/${this.currentLocation.id}`, data)
-      : this.apiService.post<any>('locations-public', data);
+      : this.apiService.post<any>('locations', data);
 
     request.subscribe({
       next: (r) => {

@@ -56,7 +56,7 @@ export class HousingUnitsComponent implements OnInit {
   }
 
   loadBuildings(): void {
-    this.apiService.get<any>('buildings-public?per_page=200').subscribe({
+    this.apiService.get<any>('buildings?per_page=200').subscribe({
       next: (r) => { 
         if (r.success && r.data) {
           this.buildings = r.data.data || r.data || [];
@@ -67,7 +67,7 @@ export class HousingUnitsComponent implements OnInit {
   }
 
   loadFloors(): void {
-    this.apiService.get<any>('floors-public?per_page=200').subscribe({
+    this.apiService.get<any>('floors?per_page=200').subscribe({
       next: (r) => { 
         if (r.success && r.data) {
           this.floors = r.data.data || r.data || [];
@@ -79,7 +79,7 @@ export class HousingUnitsComponent implements OnInit {
   }
 
   loadConfigurations(): void {
-    this.apiService.get<any>('unit-configurations-public?per_page=200').subscribe({
+    this.apiService.get<any>('unit-configurations?per_page=200').subscribe({
       next: (r) => { 
         if (r.success && r.data) {
           this.configurations = r.data.data || r.data || [];
@@ -110,7 +110,7 @@ export class HousingUnitsComponent implements OnInit {
 
   loadData(): void {
     this.loading = true; this.error = null;
-    let url = `housing-units-public?page=${this.currentPage}`;
+    let url = `housing-units?page=${this.currentPage}`;
     if (this.selectedFloorId) url += `&floor_id=${this.selectedFloorId}`;
     
     this.apiService.get<any>(url).subscribe({
@@ -170,8 +170,8 @@ export class HousingUnitsComponent implements OnInit {
     this.submitted = true; if (this.unitForm.invalid) return;
     const { building_id, ...data } = this.unitForm.value;
     const obs = this.editMode && this.selectedItem
-      ? this.apiService.put<any>(`housing-units-public/${this.selectedItem.id}`, data)
-      : this.apiService.post<any>('housing-units-public', data);
+      ? this.apiService.put<any>(`housing-units/${this.selectedItem.id}`, data)
+      : this.apiService.post<any>('housing-units', data);
     obs.subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Unité mise à jour' : 'Unité créée'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
       error: (err) => { this.error = err?.error?.message || 'Erreur'; }
@@ -181,7 +181,7 @@ export class HousingUnitsComponent implements OnInit {
   confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
     if (!this.itemToDelete) return;
-    this.apiService.delete<any>(`housing-units-public/${this.itemToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`housing-units/${this.itemToDelete.id}`).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Unité supprimée'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
       error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
     });

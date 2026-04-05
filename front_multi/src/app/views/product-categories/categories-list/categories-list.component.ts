@@ -99,9 +99,8 @@ export class CategoriesListComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        this.error = 'Erreur lors du chargement des catégories';
-        console.error('Error loading categories:', err);
+      error: () => {
+        this.error   = 'Erreur lors du chargement des catégories';
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -236,7 +235,7 @@ export class CategoriesListComponent implements OnInit {
     });
   }
 
-  trackByCategoryId(index: number, category: any): number {
+  trackByCategoryId(_index: number, category: any): number {
     return category.id;
   }
 

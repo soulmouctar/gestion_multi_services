@@ -53,7 +53,7 @@ export class FinanceCurrenciesComponent implements OnInit {
   loadCurrencies(): void {
     this.loading = true;
     this.error = null;
-    this.apiService.get<any>(`currencies-public?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`currencies?page=${this.currentPage}`).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           // Handle both paginated and non-paginated responses
@@ -98,10 +98,10 @@ export class FinanceCurrenciesComponent implements OnInit {
   saveCurrency(): void {
     this.submitted = true;
     if (this.currencyForm.invalid) return;
-    const data = { ...this.currencyForm.value, tenant_id: 1 };
+    const data = this.currencyForm.value;
     const obs = this.editMode && this.selectedCurrency
-      ? this.apiService.put<any>(`currencies-public/${this.selectedCurrency.id}`, data)
-      : this.apiService.post<any>('currencies-public', data);
+      ? this.apiService.put<any>(`currencies/${this.selectedCurrency.id}`, data)
+      : this.apiService.post<any>('currencies', data);
     obs.subscribe({
       next: (r) => {
         if (r.success) {
@@ -117,7 +117,7 @@ export class FinanceCurrenciesComponent implements OnInit {
 
   deleteCurrency(): void {
     if (!this.currencyToDelete) return;
-    this.apiService.delete<any>(`currencies-public/${this.currencyToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`currencies/${this.currencyToDelete.id}`).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = 'Devise supprimée'; this.deleteModalOpen = false;

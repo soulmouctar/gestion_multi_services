@@ -213,7 +213,7 @@ export class ProductService {
    * Get units
    */
   getUnits(): Observable<ApiResponse<Unit[]>> {
-    return this.http.get<ApiResponse<Unit[]>>(`${this.API_URL}/units-public`)
+    return this.http.get<ApiResponse<Unit[]>>(`${this.API_URL}/units`)
       .pipe(
         timeout(10000),
         retry(2),

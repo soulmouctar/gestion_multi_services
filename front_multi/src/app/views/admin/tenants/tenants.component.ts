@@ -1,7 +1,8 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { TenantService, Tenant, Module, ApiResponse } from '../../../core/services/tenant.service';
+import { TenantService } from '../../../core/services/tenant.service';
+import { Tenant, Module, ApiResponse } from '../../../core/models/tenant.model';
 import { IconDirective } from '@coreui/icons-angular';
 import { 
   ButtonModule, 
@@ -78,28 +79,17 @@ export class TenantsComponent implements OnInit {
     
     this.tenantService.getTenants().subscribe({
       next: (response: ApiResponse<any>) => {
-        console.log('Organisation API response:', response);
-        console.log('Response data type:', typeof response.data);
-        console.log('Is response.data an array?', Array.isArray(response.data));
-        
-        // L'API tenants-public retourne directement un tableau dans response.data
         if (response.success && Array.isArray(response.data)) {
           this.organisations = response.data;
-          console.log('Organisations loaded (direct array):', this.organisations.length, 'items');
-        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          // Fallback pour structure paginée
+        } else if (response.data?.data && Array.isArray(response.data.data)) {
           this.organisations = response.data.data;
-          console.log('Organisations loaded (paginated):', this.organisations.length, 'items');
         } else {
-          console.warn('Unexpected response structure:', response);
           this.organisations = [];
         }
-        
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('Error loading organisations from database:', error);
+      error: () => {
         this.organisations = [];
         this.loading = false;
         this.cdr.detectChanges();
@@ -117,7 +107,7 @@ export class TenantsComponent implements OnInit {
           code: module.code,
           name: module.name,
           icon: this.getModuleIcon(module.code),
-          enabled: module.is_active || true
+          is_active: module.is_active || true
         }));
         console.log('Modules chargés depuis la base de données:', this.modules);
         // Force change detection after async operation
@@ -129,12 +119,12 @@ export class TenantsComponent implements OnInit {
         console.error('Erreur lors du chargement des modules:', error);
         // Fallback vers les modules par défaut en cas d'erreur
         this.modules = [
-          { id: 1, code: 'COMMERCE', name: 'Module Commerce', icon: 'cil-cart', enabled: true },
-          { id: 2, code: 'CONTAINER', name: 'Module Conteneurs', icon: 'cil-truck', enabled: true },
-          { id: 3, code: 'IMMOBILIER', name: 'Module Immobilier', icon: 'cil-home', enabled: true },
-          { id: 4, code: 'TAXI', name: 'Module Taxi', icon: 'cil-car-alt', enabled: true },
-          { id: 5, code: 'FINANCE', name: 'Module Finance', icon: 'cil-dollar', enabled: true },
-          { id: 6, code: 'STATISTICS', name: 'Module Statistiques', icon: 'cil-chart-pie', enabled: true }
+          { id: 1, code: 'COMMERCE', name: 'Module Commerce', icon: 'cil-cart', is_active: true },
+          { id: 2, code: 'CONTAINER', name: 'Module Conteneurs', icon: 'cil-truck', is_active: true },
+          { id: 3, code: 'IMMOBILIER', name: 'Module Immobilier', icon: 'cil-home', is_active: true },
+          { id: 4, code: 'TAXI', name: 'Module Taxi', icon: 'cil-car-alt', is_active: true },
+          { id: 5, code: 'FINANCE', name: 'Module Finance', icon: 'cil-dollar', is_active: true },
+          { id: 6, code: 'STATISTICS', name: 'Module Statistiques', icon: 'cil-chart-pie', is_active: true }
         ];
         setTimeout(() => {
           this.cdr.detectChanges();
@@ -424,45 +414,34 @@ export class TenantsComponent implements OnInit {
     
     if (isCurrentlyActive) {
       // Remove module from organisation
-      this.tenantService.removeModuleFromTenant(organisation.id, module.id).subscribe({
+      this.tenantService.removeModule(organisation.id, module.id).subscribe({
         next: () => {
-          // Update local organisation data
           if (organisation.modules) {
             organisation.modules = organisation.modules.filter(m => m.id !== module.id);
           }
           this.loading = false;
           this.cdr.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Error removing module:', error);
-          this.loading = false;
-          this.cdr.detectChanges();
-        }
+        error: () => { this.loading = false; this.cdr.detectChanges(); }
       });
     } else {
-      // Add module to organisation
-      this.tenantService.assignModuleToTenant(organisation.id, module.id).subscribe({
+      this.tenantService.assignModule(organisation.id, module.id).subscribe({
         next: () => {
-          // Update local organisation data
           if (!organisation.modules) {
             organisation.modules = [];
           }
           organisation.modules.push({
             ...module,
-            pivot: { 
+            pivot: {
               tenant_id: organisation.id,
               module_id: module.id,
-              is_active: true 
+              is_active: true
             }
           });
           this.loading = false;
           this.cdr.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Error adding module:', error);
-          this.loading = false;
-          this.cdr.detectChanges();
-        }
+        error: () => { this.loading = false; this.cdr.detectChanges(); }
       });
     }
   }

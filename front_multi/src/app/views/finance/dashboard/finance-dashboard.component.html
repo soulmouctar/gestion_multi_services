@@ -1,0 +1,173 @@
+<div class="container-fluid">
+
+  <!-- Header -->
+  <div class="row mb-4 align-items-center">
+    <div class="col">
+      <h2 class="mb-0">
+        <svg cIcon name="cilDollar" class="me-2 text-success"></svg>
+        Tableau de Bord Financier
+      </h2>
+      <p class="text-body-secondary mb-0">Vue d'ensemble de vos finances et transactions</p>
+    </div>
+    <div class="col-auto">
+      <a routerLink="/payments/list" class="btn btn-success">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau Paiement
+      </a>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="success"></c-spinner>
+    <p class="mt-2 text-body-secondary">Chargement des données financières...</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- KPI Cards -->
+    <c-row class="mb-4 g-3">
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-success border-3">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-body-secondary small text-uppercase fw-semibold">Total Paiements</div>
+                <div class="fs-3 fw-bold">{{ stats.totalPayments }}</div>
+                <div class="small text-body-secondary">{{ stats.totalAmount | number:'1.0-0' }} total</div>
+              </div>
+              <svg cIcon name="cilCreditCard" size="xl" class="text-success opacity-50"></svg>
+            </div>
+          </c-card-body>
+          <c-card-footer class="border-0 bg-transparent">
+            <a routerLink="/payments/list" class="btn btn-sm btn-outline-success">Voir paiements →</a>
+          </c-card-footer>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-primary border-3">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-body-secondary small text-uppercase fw-semibold">Ce mois</div>
+                <div class="fs-3 fw-bold">{{ stats.monthlyAmount | number:'1.0-0' }}</div>
+                <div class="small text-body-secondary">Encaissements</div>
+              </div>
+              <svg cIcon name="cilChartLine" size="xl" class="text-primary opacity-50"></svg>
+            </div>
+          </c-card-body>
+          <c-card-footer class="border-0 bg-transparent">
+            <a routerLink="/payments/advanced" class="btn btn-sm btn-outline-primary">Détails →</a>
+          </c-card-footer>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-warning border-3">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-body-secondary small text-uppercase fw-semibold">Factures</div>
+                <div class="fs-3 fw-bold">{{ stats.totalInvoices }}</div>
+              </div>
+              <svg cIcon name="cilDescription" size="xl" class="text-warning opacity-50"></svg>
+            </div>
+          </c-card-body>
+          <c-card-footer class="border-0 bg-transparent">
+            <a routerLink="/finance/invoices" class="btn btn-sm btn-outline-warning">Voir factures →</a>
+          </c-card-footer>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-info border-3">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-body-secondary small text-uppercase fw-semibold">Devises actives</div>
+                <div class="fs-3 fw-bold">{{ stats.totalCurrencies }}</div>
+              </div>
+              <svg cIcon name="cilGlobeAlt" size="xl" class="text-info opacity-50"></svg>
+            </div>
+          </c-card-body>
+          <c-card-footer class="border-0 bg-transparent">
+            <a routerLink="/finance/currencies" class="btn btn-sm btn-outline-info">Gérer devises →</a>
+          </c-card-footer>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <!-- Accès rapides -->
+    <c-row class="mb-4">
+      <c-col xs="12">
+        <c-card>
+          <c-card-header><strong>Accès rapides</strong></c-card-header>
+          <c-card-body>
+            <div class="d-flex flex-wrap gap-2">
+              <a routerLink="/payments/list"       class="btn btn-outline-success"><svg cIcon name="cilCreditCard" class="me-1"></svg> Paiements</a>
+              <a routerLink="/payments/advanced"   class="btn btn-outline-success"><svg cIcon name="cilChartLine" class="me-1"></svg> Paiements avancés</a>
+              <a routerLink="/finance/invoices"    class="btn btn-outline-warning"><svg cIcon name="cilDescription" class="me-1"></svg> Factures</a>
+              <a routerLink="/finance/currencies"  class="btn btn-outline-info"><svg cIcon name="cilGlobeAlt" class="me-1"></svg> Devises</a>
+              <a routerLink="/finance/exchange-rates" class="btn btn-outline-info"><svg cIcon name="cilSwapHorizontal" class="me-1"></svg> Taux de change</a>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row class="g-4">
+      <!-- Paiements récents -->
+      <c-col xs="12" lg="6">
+        <c-card class="h-100">
+          <c-card-header class="d-flex justify-content-between align-items-center">
+            <strong><svg cIcon name="cilCreditCard" class="me-1 text-success"></svg> Paiements récents</strong>
+            <a routerLink="/payments/list" class="btn btn-sm btn-outline-success">Voir tout</a>
+          </c-card-header>
+          <c-card-body>
+            <div *ngIf="recentPayments.length === 0" class="text-center py-3 text-body-secondary">
+              <svg cIcon name="cilCreditCard" size="xl" class="mb-2 opacity-25"></svg>
+              <p class="mb-0">Aucun paiement enregistré</p>
+            </div>
+            <table *ngIf="recentPayments.length > 0" class="table table-sm table-hover mb-0">
+              <thead><tr><th>Référence</th><th>Montant</th><th>Date</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let pay of recentPayments">
+                  <td>{{ pay.reference || pay.id }}</td>
+                  <td><strong>{{ pay.amount | number:'1.0-0' }}</strong> {{ pay.currency || '' }}</td>
+                  <td class="text-body-secondary small">{{ pay.payment_date || pay.created_at | date:'dd/MM/yyyy' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <!-- Factures récentes -->
+      <c-col xs="12" lg="6">
+        <c-card class="h-100">
+          <c-card-header class="d-flex justify-content-between align-items-center">
+            <strong><svg cIcon name="cilDescription" class="me-1 text-warning"></svg> Factures récentes</strong>
+            <a routerLink="/finance/invoices" class="btn btn-sm btn-outline-warning">Voir tout</a>
+          </c-card-header>
+          <c-card-body>
+            <div *ngIf="recentInvoices.length === 0" class="text-center py-3 text-body-secondary">
+              <svg cIcon name="cilDescription" size="xl" class="mb-2 opacity-25"></svg>
+              <p class="mb-0">Aucune facture enregistrée</p>
+            </div>
+            <table *ngIf="recentInvoices.length > 0" class="table table-sm table-hover mb-0">
+              <thead><tr><th>N° Facture</th><th>Montant</th><th>Date</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let inv of recentInvoices">
+                  <td>{{ inv.invoice_number || inv.number || inv.id }}</td>
+                  <td><strong>{{ inv.total_amount ?? inv.amount ?? 0 | number:'1.0-0' }}</strong></td>
+                  <td class="text-body-secondary small">{{ inv.invoice_date || inv.created_at | date:'dd/MM/yyyy' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+  </ng-container>
+</div>

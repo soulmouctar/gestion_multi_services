@@ -1,38 +1,88 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CardModule, RowComponent, ColComponent, ContainerComponent } from '@coreui/angular';
+import { Subject, forkJoin, takeUntil } from 'rxjs';
+import { catchError, of } from 'rxjs';
+import {
+  CardModule, BadgeModule, SpinnerModule,
+  RowComponent, ColComponent, ContainerComponent, TableModule
+} from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
+import { ApiService } from '../../../core/services/api.service';
 
 @Component({
   selector: 'app-statistics-finance',
   standalone: true,
-  imports: [CommonModule, CardModule, RowComponent, ColComponent, ContainerComponent],
-  template: `
-    <c-container>
-      <c-row>
-        <c-col xs="12">
-          <c-card class="mb-4">
-            <c-card-header><strong>Statistiques Financières</strong></c-card-header>
-            <c-card-body>
-              <p class="text-medium-emphasis">Les statistiques financières seront disponibles prochainement.</p>
-              <div class="row text-center">
-                <div class="col-md-3">
-                  <c-card class="mb-3"><c-card-body><h4>0</h4><small class="text-medium-emphasis">Revenus ce mois</small></c-card-body></c-card>
-                </div>
-                <div class="col-md-3">
-                  <c-card class="mb-3"><c-card-body><h4>0</h4><small class="text-medium-emphasis">Dépenses ce mois</small></c-card-body></c-card>
-                </div>
-                <div class="col-md-3">
-                  <c-card class="mb-3"><c-card-body><h4>0</h4><small class="text-medium-emphasis">Factures en attente</small></c-card-body></c-card>
-                </div>
-                <div class="col-md-3">
-                  <c-card class="mb-3"><c-card-body><h4>0</h4><small class="text-medium-emphasis">Paiements reçus</small></c-card-body></c-card>
-                </div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-col>
-      </c-row>
-    </c-container>
-  `
+  imports: [
+    CommonModule, IconDirective,
+    CardModule, BadgeModule, SpinnerModule,
+    RowComponent, ColComponent, ContainerComponent, TableModule
+  ],
+  templateUrl: './statistics-finance.component.html'
 })
-export class StatisticsFinanceComponent {}
+export class StatisticsFinanceComponent implements OnInit, OnDestroy {
+  loading = true;
+
+  stats = {
+    totalRevenue:       0,
+    totalPayments:      0,
+    totalInvoices:      0,
+    totalCurrencies:    0,
+    totalExchangeRates: 0
+  };
+
+  currencies: any[] = [];
+  exchangeRates: any[] = [];
+  recentPayments: any[] = [];
+
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(private apiService: ApiService) {}
+
+  ngOnInit(): void {
+    this.loadStats();
+  }
+
+  loadStats(): void {
+    this.loading = true;
+
+    forkJoin({
+      payStats:      this.apiService.get<any>('payments/statistics').pipe(catchError(() => of({ success: false, data: null }))),
+      currencies:    this.apiService.get<any>('currencies?per_page=100').pipe(catchError(() => of({ success: false, data: null }))),
+      exchangeRates: this.apiService.get<any>('exchange-rates?per_page=10').pipe(catchError(() => of({ success: false, data: null }))),
+      invoices:      this.apiService.get<any>('invoices?per_page=1').pipe(catchError(() => of({ success: false, data: null }))),
+      recentPay:     this.apiService.get<any>('payments?per_page=5').pipe(catchError(() => of({ success: false, data: null })))
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (results) => {
+        if (results.payStats.success && results.payStats.data) {
+          const p = results.payStats.data;
+          this.stats.totalRevenue  = p.total_amount ?? p.sum   ?? 0;
+          this.stats.totalPayments = p.total_count  ?? p.total ?? 0;
+        }
+        if (results.currencies.success && results.currencies.data) {
+          const cur = results.currencies.data;
+          this.currencies = cur.data ?? (Array.isArray(cur) ? cur : []);
+          this.stats.totalCurrencies = cur.total ?? this.currencies.length;
+        }
+        if (results.exchangeRates.success && results.exchangeRates.data) {
+          const er = results.exchangeRates.data;
+          this.exchangeRates = er.data ?? (Array.isArray(er) ? er.slice(0, 10) : []);
+          this.stats.totalExchangeRates = er.total ?? this.exchangeRates.length;
+        }
+        if (results.invoices.success && results.invoices.data) {
+          this.stats.totalInvoices = results.invoices.data.total ?? 0;
+        }
+        if (results.recentPay.success && results.recentPay.data) {
+          const rp = results.recentPay.data;
+          this.recentPayments = rp.data ?? (Array.isArray(rp) ? rp.slice(0, 5) : []);
+        }
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}

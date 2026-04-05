@@ -61,7 +61,7 @@ export class SubscriptionService {
 
   // Subscription Plans
   getSubscriptionPlans(): Observable<ApiResponse<SubscriptionPlan[]>> {
-    return this.http.get<ApiResponse<SubscriptionPlan[]>>(`${this.API_URL}/subscription-plans-public`);
+    return this.http.get<ApiResponse<SubscriptionPlan[]>>(`${this.API_URL}/subscription-plans`);
   }
 
   getSubscriptionPlan(id: number): Observable<ApiResponse<SubscriptionPlan>> {
@@ -82,7 +82,7 @@ export class SubscriptionService {
 
   // Subscriptions
   getSubscriptions(tenantId?: number): Observable<ApiResponse<Subscription[]>> {
-    const url = tenantId ? `${this.API_URL}/subscriptions-public?tenant_id=${tenantId}` : `${this.API_URL}/subscriptions-public`;
+    const url = tenantId ? `${this.API_URL}/subscriptions?tenant_id=${tenantId}` : `${this.API_URL}/subscriptions`;
     return this.http.get<ApiResponse<Subscription[]>>(url);
   }
 

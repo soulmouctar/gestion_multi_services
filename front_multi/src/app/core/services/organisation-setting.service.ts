@@ -55,7 +55,7 @@ export class OrganisationSettingService {
   constructor(private http: HttpClient) {}
 
   getSettings(): Observable<ApiResponse<OrganisationSetting>> {
-    return this.http.get<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings-public`).pipe(
+    return this.http.get<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings`).pipe(
       timeout(10000),
       retry(2),
       tap(response => {
@@ -68,7 +68,7 @@ export class OrganisationSettingService {
   }
 
   updateSettings(settings: Partial<OrganisationSetting>): Observable<ApiResponse<OrganisationSetting>> {
-    return this.http.put<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings-public`, settings).pipe(
+    return this.http.put<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings`, settings).pipe(
       tap(response => {
         if (response.success && response.data) {
           this.settingsSubject.next(response.data);
@@ -80,7 +80,7 @@ export class OrganisationSettingService {
   }
 
   resetSettings(): Observable<ApiResponse<OrganisationSetting>> {
-    return this.http.post<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings-public/reset`, {}).pipe(
+    return this.http.post<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings/reset`, {}).pipe(
       tap(response => {
         if (response.success && response.data) {
           this.settingsSubject.next(response.data);
@@ -259,9 +259,7 @@ export class OrganisationSettingService {
       }
     }
     
-    console.error('OrganisationSettingService Error:', error);
     this.showErrorMessage(errorMessage);
-    
     return throwError(() => new Error(errorMessage));
   }
 }

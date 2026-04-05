@@ -1,0 +1,98 @@
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col">
+      <h2 class="mb-0"><svg cIcon name="cilBoxAlt" class="me-2 text-warning"></svg>Statistiques d'Inventaire</h2>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="warning"></c-spinner>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <c-row class="mb-4 g-3">
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-primary border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold">{{ stats.totalProducts }}</div>
+            <div class="text-body-secondary">Produits total</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-danger border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold text-danger">{{ stats.lowStockProducts }}</div>
+            <div class="text-body-secondary">Stock faible</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-secondary border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold">{{ stats.totalCategories }}</div>
+            <div class="text-body-secondary">Catégories</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col xs="12" sm="6" xl="3">
+        <c-card class="h-100 border-start border-success border-3">
+          <c-card-body class="text-center">
+            <div class="fs-3 fw-bold text-success">{{ stats.totalValue | number:'1.0-0' }}</div>
+            <div class="text-body-secondary">Valeur stock</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row class="g-4">
+      <c-col xs="12" lg="8">
+        <c-card class="h-100">
+          <c-card-header class="d-flex justify-content-between">
+            <strong><svg cIcon name="cilWarning" class="me-1 text-danger"></svg>Produits à réapprovisionner</strong>
+            <span class="badge bg-danger">{{ lowStockItems.length }}</span>
+          </c-card-header>
+          <c-card-body>
+            <div *ngIf="lowStockItems.length === 0" class="text-center py-4 text-body-secondary">
+              <svg cIcon name="cilCheckCircle" size="xl" class="text-success mb-2"></svg>
+              <p class="mb-0">Tous les stocks sont à niveau</p>
+            </div>
+            <table *ngIf="lowStockItems.length > 0" class="table table-hover mb-0">
+              <thead><tr><th>Produit</th><th>Catégorie</th><th>Stock actuel</th><th>Niveau</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let item of lowStockItems">
+                  <td>{{ item.name }}</td>
+                  <td class="text-body-secondary">{{ item.category?.name || '—' }}</td>
+                  <td>
+                    <span class="badge" [class.bg-danger]="(item.stock_quantity ?? item.quantity ?? 0) <= 0"
+                      [class.bg-warning]="(item.stock_quantity ?? item.quantity ?? 0) > 0">
+                      {{ item.stock_quantity ?? item.quantity ?? 0 }}
+                    </span>
+                  </td>
+                  <td style="min-width: 120px">
+                    <c-progress [value]="getStockPercent(item)" [color]="getStockColor(item)" thin></c-progress>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" lg="4">
+        <c-card class="h-100">
+          <c-card-header><strong>Catégories</strong></c-card-header>
+          <c-card-body>
+            <div *ngIf="categories.length === 0" class="text-center py-3 text-body-secondary">Aucune catégorie.</div>
+            <ul *ngIf="categories.length > 0" class="list-group list-group-flush">
+              <li *ngFor="let cat of categories" class="list-group-item d-flex justify-content-between px-0">
+                <span>{{ cat.name }}</span>
+                <span class="badge bg-primary rounded-pill">{{ cat.products_count ?? cat.count ?? '—' }}</span>
+              </li>
+            </ul>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </ng-container>
+</div>

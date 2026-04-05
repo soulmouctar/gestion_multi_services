@@ -186,6 +186,9 @@ class PaymentController extends BaseController
             $stats = [
                 'total_payments' => $query->count(),
                 'total_amount' => $query->sum('amount'),
+                'total_invoices' => 0, // Will be updated if invoice data is available
+                'total_currencies' => 0, // Will be updated if currency data is available
+                'total_exchange_rates' => 0, // Will be updated if exchange rate data is available
                 'by_type' => [
                     'CLIENT' => $query->where('type', 'CLIENT')->sum('amount'),
                     'SUPPLIER' => $query->where('type', 'SUPPLIER')->sum('amount'),
@@ -201,6 +204,15 @@ class PaymentController extends BaseController
                 'monthly_trend' => $this->getMonthlyTrend($tenantId, $request),
                 'average_payment' => $query->avg('amount') ?? 0
             ];
+
+            // Get additional statistics
+            if ($tenantId) {
+                $stats['total_currencies'] = \App\Models\Currency::where('tenant_id', $tenantId)->count();
+                $stats['total_exchange_rates'] = \App\Models\ExchangeRate::whereHas('currency', function($q) use ($tenantId) {
+                    $q->where('tenant_id', $tenantId);
+                })->count();
+                $stats['total_invoices'] = \App\Models\InvoiceHeader::where('tenant_id', $tenantId)->count();
+            }
 
             return $this->sendResponse($stats, 'Payment statistics retrieved successfully');
             

@@ -11,26 +11,40 @@ class CurrencyController extends BaseController
 {
     public function index(Request $request)
     {
-        $user = Auth::user();
-        $tenantId = $user->tenant_id;
+        try {
+            $user = Auth::user();
+            $tenantId = $user->tenant_id;
 
-        $query = Currency::where('tenant_id', $tenantId);
+            $query = Currency::where('tenant_id', $tenantId);
 
-        // Filtrer par statut actif si spécifié
-        if ($request->has('is_active')) {
-            $query->where('is_active', $request->boolean('is_active'));
+            // Filtrer par statut actif si spécifié
+            if ($request->has('is_active')) {
+                $query->where('is_active', $request->boolean('is_active'));
+            }
+
+            // Filtrer par défaut si spécifié
+            if ($request->has('is_default')) {
+                $query->where('is_default', $request->boolean('is_default'));
+            }
+
+            // Check if pagination is requested
+            if ($request->has('per_page') || $request->has('page')) {
+                $perPage = $request->get('per_page', 15);
+                $currencies = $query->orderBy('is_default', 'desc')
+                                   ->orderBy('code')
+                                   ->paginate($perPage);
+                return $this->sendResponse($currencies, 'Currencies retrieved successfully');
+            } else {
+                // Return all currencies without pagination
+                $currencies = $query->orderBy('is_default', 'desc')
+                                   ->orderBy('code')
+                                   ->get();
+                return $this->sendResponse($currencies, 'Currencies retrieved successfully');
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error retrieving currencies: ' . $e->getMessage());
+            return $this->sendError('Error retrieving currencies', [], 500);
         }
-
-        // Filtrer par défaut si spécifié
-        if ($request->has('is_default')) {
-            $query->where('is_default', $request->boolean('is_default'));
-        }
-
-        $currencies = $query->orderBy('is_default', 'desc')
-                           ->orderBy('code')
-                           ->get();
-
-        return $this->sendResponse($currencies, 'Currencies retrieved successfully');
     }
 
     public function store(Request $request)

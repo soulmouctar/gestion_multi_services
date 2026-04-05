@@ -57,7 +57,7 @@ export class ModuleService {
 
   // Modules
   getModules(): Observable<ApiResponse<Module[]>> {
-    return this.http.get<ApiResponse<Module[]>>(`${this.API_URL}/modules-public`);
+    return this.http.get<ApiResponse<Module[]>>(`${this.API_URL}/modules`);
   }
 
   getModule(id: number): Observable<ApiResponse<Module>> {

@@ -106,15 +106,10 @@ export class InvoicesComponent implements OnInit {
   saveInvoice(): void {
     this.submitted = true;
     if (this.invoiceForm.invalid) return;
-    const data = {
-      ...this.invoiceForm.value,
-      tenant_id: 1 // Fixed for testing
-    };
-    console.log('Sending invoice data:', data);
-    
+    const data = this.invoiceForm.value;
     const obs = this.editMode && this.selectedInvoice
-      ? this.apiService.put<any>(`invoices-public/${this.selectedInvoice.id}`, data)
-      : this.apiService.post<any>('invoices-public', data);
+      ? this.apiService.put<any>(`invoices/${this.selectedInvoice.id}`, data)
+      : this.apiService.post<any>('invoices', data);
     obs.subscribe({
       next: (r) => {
         if (r.success) {
@@ -122,10 +117,7 @@ export class InvoicesComponent implements OnInit {
           this.showFormModal = false; this.loadInvoices(); this.clearMessages();
         }
       },
-      error: (err) => { 
-        console.error('Invoice save error:', err);
-        this.error = err?.error?.message || err?.message || 'Erreur lors de la sauvegarde'; 
-      }
+      error: (err) => { this.error = err?.error?.message || 'Erreur lors de la sauvegarde'; }
     });
   }
 

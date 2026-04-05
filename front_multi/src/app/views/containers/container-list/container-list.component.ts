@@ -59,7 +59,7 @@ export class ContainerListComponent implements OnInit {
   loadContainers(): void {
     this.loading = true;
     this.error = null;
-    this.apiService.get<any>(`containers-public?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`containers?page=${this.currentPage}`).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const p = response.data;
@@ -72,9 +72,8 @@ export class ContainerListComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => { 
-        console.error('Load containers error:', err);
-        this.error = 'Erreur lors du chargement des conteneurs'; 
+      error: () => {
+        this.error = 'Erreur lors du chargement des conteneurs';
         this.loading = false; 
         this.cdr.detectChanges(); 
       }
@@ -106,43 +105,23 @@ export class ContainerListComponent implements OnInit {
       return;
     }
     
-    // Use fixed tenant_id for testing (replace with dynamic value later)
-    const tenantId = 1; // Fixed for testing
-    
-    // Add tenant_id to form data
-    const data = {
-      ...this.containerForm.value,
-      tenant_id: tenantId
-    };
-    
-    console.log('Sending container data:', data);
-    
+    const data = this.containerForm.value;
+
     const obs = this.editMode && this.selectedContainer
       ? this.apiService.put<any>(`containers/${this.selectedContainer.id}`, data)
-      : this.apiService.post<any>('containers-public', data);
+      : this.apiService.post<any>('containers', data);
     obs.subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = this.editMode ? 'Conteneur mis à jour avec succès' : 'Conteneur créé avec succès';
-          this.showFormModal = false; 
+          this.showFormModal = false;
           this.containerForm.reset();
-          this.loadContainers(); 
+          this.loadContainers();
           this.clearMessages();
         }
       },
-      error: (err) => { 
-        console.error('Container save error:', err);
-        
-        // Handle validation errors specifically
-        if (err.status === 422 && err.error?.errors) {
-          const validationErrors = err.error.errors;
-          const errorMessages = Object.keys(validationErrors).map(key => 
-            `${key}: ${validationErrors[key].join(', ')}`
-          ).join('\n');
-          this.error = `Erreurs de validation:\n${errorMessages}`;
-        } else {
-          this.error = err?.error?.message || err?.message || 'Erreur lors de la sauvegarde du conteneur'; 
-        }
+      error: (err) => {
+        this.error = err?.error?.message || 'Erreur lors de la sauvegarde du conteneur';
       }
     });
   }

@@ -94,18 +94,17 @@ export class ClientListComponent implements OnInit {
       next: (response) => {
         if (response.success && response.data) {
           const paginated = response.data;
-          this.clients = paginated.data || [];
-          this.currentPage = paginated.current_page || 1;
-          this.totalPages = paginated.last_page || 1;
-          this.totalItems = paginated.total || 0;
-          this.itemsPerPage = paginated.per_page || 15;
+          this.clients      = paginated.data         || [];
+          this.currentPage  = paginated.current_page || 1;
+          this.totalPages   = paginated.last_page    || 1;
+          this.totalItems   = paginated.total        || 0;
+          this.itemsPerPage = paginated.per_page     || 15;
         }
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        this.error = 'Erreur lors du chargement des clients';
-        console.error('Error loading clients:', err);
+      error: () => {
+        this.error   = 'Erreur lors du chargement des clients';
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -141,41 +140,34 @@ export class ClientListComponent implements OnInit {
     this.submitted = true;
     if (this.clientForm.invalid) return;
 
-    const data = {
-      ...this.clientForm.value,
-      tenant_id: 1 // Fixed for testing
-    };
-
-    console.log('Sending client data:', data);
+    const data = this.clientForm.value;
 
     if (this.editMode && this.selectedClient) {
       this.apiService.put<any>(`clients/${this.selectedClient.id}`, data).subscribe({
         next: (response) => {
           if (response.success) {
             this.successMessage = 'Client mis à jour avec succès';
-            this.showFormModal = false;
+            this.showFormModal  = false;
             this.loadClients();
             this.clearMessages();
           }
         },
         error: (err) => {
-          console.error('Client update error:', err);
-          this.error = err?.error?.message || err?.message || 'Erreur lors de la mise à jour';
+          this.error = err?.error?.message || 'Erreur lors de la mise à jour';
         }
       });
     } else {
-      this.apiService.post<any>('clients-public', data).subscribe({
+      this.apiService.post<any>('clients', data).subscribe({
         next: (response) => {
           if (response.success) {
             this.successMessage = 'Client créé avec succès';
-            this.showFormModal = false;
+            this.showFormModal  = false;
             this.loadClients();
             this.clearMessages();
           }
         },
         error: (err) => {
-          console.error('Client creation error:', err);
-          this.error = err?.error?.message || err?.message || 'Erreur lors de la création';
+          this.error = err?.error?.message || 'Erreur lors de la création';
         }
       });
     }
@@ -251,7 +243,7 @@ export class ClientListComponent implements OnInit {
     });
   }
 
-  trackByClientId(index: number, client: any): number {
+  trackByClientId(_index: number, client: any): number {
     return client.id;
   }
 
