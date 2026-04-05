@@ -1,8 +1,8 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { CardModule, ButtonModule, FormModule, AlertModule, GridModule, BadgeModule } from '@coreui/angular';
-import { IconModule } from '@coreui/icons-angular';
+import { CardModule, ButtonModule, FormModule, AlertModule, GridModule, BadgeModule, SpinnerModule } from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -17,213 +17,193 @@ import { AuthService } from '../../core/services/auth.service';
     AlertModule,
     GridModule,
     BadgeModule,
-    IconModule
+    SpinnerModule,
+    IconDirective
   ],
-  template: `
-    <c-row>
-      <c-col xs="12" lg="8">
-        <c-card class="mb-4">
-          <c-card-header>
-            <strong>Mon Profil</strong>
-          </c-card-header>
-          <c-card-body>
-            @if (successMessage) {
-              <c-alert color="success" class="mb-3">
-                {{ successMessage }}
-              </c-alert>
-            }
-            
-            @if (errorMessage) {
-              <c-alert color="danger" class="mb-3">
-                {{ errorMessage }}
-              </c-alert>
-            }
-            
-            <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
-              <c-row class="mb-3">
-                <c-col sm="6">
-                  <label cLabel for="name">Nom complet</label>
-                  <input 
-                    cFormControl 
-                    id="name" 
-                    formControlName="name"
-                    [class.is-invalid]="submitted && name?.invalid"
-                  />
-                  @if (submitted && name?.invalid) {
-                    <div class="invalid-feedback">
-                      Le nom est requis
-                    </div>
-                  }
-                </c-col>
-                <c-col sm="6">
-                  <label cLabel for="email">Email</label>
-                  <input 
-                    cFormControl 
-                    type="email" 
-                    id="email" 
-                    formControlName="email"
-                    [class.is-invalid]="submitted && email?.invalid"
-                  />
-                  @if (submitted && email?.invalid) {
-                    <div class="invalid-feedback">
-                      @if (email?.errors?.['required']) {
-                        L'email est requis
-                      } @else if (email?.errors?.['email']) {
-                        Veuillez entrer un email valide
-                      }
-                    </div>
-                  }
-                </c-col>
-              </c-row>
-              
-              <div class="d-flex gap-2">
-                <button cButton color="primary" type="submit" [disabled]="isLoading">
-                  @if (isLoading) {
-                    <span class="spinner-border spinner-border-sm me-2"></span>
-                  }
-                  Mettre à jour
-                </button>
-                <button cButton color="secondary" type="button" (click)="changePassword()">
-                  Changer le mot de passe
-                </button>
-              </div>
-            </form>
-          </c-card-body>
-        </c-card>
-      </c-col>
-      
-      <c-col xs="12" lg="4">
-        <c-card class="mb-4">
-          <c-card-header>
-            <strong>Informations du Compte</strong>
-          </c-card-header>
-          <c-card-body>
-            <table class="table table-sm">
-              <tbody>
-                <tr>
-                  <td class="text-muted">Rôle</td>
-                  <td><strong>{{ userRole }}</strong></td>
-                </tr>
-                <tr>
-                  <td class="text-muted">Tenant</td>
-                  <td><strong>{{ currentTenant?.name || 'N/A' }}</strong></td>
-                </tr>
-                <tr>
-                  <td class="text-muted">Statut</td>
-                  <td>
-                    <c-badge [color]="isSubscriptionActive ? 'success' : 'danger'">
-                      {{ isSubscriptionActive ? 'Actif' : 'Expiré' }}
-                    </c-badge>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            
-            <div class="d-grid">
-              <button cButton color="outline-danger" (click)="logout()">
-                <svg cIcon name="cil-account-logout" class="me-2"></svg>
-                Se déconnecter
-              </button>
-            </div>
-          </c-card-body>
-        </c-card>
-      </c-col>
-    </c-row>
-  `
+  templateUrl: './profile.component.html'
 })
 export class ProfileComponent implements OnInit {
   profileForm!: FormGroup;
-  isLoading = false;
-  submitted = false;
-  successMessage = '';
-  errorMessage = '';
-  
+  passwordForm!: FormGroup;
+
+  // Photo
+  selectedPhoto: File | null = null;
+  photoPreview: string | null = null;
+  savingAvatar = false;
+
+  // Profile
+  savingProfile = false;
+  submittedProfile = false;
+  successProfile = '';
+  errorProfile = '';
+
+  // Password
+  savingPassword = false;
+  submittedPassword = false;
+  successPassword = '';
+  errorPassword = '';
+  showCurrentPassword = false;
+  showNewPassword = false;
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private ngZone: NgZone
+    private cdr: ChangeDetectorRef
   ) {}
-  
+
   ngOnInit(): void {
-    this.initForm();
-    this.loadUserData();
-  }
-  
-  private initForm(): void {
     this.profileForm = this.fb.group({
-      name: ['', Validators.required],
+      name:  ['', Validators.required],
       email: ['', [Validators.required, Validators.email]]
     });
-  }
-  
-  private loadUserData(): void {
+
+    this.passwordForm = this.fb.group({
+      current_password:      ['', Validators.required],
+      new_password:          ['', [Validators.required, Validators.minLength(8)]],
+      new_password_confirmation: ['', Validators.required]
+    }, { validators: this.passwordMatchValidator });
+
     const user = this.authService.currentUser;
     if (user) {
-      this.profileForm.patchValue({
-        name: user.name,
-        email: user.email
-      });
+      this.profileForm.patchValue({ name: user.name, email: user.email });
+      this.photoPreview = (user as any).avatar_url || null;
     }
   }
-  
-  get name() {
-    return this.profileForm.get('name');
+
+  private passwordMatchValidator(group: FormGroup) {
+    const np = group.get('new_password')?.value;
+    const nc = group.get('new_password_confirmation')?.value;
+    return np === nc ? null : { passwordMismatch: true };
   }
-  
-  get email() {
-    return this.profileForm.get('email');
+
+  get f() { return this.profileForm.controls; }
+  get pf() { return this.passwordForm.controls; }
+
+  get userRole(): string { return this.authService.userRole || ''; }
+  get currentTenant(): any { return this.authService.currentTenant; }
+  get avatarInitial(): string {
+    return (this.profileForm.get('name')?.value || 'U')[0]?.toUpperCase() || 'U';
   }
-  
-  get userRole() {
-    return this.authService.userRole;
+  get userAvatarBg(): string {
+    const colors = ['#4F46E5','#0891B2','#059669','#D97706','#DC2626','#7C3AED'];
+    const name = this.profileForm.get('name')?.value || 'U';
+    return colors[name.charCodeAt(0) % colors.length];
   }
-  
-  get currentTenant() {
-    return this.authService.currentTenant;
+
+  // ─── Photo ────────────────────────────────────────────────────────────────
+
+  triggerPhotoInput(input: HTMLInputElement): void {
+    input.click();
   }
-  
-  get isSubscriptionActive() {
-    return this.authService.isSubscriptionActive;
-  }
-  
-  onSubmit(): void {
-    this.submitted = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-    
-    if (this.profileForm.invalid) {
+
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    if (file.size > 2 * 1024 * 1024) {
+      this.errorProfile = 'La photo ne doit pas dépasser 2 MB.';
+      this.cdr.detectChanges();
       return;
     }
-    
-    this.isLoading = true;
-    
-    this.authService.updateProfile(this.profileForm.value).subscribe({
-      next: (response) => {
-        if (response.success) {
-          this.successMessage = 'Profil mis à jour avec succès!';
-        } else {
-          this.errorMessage = response.message || 'Échec de la mise à jour';
-        }
-        this.isLoading = false;
+    this.selectedPhoto = file;
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.photoPreview = reader.result as string;
+      this.cdr.detectChanges();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  saveAvatar(): void {
+    if (!this.selectedPhoto) return;
+    this.savingAvatar = true;
+    this.errorProfile = '';
+    this.cdr.detectChanges();
+
+    this.authService.updateAvatar(this.selectedPhoto).subscribe({
+      next: (res) => {
+        this.photoPreview = res.data?.avatar_url || this.photoPreview;
+        this.selectedPhoto = null;
+        this.successProfile = 'Photo de profil mise à jour.';
+        this.savingAvatar = false;
+        this.cdr.detectChanges();
       },
-      error: (error) => {
-        this.errorMessage = error.message || 'Une erreur est survenue';
-        this.isLoading = false;
+      error: (err) => {
+        this.errorProfile = err.message || 'Erreur lors de la mise à jour de la photo.';
+        this.savingAvatar = false;
+        this.cdr.detectChanges();
       }
     });
   }
-  
-  changePassword(): void {
-    // Navigate to change password page or open modal
-    console.log('Change password functionality to be implemented');
+
+  removePhotoPreview(): void {
+    this.selectedPhoto = null;
+    const user = this.authService.currentUser;
+    this.photoPreview = (user as any)?.avatar_url || null;
   }
-  
-  logout(): void {
-    // Use NgZone to ensure proper logout without Angular errors
-    this.ngZone.runOutsideAngular(() => {
-      this.ngZone.run(() => {
-        this.authService.logout();
-      });
+
+  // ─── Profil ───────────────────────────────────────────────────────────────
+
+  onSubmitProfile(): void {
+    this.submittedProfile = true;
+    this.successProfile = '';
+    this.errorProfile = '';
+
+    if (this.profileForm.invalid) return;
+
+    this.savingProfile = true;
+    this.cdr.detectChanges();
+
+    this.authService.updateProfile(this.profileForm.value).subscribe({
+      next: () => {
+        this.successProfile = 'Profil mis à jour avec succès.';
+        this.savingProfile = false;
+        this.submittedProfile = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.errorProfile = err.message || 'Erreur lors de la mise à jour.';
+        this.savingProfile = false;
+        this.cdr.detectChanges();
+      }
     });
+  }
+
+  // ─── Mot de passe ─────────────────────────────────────────────────────────
+
+  onSubmitPassword(): void {
+    this.submittedPassword = true;
+    this.successPassword = '';
+    this.errorPassword = '';
+
+    if (this.passwordForm.invalid) return;
+
+    this.savingPassword = true;
+    this.cdr.detectChanges();
+
+    const { current_password, new_password, new_password_confirmation } = this.passwordForm.value;
+
+    this.authService.updateProfile({
+      current_password,
+      new_password,
+      new_password_confirmation
+    } as any).subscribe({
+      next: () => {
+        this.successPassword = 'Mot de passe modifié avec succès.';
+        this.passwordForm.reset();
+        this.submittedPassword = false;
+        this.savingPassword = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.errorPassword = err.message || 'Erreur lors du changement de mot de passe.';
+        this.savingPassword = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  logout(): void {
+    this.authService.logout();
   }
 }

@@ -1,180 +1,263 @@
-<c-container>
-  <c-row>
-    <c-col xs="12">
-      <c-card class="mb-4">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div><strong>Paramètres de l'Organisation</strong></div>
-          <div>
-            <button cButton color="secondary" size="sm" (click)="resetToDefaults()" class="me-2">Réinitialiser</button>
-            <button cButton color="primary" size="sm" (click)="saveSettings()">Sauvegarder</button>
+<div class="p-3 p-md-4">
+
+  <!-- Header -->
+  <div class="rounded-3 p-4 mb-4 text-white d-flex align-items-center justify-content-between flex-wrap gap-3"
+       style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 16px !important;">
+    <div>
+      <h4 class="fw-bold mb-1">Paramètres de l'Organisation</h4>
+      <p class="mb-0 opacity-75 small">Configurez les préférences globales de votre organisation</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button cButton color="light" size="sm" (click)="resetToDefaults()" style="border-radius:8px">
+        <svg cIcon name="cilReload" class="me-1" size="sm"></svg> Réinitialiser
+      </button>
+      <button cButton color="success" (click)="saveSettings()" style="border-radius:10px">
+        <svg cIcon name="cilSave" class="me-1"></svg> Sauvegarder
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null" class="mb-3">
+    <svg cIcon name="cilCheckCircle" class="me-2" size="sm"></svg>{{ successMessage }}
+  </c-alert>
+  <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null" class="mb-3">
+    {{ error }}
+  </c-alert>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="text-muted mt-2 small">Chargement des paramètres...</p>
+  </div>
+
+  <form [formGroup]="settingsForm" *ngIf="!loading">
+
+    <!-- Section Paramètres généraux -->
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+      <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
+        <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:32px; height:32px; background:#EFF6FF;">
+          <svg cIcon name="cilSettings" size="sm" style="color:#3B82F6;"></svg>
+        </div>
+        <span class="fw-semibold">Paramètres généraux</span>
+      </div>
+      <div class="px-4 py-3">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Fuseau horaire *</label>
+            <select cSelect formControlName="timezone" style="border-radius:8px"
+                    [class.is-invalid]="submitted && settingsForm.get('timezone')?.invalid">
+              <option value="Europe/Paris">Europe/Paris (GMT+1)</option>
+              <option value="Africa/Conakry">Africa/Conakry (GMT+0)</option>
+              <option value="UTC">UTC (GMT+0)</option>
+            </select>
           </div>
-        </c-card-header>
-        <c-card-body>
-          <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
-          <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
-          
-          <div *ngIf="loading" class="text-center p-4"><c-spinner></c-spinner><p class="mt-2">Chargement...</p></div>
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Langue *</label>
+            <select cSelect formControlName="language" style="border-radius:8px"
+                    [class.is-invalid]="submitted && settingsForm.get('language')?.invalid">
+              <option value="fr">Français</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Format de date *</label>
+            <select cSelect formControlName="date_format" style="border-radius:8px"
+                    [class.is-invalid]="submitted && settingsForm.get('date_format')?.invalid">
+              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Format numérique *</label>
+            <select cSelect formControlName="number_format" style="border-radius:8px"
+                    [class.is-invalid]="submitted && settingsForm.get('number_format')?.invalid">
+              <option value="fr">Français (1 234,56)</option>
+              <option value="en">Anglais (1,234.56)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
 
-          <form [formGroup]="settingsForm" *ngIf="!loading">
-            <!-- Paramètres généraux -->
-            <c-card class="mb-4">
-              <c-card-header><strong>Paramètres généraux</strong></c-card-header>
-              <c-card-body>
-                <c-row>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Fuseau horaire *</label>
-                      <select cSelect formControlName="timezone" [class.is-invalid]="submitted && settingsForm.get('timezone')?.invalid">
-                        <option value="Europe/Paris">Europe/Paris (GMT+1)</option>
-                        <option value="Africa/Conakry">Africa/Conakry (GMT+0)</option>
-                        <option value="UTC">UTC (GMT+0)</option>
-                      </select>
-                    </div>
-                  </c-col>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Langue *</label>
-                      <select cSelect formControlName="language" [class.is-invalid]="submitted && settingsForm.get('language')?.invalid">
-                        <option value="fr">Français</option>
-                        <option value="en">English</option>
-                      </select>
-                    </div>
-                  </c-col>
-                </c-row>
-                <c-row>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Format de date *</label>
-                      <select cSelect formControlName="date_format" [class.is-invalid]="submitted && settingsForm.get('date_format')?.invalid">
-                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                      </select>
-                    </div>
-                  </c-col>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Format numérique *</label>
-                      <select cSelect formControlName="number_format" [class.is-invalid]="submitted && settingsForm.get('number_format')?.invalid">
-                        <option value="fr">Français (1 234,56)</option>
-                        <option value="en">Anglais (1,234.56)</option>
-                      </select>
-                    </div>
-                  </c-col>
-                </c-row>
-              </c-card-body>
-            </c-card>
+    <!-- Section Facturation -->
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+      <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
+        <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:32px; height:32px; background:#ECFDF5;">
+          <svg cIcon name="cilDescription" size="sm" style="color:#10B981;"></svg>
+        </div>
+        <span class="fw-semibold">Paramètres de facturation</span>
+      </div>
+      <div class="px-4 py-3">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Préfixe factures *</label>
+            <input cFormControl type="text" formControlName="invoice_prefix" style="border-radius:8px"
+                   [class.is-invalid]="submitted && settingsForm.get('invoice_prefix')?.invalid" />
+          </div>
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Compteur factures *</label>
+            <input cFormControl type="number" formControlName="invoice_counter" min="1" style="border-radius:8px"
+                   [class.is-invalid]="submitted && settingsForm.get('invoice_counter')?.invalid" />
+          </div>
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Préfixe devis *</label>
+            <input cFormControl type="text" formControlName="quote_prefix" style="border-radius:8px"
+                   [class.is-invalid]="submitted && settingsForm.get('quote_prefix')?.invalid" />
+          </div>
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Compteur devis *</label>
+            <input cFormControl type="number" formControlName="quote_counter" min="1" style="border-radius:8px"
+                   [class.is-invalid]="submitted && settingsForm.get('quote_counter')?.invalid" />
+          </div>
+        </div>
+      </div>
+    </div>
 
-            <!-- Paramètres de facturation -->
-            <c-card class="mb-4">
-              <c-card-header><strong>Paramètres de facturation</strong></c-card-header>
-              <c-card-body>
-                <c-row>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Préfixe factures *</label>
-                      <input cFormControl type="text" formControlName="invoice_prefix" [class.is-invalid]="submitted && settingsForm.get('invoice_prefix')?.invalid" />
-                    </div>
-                  </c-col>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Compteur factures *</label>
-                      <input cFormControl type="number" formControlName="invoice_counter" min="1" [class.is-invalid]="submitted && settingsForm.get('invoice_counter')?.invalid" />
-                    </div>
-                  </c-col>
-                </c-row>
-                <c-row>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Préfixe devis *</label>
-                      <input cFormControl type="text" formControlName="quote_prefix" [class.is-invalid]="submitted && settingsForm.get('quote_prefix')?.invalid" />
-                    </div>
-                  </c-col>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Compteur devis *</label>
-                      <input cFormControl type="number" formControlName="quote_counter" min="1" [class.is-invalid]="submitted && settingsForm.get('quote_counter')?.invalid" />
-                    </div>
-                  </c-col>
-                </c-row>
-              </c-card-body>
-            </c-card>
+    <!-- Section Notifications -->
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+      <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
+        <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:32px; height:32px; background:#FFFBEB;">
+          <svg cIcon name="cilBell" size="sm" style="color:#F59E0B;"></svg>
+        </div>
+        <span class="fw-semibold">Paramètres de notification</span>
+      </div>
+      <div class="px-4 py-3">
+        <div class="d-flex flex-column gap-3">
+          <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
+               style="background:#f8fafc; border:1px solid #f0f0f0;">
+            <div>
+              <div class="fw-semibold small">Notifications par email</div>
+              <div class="text-muted small">Recevoir les alertes par email</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" formControlName="email_notifications"
+                     id="emailNotif" style="cursor:pointer;" />
+            </div>
+          </div>
+          <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
+               style="background:#f8fafc; border:1px solid #f0f0f0;">
+            <div>
+              <div class="fw-semibold small">Notifications par SMS</div>
+              <div class="text-muted small">Recevoir les alertes par SMS</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" formControlName="sms_notifications"
+                     id="smsNotif" style="cursor:pointer;" />
+            </div>
+          </div>
+          <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
+               style="background:#f8fafc; border:1px solid #f0f0f0;">
+            <div>
+              <div class="fw-semibold small">Notifications navigateur</div>
+              <div class="text-muted small">Recevoir les alertes dans le navigateur</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" formControlName="browser_notifications"
+                     id="browserNotif" style="cursor:pointer;" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-            <!-- Paramètres de notification -->
-            <c-card class="mb-4">
-              <c-card-header><strong>Paramètres de notification</strong></c-card-header>
-              <c-card-body>
-                <div class="mb-3 form-check">
-                  <input type="checkbox" class="form-check-input" formControlName="email_notifications" id="emailNotif" />
-                  <label class="form-check-label" for="emailNotif">Notifications par email</label>
-                </div>
-                <div class="mb-3 form-check">
-                  <input type="checkbox" class="form-check-input" formControlName="sms_notifications" id="smsNotif" />
-                  <label class="form-check-label" for="smsNotif">Notifications par SMS</label>
-                </div>
-                <div class="mb-3 form-check">
-                  <input type="checkbox" class="form-check-input" formControlName="browser_notifications" id="browserNotif" />
-                  <label class="form-check-label" for="browserNotif">Notifications navigateur</label>
-                </div>
-              </c-card-body>
-            </c-card>
+    <!-- Section Sécurité -->
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+      <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
+        <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:32px; height:32px; background:#FEE2E2;">
+          <svg cIcon name="cilShieldAlt" size="sm" style="color:#EF4444;"></svg>
+        </div>
+        <span class="fw-semibold">Paramètres de sécurité</span>
+      </div>
+      <div class="px-4 py-3">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Timeout session (minutes) *</label>
+            <input cFormControl type="number" formControlName="session_timeout" min="5"
+                   style="border-radius:8px"
+                   [class.is-invalid]="submitted && settingsForm.get('session_timeout')?.invalid" />
+          </div>
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Expiration mot de passe (jours) *</label>
+            <input cFormControl type="number" formControlName="password_expiry" min="30"
+                   style="border-radius:8px"
+                   [class.is-invalid]="submitted && settingsForm.get('password_expiry')?.invalid" />
+          </div>
+          <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
+                 style="background:#f8fafc; border:1px solid #f0f0f0;">
+              <div>
+                <div class="fw-semibold small">Authentification à deux facteurs (2FA)</div>
+                <div class="text-muted small">Sécurité renforcée à la connexion</div>
+              </div>
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" formControlName="two_factor_auth"
+                       id="twoFactor" style="cursor:pointer;" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-            <!-- Paramètres de sécurité -->
-            <c-card class="mb-4">
-              <c-card-header><strong>Paramètres de sécurité</strong></c-card-header>
-              <c-card-body>
-                <c-row>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Timeout session (minutes) *</label>
-                      <input cFormControl type="number" formControlName="session_timeout" min="5" [class.is-invalid]="submitted && settingsForm.get('session_timeout')?.invalid" />
-                    </div>
-                  </c-col>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Expiration mot de passe (jours) *</label>
-                      <input cFormControl type="number" formControlName="password_expiry" min="30" [class.is-invalid]="submitted && settingsForm.get('password_expiry')?.invalid" />
-                    </div>
-                  </c-col>
-                </c-row>
-                <div class="mb-3 form-check">
-                  <input type="checkbox" class="form-check-input" formControlName="two_factor_auth" id="twoFactor" />
-                  <label class="form-check-label" for="twoFactor">Authentification à deux facteurs</label>
-                </div>
-              </c-card-body>
-            </c-card>
+    <!-- Section Archivage -->
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+      <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
+        <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:32px; height:32px; background:#f0f0f0;">
+          <svg cIcon name="cilFolder" size="sm" class="text-muted"></svg>
+        </div>
+        <span class="fw-semibold">Paramètres d'archivage</span>
+      </div>
+      <div class="px-4 py-3">
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
+                 style="background:#f8fafc; border:1px solid #f0f0f0;">
+              <div>
+                <div class="fw-semibold small">Archivage automatique des factures</div>
+                <div class="text-muted small">Archiver automatiquement les vieilles factures</div>
+              </div>
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" formControlName="auto_archive_invoices"
+                       id="autoArchive" style="cursor:pointer;" />
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Archiver après (jours) *</label>
+            <input cFormControl type="number" formControlName="archive_after_days" min="30"
+                   style="border-radius:8px"
+                   [class.is-invalid]="submitted && settingsForm.get('archive_after_days')?.invalid" />
+          </div>
+          <div class="col-md-6">
+            <label cLabel class="fw-semibold small mb-1">Fréquence sauvegarde *</label>
+            <select cSelect formControlName="backup_frequency" style="border-radius:8px"
+                    [class.is-invalid]="submitted && settingsForm.get('backup_frequency')?.invalid">
+              <option value="daily">Quotidienne</option>
+              <option value="weekly">Hebdomadaire</option>
+              <option value="monthly">Mensuelle</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
 
-            <!-- Paramètres d'archivage -->
-            <c-card class="mb-4">
-              <c-card-header><strong>Paramètres d'archivage</strong></c-card-header>
-              <c-card-body>
-                <div class="mb-3 form-check">
-                  <input type="checkbox" class="form-check-input" formControlName="auto_archive_invoices" id="autoArchive" />
-                  <label class="form-check-label" for="autoArchive">Archivage automatique des factures</label>
-                </div>
-                <c-row>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Archiver après (jours) *</label>
-                      <input cFormControl type="number" formControlName="archive_after_days" min="30" [class.is-invalid]="submitted && settingsForm.get('archive_after_days')?.invalid" />
-                    </div>
-                  </c-col>
-                  <c-col md="6">
-                    <div class="mb-3">
-                      <label cLabel>Fréquence sauvegarde *</label>
-                      <select cSelect formControlName="backup_frequency" [class.is-invalid]="submitted && settingsForm.get('backup_frequency')?.invalid">
-                        <option value="daily">Quotidienne</option>
-                        <option value="weekly">Hebdomadaire</option>
-                        <option value="monthly">Mensuelle</option>
-                      </select>
-                    </div>
-                  </c-col>
-                </c-row>
-              </c-card-body>
-            </c-card>
-          </form>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-</c-container>
+    <!-- Bouton flottant bas -->
+    <div class="d-flex justify-content-end gap-2">
+      <button cButton color="secondary" variant="outline" (click)="resetToDefaults()" style="border-radius:8px">
+        Réinitialiser par défaut
+      </button>
+      <button cButton color="primary" (click)="saveSettings()" style="border-radius:10px">
+        <svg cIcon name="cilSave" class="me-1" size="sm"></svg> Sauvegarder les paramètres
+      </button>
+    </div>
+
+  </form>
+
+</div>

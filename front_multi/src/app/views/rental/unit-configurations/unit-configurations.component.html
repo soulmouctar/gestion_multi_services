@@ -1,76 +1,220 @@
-<c-container>
-  <c-row>
-    <c-col xs="12">
-      <c-card class="mb-4">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div><strong>Configurations d'Unités</strong><small class="text-medium-emphasis ms-2">{{ totalItems }} configuration(s)</small></div>
-          <button cButton color="primary" size="sm" (click)="openCreateModal()"><svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle configuration</button>
-        </c-card-header>
-        <c-card-body>
-          <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
-          <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
-          <div *ngIf="loading" class="text-center p-4"><c-spinner></c-spinner><p class="mt-2">Chargement...</p></div>
-          <div class="table-responsive" *ngIf="!loading">
-            <table class="table table-striped table-hover">
-              <thead class="table-light"><tr><th>Nom</th><th>Chambres</th><th>Salons</th><th>Salles de bain</th><th>Terrasse</th><th>Date création</th><th style="width:150px">Actions</th></tr></thead>
-              <tbody>
-                <tr *ngFor="let item of configurations">
-                  <td><strong>{{ item.name }}</strong></td>
-                  <td>{{ item.bedrooms ?? '-' }}</td>
-                  <td>{{ item.living_rooms ?? '-' }}</td>
-                  <td>{{ item.bathrooms ?? '-' }}</td>
-                  <td><c-badge [color]="item.has_terrace ? 'success' : 'secondary'">{{ item.has_terrace ? 'Oui' : 'Non' }}</c-badge></td>
-                  <td>{{ item.created_at | date:'dd/MM/yyyy' }}</td>
-                  <td>
-                    <c-button-group size="sm">
-                      <button cButton color="warning" variant="outline" size="sm" (click)="openEditModal(item)"><svg cIcon name="cilPencil"></svg></button>
-                      <button cButton color="danger" variant="outline" size="sm" (click)="confirmDelete(item)"><svg cIcon name="cilTrash"></svg></button>
-                    </c-button-group>
-                  </td>
-                </tr>
-                <tr *ngIf="configurations.length === 0"><td colspan="7" class="text-center text-medium-emphasis p-4">Aucune configuration trouvée</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <nav *ngIf="!loading && totalPages > 1" class="d-flex justify-content-center mt-3">
-            <ul class="pagination">
-              <li class="page-item" [class.disabled]="currentPage === 1"><a class="page-link" (click)="onPageChange(currentPage - 1)">Précédent</a></li>
-              <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage"><a class="page-link" (click)="onPageChange(page)">{{ page }}</a></li>
-              <li class="page-item" [class.disabled]="currentPage === totalPages"><a class="page-link" (click)="onPageChange(currentPage + 1)">Suivant</a></li>
-            </ul>
-          </nav>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-</c-container>
+<div class="p-3 p-md-4">
 
-<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
-  <c-modal-header><h5 cModalTitle>{{ editMode ? 'Modifier' : 'Nouvelle configuration' }}</h5><button type="button" class="btn-close" (click)="showFormModal = false"></button></c-modal-header>
-  <c-modal-body>
+  <!-- Header -->
+  <div class="rounded-4 text-white mb-4 px-4 py-4"
+    style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span style="font-size:1.2rem">🛏️</span>
+          <span class="small fw-semibold opacity-75 text-uppercase" style="letter-spacing:.06em">Module Location</span>
+        </div>
+        <h4 class="fw-bold mb-1" style="font-size:1.5rem">Types de Logement</h4>
+        <p class="mb-0 opacity-60 small">
+          <span class="badge rounded-pill" style="background:rgba(255,255,255,.15);color:#fff;font-size:.75rem">
+            {{ totalItems }} configuration(s)
+          </span>
+        </p>
+      </div>
+      <button class="btn btn-light fw-semibold d-flex align-items-center gap-2"
+        style="border-radius:10px;font-size:.88rem"
+        (click)="openCreateModal()">
+        <svg cIcon name="cilPlus" size="sm"></svg>
+        Nouvelle configuration
+      </button>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null" class="mb-3">
+    {{ successMessage }}
+  </c-alert>
+  <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null" class="mb-3">
+    {{ error }}
+  </c-alert>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary" size="sm"></c-spinner>
+    <div class="mt-2 text-muted small">Chargement des configurations...</div>
+  </div>
+
+  <!-- Table Card -->
+  <div *ngIf="!loading" class="bg-white shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#f8fafc">
+          <tr>
+            <th class="ps-4 py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Nom</th>
+            <th class="py-3 text-muted fw-semibold text-center" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Chambres</th>
+            <th class="py-3 text-muted fw-semibold text-center" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Salons</th>
+            <th class="py-3 text-muted fw-semibold text-center" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Sdb</th>
+            <th class="py-3 text-muted fw-semibold text-center" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Terrasse</th>
+            <th class="py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Créé le</th>
+            <th class="py-3 text-muted fw-semibold text-center pe-4" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;width:130px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of configurations">
+            <td class="ps-4 py-3">
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:34px;height:34px;border-radius:10px;background:#F5F3FF;color:#8B5CF6;
+                  display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">
+                  🛏️
+                </div>
+                <span class="fw-semibold" style="font-size:.9rem">{{ item.name }}</span>
+              </div>
+            </td>
+            <td class="py-3 text-center">
+              <span *ngIf="item.bedrooms !== null && item.bedrooms !== undefined"
+                class="badge rounded-pill"
+                style="background:#EEF2FF;color:#6366F1;font-size:.78rem;font-weight:700;padding:4px 10px">
+                {{ item.bedrooms }}
+              </span>
+              <span *ngIf="item.bedrooms === null || item.bedrooms === undefined" class="text-muted">—</span>
+            </td>
+            <td class="py-3 text-center">
+              <span *ngIf="item.living_rooms !== null && item.living_rooms !== undefined"
+                class="badge rounded-pill"
+                style="background:#F0F9FF;color:#0EA5E9;font-size:.78rem;font-weight:700;padding:4px 10px">
+                {{ item.living_rooms }}
+              </span>
+              <span *ngIf="item.living_rooms === null || item.living_rooms === undefined" class="text-muted">—</span>
+            </td>
+            <td class="py-3 text-center">
+              <span *ngIf="item.bathrooms !== null && item.bathrooms !== undefined"
+                class="badge rounded-pill"
+                style="background:#ECFDF5;color:#10B981;font-size:.78rem;font-weight:700;padding:4px 10px">
+                {{ item.bathrooms }}
+              </span>
+              <span *ngIf="item.bathrooms === null || item.bathrooms === undefined" class="text-muted">—</span>
+            </td>
+            <td class="py-3 text-center">
+              <span class="badge rounded-pill"
+                [style.background]="item.has_terrace ? '#ECFDF5' : '#F3F4F6'"
+                [style.color]="item.has_terrace ? '#10B981' : '#6B7280'"
+                style="font-size:.75rem;font-weight:600;padding:4px 10px">
+                {{ item.has_terrace ? 'Oui' : 'Non' }}
+              </span>
+            </td>
+            <td class="py-3">
+              <span class="text-muted" style="font-size:.82rem">{{ item.created_at | date:'dd/MM/yyyy' }}</span>
+            </td>
+            <td class="py-3 text-center pe-4">
+              <div class="d-flex align-items-center justify-content-center gap-1">
+                <button class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1"
+                  style="border-radius:8px;font-size:.78rem"
+                  (click)="openEditModal(item)">
+                  <svg cIcon name="cilPencil" size="sm"></svg>
+                </button>
+                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                  style="border-radius:8px;font-size:.78rem"
+                  (click)="confirmDelete(item)">
+                  <svg cIcon name="cilTrash" size="sm"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="configurations.length === 0">
+            <td colspan="7" class="text-center py-5">
+              <div style="font-size:2rem" class="mb-2">🛏️</div>
+              <div class="text-muted fw-semibold">Aucune configuration trouvée</div>
+              <div class="text-muted small mt-1">Cliquez sur "Nouvelle configuration" pour en créer une.</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="d-flex justify-content-center py-3 border-top">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item" [class.disabled]="currentPage === 1">
+          <a class="page-link" style="border-radius:8px;cursor:pointer" (click)="onPageChange(currentPage - 1)">Précédent</a>
+        </li>
+        <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+          <a class="page-link" style="border-radius:8px;cursor:pointer" (click)="onPageChange(page)">{{ page }}</a>
+        </li>
+        <li class="page-item" [class.disabled]="currentPage === totalPages">
+          <a class="page-link" style="border-radius:8px;cursor:pointer" (click)="onPageChange(currentPage + 1)">Suivant</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal Formulaire -->
+<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static" size="md">
+  <c-modal-header style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border-radius:0">
+    <h5 cModalTitle class="text-white mb-0">
+      {{ editMode ? 'Modifier la configuration' : 'Nouvelle configuration' }}
+    </h5>
+    <button type="button" class="btn-close btn-close-white" (click)="showFormModal = false"></button>
+  </c-modal-header>
+  <c-modal-body class="p-4">
     <form [formGroup]="configForm">
       <div class="mb-3">
-        <label cLabel>Nom *</label>
-        <input cFormControl type="text" formControlName="name" placeholder="T2, T3, Studio..." [class.is-invalid]="submitted && configForm.get('name')?.invalid" />
-        <div class="invalid-feedback" *ngIf="submitted && configForm.get('name')?.hasError('required')">Le nom est obligatoire</div>
+        <label class="form-label fw-semibold" style="font-size:.85rem">Nom <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" style="border-radius:8px"
+          formControlName="name"
+          placeholder="Ex : T2, T3, Studio, Duplex..."
+          [class.is-invalid]="submitted && configForm.get('name')?.invalid" />
+        <div class="invalid-feedback">Le nom est obligatoire.</div>
       </div>
-      <div class="mb-3"><label cLabel>Chambres</label><input cFormControl type="number" formControlName="bedrooms" min="0" /></div>
-      <div class="mb-3"><label cLabel>Salons</label><input cFormControl type="number" formControlName="living_rooms" min="0" /></div>
-      <div class="mb-3"><label cLabel>Salles de bain</label><input cFormControl type="number" formControlName="bathrooms" min="0" /></div>
-      <div class="mb-3 form-check"><input type="checkbox" class="form-check-input" formControlName="has_terrace" id="hasTerrace" /><label class="form-check-label" for="hasTerrace">Terrasse</label></div>
+      <div class="row g-3 mb-3">
+        <div class="col-4">
+          <label class="form-label fw-semibold" style="font-size:.85rem">Chambres</label>
+          <input type="number" class="form-control" style="border-radius:8px"
+            formControlName="bedrooms" min="0" placeholder="0" />
+        </div>
+        <div class="col-4">
+          <label class="form-label fw-semibold" style="font-size:.85rem">Salons</label>
+          <input type="number" class="form-control" style="border-radius:8px"
+            formControlName="living_rooms" min="0" placeholder="0" />
+        </div>
+        <div class="col-4">
+          <label class="form-label fw-semibold" style="font-size:.85rem">Sdb</label>
+          <input type="number" class="form-control" style="border-radius:8px"
+            formControlName="bathrooms" min="0" placeholder="0" />
+        </div>
+      </div>
+      <div class="mb-2">
+        <div class="form-check form-switch">
+          <input type="checkbox" class="form-check-input" formControlName="has_terrace" id="hasTerrace" />
+          <label class="form-check-label fw-semibold" for="hasTerrace" style="font-size:.88rem">
+            Présence d'une terrasse
+          </label>
+        </div>
+      </div>
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showFormModal = false">Annuler</button>
-    <button cButton color="primary" (click)="save()">{{ editMode ? 'Mettre à jour' : 'Créer' }}</button>
+  <c-modal-footer class="border-top d-flex justify-content-end gap-2">
+    <button class="btn btn-outline-secondary" style="border-radius:8px" (click)="showFormModal = false">Annuler</button>
+    <button class="btn btn-primary" style="border-radius:8px" (click)="save()">
+      {{ editMode ? 'Mettre à jour' : 'Créer la configuration' }}
+    </button>
   </c-modal-footer>
 </c-modal>
 
-<c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
-  <c-modal-header><h5 cModalTitle>Confirmer la suppression</h5><button type="button" class="btn-close" (click)="deleteModalOpen = false"></button></c-modal-header>
-  <c-modal-body><p>Supprimer la configuration <strong>{{ itemToDelete?.name }}</strong> ?</p><p class="text-danger"><small>Cette action est irréversible.</small></p></c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="deleteModalOpen = false">Annuler</button>
-    <button cButton color="danger" (click)="deleteItem()">Supprimer</button>
+<!-- Modal Suppression -->
+<c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static" size="sm">
+  <c-modal-header style="background:#FEF2F2;border-bottom:1px solid #FECACA">
+    <h5 cModalTitle class="text-danger mb-0" style="font-size:1rem">Confirmer la suppression</h5>
+    <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
+  </c-modal-header>
+  <c-modal-body class="p-4">
+    <div class="text-center mb-3" style="font-size:2.2rem">⚠️</div>
+    <p class="text-center fw-semibold mb-1">Supprimer la configuration</p>
+    <p class="text-center text-muted mb-2">
+      <strong class="text-dark">{{ itemToDelete?.name }}</strong>
+    </p>
+    <div class="rounded-3 p-2 text-center" style="background:#FEF2F2">
+      <small class="text-danger fw-semibold">Cette action est irréversible.</small>
+    </div>
+  </c-modal-body>
+  <c-modal-footer class="border-top d-flex justify-content-end gap-2">
+    <button class="btn btn-outline-secondary" style="border-radius:8px" (click)="deleteModalOpen = false">Annuler</button>
+    <button class="btn btn-danger" style="border-radius:8px" (click)="deleteItem()">Supprimer</button>
   </c-modal-footer>
 </c-modal>

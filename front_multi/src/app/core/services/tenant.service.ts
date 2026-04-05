@@ -12,7 +12,16 @@ export class TenantService {
 
   constructor(private http: HttpClient) {}
 
-  // Tenants CRUD
+  // Organisation courante (accessible ADMIN + SUPER_ADMIN)
+  getMyTenant(): Observable<ApiResponse<Tenant>> {
+    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`);
+  }
+
+  updateMyTenant(data: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
+    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, data);
+  }
+
+  // Tenants CRUD (SUPER_ADMIN uniquement)
   getTenants(): Observable<ApiResponse<Tenant[]>> {
     return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants`);
   }

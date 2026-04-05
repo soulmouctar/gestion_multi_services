@@ -1,363 +1,335 @@
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h4 class="card-title mb-0">
-            <i class="cil-building me-2"></i>
-            Gestion des Organisations
-          </h4>
-        </div>
-        <div class="card-body">
-          <!-- Formulaire de filtres -->
-          <div class="row mb-4">
-            <div class="col-md-12">
-              <div class="card card-filter">
-                <div class="card-body">
-                  <form [formGroup]="filterForm" class="row g-3">
-                    <div class="col-md-4">
-                      <label for="search" class="form-label">Rechercher</label>
-                      <input 
-                        type="text" 
-                        class="form-control" 
-                        id="search" 
-                        formControlName="search"
-                        placeholder="Nom, email..."
-                      >
-                    </div>
-                    <div class="col-md-3">
-                      <label for="status" class="form-label">Statut</label>
-                      <select 
-                        class="form-select" 
-                        id="status" 
-                        formControlName="status"
-                      >
-                        <option value="ALL">Tous</option>
-                        <option value="ACTIVE">Actifs</option>
-                        <option value="SUSPENDED">Suspendus</option>
-                      </select>
-                    </div>
-                    <div class="col-md-5">
-                      <label class="form-label">&nbsp;</label>
-                      <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-primary" (click)="applyFilters()">
-                          <i class="cil-filter me-1"></i>
-                          Filtrer
-                        </button>
-                        <button type="button" class="btn btn-secondary" (click)="clearFilters()">
-                          <i class="cil-x me-1"></i>
-                          Effacer
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
+<div class="p-3 p-md-4">
 
-          <!-- Formulaire d'ajout/modification -->
-          <div class="row mb-4">
-            <div class="col-md-8">
-              <div class="card">
-                <div class="card-header">
-                  <h5 class="card-title mb-0">
-                    {{ editMode ? 'Modifier l\'Organisation' : 'Nouvelle Organisation' }}
-                  </h5>
-                </div>
-                <div class="card-body">
-                  <form [formGroup]="organisationForm" (ngSubmit)="onSubmit()">
-                    <div class="row">
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <label for="name" class="form-label">Nom de l\'Organisation *</label>
-                          <input 
-                            type="text" 
-                            class="form-control" 
-                            id="name" 
-                            formControlName="name"
-                            [class.is-invalid]="submitted && f['name'].errors"
-                          >
-                          <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
-                            <div *ngIf="f['name'].errors['required']">Le nom est requis</div>
-                            <div *ngIf="f['name'].errors['maxlength']">Maximum 150 caractères</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <label for="email" class="form-label">Email</label>
-                          <input 
-                            type="email" 
-                            class="form-control" 
-                            id="email" 
-                            formControlName="email"
-                            [class.is-invalid]="submitted && f['email'].errors"
-                          >
-                          <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
-                            <div *ngIf="f['email'].errors['email']">Email invalide</div>
-                            <div *ngIf="f['email'].errors['maxlength']">Maximum 150 caractères</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="row">
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <label for="phone" class="form-label">Téléphone</label>
-                          <input 
-                            type="tel" 
-                            class="form-control" 
-                            id="phone" 
-                            formControlName="phone"
-                            [class.is-invalid]="submitted && f['phone'].errors"
-                          >
-                          <div *ngIf="submitted && f['phone'].errors" class="invalid-feedback">
-                            <div *ngIf="f['phone'].errors['maxlength']">Maximum 50 caractères</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <label for="subscription_status" class="form-label">Statut d'abonnement *</label>
-                          <select 
-                            class="form-select" 
-                            id="subscription_status" 
-                            formControlName="subscription_status"
-                            [class.is-invalid]="submitted && f['subscription_status'].errors"
-                          >
-                            <option value="ACTIVE">Actif</option>
-                            <option value="SUSPENDED">Suspendu</option>
-                          </select>
-                          <div *ngIf="submitted && f['subscription_status'].errors" class="invalid-feedback">
-                            <div *ngIf="f['subscription_status'].errors['required']">Le statut est requis</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                      <button type="submit" class="btn btn-primary" [disabled]="loading">
-                        <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-                        {{ editMode ? 'Modifier' : 'Ajouter' }}
-                      </button>
-                      <button type="button" class="btn btn-secondary" (click)="resetForm()" [disabled]="loading">
-                        Annuler
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Liste des tenants -->
-          <div class="row">
-            <div class="col-12">
-              <div class="card">
-                <div class="card-header">
-                  <h5 class="card-title mb-0">Liste des Organisations</h5>
-                </div>
-                <div class="card-body">
-                  <div *ngIf="loading && organisations.length === 0" class="text-center py-4">
-                    <div class="spinner-border" role="status">
-                      <span class="visually-hidden">Chargement...</span>
-                    </div>
-                  </div>
-
-                  <div *ngIf="!loading && organisations.length === 0" class="alert alert-info">
-                    <i class="cil-info-circle me-2"></i>
-                    Aucune organisation trouvée. Créez votre première organisation ci-dessus.
-                  </div>
-
-                  <div class="table-responsive" *ngIf="organisations.length > 0">
-                    <table class="table table-striped table-hover">
-                      <thead class="table-light">
-                        <tr>
-                          <th class="fw-semibold text-dark">Nom</th>
-                          <th class="fw-semibold text-dark">Contact</th>
-                          <th class="fw-semibold text-dark">Modules</th>
-                          <th class="fw-semibold text-dark">Statut</th>
-                          <th class="fw-semibold text-dark">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr *ngFor="let organisation of organisations" 
-                            [class.table-warning]="organisation.subscription_status === 'SUSPENDED'">
-                          <td>
-                            <div class="d-flex align-items-center">
-                              <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                {{ organisation.name.charAt(0).toUpperCase() }}
-                              </div>
-                              <div>
-                                <strong>{{ organisation.name }}</strong>
-                                <br>
-                                <small class="text-muted">ID: {{ organisation.id }}</small>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div>
-                              <i class="cil-envelope me-1 text-muted"></i>
-                              {{ organisation.email || 'Non spécifié' }}
-                            </div>
-                            <div>
-                              <i class="cil-phone me-1 text-muted"></i>
-                              {{ organisation.phone || 'Non spécifié' }}
-                            </div>
-                          </td>
-                          <td>
-                            <div class="d-flex flex-wrap gap-1">
-                              <span *ngFor="let module of organisation.modules?.slice(0, 3)" 
-                                    class="badge bg-light text-dark"
-                                    [title]="module.name">
-                                <i [class]="'cil-' + module.icon.toLowerCase() + ' me-1'"></i>
-                                {{ module.name }}
-                              </span>
-                              <span *ngIf="organisation.modules && organisation.modules.length > 3" 
-                                    class="badge bg-secondary"
-                                    title="{{ organisation.modules.length - 3 }} modules supplémentaires">
-                                +{{ organisation.modules.length - 3 }}
-                              </span>
-                              <span *ngIf="!organisation.modules || organisation.modules.length === 0" 
-                                    class="text-muted small">
-                                Aucun module
-                              </span>
-                            </div>
-                          </td>
-                          <td>
-                            <span class="badge" [class]="getStatusBadgeClass(organisation.subscription_status)">
-                              {{ getStatusText(organisation.subscription_status) }}
-                            </span>
-                          </td>
-                          <td>
-                            <div class="btn-group" role="group">
-                              <button 
-                                type="button" 
-                                class="btn btn-sm btn-outline-primary"
-                                (click)="editOrganisation(organisation)"
-                                [disabled]="loading"
-                                title="Modifier"
-                              >
-                                <svg cIcon name="cilPencil"></svg>
-                              </button>
-                              <button 
-                                type="button" 
-                                class="btn btn-sm btn-outline-info"
-                                (click)="openModuleModal(organisation)"
-                                [disabled]="loading"
-                                title="Gérer les modules"
-                              >
-                                <svg cIcon name="cilLayers"></svg>
-                              </button>
-                              <button 
-                                type="button" 
-                                class="btn btn-sm"
-                                [class]="organisation.subscription_status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'"
-                                (click)="toggleOrganisationStatus(organisation)"
-                                [disabled]="loading"
-                                [title]="organisation.subscription_status === 'ACTIVE' ? 'Suspendre' : 'Activer'"
-                              >
-                                <svg cIcon [name]="organisation.subscription_status === 'ACTIVE' ? 'cilMediaPause' : 'cilMediaPlay'"></svg>
-                              </button>
-                              <button 
-                                type="button" 
-                                class="btn btn-sm btn-outline-danger"
-                                (click)="deleteOrganisation(organisation)"
-                                [disabled]="loading"
-                                title="Supprimer"
-                              >
-                                <svg cIcon name="cilTrash"></svg>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  <!-- En-tête -->
+  <div class="rounded-4 mb-4 px-4 py-4 text-white"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h2 class="mb-1 fw-bold text-white">Gestion des Organisations</h2>
+        <p class="mb-0 opacity-75">Administration des tenants et de leurs modules</p>
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <span class="badge fs-6 px-3 py-2" style="background:rgba(255,255,255,0.15)">
+          {{ organisations.length }} organisation{{ organisations.length !== 1 ? 's' : '' }}
+        </span>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Modal de gestion des modules -->
-<div class="modal fade" [class.show]="moduleModalOpen" [style.display]="moduleModalOpen ? 'block' : 'none'" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="cil-layers me-2"></i>
-          Modules pour {{ selectedOrganisationForModules?.name }}
-        </h5>
-        <button type="button" class="btn-close" (click)="closeModuleModal()"></button>
+  <!-- Filtres -->
+  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <div class="card-body">
+      <form [formGroup]="filterForm" class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label fw-semibold text-muted small text-uppercase">Rechercher</label>
+          <input
+            type="text"
+            class="form-control"
+            formControlName="search"
+            placeholder="Nom, email..."
+            style="border-radius:8px">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold text-muted small text-uppercase">Statut</label>
+          <select class="form-select" formControlName="status" style="border-radius:8px">
+            <option value="ALL">Tous</option>
+            <option value="ACTIVE">Actifs</option>
+            <option value="SUSPENDED">Suspendus</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary rounded-pill px-4" (click)="applyFilters()">
+              Filtrer
+            </button>
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" (click)="clearFilters()">
+              Effacer
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Formulaire ajout / modification -->
+  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <div class="card-header bg-white d-flex align-items-center gap-2 py-3" style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+      <span class="fw-bold fs-5">
+        {{ editMode ? 'Modifier l\'Organisation' : 'Nouvelle Organisation' }}
+      </span>
+      <span *ngIf="editMode" class="badge ms-2"
+            style="background:#EFF6FF;color:#3B82F6;font-size:.75rem">Mode édition</span>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="organisationForm" (ngSubmit)="onSubmit()">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Nom de l'Organisation <span class="text-danger">*</span></label>
+            <input
+              type="text"
+              class="form-control"
+              formControlName="name"
+              [class.is-invalid]="submitted && f['name'].errors"
+              placeholder="Ex : Alpha Commerce"
+              style="border-radius:8px">
+            <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
+              <div *ngIf="f['name'].errors['required']">Le nom est requis</div>
+              <div *ngIf="f['name'].errors['maxlength']">Maximum 150 caractères</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Email</label>
+            <input
+              type="email"
+              class="form-control"
+              formControlName="email"
+              [class.is-invalid]="submitted && f['email'].errors"
+              placeholder="contact@organisation.com"
+              style="border-radius:8px">
+            <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
+              <div *ngIf="f['email'].errors['email']">Email invalide</div>
+              <div *ngIf="f['email'].errors['maxlength']">Maximum 150 caractères</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Téléphone</label>
+            <input
+              type="tel"
+              class="form-control"
+              formControlName="phone"
+              [class.is-invalid]="submitted && f['phone'].errors"
+              placeholder="+224 6XX XX XX XX"
+              style="border-radius:8px">
+            <div *ngIf="submitted && f['phone'].errors" class="invalid-feedback">
+              <div *ngIf="f['phone'].errors['maxlength']">Maximum 50 caractères</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Statut d'abonnement <span class="text-danger">*</span></label>
+            <select
+              class="form-select"
+              formControlName="subscription_status"
+              [class.is-invalid]="submitted && f['subscription_status'].errors"
+              style="border-radius:8px">
+              <option value="ACTIVE">Actif</option>
+              <option value="SUSPENDED">Suspendu</option>
+            </select>
+            <div *ngIf="submitted && f['subscription_status'].errors" class="invalid-feedback">
+              <div *ngIf="f['subscription_status'].errors['required']">Le statut est requis</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary rounded-pill px-4" [disabled]="loading">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+            {{ editMode ? 'Enregistrer les modifications' : 'Créer l\'organisation' }}
+          </button>
+          <button type="button" class="btn btn-outline-secondary rounded-pill px-4" (click)="resetForm()" [disabled]="loading">
+            Annuler
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tableau des organisations -->
+  <div class="card" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3"
+         style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+      <span class="fw-bold fs-5">Liste des Organisations</span>
+      <span *ngIf="loading" class="spinner-border spinner-border-sm text-primary"></span>
+    </div>
+    <div class="card-body p-0">
+
+      <!-- Chargement -->
+      <div *ngIf="loading && organisations.length === 0" class="text-center py-5">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+        <p class="text-muted">Chargement des organisations...</p>
       </div>
-      <div class="modal-body">
-        <table class="table table-striped table-bordered">
-          <thead style="background-color: #f8f9fa !important;">
-            <tr>
-              <th >Module</th>
-              <th >Code</th>
-              <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Statut</th>
-              <th style="color: #212529 !important; font-weight: 600 !important; background-color: #f8f9fa !important;">Action</th>
+
+      <!-- Vide -->
+      <div *ngIf="!loading && organisations.length === 0" class="text-center py-5">
+        <div class="mb-3 opacity-50" style="font-size:3rem">&#127970;</div>
+        <h5 class="text-muted">Aucune organisation trouvée</h5>
+        <p class="text-muted">Créez votre première organisation avec le formulaire ci-dessus.</p>
+      </div>
+
+      <!-- Tableau -->
+      <div class="table-responsive" *ngIf="organisations.length > 0">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr style="background:#f8fafc">
+              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid #f0f0f0">Organisation</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Contact</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Modules</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Statut</th>
+              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid #f0f0f0">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let module of modules">
-              <td>
-                <strong>{{ module.name }}</strong>
+            <tr *ngFor="let organisation of organisations">
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                       style="width:42px;height:42px;background:linear-gradient(135deg,#667eea,#764ba2);font-size:1rem">
+                    {{ organisation.name.charAt(0).toUpperCase() }}
+                  </div>
+                  <div>
+                    <div class="fw-semibold">{{ organisation.name }}</div>
+                    <small class="text-muted">ID #{{ organisation.id }}</small>
+                  </div>
+                </div>
               </td>
               <td>
-                <code class="text-muted">{{ module.code }}</code>
+                <div class="small text-muted">
+                  <div>{{ organisation.email || '—' }}</div>
+                  <div>{{ organisation.phone || '—' }}</div>
+                </div>
               </td>
               <td>
-                <span class="badge" 
-                      [class]="isModuleActive(selectedOrganisationForModules, module) ? 'bg-success' : 'bg-secondary'">
-                  {{ isModuleActive(selectedOrganisationForModules, module) ? 'ACTIF' : 'INACTIF' }}
+                <div class="d-flex flex-wrap gap-1">
+                  <span *ngFor="let module of organisation.modules?.slice(0, 3)"
+                        class="badge rounded-pill"
+                        style="background:#EFF6FF;color:#3B82F6;font-size:.72rem"
+                        [title]="module.name">
+                    {{ module.name }}
+                  </span>
+                  <span *ngIf="organisation.modules && organisation.modules.length > 3"
+                        class="badge rounded-pill"
+                        style="background:#F3F4F6;color:#6B7280;font-size:.72rem">
+                    +{{ organisation.modules.length - 3 }}
+                  </span>
+                  <span *ngIf="!organisation.modules || organisation.modules.length === 0"
+                        class="text-muted small">Aucun module</span>
+                </div>
+              </td>
+              <td>
+                <span *ngIf="organisation.subscription_status === 'ACTIVE'"
+                      class="badge rounded-pill px-3 py-1"
+                      style="background:#ECFDF5;color:#10B981">
+                  Actif
+                </span>
+                <span *ngIf="organisation.subscription_status === 'SUSPENDED'"
+                      class="badge rounded-pill px-3 py-1"
+                      style="background:#FEF3C7;color:#D97706">
+                  Suspendu
+                </span>
+                <span *ngIf="organisation.subscription_status !== 'ACTIVE' && organisation.subscription_status !== 'SUSPENDED'"
+                      class="badge rounded-pill px-3 py-1"
+                      style="background:#F3F4F6;color:#6B7280">
+                  {{ getStatusText(organisation.subscription_status) }}
                 </span>
               </td>
-              <td>
-                <button class="btn btn-sm" 
-                        [class]="isModuleActive(selectedOrganisationForModules, module) ? 'btn-warning' : 'btn-success'"
-                        (click)="toggleModuleForOrganisation(selectedOrganisationForModules, module)"
-                        [disabled]="loading">
-                  {{ isModuleActive(selectedOrganisationForModules, module) ? 'Désactiver' : 'Activer' }}
-                </button>
+              <td class="text-end pe-4">
+                <div class="d-flex gap-1 justify-content-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary rounded-3"
+                          (click)="editOrganisation(organisation)" [disabled]="loading" title="Modifier">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-info rounded-3"
+                          (click)="openModuleModal(organisation)" [disabled]="loading" title="Gérer les modules">
+                    <svg cIcon name="cilLayers"></svg>
+                  </button>
+                  <button type="button" class="btn btn-sm rounded-3"
+                          [class]="organisation.subscription_status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'"
+                          (click)="toggleOrganisationStatus(organisation)" [disabled]="loading"
+                          [title]="organisation.subscription_status === 'ACTIVE' ? 'Suspendre' : 'Activer'">
+                    <svg cIcon [name]="organisation.subscription_status === 'ACTIVE' ? 'cilMediaPause' : 'cilMediaPlay'"></svg>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-danger rounded-3"
+                          (click)="deleteOrganisation(organisation)" [disabled]="loading" title="Supprimer">
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeModuleModal()">Fermer</button>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal gestion des modules -->
+<div class="modal fade" [class.show]="moduleModalOpen" [style.display]="moduleModalOpen ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden">
+      <div class="modal-header text-white py-4 px-4"
+           style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)">
+        <h5 class="modal-title fw-bold text-white">
+          Modules — {{ selectedOrganisationForModules?.name }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModuleModal()"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr style="background:#f8fafc">
+                <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid #f0f0f0">Module</th>
+                <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Code</th>
+                <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Statut</th>
+                <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let module of modules">
+                <td class="ps-4 fw-semibold">{{ module.name }}</td>
+                <td>
+                  <code class="rounded px-2 py-1" style="background:#F3F4F6;color:#374151;font-size:.8rem">{{ module.code }}</code>
+                </td>
+                <td>
+                  <span *ngIf="isModuleActive(selectedOrganisationForModules, module)"
+                        class="badge rounded-pill px-3 py-1"
+                        style="background:#ECFDF5;color:#10B981">ACTIF</span>
+                  <span *ngIf="!isModuleActive(selectedOrganisationForModules, module)"
+                        class="badge rounded-pill px-3 py-1"
+                        style="background:#F3F4F6;color:#6B7280">INACTIF</span>
+                </td>
+                <td>
+                  <button class="btn btn-sm rounded-pill px-3"
+                          [class]="isModuleActive(selectedOrganisationForModules, module) ? 'btn-outline-warning' : 'btn-outline-success'"
+                          (click)="toggleModuleForOrganisation(selectedOrganisationForModules, module)"
+                          [disabled]="loading">
+                    {{ isModuleActive(selectedOrganisationForModules, module) ? 'Désactiver' : 'Activer' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" (click)="closeModuleModal()">Fermer</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Modal de confirmation de suppression -->
+<!-- Modal confirmation de suppression -->
 <div class="modal fade" [class.show]="deleteModalOpen" [style.display]="deleteModalOpen ? 'block' : 'none'" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirmation de Suppression</h5>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden">
+      <div class="modal-header px-4 py-3" style="border-bottom:1px solid #f0f0f0">
+        <h5 class="modal-title fw-bold">Confirmer la suppression</h5>
         <button type="button" class="btn-close" (click)="cancelDelete()"></button>
       </div>
-      <div class="modal-body">
-        <p>Êtes-vous sûr de vouloir supprimer l'organisation "<strong>{{ organisationToDelete?.name }}</strong>" ?</p>
-        <p class="text-danger">
-          <i class="cil-warning me-2"></i>
-          Cette action est irréversible et affectera toutes les données associées à cette organisation.
-        </p>
+      <div class="modal-body px-4 py-4">
+        <p>Êtes-vous sûr de vouloir supprimer l'organisation <strong>{{ organisationToDelete?.name }}</strong> ?</p>
+        <div class="rounded-3 p-3 d-flex gap-2 align-items-start"
+             style="background:#FEF2F2;border:1px solid #FECACA">
+          <svg cIcon name="cilWarning" class="text-danger flex-shrink-0 mt-1"></svg>
+          <span class="small text-danger">Cette action est irréversible et affectera toutes les données associées.</span>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Annuler</button>
-        <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="loading">
+      <div class="modal-footer px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" (click)="cancelDelete()">Annuler</button>
+        <button type="button" class="btn btn-danger rounded-pill px-4" (click)="confirmDelete()" [disabled]="loading">
           <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
           Supprimer
         </button>
@@ -366,5 +338,5 @@
   </div>
 </div>
 
-<!-- Backdrop pour les modals -->
+<!-- Backdrop -->
 <div *ngIf="deleteModalOpen || moduleModalOpen" class="modal-backdrop fade show" (click)="cancelDelete(); closeModuleModal();"></div>

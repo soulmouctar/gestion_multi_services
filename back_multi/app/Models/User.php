@@ -16,8 +16,18 @@ class User extends Authenticatable
         'tenant_id',
         'name',
         'email',
+        'avatar',
         'password',
+        'is_active',
     ];
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar) return null;
+        return url('storage/' . $this->avatar);
+    }
+
+    protected $appends = ['avatar_url'];
 
     protected $hidden = [
         'password',

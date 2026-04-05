@@ -4,14 +4,13 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { AuthService } from '../../../core/services/auth.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { ApiResponse, Tenant } from '../../../core/models/tenant.model';
-import { OrganisationFilterService } from '../../../core/services/organisation-filter.service';
-import { 
-  CardModule, 
-  ButtonModule, 
-  FormModule, 
+import {
+  CardModule,
+  ButtonModule,
+  FormModule,
   SpinnerModule,
   AlertModule,
-  GridModule 
+  GridModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 
@@ -36,174 +35,80 @@ export class CompanyInfoComponent implements OnInit {
   companyForm: FormGroup;
   loading = false;
   saving = false;
-  currentOrganisation: any = null;
-  
-  // Organisation filtering
-  selectedOrganisation: Tenant | null = null;
-  availableOrganisations: Tenant[] = [];
-  canSelectOrganisation = false;
-  currentUserRole: string | null = null;
+  successMessage: string | null = null;
+  error: string | null = null;
+  currentOrganisation: Tenant | null = null;
+  isSuperAdmin = false;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private tenantService: TenantService,
-    private organisationFilterService: OrganisationFilterService,
     private cdr: ChangeDetectorRef
   ) {
     this.companyForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.required]],
-      website: [''],
-      description: [''],
-      logo: [''],
-      address: [''],
-      city: [''],
-      postal_code: [''],
-      country: [''],
-      tax_number: [''],
-      registration_number: ['']
+      name:  ['', [Validators.required, Validators.minLength(2)]],
+      email: ['', [Validators.email]],
+      phone: ['']
     });
   }
 
   ngOnInit(): void {
-    this.initializeOrganisationFilter();
+    this.isSuperAdmin = this.authService.isSuperAdmin;
     this.loadOrganisationInfo();
   }
 
-  private initializeOrganisationFilter(): void {
-    setTimeout(() => {
-      this.currentUserRole = this.organisationFilterService.getCurrentUserRole();
-      this.canSelectOrganisation = this.organisationFilterService.canSelectOrganisation();
-
-      // S'abonner aux changements d'organisation
-      this.organisationFilterService.selectedOrganisation$.subscribe(organisation => {
-        setTimeout(() => {
-          this.selectedOrganisation = organisation;
-          if (organisation) {
-            this.loadOrganisationInfo();
-          }
-          this.cdr.detectChanges();
-        }, 0);
-      });
-
-      this.organisationFilterService.availableOrganisations$.subscribe(organisations => {
-        setTimeout(() => {
-          this.availableOrganisations = organisations;
-          this.cdr.detectChanges();
-        }, 0);
-      });
-      
-      this.cdr.detectChanges();
-    }, 0);
-  }
-
-  onOrganisationChange(organisationId: number): void {
-    const organisation = this.availableOrganisations.find(org => org.id === organisationId);
-    if (organisation) {
-      this.organisationFilterService.selectOrganisation(organisation);
-    }
-  }
-
   loadOrganisationInfo(): void {
-    if (!this.selectedOrganisation) {
-      console.warn('No organisation selected');
-      return;
-    }
-
     this.loading = true;
-    
-    // Simuler le chargement des informations selon l'organisation sélectionnée
-    setTimeout(() => {
-      // Données simulées basées sur l'organisation
-      const mockOrganisations: { [key: number]: any } = {
-        1: {
-          id: 1,
-          name: 'Organisation Alpha',
-          email: 'contact@alpha.com',
-          phone: '+33 1 23 45 67 89',
-          website: 'https://www.alpha.com',
-          description: 'Organisation Alpha - Leader du marché',
-          logo: '',
-          address: '123 Rue de la Paix',
-          city: 'Paris',
-          postal_code: '75001',
-          country: 'France',
-          tax_number: 'FR12345678901',
-          registration_number: '12345678901234'
-        },
-        2: {
-          id: 2,
-          name: 'Organisation Beta',
-          email: 'contact@beta.com',
-          phone: '+33 2 34 56 78 90',
-          website: 'https://www.beta.com',
-          description: 'Organisation Beta - Innovation et technologie',
-          logo: '',
-          address: '456 Avenue des Champs',
-          city: 'Lyon',
-          postal_code: '69000',
-          country: 'France',
-          tax_number: 'FR98765432109',
-          registration_number: '98765432109876'
+    this.error = null;
+    this.cdr.detectChanges();
+
+    this.tenantService.getMyTenant().subscribe({
+      next: (response: ApiResponse<Tenant>) => {
+        this.currentOrganisation = response.data;
+        if (this.currentOrganisation) {
+          this.companyForm.patchValue({
+            name:  this.currentOrganisation.name  || '',
+            email: this.currentOrganisation.email || '',
+            phone: this.currentOrganisation.phone || ''
+          });
         }
-      };
-
-      this.currentOrganisation = mockOrganisations[this.selectedOrganisation?.id || 0] || {
-        id: this.selectedOrganisation?.id || 0,
-        name: this.selectedOrganisation?.name || '',
-        email: `contact@${(this.selectedOrganisation?.name || 'organisation').toLowerCase().replace(/\s+/g, '')}.com`,
-        phone: '+33 1 00 00 00 00',
-        website: '',
-        description: '',
-        logo: '',
-        address: '',
-        city: '',
-        postal_code: '',
-        country: 'France',
-        tax_number: '',
-        registration_number: ''
-      };
-
-      this.companyForm.patchValue(this.currentOrganisation);
-      this.loading = false;
-      this.cdr.detectChanges();
-    }, 1000);
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading organisation info:', err);
+        this.error = 'Impossible de charger les informations de l\'organisation.';
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   onSubmit(): void {
-    if (this.companyForm.valid && this.currentOrganisation) {
-      this.saving = true;
-      
-      const formData = this.companyForm.value;
-      
-      this.tenantService.updateTenant(this.currentOrganisation.id, formData).subscribe({
-        next: (response: ApiResponse<any>) => {
-          setTimeout(() => {
-            if (response.data) {
-              this.currentOrganisation = response.data;
-              console.log('Organisation info updated successfully');
-            }
-            this.saving = false;
-            this.cdr.detectChanges();
-          }, 0);
-        },
-        error: (error) => {
-          setTimeout(() => {
-            console.error('Error updating organisation info:', error);
-            this.saving = false;
-            this.cdr.detectChanges();
-          }, 0);
-        }
-      });
-    }
-  }
+    if (this.companyForm.invalid) return;
 
-  onOrganisationSelectChange(event: Event): void {
-    const target = event.target as HTMLSelectElement;
-    const organisationId = Number(target.value);
-    this.onOrganisationChange(organisationId);
+    this.saving = true;
+    this.successMessage = null;
+    this.error = null;
+    this.cdr.detectChanges();
+
+    const formData = this.companyForm.value;
+
+    this.tenantService.updateMyTenant(formData).subscribe({
+      next: (response: ApiResponse<Tenant>) => {
+        this.currentOrganisation = response.data;
+        this.successMessage = 'Informations mises à jour avec succès.';
+        this.saving = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error updating organisation info:', err);
+        this.error = err?.error?.message || 'Erreur lors de la mise à jour.';
+        this.saving = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   get f() {

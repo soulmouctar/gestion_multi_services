@@ -132,8 +132,27 @@ export class AuthService {
     }).pipe(
       tap(response => {
         if (response.success && response.data) {
-          this.authState.next({ ...this.authState.value, user: response.data });
-          localStorage.setItem(this.USER_KEY, JSON.stringify(response.data));
+          const updated = { ...this.currentUser, ...response.data };
+          this.authState.next({ ...this.authState.value, user: updated as User });
+          localStorage.setItem(this.USER_KEY, JSON.stringify(updated));
+        }
+      }),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  updateAvatar(avatar: File): Observable<ApiResponse<any>> {
+    const fd = new FormData();
+    fd.append('avatar', avatar);
+    const token = this.getCurrentToken();
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/me/avatar`, fd, {
+      headers: new HttpHeaders({ 'Authorization': `Bearer ${token}` })
+    }).pipe(
+      tap(response => {
+        if (response.success && response.data) {
+          const updated = { ...this.currentUser, ...response.data };
+          this.authState.next({ ...this.authState.value, user: updated as User });
+          localStorage.setItem(this.USER_KEY, JSON.stringify(updated));
         }
       }),
       catchError(error => this.handleError(error))

@@ -30,8 +30,26 @@ export class TaxiListComponent implements OnInit {
   deleteModalOpen = false; itemToDelete: any = null;
   Math = Math;
 
+  statusOptions = [
+    { value: 'ACTIVE',      label: 'Actif',          color: 'success'   },
+    { value: 'MAINTENANCE', label: 'En maintenance',  color: 'warning'   },
+    { value: 'INACTIVE',    label: 'Inactif',         color: 'secondary' },
+  ];
+
   constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
-    this.taxiForm = this.fb.group({ plate_number: ['', Validators.required] });
+    this.taxiForm = this.fb.group({
+      plate_number:                 ['', Validators.required],
+      brand:                        [''],
+      vehicle_model:                [''],
+      year:                         [null],
+      color:                        [''],
+      mileage:                      [null],
+      status:                       ['ACTIVE'],
+      insurance_expiry:             [''],
+      technical_inspection_expiry:  [''],
+      circulation_permit_expiry:    [''],
+      notes:                        [''],
+    });
   }
 
   ngOnInit(): void { this.loadData(); }
@@ -52,8 +70,14 @@ export class TaxiListComponent implements OnInit {
   }
 
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
-  openCreateModal(): void { this.editMode = false; this.submitted = false; this.taxiForm.reset({ plate_number: '' }); this.showFormModal = true; }
+  openCreateModal(): void {
+    this.editMode = false; this.submitted = false;
+    this.taxiForm.reset({ plate_number: '', brand: '', vehicle_model: '', year: null, color: '', mileage: null, status: 'ACTIVE', insurance_expiry: '', technical_inspection_expiry: '', circulation_permit_expiry: '', notes: '' });
+    this.showFormModal = true;
+  }
   openEditModal(item: any): void { this.editMode = true; this.submitted = false; this.selectedItem = item; this.taxiForm.patchValue(item); this.showFormModal = true; }
+
+  statusInfo(status: string) { return this.statusOptions.find(s => s.value === status) || { label: status, color: 'secondary' }; }
 
   save(): void {
     this.submitted = true; if (this.taxiForm.invalid) return;
@@ -86,4 +110,11 @@ export class TaxiListComponent implements OnInit {
 
   getPages(): number[] { const p: number[] = []; for (let i = 1; i <= this.totalPages; i++) p.push(i); return p; }
   private clearMessages(): void { setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000); }
+
+  isExpiringSoon(dateStr: string): boolean {
+    if (!dateStr) return false;
+    const exp = new Date(dateStr);
+    const diff = (exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+    return diff < 30;
+  }
 }

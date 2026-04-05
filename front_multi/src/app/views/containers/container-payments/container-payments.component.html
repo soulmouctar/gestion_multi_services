@@ -1,650 +1,768 @@
-<c-container>
-  <c-row>
-    <c-col xs="12">
-      <c-card class="mb-4">
-        <c-card-header>
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <strong>Gestion des Conteneurs & Paiements</strong>
-              <small class="text-medium-emphasis ms-2">Arrivages, Ventes & Suivi Client</small>
-            </div>
-          </div>
-        </c-card-header>
-        <c-card-body>
-          <!-- Statistics Cards -->
-          <div class="row mb-4">
-            <div class="col-md-3 col-sm-6 mb-3">
-              <c-card class="border-start border-primary border-4 h-100">
-                <c-card-body class="py-3">
-                  <div class="text-muted small text-uppercase fw-semibold">Valeur Achats</div>
-                  <div class="fs-5 fw-bold text-primary">{{ formatAmount(stats.totalPurchaseValue) }}</div>
-                  <small class="text-muted">{{ stats.totalArrivals }} arrivage(s)</small>
-                </c-card-body>
-              </c-card>
-            </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-              <c-card class="border-start border-success border-4 h-100">
-                <c-card-body class="py-3">
-                  <div class="text-muted small text-uppercase fw-semibold">Valeur Ventes</div>
-                  <div class="fs-5 fw-bold text-success">{{ formatAmount(stats.totalSalesValue) }}</div>
-                </c-card-body>
-              </c-card>
-            </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-              <c-card class="border-start border-info border-4 h-100">
-                <c-card-body class="py-3">
-                  <div class="text-muted small text-uppercase fw-semibold">Encaissé</div>
-                  <div class="fs-5 fw-bold text-info">{{ formatAmount(stats.totalCollected) }}</div>
-                </c-card-body>
-              </c-card>
-            </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-              <c-card class="border-start border-warning border-4 h-100">
-                <c-card-body class="py-3">
-                  <div class="text-muted small text-uppercase fw-semibold">Créances Clients</div>
-                  <div class="fs-5 fw-bold text-warning">{{ formatAmount(stats.totalPending) }}</div>
-                </c-card-body>
-              </c-card>
-            </div>
-          </div>
+<div class="p-3 p-md-4">
 
-          <!-- Tabs -->
-          <ul class="nav nav-tabs mb-3">
-            <li class="nav-item">
-              <a class="nav-link" [class.active]="activeTab === 'arrivals'" (click)="onTabChange('arrivals')" style="cursor: pointer;">
-                <svg cIcon name="cilTruck" class="me-2"></svg> Arrivages
-                <c-badge color="primary" class="ms-2">{{ arrivalsTotal }}</c-badge>
-              </a>
+  <!-- Header -->
+  <div class="rounded-3 mb-4 p-4"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;">
+    <h4 class="mb-1 text-white fw-bold">Conteneurs & Paiements</h4>
+    <p class="mb-0" style="color:rgba(255,255,255,.65);font-size:.9rem;">
+      Arrivages, ventes et suivi des paiements clients
+    </p>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="p-4 h-100"
+           style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #3B82F6;">
+        <p class="text-muted small text-uppercase fw-semibold mb-1">Valeur Achats</p>
+        <div class="fw-bold" style="font-size:1.15rem;color:#3B82F6;">{{ formatAmount(stats.totalPurchaseValue) }}</div>
+        <small class="text-muted">{{ stats.totalArrivals }} arrivage(s)</small>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="p-4 h-100"
+           style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #10B981;">
+        <p class="text-muted small text-uppercase fw-semibold mb-1">Valeur Ventes</p>
+        <div class="fw-bold" style="font-size:1.15rem;color:#10B981;">{{ formatAmount(stats.totalSalesValue) }}</div>
+        <small class="text-muted">Chiffre d'affaires</small>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="p-4 h-100"
+           style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #3B82F6;">
+        <p class="text-muted small text-uppercase fw-semibold mb-1">Encaissé</p>
+        <div class="fw-bold" style="font-size:1.15rem;color:#3B82F6;">{{ formatAmount(stats.totalCollected) }}</div>
+        <small class="text-muted">Versements reçus</small>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="p-4 h-100"
+           style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #F59E0B;">
+        <p class="text-muted small text-uppercase fw-semibold mb-1">Créances Clients</p>
+        <div class="fw-bold" style="font-size:1.15rem;color:#F59E0B;">{{ formatAmount(stats.totalPending) }}</div>
+        <small class="text-muted">Reste à encaisser</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Card with Tabs -->
+  <div style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
+
+    <!-- Tabs -->
+    <div class="px-4 pt-3" style="border-bottom:1px solid #f0f0f0;">
+      <ul class="nav nav-tabs border-0">
+        <li class="nav-item">
+          <a class="nav-link px-3 pb-3"
+             [class.active]="activeTab === 'arrivals'"
+             [style.color]="activeTab === 'arrivals' ? '#0f3460' : '#6B7280'"
+             [style.border-bottom]="activeTab === 'arrivals' ? '2px solid #0f3460' : '2px solid transparent'"
+             [style.font-weight]="activeTab === 'arrivals' ? '600' : '400'"
+             style="cursor:pointer;background:none;border:none;"
+             (click)="onTabChange('arrivals')">
+            <svg cIcon name="cilTruck" class="me-1"></svg> Arrivages
+            <span class="badge rounded-pill ms-1" style="background:#EFF6FF;color:#3B82F6;">{{ arrivalsTotal }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link px-3 pb-3"
+             [class.active]="activeTab === 'sales'"
+             [style.color]="activeTab === 'sales' ? '#0f3460' : '#6B7280'"
+             [style.border-bottom]="activeTab === 'sales' ? '2px solid #0f3460' : '2px solid transparent'"
+             [style.font-weight]="activeTab === 'sales' ? '600' : '400'"
+             style="cursor:pointer;background:none;border:none;"
+             (click)="onTabChange('sales')">
+            <svg cIcon name="cilCart" class="me-1"></svg> Ventes
+            <span class="badge rounded-pill ms-1" style="background:#ECFDF5;color:#10B981;">{{ salesTotal }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link px-3 pb-3"
+             [class.active]="activeTab === 'payments'"
+             [style.color]="activeTab === 'payments' ? '#0f3460' : '#6B7280'"
+             [style.border-bottom]="activeTab === 'payments' ? '2px solid #0f3460' : '2px solid transparent'"
+             [style.font-weight]="activeTab === 'payments' ? '600' : '400'"
+             style="cursor:pointer;background:none;border:none;"
+             (click)="onTabChange('payments')">
+            <svg cIcon name="cilDollar" class="me-1"></svg> Versements
+            <span class="badge rounded-pill ms-1" style="background:#EFF6FF;color:#3B82F6;">{{ paymentsTotal }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link px-3 pb-3"
+             [class.active]="activeTab === 'advances'"
+             [style.color]="activeTab === 'advances' ? '#0f3460' : '#6B7280'"
+             [style.border-bottom]="activeTab === 'advances' ? '2px solid #0f3460' : '2px solid transparent'"
+             [style.font-weight]="activeTab === 'advances' ? '600' : '400'"
+             style="cursor:pointer;background:none;border:none;"
+             (click)="onTabChange('advances')">
+            <svg cIcon name="cilWallet" class="me-1"></svg> Avances
+            <span class="badge rounded-pill ms-1" style="background:#FFFBEB;color:#F59E0B;">{{ advancesTotal }}</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="p-4">
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="text-center py-5">
+        <c-spinner></c-spinner>
+        <p class="mt-3 text-muted">Chargement...</p>
+      </div>
+
+      <!-- ==================== ARRIVALS ==================== -->
+      <div *ngIf="!loading && activeTab === 'arrivals'">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0" style="color:#1a1a2e;">Arrivages de Conteneurs</h6>
+          <button cButton color="primary" size="sm" (click)="openArrivalModal()"
+                  style="border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;">
+            <svg cIcon name="cilPlus" class="me-1"></svg> Nouvel Arrivage
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead style="background:#f8fafc;">
+              <tr>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Conteneur</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Fournisseur</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Type Produit</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Quantité</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Prix Achat</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Date</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Statut</th>
+                <th class="py-3 text-end" style="width:160px;border-bottom:2px solid #e9ecef;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let arrival of arrivals">
+                <td class="py-3">
+                  <span class="fw-bold" style="color:#1a1a2e;">
+                    {{ arrival.container?.container_number || getContainerNumber(arrival.container_id) }}
+                  </span>
+                </td>
+                <td class="py-3 text-muted">
+                  {{ arrival.supplier?.name || getSupplierName(arrival.supplier_id) }}
+                </td>
+                <td class="py-3">
+                  <span class="badge rounded-pill" style="background:#EFF6FF;color:#3B82F6;">
+                    {{ getProductTypeLabel(arrival.product_type) }}
+                  </span>
+                </td>
+                <td class="py-3">
+                  <span class="fw-bold">{{ arrival.remaining_quantity }}</span>
+                  <span class="text-muted"> / {{ arrival.total_quantity }}</span>
+                  <small class="text-muted d-block" style="font-size:.75rem;">restant</small>
+                </td>
+                <td class="py-3 fw-bold" style="color:#3B82F6;">
+                  {{ formatAmount(arrival.purchase_price, arrival.currency) }}
+                </td>
+                <td class="py-3">
+                  <small class="text-muted">{{ arrival.arrival_date | date:'dd/MM/yyyy' }}</small>
+                </td>
+                <td class="py-3">
+                  <c-badge [color]="getStatusColor(arrival.status)">{{ getStatusLabel(arrival.status) }}</c-badge>
+                </td>
+                <td class="py-3 text-end">
+                  <div class="d-flex justify-content-end gap-1">
+                    <button cButton color="success" variant="outline" size="sm"
+                            (click)="openSaleModal(arrival)"
+                            [disabled]="arrival.remaining_quantity <= 0"
+                            title="Vendre" style="border-radius:8px;">
+                      <svg cIcon name="cilCart"></svg>
+                    </button>
+                    <button cButton color="warning" variant="outline" size="sm"
+                            (click)="openArrivalModal(arrival)" title="Modifier" style="border-radius:8px;">
+                      <svg cIcon name="cilPencil"></svg>
+                    </button>
+                    <button cButton color="danger" variant="outline" size="sm"
+                            (click)="deleteArrival(arrival)" title="Supprimer" style="border-radius:8px;">
+                      <svg cIcon name="cilTrash"></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="arrivals.length === 0">
+                <td colspan="8" class="text-center py-5">
+                  <div class="text-muted">
+                    <svg cIcon name="cilInbox" size="3xl" class="mb-2 d-block mx-auto" style="opacity:.3;"></svg>
+                    Aucun arrivage enregistré
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <nav *ngIf="arrivalsTotalPages > 1" class="d-flex justify-content-center mt-4">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="arrivalsPage === 1">
+              <a class="page-link" style="cursor:pointer;" (click)="onArrivalsPageChange(arrivalsPage - 1)">Précédent</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" [class.active]="activeTab === 'sales'" (click)="onTabChange('sales')" style="cursor: pointer;">
-                <svg cIcon name="cilCart" class="me-2"></svg> Ventes Clients
-                <c-badge color="success" class="ms-2">{{ salesTotal }}</c-badge>
-              </a>
+            <li class="page-item" *ngFor="let page of getPages(arrivalsTotalPages)" [class.active]="page === arrivalsPage">
+              <a class="page-link" style="cursor:pointer;" (click)="onArrivalsPageChange(page)">{{ page }}</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" [class.active]="activeTab === 'payments'" (click)="onTabChange('payments')" style="cursor: pointer;">
-                <svg cIcon name="cilDollar" class="me-2"></svg> Versements
-                <c-badge color="info" class="ms-2">{{ paymentsTotal }}</c-badge>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" [class.active]="activeTab === 'advances'" (click)="onTabChange('advances')" style="cursor: pointer;">
-                <svg cIcon name="cilWallet" class="me-2"></svg> Avances Clients
-                <c-badge color="warning" class="ms-2">{{ advancesTotal }}</c-badge>
-              </a>
+            <li class="page-item" [class.disabled]="arrivalsPage === arrivalsTotalPages">
+              <a class="page-link" style="cursor:pointer;" (click)="onArrivalsPageChange(arrivalsPage + 1)">Suivant</a>
             </li>
           </ul>
+        </nav>
+      </div>
 
-          <!-- Loading -->
-          <div *ngIf="loading" class="text-center p-4">
-            <c-spinner></c-spinner>
-            <p class="mt-2">Chargement...</p>
-          </div>
+      <!-- ==================== SALES ==================== -->
+      <div *ngIf="!loading && activeTab === 'sales'">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0" style="color:#1a1a2e;">Ventes aux Clients</h6>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead style="background:#f8fafc;">
+              <tr>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Conteneur</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Client</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Type</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Qté</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Prix Vente</th>
+                <th class="py-3" style="min-width:140px;border-bottom:2px solid #e9ecef;">Progression</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Reste</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Statut</th>
+                <th class="py-3 text-end" style="width:120px;border-bottom:2px solid #e9ecef;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let sale of sales">
+                <td class="py-3 fw-bold" style="color:#1a1a2e;">
+                  {{ sale.container_arrival?.container?.container_number || '-' }}
+                </td>
+                <td class="py-3">
+                  <a href="javascript:void(0)" (click)="viewClientStats(sale.client)"
+                     class="text-decoration-none fw-semibold" style="color:#0f3460;">
+                    {{ sale.client?.name || getClientName(sale.client_id) }}
+                  </a>
+                  <span *ngIf="sale.is_installment"
+                        class="badge rounded-pill ms-1"
+                        style="background:#EFF6FF;color:#3B82F6;font-size:.7rem;">Échelonné</span>
+                </td>
+                <td class="py-3 text-muted">{{ getSaleTypeLabel(sale.sale_type) }}</td>
+                <td class="py-3">{{ sale.quantity_sold }}</td>
+                <td class="py-3 fw-bold" style="color:#10B981;">
+                  {{ formatAmount(sale.sale_price, sale.currency) }}
+                </td>
+                <td class="py-3">
+                  <div class="progress mb-1" style="height:8px;border-radius:8px;">
+                    <div class="progress-bar bg-success"
+                         style="border-radius:8px;"
+                         [style.width.%]="getPaymentProgress(sale)">
+                    </div>
+                  </div>
+                  <small class="text-muted">{{ getPaymentProgress(sale) }}% — {{ formatAmount(sale.amount_paid, sale.currency) }}</small>
+                </td>
+                <td class="py-3 fw-bold" style="color:#EF4444;">
+                  {{ formatAmount(sale.remaining_amount, sale.currency) }}
+                </td>
+                <td class="py-3">
+                  <c-badge [color]="getStatusColor(sale.status)">{{ getStatusLabel(sale.status) }}</c-badge>
+                </td>
+                <td class="py-3 text-end">
+                  <button cButton color="success" variant="outline" size="sm"
+                          (click)="openPaymentModal(sale)"
+                          [disabled]="sale.remaining_amount <= 0"
+                          title="Enregistrer versement" style="border-radius:8px;">
+                    <svg cIcon name="cilDollar" class="me-1"></svg> Verser
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="sales.length === 0">
+                <td colspan="9" class="text-center py-5">
+                  <div class="text-muted">
+                    <svg cIcon name="cilInbox" size="3xl" class="mb-2 d-block mx-auto" style="opacity:.3;"></svg>
+                    Aucune vente enregistrée
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <nav *ngIf="salesTotalPages > 1" class="d-flex justify-content-center mt-4">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="salesPage === 1">
+              <a class="page-link" style="cursor:pointer;" (click)="onSalesPageChange(salesPage - 1)">Précédent</a>
+            </li>
+            <li class="page-item" *ngFor="let page of getPages(salesTotalPages)" [class.active]="page === salesPage">
+              <a class="page-link" style="cursor:pointer;" (click)="onSalesPageChange(page)">{{ page }}</a>
+            </li>
+            <li class="page-item" [class.disabled]="salesPage === salesTotalPages">
+              <a class="page-link" style="cursor:pointer;" (click)="onSalesPageChange(salesPage + 1)">Suivant</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
 
-          <!-- ==================== ARRIVALS TAB ==================== -->
-          <div *ngIf="!loading && activeTab === 'arrivals'">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="mb-0">Arrivages de Conteneurs</h5>
-              <button cButton color="primary" size="sm" (click)="openArrivalModal()">
-                <svg cIcon name="cilPlus" class="me-1"></svg> Nouvel Arrivage
-              </button>
-            </div>
-            
-            <div class="table-responsive">
-              <table class="table table-striped table-hover">
-                <thead class="table-light">
-                  <tr>
-                    <th>Conteneur</th>
-                    <th>Fournisseur</th>
-                    <th>Type Produit</th>
-                    <th>Quantité</th>
-                    <th>Prix Achat</th>
-                    <th>Date</th>
-                    <th>Statut</th>
-                    <th style="width: 150px;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let arrival of arrivals">
-                    <td><strong>{{ arrival.container?.container_number || getContainerNumber(arrival.container_id) }}</strong></td>
-                    <td>{{ arrival.supplier?.name || getSupplierName(arrival.supplier_id) }}</td>
-                    <td><c-badge color="info">{{ getProductTypeLabel(arrival.product_type) }}</c-badge></td>
-                    <td>
-                      <span class="fw-bold">{{ arrival.remaining_quantity }}</span> / {{ arrival.total_quantity }}
-                      <small class="text-muted d-block">restant</small>
-                    </td>
-                    <td class="fw-bold text-primary">{{ formatAmount(arrival.purchase_price, arrival.currency) }}</td>
-                    <td>{{ arrival.arrival_date | date:'dd/MM/yyyy' }}</td>
-                    <td><c-badge [color]="getStatusColor(arrival.status)">{{ getStatusLabel(arrival.status) }}</c-badge></td>
-                    <td>
-                      <c-button-group size="sm">
-                        <button cButton color="success" variant="outline" size="sm" (click)="openSaleModal(arrival)" 
-                                [disabled]="arrival.remaining_quantity <= 0" title="Vendre">
-                          <svg cIcon name="cilCart"></svg>
-                        </button>
-                        <button cButton color="warning" variant="outline" size="sm" (click)="openArrivalModal(arrival)" title="Modifier">
-                          <svg cIcon name="cilPencil"></svg>
-                        </button>
-                        <button cButton color="danger" variant="outline" size="sm" (click)="deleteArrival(arrival)" title="Supprimer">
-                          <svg cIcon name="cilTrash"></svg>
-                        </button>
-                      </c-button-group>
-                    </td>
-                  </tr>
-                  <tr *ngIf="arrivals.length === 0">
-                    <td colspan="8" class="text-center text-medium-emphasis p-4">Aucun arrivage enregistré</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+      <!-- ==================== PAYMENTS ==================== -->
+      <div *ngIf="!loading && activeTab === 'payments'">
+        <h6 class="fw-bold mb-3" style="color:#1a1a2e;">Historique des Versements</h6>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead style="background:#f8fafc;">
+              <tr>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Date</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Client</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Conteneur</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Montant</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Méthode</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Référence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let payment of clientPayments">
+                <td class="py-3"><small class="text-muted">{{ payment.payment_date | date:'dd/MM/yyyy' }}</small></td>
+                <td class="py-3 fw-semibold" style="color:#1a1a2e;">
+                  {{ payment.client?.name || getClientName(payment.client_id) }}
+                </td>
+                <td class="py-3 text-muted">
+                  {{ payment.container_sale?.container_arrival?.container?.container_number || '-' }}
+                </td>
+                <td class="py-3 fw-bold" style="color:#10B981;">
+                  {{ formatAmount(payment.amount, payment.currency) }}
+                </td>
+                <td class="py-3">
+                  <span class="badge rounded-pill" style="background:#F9FAFB;color:#6B7280;">
+                    {{ getPaymentMethodLabel(payment.payment_method) }}
+                  </span>
+                </td>
+                <td class="py-3 text-muted">{{ payment.reference || '-' }}</td>
+              </tr>
+              <tr *ngIf="clientPayments.length === 0">
+                <td colspan="6" class="text-center py-5">
+                  <div class="text-muted">
+                    <svg cIcon name="cilInbox" size="3xl" class="mb-2 d-block mx-auto" style="opacity:.3;"></svg>
+                    Aucun versement enregistré
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <nav *ngIf="paymentsTotalPages > 1" class="d-flex justify-content-center mt-4">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="paymentsPage === 1">
+              <a class="page-link" style="cursor:pointer;" (click)="onPaymentsPageChange(paymentsPage - 1)">Précédent</a>
+            </li>
+            <li class="page-item" *ngFor="let page of getPages(paymentsTotalPages)" [class.active]="page === paymentsPage">
+              <a class="page-link" style="cursor:pointer;" (click)="onPaymentsPageChange(page)">{{ page }}</a>
+            </li>
+            <li class="page-item" [class.disabled]="paymentsPage === paymentsTotalPages">
+              <a class="page-link" style="cursor:pointer;" (click)="onPaymentsPageChange(paymentsPage + 1)">Suivant</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
 
-            <nav *ngIf="arrivalsTotalPages > 1" class="d-flex justify-content-center mt-3">
-              <ul class="pagination">
-                <li class="page-item" [class.disabled]="arrivalsPage === 1">
-                  <a class="page-link" (click)="onArrivalsPageChange(arrivalsPage - 1)">Précédent</a>
-                </li>
-                <li class="page-item" *ngFor="let page of getPages(arrivalsTotalPages)" [class.active]="page === arrivalsPage">
-                  <a class="page-link" (click)="onArrivalsPageChange(page)">{{ page }}</a>
-                </li>
-                <li class="page-item" [class.disabled]="arrivalsPage === arrivalsTotalPages">
-                  <a class="page-link" (click)="onArrivalsPageChange(arrivalsPage + 1)">Suivant</a>
-                </li>
-              </ul>
-            </nav>
-          </div>
+      <!-- ==================== ADVANCES ==================== -->
+      <div *ngIf="!loading && activeTab === 'advances'">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0" style="color:#1a1a2e;">Avances Clients</h6>
+          <button cButton color="warning" size="sm" (click)="openAdvanceModal()"
+                  style="border-radius:8px;">
+            <svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle Avance
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead style="background:#f8fafc;">
+              <tr>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Date</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Client</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Montant Initial</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Utilisé</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Disponible</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Méthode</th>
+                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let advance of advances">
+                <td class="py-3"><small class="text-muted">{{ advance.payment_date | date:'dd/MM/yyyy' }}</small></td>
+                <td class="py-3">
+                  <a href="javascript:void(0)" (click)="viewClientStats(advance.client)"
+                     class="text-decoration-none fw-semibold" style="color:#0f3460;">
+                    {{ advance.client?.name || getClientName(advance.client_id) }}
+                  </a>
+                </td>
+                <td class="py-3 fw-bold">{{ formatAmount(advance.amount, advance.currency) }}</td>
+                <td class="py-3 text-muted">{{ formatAmount(advance.used_amount, advance.currency) }}</td>
+                <td class="py-3 fw-bold" style="color:#10B981;">{{ formatAmount(advance.remaining_amount, advance.currency) }}</td>
+                <td class="py-3">
+                  <span class="badge rounded-pill" style="background:#F9FAFB;color:#6B7280;">
+                    {{ getPaymentMethodLabel(advance.payment_method) }}
+                  </span>
+                </td>
+                <td class="py-3">
+                  <c-badge [color]="getStatusColor(advance.status)">{{ getStatusLabel(advance.status) }}</c-badge>
+                </td>
+              </tr>
+              <tr *ngIf="advances.length === 0">
+                <td colspan="7" class="text-center py-5">
+                  <div class="text-muted">
+                    <svg cIcon name="cilInbox" size="3xl" class="mb-2 d-block mx-auto" style="opacity:.3;"></svg>
+                    Aucune avance enregistrée
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <nav *ngIf="advancesTotalPages > 1" class="d-flex justify-content-center mt-4">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="advancesPage === 1">
+              <a class="page-link" style="cursor:pointer;" (click)="onAdvancesPageChange(advancesPage - 1)">Précédent</a>
+            </li>
+            <li class="page-item" *ngFor="let page of getPages(advancesTotalPages)" [class.active]="page === advancesPage">
+              <a class="page-link" style="cursor:pointer;" (click)="onAdvancesPageChange(page)">{{ page }}</a>
+            </li>
+            <li class="page-item" [class.disabled]="advancesPage === advancesTotalPages">
+              <a class="page-link" style="cursor:pointer;" (click)="onAdvancesPageChange(advancesPage + 1)">Suivant</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
 
-          <!-- ==================== SALES TAB ==================== -->
-          <div *ngIf="!loading && activeTab === 'sales'">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="mb-0">Ventes aux Clients</h5>
-            </div>
-            
-            <div class="table-responsive">
-              <table class="table table-striped table-hover">
-                <thead class="table-light">
-                  <tr>
-                    <th>Conteneur</th>
-                    <th>Client</th>
-                    <th>Type Vente</th>
-                    <th>Qté</th>
-                    <th>Prix Vente</th>
-                    <th>Progression</th>
-                    <th>Reste à Payer</th>
-                    <th>Statut</th>
-                    <th style="width: 100px;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let sale of sales">
-                    <td><strong>{{ sale.container_arrival?.container?.container_number || '-' }}</strong></td>
-                    <td>
-                      <a href="javascript:void(0)" (click)="viewClientStats(sale.client)" class="text-decoration-none">
-                        {{ sale.client?.name || getClientName(sale.client_id) }}
-                      </a>
-                      <c-badge *ngIf="sale.is_installment" color="info" class="ms-1">Échelonné</c-badge>
-                    </td>
-                    <td>{{ getSaleTypeLabel(sale.sale_type) }}</td>
-                    <td>{{ sale.quantity_sold }}</td>
-                    <td class="fw-bold text-success">{{ formatAmount(sale.sale_price, sale.currency) }}</td>
-                    <td style="min-width: 120px;">
-                      <div class="progress" style="height: 20px;">
-                        <div class="progress-bar bg-success" [style.width.%]="getPaymentProgress(sale)">
-                          {{ getPaymentProgress(sale) }}%
-                        </div>
-                      </div>
-                      <small class="text-muted">{{ formatAmount(sale.amount_paid, sale.currency) }} payé</small>
-                    </td>
-                    <td class="fw-bold text-danger">{{ formatAmount(sale.remaining_amount, sale.currency) }}</td>
-                    <td><c-badge [color]="getStatusColor(sale.status)">{{ getStatusLabel(sale.status) }}</c-badge></td>
-                    <td>
-                      <button cButton color="success" variant="outline" size="sm" (click)="openPaymentModal(sale)" 
-                              [disabled]="sale.remaining_amount <= 0" title="Enregistrer versement">
-                        <svg cIcon name="cilDollar"></svg> Verser
-                      </button>
-                    </td>
-                  </tr>
-                  <tr *ngIf="sales.length === 0">
-                    <td colspan="9" class="text-center text-medium-emphasis p-4">Aucune vente enregistrée</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <nav *ngIf="salesTotalPages > 1" class="d-flex justify-content-center mt-3">
-              <ul class="pagination">
-                <li class="page-item" [class.disabled]="salesPage === 1">
-                  <a class="page-link" (click)="onSalesPageChange(salesPage - 1)">Précédent</a>
-                </li>
-                <li class="page-item" *ngFor="let page of getPages(salesTotalPages)" [class.active]="page === salesPage">
-                  <a class="page-link" (click)="onSalesPageChange(page)">{{ page }}</a>
-                </li>
-                <li class="page-item" [class.disabled]="salesPage === salesTotalPages">
-                  <a class="page-link" (click)="onSalesPageChange(salesPage + 1)">Suivant</a>
-                </li>
-              </ul>
-            </nav>
-          </div>
-
-          <!-- ==================== PAYMENTS TAB ==================== -->
-          <div *ngIf="!loading && activeTab === 'payments'">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="mb-0">Historique des Versements</h5>
-            </div>
-            
-            <div class="table-responsive">
-              <table class="table table-striped table-hover">
-                <thead class="table-light">
-                  <tr>
-                    <th>Date</th>
-                    <th>Client</th>
-                    <th>Conteneur</th>
-                    <th>Montant</th>
-                    <th>Méthode</th>
-                    <th>Référence</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let payment of clientPayments">
-                    <td>{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
-                    <td>{{ payment.client?.name || getClientName(payment.client_id) }}</td>
-                    <td>{{ payment.container_sale?.container_arrival?.container?.container_number || '-' }}</td>
-                    <td class="fw-bold text-success">{{ formatAmount(payment.amount, payment.currency) }}</td>
-                    <td>{{ getPaymentMethodLabel(payment.payment_method) }}</td>
-                    <td>{{ payment.reference || '-' }}</td>
-                  </tr>
-                  <tr *ngIf="clientPayments.length === 0">
-                    <td colspan="6" class="text-center text-medium-emphasis p-4">Aucun versement enregistré</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <nav *ngIf="paymentsTotalPages > 1" class="d-flex justify-content-center mt-3">
-              <ul class="pagination">
-                <li class="page-item" [class.disabled]="paymentsPage === 1">
-                  <a class="page-link" (click)="onPaymentsPageChange(paymentsPage - 1)">Précédent</a>
-                </li>
-                <li class="page-item" *ngFor="let page of getPages(paymentsTotalPages)" [class.active]="page === paymentsPage">
-                  <a class="page-link" (click)="onPaymentsPageChange(page)">{{ page }}</a>
-                </li>
-                <li class="page-item" [class.disabled]="paymentsPage === paymentsTotalPages">
-                  <a class="page-link" (click)="onPaymentsPageChange(paymentsPage + 1)">Suivant</a>
-                </li>
-              </ul>
-            </nav>
-          </div>
-
-          <!-- ==================== ADVANCES TAB ==================== -->
-          <div *ngIf="!loading && activeTab === 'advances'">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="mb-0">Avances Clients (pour conteneurs à venir)</h5>
-              <button cButton color="warning" size="sm" (click)="openAdvanceModal()">
-                <svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle Avance
-              </button>
-            </div>
-            
-            <div class="table-responsive">
-              <table class="table table-striped table-hover">
-                <thead class="table-light">
-                  <tr>
-                    <th>Date</th>
-                    <th>Client</th>
-                    <th>Montant Initial</th>
-                    <th>Utilisé</th>
-                    <th>Disponible</th>
-                    <th>Méthode</th>
-                    <th>Statut</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let advance of advances">
-                    <td>{{ advance.payment_date | date:'dd/MM/yyyy' }}</td>
-                    <td>
-                      <a href="javascript:void(0)" (click)="viewClientStats(advance.client)" class="text-decoration-none">
-                        {{ advance.client?.name || getClientName(advance.client_id) }}
-                      </a>
-                    </td>
-                    <td class="fw-bold">{{ formatAmount(advance.amount, advance.currency) }}</td>
-                    <td class="text-muted">{{ formatAmount(advance.used_amount, advance.currency) }}</td>
-                    <td class="fw-bold text-success">{{ formatAmount(advance.remaining_amount, advance.currency) }}</td>
-                    <td>{{ getPaymentMethodLabel(advance.payment_method) }}</td>
-                    <td><c-badge [color]="getStatusColor(advance.status)">{{ getStatusLabel(advance.status) }}</c-badge></td>
-                  </tr>
-                  <tr *ngIf="advances.length === 0">
-                    <td colspan="7" class="text-center text-medium-emphasis p-4">Aucune avance enregistrée</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <nav *ngIf="advancesTotalPages > 1" class="d-flex justify-content-center mt-3">
-              <ul class="pagination">
-                <li class="page-item" [class.disabled]="advancesPage === 1">
-                  <a class="page-link" (click)="onAdvancesPageChange(advancesPage - 1)">Précédent</a>
-                </li>
-                <li class="page-item" *ngFor="let page of getPages(advancesTotalPages)" [class.active]="page === advancesPage">
-                  <a class="page-link" (click)="onAdvancesPageChange(page)">{{ page }}</a>
-                </li>
-                <li class="page-item" [class.disabled]="advancesPage === advancesTotalPages">
-                  <a class="page-link" (click)="onAdvancesPageChange(advancesPage + 1)">Suivant</a>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-</c-container>
+    </div>
+  </div>
+</div>
 
 <!-- ==================== ARRIVAL MODAL ==================== -->
 <c-modal [visible]="showArrivalModal" (visibleChange)="showArrivalModal = $event" backdrop="static" size="lg">
-  <c-modal-header>
-    <h5 cModalTitle>{{ editMode ? 'Modifier l\'Arrivage' : 'Nouvel Arrivage de Conteneur' }}</h5>
+  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+    <h5 cModalTitle class="fw-bold">{{ editMode ? "Modifier l'Arrivage" : 'Nouvel Arrivage de Conteneur' }}</h5>
     <button type="button" class="btn-close" (click)="showArrivalModal = false"></button>
   </c-modal-header>
-  <c-modal-body>
+  <c-modal-body class="p-4">
     <form [formGroup]="arrivalForm">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label cLabel>Conteneur *</label>
-          <select cSelect formControlName="container_id" [class.is-invalid]="submitted && arrivalForm.get('container_id')?.invalid">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Conteneur <span class="text-danger">*</span></label>
+          <select cSelect formControlName="container_id" style="border-radius:8px;"
+                  [class.is-invalid]="submitted && arrivalForm.get('container_id')?.invalid">
             <option [ngValue]="null">-- Sélectionner --</option>
             <option *ngFor="let c of containers" [ngValue]="c.id">{{ c.container_number }}</option>
           </select>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Fournisseur</label>
-          <select cSelect formControlName="supplier_id">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Fournisseur</label>
+          <select cSelect formControlName="supplier_id" style="border-radius:8px;">
             <option [ngValue]="null">-- Aucun --</option>
             <option *ngFor="let s of suppliers" [ngValue]="s.id">{{ s.name }}</option>
           </select>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Date d'Arrivée *</label>
-          <input cFormControl type="date" formControlName="arrival_date">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Date d'Arrivée <span class="text-danger">*</span></label>
+          <input cFormControl type="date" formControlName="arrival_date" style="border-radius:8px;">
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Type de Produit *</label>
-          <select cSelect formControlName="product_type">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Type de Produit <span class="text-danger">*</span></label>
+          <select cSelect formControlName="product_type" style="border-radius:8px;">
             <option *ngFor="let t of productTypes" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
-        <div class="col-md-4 mb-3">
-          <label cLabel>Prix d'Achat Total *</label>
-          <input cFormControl type="number" formControlName="purchase_price" placeholder="0"
+        <div class="col-md-4">
+          <label cLabel class="fw-semibold mb-1">Prix d'Achat Total <span class="text-danger">*</span></label>
+          <input cFormControl type="number" formControlName="purchase_price" placeholder="0" style="border-radius:8px;"
                  [class.is-invalid]="submitted && arrivalForm.get('purchase_price')?.invalid">
         </div>
-        <div class="col-md-4 mb-3">
-          <label cLabel>Devise *</label>
-          <select cSelect formControlName="currency">
+        <div class="col-md-4">
+          <label cLabel class="fw-semibold mb-1">Devise <span class="text-danger">*</span></label>
+          <select cSelect formControlName="currency" style="border-radius:8px;">
             <option value="GNF">GNF</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
           </select>
         </div>
-        <div class="col-md-4 mb-3">
-          <label cLabel>Quantité Totale *</label>
+        <div class="col-md-4">
+          <label cLabel class="fw-semibold mb-1">Quantité Totale <span class="text-danger">*</span></label>
           <input cFormControl type="number" formControlName="total_quantity" placeholder="Nombre de produits"
+                 style="border-radius:8px;"
                  [class.is-invalid]="submitted && arrivalForm.get('total_quantity')?.invalid">
         </div>
-        <div class="col-md-12 mb-3">
-          <label cLabel>Description</label>
-          <textarea cFormControl formControlName="description" rows="2" placeholder="Notes sur l'arrivage..."></textarea>
+        <div class="col-12">
+          <label cLabel class="fw-semibold mb-1">Description</label>
+          <textarea cFormControl formControlName="description" rows="2"
+                    placeholder="Notes sur l'arrivage..." style="border-radius:8px;"></textarea>
         </div>
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showArrivalModal = false">Annuler</button>
-    <button cButton color="primary" (click)="saveArrival()">{{ editMode ? 'Modifier' : 'Enregistrer' }}</button>
+  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+    <button cButton color="secondary" variant="outline" (click)="showArrivalModal = false" style="border-radius:8px;">
+      Annuler
+    </button>
+    <button cButton color="primary" (click)="saveArrival()"
+            style="border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;">
+      {{ editMode ? 'Modifier' : 'Enregistrer' }}
+    </button>
   </c-modal-footer>
 </c-modal>
 
 <!-- ==================== SALE MODAL ==================== -->
 <c-modal [visible]="showSaleModal" (visibleChange)="showSaleModal = $event" backdrop="static" size="lg">
-  <c-modal-header>
-    <h5 cModalTitle>Vendre le Conteneur</h5>
+  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+    <h5 cModalTitle class="fw-bold">Vendre le Conteneur</h5>
     <button type="button" class="btn-close" (click)="showSaleModal = false"></button>
   </c-modal-header>
-  <c-modal-body>
-    <c-alert color="info" *ngIf="selectedArrival">
-      <strong>Conteneur:</strong> {{ selectedArrival.container?.container_number }} |
-      <strong>Stock disponible:</strong> {{ selectedArrival.remaining_quantity }} unités |
-      <strong>Type:</strong> {{ getProductTypeLabel(selectedArrival.product_type) }}
-    </c-alert>
-    <form [formGroup]="saleForm">
+  <c-modal-body class="p-4">
+    <div *ngIf="selectedArrival" class="p-3 rounded mb-4"
+         style="background:#EFF6FF;border-left:4px solid #3B82F6;">
       <div class="row">
-        <div class="col-md-6 mb-3">
-          <label cLabel>Client *</label>
-          <select cSelect formControlName="client_id" [class.is-invalid]="submitted && saleForm.get('client_id')?.invalid">
+        <div class="col-auto"><strong>Conteneur:</strong> {{ selectedArrival.container?.container_number }}</div>
+        <div class="col-auto"><strong>Stock disponible:</strong>
+          <span style="color:#10B981;" class="fw-bold"> {{ selectedArrival.remaining_quantity }} unités</span>
+        </div>
+        <div class="col-auto"><strong>Type:</strong> {{ getProductTypeLabel(selectedArrival.product_type) }}</div>
+      </div>
+    </div>
+    <form [formGroup]="saleForm">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Client <span class="text-danger">*</span></label>
+          <select cSelect formControlName="client_id" style="border-radius:8px;"
+                  [class.is-invalid]="submitted && saleForm.get('client_id')?.invalid">
             <option [ngValue]="null">-- Sélectionner --</option>
             <option *ngFor="let c of clients" [ngValue]="c.id">{{ c.name }}</option>
           </select>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Type de Vente *</label>
-          <select cSelect formControlName="sale_type">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Type de Vente <span class="text-danger">*</span></label>
+          <select cSelect formControlName="sale_type" style="border-radius:8px;">
             <option *ngFor="let t of saleTypes" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
-        <div class="col-md-4 mb-3">
-          <label cLabel>Quantité à Vendre *</label>
-          <input cFormControl type="number" formControlName="quantity_sold" [max]="selectedArrival?.remaining_quantity"
+        <div class="col-md-4">
+          <label cLabel class="fw-semibold mb-1">Quantité à Vendre <span class="text-danger">*</span></label>
+          <input cFormControl type="number" formControlName="quantity_sold" style="border-radius:8px;"
+                 [max]="selectedArrival?.remaining_quantity"
                  [class.is-invalid]="submitted && saleForm.get('quantity_sold')?.invalid">
         </div>
-        <div class="col-md-4 mb-3">
-          <label cLabel>Prix de Vente *</label>
-          <input cFormControl type="number" formControlName="sale_price" placeholder="0"
+        <div class="col-md-4">
+          <label cLabel class="fw-semibold mb-1">Prix de Vente <span class="text-danger">*</span></label>
+          <input cFormControl type="number" formControlName="sale_price" placeholder="0" style="border-radius:8px;"
                  [class.is-invalid]="submitted && saleForm.get('sale_price')?.invalid">
         </div>
-        <div class="col-md-4 mb-3">
-          <label cLabel>Devise *</label>
-          <select cSelect formControlName="currency">
+        <div class="col-md-4">
+          <label cLabel class="fw-semibold mb-1">Devise <span class="text-danger">*</span></label>
+          <select cSelect formControlName="currency" style="border-radius:8px;">
             <option value="GNF">GNF</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
           </select>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Date de Vente *</label>
-          <input cFormControl type="date" formControlName="sale_date">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Date de Vente <span class="text-danger">*</span></label>
+          <input cFormControl type="date" formControlName="sale_date" style="border-radius:8px;">
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Date Limite de Paiement</label>
-          <input cFormControl type="date" formControlName="due_date">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Date Limite de Paiement</label>
+          <input cFormControl type="date" formControlName="due_date" style="border-radius:8px;">
         </div>
-        <div class="col-md-6 mb-3">
-          <div class="form-check">
+        <div class="col-md-6">
+          <div class="form-check mt-2">
             <input class="form-check-input" type="checkbox" formControlName="is_installment" id="isInstallment">
-            <label class="form-check-label" for="isInstallment">Paiement Échelonné</label>
+            <label class="form-check-label fw-semibold" for="isInstallment">Paiement Échelonné</label>
           </div>
         </div>
-        <div class="col-md-6 mb-3" *ngIf="saleForm.get('is_installment')?.value">
-          <label cLabel>Nombre d'Échéances</label>
-          <input cFormControl type="number" formControlName="installment_count" placeholder="Ex: 3">
+        <div class="col-md-6" *ngIf="saleForm.get('is_installment')?.value">
+          <label cLabel class="fw-semibold mb-1">Nombre d'Échéances</label>
+          <input cFormControl type="number" formControlName="installment_count" placeholder="Ex: 3"
+                 style="border-radius:8px;">
         </div>
-        <div class="col-md-12 mb-3">
-          <label cLabel>Notes</label>
-          <textarea cFormControl formControlName="notes" rows="2" placeholder="Notes sur la vente..."></textarea>
+        <div class="col-12">
+          <label cLabel class="fw-semibold mb-1">Notes</label>
+          <textarea cFormControl formControlName="notes" rows="2"
+                    placeholder="Notes sur la vente..." style="border-radius:8px;"></textarea>
         </div>
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showSaleModal = false">Annuler</button>
-    <button cButton color="success" (click)="saveSale()">Enregistrer la Vente</button>
+  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+    <button cButton color="secondary" variant="outline" (click)="showSaleModal = false" style="border-radius:8px;">
+      Annuler
+    </button>
+    <button cButton color="success" (click)="saveSale()" style="border-radius:8px;">
+      Enregistrer la Vente
+    </button>
   </c-modal-footer>
 </c-modal>
 
 <!-- ==================== PAYMENT MODAL ==================== -->
 <c-modal [visible]="showPaymentModal" (visibleChange)="showPaymentModal = $event" backdrop="static">
-  <c-modal-header>
-    <h5 cModalTitle>Enregistrer un Versement</h5>
+  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+    <h5 cModalTitle class="fw-bold">Enregistrer un Versement</h5>
     <button type="button" class="btn-close" (click)="showPaymentModal = false"></button>
   </c-modal-header>
-  <c-modal-body>
-    <c-alert color="warning" *ngIf="selectedSale">
-      <strong>Client:</strong> {{ selectedSale.client?.name }} |
-      <strong>Reste à payer:</strong> {{ formatAmount(selectedSale.remaining_amount, selectedSale.currency) }}
-    </c-alert>
+  <c-modal-body class="p-4">
+    <div *ngIf="selectedSale" class="p-3 rounded mb-4"
+         style="background:#FFFBEB;border-left:4px solid #F59E0B;">
+      <strong>Client:</strong> {{ selectedSale.client?.name }} &nbsp;|&nbsp;
+      <strong>Reste à payer:</strong>
+      <span class="fw-bold" style="color:#EF4444;"> {{ formatAmount(selectedSale.remaining_amount, selectedSale.currency) }}</span>
+    </div>
     <form [formGroup]="paymentForm">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label cLabel>Montant *</label>
-          <input cFormControl type="number" formControlName="amount" placeholder="0"
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Montant <span class="text-danger">*</span></label>
+          <input cFormControl type="number" formControlName="amount" placeholder="0" style="border-radius:8px;"
                  [class.is-invalid]="submitted && paymentForm.get('amount')?.invalid">
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Devise *</label>
-          <select cSelect formControlName="currency">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Devise <span class="text-danger">*</span></label>
+          <select cSelect formControlName="currency" style="border-radius:8px;">
             <option value="GNF">GNF</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
           </select>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Méthode de Paiement *</label>
-          <select cSelect formControlName="payment_method">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Méthode de Paiement <span class="text-danger">*</span></label>
+          <select cSelect formControlName="payment_method" style="border-radius:8px;">
             <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Date *</label>
-          <input cFormControl type="date" formControlName="payment_date">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Date <span class="text-danger">*</span></label>
+          <input cFormControl type="date" formControlName="payment_date" style="border-radius:8px;">
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Référence</label>
-          <input cFormControl type="text" formControlName="reference" placeholder="N° reçu, transaction...">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Référence</label>
+          <input cFormControl type="text" formControlName="reference"
+                 placeholder="N° reçu, transaction..." style="border-radius:8px;">
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Notes</label>
-          <input cFormControl type="text" formControlName="notes" placeholder="Notes...">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Notes</label>
+          <input cFormControl type="text" formControlName="notes" placeholder="Notes..." style="border-radius:8px;">
         </div>
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showPaymentModal = false">Annuler</button>
-    <button cButton color="success" (click)="savePayment()">Enregistrer le Versement</button>
+  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+    <button cButton color="secondary" variant="outline" (click)="showPaymentModal = false" style="border-radius:8px;">
+      Annuler
+    </button>
+    <button cButton color="success" (click)="savePayment()" style="border-radius:8px;">
+      Enregistrer le Versement
+    </button>
   </c-modal-footer>
 </c-modal>
 
 <!-- ==================== ADVANCE MODAL ==================== -->
 <c-modal [visible]="showAdvanceModal" (visibleChange)="showAdvanceModal = $event" backdrop="static">
-  <c-modal-header>
-    <h5 cModalTitle>Enregistrer une Avance Client</h5>
+  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+    <h5 cModalTitle class="fw-bold">Enregistrer une Avance Client</h5>
     <button type="button" class="btn-close" (click)="showAdvanceModal = false"></button>
   </c-modal-header>
-  <c-modal-body>
-    <c-alert color="info">
+  <c-modal-body class="p-4">
+    <div class="p-3 rounded mb-4" style="background:#EFF6FF;border-left:4px solid #3B82F6;">
       <small>Les avances sont des paiements anticipés pour des conteneurs à venir. Elles seront déduites automatiquement lors des prochaines ventes.</small>
-    </c-alert>
+    </div>
     <form [formGroup]="advanceForm">
-      <div class="row">
-        <div class="col-md-12 mb-3">
-          <label cLabel>Client *</label>
-          <select cSelect formControlName="client_id" [class.is-invalid]="submitted && advanceForm.get('client_id')?.invalid">
+      <div class="row g-3">
+        <div class="col-12">
+          <label cLabel class="fw-semibold mb-1">Client <span class="text-danger">*</span></label>
+          <select cSelect formControlName="client_id" style="border-radius:8px;"
+                  [class.is-invalid]="submitted && advanceForm.get('client_id')?.invalid">
             <option [ngValue]="null">-- Sélectionner --</option>
             <option *ngFor="let c of clients" [ngValue]="c.id">{{ c.name }}</option>
           </select>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Montant *</label>
-          <input cFormControl type="number" formControlName="amount" placeholder="0"
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Montant <span class="text-danger">*</span></label>
+          <input cFormControl type="number" formControlName="amount" placeholder="0" style="border-radius:8px;"
                  [class.is-invalid]="submitted && advanceForm.get('amount')?.invalid">
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Devise *</label>
-          <select cSelect formControlName="currency">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Devise <span class="text-danger">*</span></label>
+          <select cSelect formControlName="currency" style="border-radius:8px;">
             <option value="GNF">GNF</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
           </select>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Méthode de Paiement *</label>
-          <select cSelect formControlName="payment_method">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Méthode de Paiement <span class="text-danger">*</span></label>
+          <select cSelect formControlName="payment_method" style="border-radius:8px;">
             <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Date *</label>
-          <input cFormControl type="date" formControlName="payment_date">
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1">Date <span class="text-danger">*</span></label>
+          <input cFormControl type="date" formControlName="payment_date" style="border-radius:8px;">
         </div>
-        <div class="col-md-12 mb-3">
-          <label cLabel>Description</label>
-          <textarea cFormControl formControlName="description" rows="2" placeholder="Description de l'avance..."></textarea>
+        <div class="col-12">
+          <label cLabel class="fw-semibold mb-1">Description</label>
+          <textarea cFormControl formControlName="description" rows="2"
+                    placeholder="Description de l'avance..." style="border-radius:8px;"></textarea>
         </div>
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showAdvanceModal = false">Annuler</button>
-    <button cButton color="warning" (click)="saveAdvance()">Enregistrer l'Avance</button>
+  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+    <button cButton color="secondary" variant="outline" (click)="showAdvanceModal = false" style="border-radius:8px;">
+      Annuler
+    </button>
+    <button cButton color="warning" (click)="saveAdvance()" style="border-radius:8px;">
+      Enregistrer l'Avance
+    </button>
   </c-modal-footer>
 </c-modal>
 
 <!-- ==================== CLIENT STATS MODAL ==================== -->
 <c-modal [visible]="showClientStatsModal" (visibleChange)="showClientStatsModal = $event" size="lg">
-  <c-modal-header>
-    <h5 cModalTitle>Situation du Client: {{ selectedClient?.name }}</h5>
+  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+    <h5 cModalTitle class="fw-bold">Situation du Client : {{ selectedClient?.name }}</h5>
     <button type="button" class="btn-close" (click)="showClientStatsModal = false"></button>
   </c-modal-header>
-  <c-modal-body *ngIf="clientStats">
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <c-card class="border-start border-primary border-4 h-100">
-          <c-card-body>
-            <div class="text-muted small">Total des Achats</div>
-            <div class="fs-4 fw-bold text-primary">{{ formatAmount(clientStats.total_sales) }}</div>
-          </c-card-body>
-        </c-card>
+  <c-modal-body class="p-4" *ngIf="clientStats">
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <div class="p-4 h-100 rounded" style="background:#EFF6FF;border-left:4px solid #3B82F6;">
+          <p class="text-muted small mb-1">Total des Achats</p>
+          <h4 class="fw-bold mb-0" style="color:#3B82F6;">{{ formatAmount(clientStats.total_sales) }}</h4>
+        </div>
       </div>
-      <div class="col-md-6 mb-3">
-        <c-card class="border-start border-success border-4 h-100">
-          <c-card-body>
-            <div class="text-muted small">Total Payé</div>
-            <div class="fs-4 fw-bold text-success">{{ formatAmount(clientStats.total_paid) }}</div>
-          </c-card-body>
-        </c-card>
+      <div class="col-md-6">
+        <div class="p-4 h-100 rounded" style="background:#ECFDF5;border-left:4px solid #10B981;">
+          <p class="text-muted small mb-1">Total Payé</p>
+          <h4 class="fw-bold mb-0" style="color:#10B981;">{{ formatAmount(clientStats.total_paid) }}</h4>
+        </div>
       </div>
-      <div class="col-md-6 mb-3">
-        <c-card class="border-start border-danger border-4 h-100">
-          <c-card-body>
-            <div class="text-muted small">Dette (Reste à Payer)</div>
-            <div class="fs-4 fw-bold text-danger">{{ formatAmount(clientStats.total_debt) }}</div>
-            <small class="text-muted">{{ clientStats.pending_sales_count }} vente(s) en cours</small>
-          </c-card-body>
-        </c-card>
+      <div class="col-md-6">
+        <div class="p-4 h-100 rounded" style="background:#FEE2E2;border-left:4px solid #EF4444;">
+          <p class="text-muted small mb-1">Dette (Reste à Payer)</p>
+          <h4 class="fw-bold mb-0" style="color:#EF4444;">{{ formatAmount(clientStats.total_debt) }}</h4>
+          <small class="text-muted">{{ clientStats.pending_sales_count }} vente(s) en cours</small>
+        </div>
       </div>
-      <div class="col-md-6 mb-3">
-        <c-card class="border-start border-warning border-4 h-100">
-          <c-card-body>
-            <div class="text-muted small">Avances Disponibles</div>
-            <div class="fs-4 fw-bold text-warning">{{ formatAmount(clientStats.total_advances) }}</div>
-          </c-card-body>
-        </c-card>
-      </div>
-      <div class="col-12">
-        <c-card [ngClass]="clientStats.balance >= 0 ? 'border-success' : 'border-danger'" class="border-2">
-          <c-card-body class="text-center">
-            <div class="text-muted">Balance (Avances - Dettes)</div>
-            <div class="fs-3 fw-bold" [ngClass]="clientStats.balance >= 0 ? 'text-success' : 'text-danger'">
-              {{ formatAmount(clientStats.balance) }}
-            </div>
-            <small *ngIf="clientStats.balance >= 0" class="text-success">Le client a un crédit disponible</small>
-            <small *ngIf="clientStats.balance < 0" class="text-danger">Le client nous doit de l'argent</small>
-          </c-card-body>
-        </c-card>
+      <div class="col-md-6">
+        <div class="p-4 h-100 rounded" style="background:#FFFBEB;border-left:4px solid #F59E0B;">
+          <p class="text-muted small mb-1">Avances Disponibles</p>
+          <h4 class="fw-bold mb-0" style="color:#F59E0B;">{{ formatAmount(clientStats.total_advances) }}</h4>
+        </div>
       </div>
     </div>
+    <div class="p-4 rounded text-center"
+         [style.background]="clientStats.balance >= 0 ? '#ECFDF5' : '#FEE2E2'"
+         [style.border]="clientStats.balance >= 0 ? '1px solid #10B981' : '1px solid #EF4444'">
+      <p class="text-muted small mb-1">Balance (Avances - Dettes)</p>
+      <h3 class="fw-bold mb-1" [style.color]="clientStats.balance >= 0 ? '#10B981' : '#EF4444'">
+        {{ formatAmount(clientStats.balance) }}
+      </h3>
+      <small *ngIf="clientStats.balance >= 0" style="color:#10B981;">Le client a un crédit disponible</small>
+      <small *ngIf="clientStats.balance < 0" style="color:#EF4444;">Le client nous doit de l'argent</small>
+    </div>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="primary" (click)="viewClientAccountPage()">
-      📊 Voir le Compte Détaillé
+  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+    <button cButton color="secondary" variant="outline" (click)="showClientStatsModal = false" style="border-radius:8px;">
+      Fermer
     </button>
-    <button cButton color="secondary" (click)="showClientStatsModal = false">Fermer</button>
+    <button cButton color="primary" (click)="viewClientAccountPage()"
+            style="border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;">
+      <svg cIcon name="cilChart" class="me-1"></svg> Voir le Compte Détaillé
+    </button>
   </c-modal-footer>
 </c-modal>

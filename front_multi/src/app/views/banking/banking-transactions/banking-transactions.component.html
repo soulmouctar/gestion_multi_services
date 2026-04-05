@@ -1,163 +1,184 @@
-<div class="container-fluid px-4">
+<div class="p-3 p-md-4">
 
   <!-- Header -->
-  <div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="rounded-3 p-4 mb-4 text-white d-flex align-items-center justify-content-between flex-wrap gap-3"
+       style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 16px !important;">
     <div>
-      <h2 class="mb-1 fw-bold">Transactions Bancaires</h2>
-      <p class="text-muted mb-0">Dépôts, retraits et remises de chèques avec preuves</p>
+      <h4 class="fw-bold mb-1">Transactions Bancaires</h4>
+      <p class="mb-0 opacity-75 small">Dépôts, retraits et remises de chèques avec pièces justificatives</p>
     </div>
-    <div class="d-flex gap-2">
-      <a [routerLink]="['/banking/statistics']" cButton color="light" size="sm">
+    <div class="d-flex gap-2 flex-wrap">
+      <a [routerLink]="['/banking/statistics']" cButton color="light" size="sm" style="border-radius:8px">
         <svg cIcon name="cilChartPie" class="me-1" size="sm"></svg> Statistiques
       </a>
-      <button cButton color="primary" (click)="openNew()">
+      <button cButton color="success" (click)="openNew()" style="border-radius:10px">
         <svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle Transaction
       </button>
     </div>
   </div>
 
-  <!-- Filters -->
-  <c-card class="mb-4 border-0 shadow-sm">
-    <c-card-body>
-      <div class="row g-3 align-items-end">
-        <div class="col-md-3">
-          <label class="form-label small text-muted">Compte</label>
-          <select class="form-select form-select-sm" [(ngModel)]="filters.account_id">
-            <option value="">Tous les comptes</option>
-            <option *ngFor="let a of accounts" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label small text-muted">Type</label>
-          <select class="form-select form-select-sm" [(ngModel)]="filters.transaction_type">
-            <option value="">Tous</option>
-            <option *ngFor="let t of txTypes" [value]="t.value">{{ t.label }}</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label small text-muted">Statut</label>
-          <select class="form-select form-select-sm" [(ngModel)]="filters.status">
-            <option value="">Tous</option>
-            <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label small text-muted">Du</label>
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_from" />
-        </div>
-        <div class="col-md-2">
-          <label class="form-label small text-muted">Au</label>
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_to" />
-        </div>
-        <div class="col-md-1 d-flex gap-1">
-          <button cButton color="primary" size="sm" (click)="applyFilters()">
-            <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
-          </button>
-          <button cButton color="light" size="sm" (click)="resetFilters()">
-            <svg cIcon name="cilReportSlash" size="sm"></svg>
-          </button>
-        </div>
+  <!-- Filtres -->
+  <div class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-md-3">
+        <label class="small fw-semibold text-muted mb-1">Compte</label>
+        <select class="form-select" [(ngModel)]="filters.account_id" style="border-radius:8px; font-size:.875rem;">
+          <option value="">Tous les comptes</option>
+          <option *ngFor="let a of accounts" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
+        </select>
       </div>
-    </c-card-body>
-  </c-card>
-
-  <!-- Loading -->
-  <div *ngIf="loading" class="text-center py-5">
-    <c-spinner color="primary"></c-spinner>
+      <div class="col-6 col-md-2">
+        <label class="small fw-semibold text-muted mb-1">Type</label>
+        <select class="form-select" [(ngModel)]="filters.transaction_type" style="border-radius:8px; font-size:.875rem;">
+          <option value="">Tous</option>
+          <option *ngFor="let t of txTypes" [value]="t.value">{{ t.label }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="small fw-semibold text-muted mb-1">Statut</label>
+        <select class="form-select" [(ngModel)]="filters.status" style="border-radius:8px; font-size:.875rem;">
+          <option value="">Tous</option>
+          <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="small fw-semibold text-muted mb-1">Du</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.date_from" style="border-radius:8px; font-size:.875rem;" />
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="small fw-semibold text-muted mb-1">Au</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.date_to" style="border-radius:8px; font-size:.875rem;" />
+      </div>
+      <div class="col-12 col-md-1 d-flex gap-1">
+        <button cButton color="primary" size="sm" (click)="applyFilters()" style="border-radius:8px;" title="Filtrer">
+          <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+        </button>
+        <button cButton color="light" size="sm" (click)="resetFilters()" style="border-radius:8px;" title="Réinitialiser">
+          <svg cIcon name="cilReportSlash" size="sm"></svg>
+        </button>
+      </div>
+    </div>
   </div>
 
-  <!-- Transactions Table -->
-  <c-card *ngIf="!loading" class="border-0 shadow-sm">
-    <c-card-body class="p-0">
-      <div *ngIf="transactions.length === 0" class="text-center py-5">
-        <svg cIcon name="cilNotes" size="3xl" class="text-muted mb-2"></svg>
-        <p class="text-muted">Aucune transaction pour cette période</p>
-      </div>
+  <!-- Chargement -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="text-muted mt-2 small">Chargement des transactions...</p>
+  </div>
 
-      <div *ngIf="transactions.length > 0" class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Date</th>
-              <th>Banque / Compte</th>
-              <th>Type</th>
-              <th class="text-end">Montant</th>
-              <th>Référence</th>
-              <th>Statut</th>
-              <th class="text-center">Preuve</th>
-              <th class="text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let tx of transactions">
-              <td>
-                <div class="fw-semibold small">{{ tx.transaction_date | date:'dd/MM/yyyy' }}</div>
-              </td>
-              <td>
-                <div class="fw-semibold small">{{ tx.bank_account?.bank_name }}</div>
-                <div class="text-muted small font-monospace">{{ tx.bank_account?.account_number }}</div>
-              </td>
-              <td>
-                <span class="badge bg-{{ txTypeInfo(tx.transaction_type).color }}-subtle text-{{ txTypeInfo(tx.transaction_type).color }} border border-{{ txTypeInfo(tx.transaction_type).color }}-subtle">
-                  {{ txTypeInfo(tx.transaction_type).label }}
-                </span>
-              </td>
-              <td class="text-end fw-bold" [class.text-success]="isCredit(tx.transaction_type)" [class.text-danger]="!isCredit(tx.transaction_type)">
-                <span>{{ isCredit(tx.transaction_type) ? '+' : '-' }}</span>
-                {{ fmt(tx.amount, tx.currency) }}
-              </td>
-              <td class="small text-muted">{{ tx.reference || '—' }}</td>
-              <td>
-                <span class="badge bg-{{ statusInfo(tx.status).color }}">{{ statusInfo(tx.status).label }}</span>
-              </td>
-              <td class="text-center">
-                <button *ngIf="tx.proof_url" cButton size="sm" color="info" variant="ghost"
-                        (click)="viewProof(tx)" title="Voir la preuve">
-                  <svg cIcon name="cilFile" size="sm"></svg>
+  <!-- Tableau transactions -->
+  <div *ngIf="!loading" class="bg-white rounded-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+
+    <!-- Vide -->
+    <div *ngIf="transactions.length === 0" class="text-center py-5">
+      <svg cIcon name="cilNotes" size="3xl" class="mb-2 opacity-25"></svg>
+      <p class="text-muted">Aucune transaction pour cette période</p>
+    </div>
+
+    <div *ngIf="transactions.length > 0" class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#f8fafc;">
+          <tr>
+            <th class="px-3 py-3 small fw-semibold text-muted">Date</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Banque / Compte</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Type</th>
+            <th class="px-3 py-3 small fw-semibold text-muted text-end">Montant</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Référence</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Statut</th>
+            <th class="px-3 py-3 small fw-semibold text-muted text-center">Preuve</th>
+            <th class="px-3 py-3 small fw-semibold text-muted text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tx of transactions">
+            <td class="px-3 small fw-semibold">{{ tx.transaction_date | date:'dd/MM/yyyy' }}</td>
+            <td class="px-3">
+              <div class="fw-semibold small">{{ tx.bank_account?.bank_name }}</div>
+              <div class="text-muted small font-monospace">{{ tx.bank_account?.account_number }}</div>
+            </td>
+            <td class="px-3">
+              <span class="badge px-2 py-1 small fw-semibold"
+                    [style.background]="txTypeInfo(tx.transaction_type).color === 'success' ? '#ECFDF5'
+                                        : txTypeInfo(tx.transaction_type).color === 'danger'  ? '#FEE2E2'
+                                        : txTypeInfo(tx.transaction_type).color === 'info'    ? '#EFF6FF'
+                                        : txTypeInfo(tx.transaction_type).color === 'primary' ? '#EFF6FF'
+                                        : '#FFFBEB'"
+                    [style.color]="txTypeInfo(tx.transaction_type).color === 'success' ? '#10B981'
+                                   : txTypeInfo(tx.transaction_type).color === 'danger'  ? '#EF4444'
+                                   : txTypeInfo(tx.transaction_type).color === 'info'    ? '#3B82F6'
+                                   : txTypeInfo(tx.transaction_type).color === 'primary' ? '#3B82F6'
+                                   : '#F59E0B'">
+                {{ txTypeInfo(tx.transaction_type).label }}
+              </span>
+            </td>
+            <td class="px-3 text-end fw-bold"
+                [style.color]="isCredit(tx.transaction_type) ? '#10B981' : '#EF4444'">
+              {{ isCredit(tx.transaction_type) ? '+' : '−' }}{{ fmt(tx.amount, tx.currency) }}
+            </td>
+            <td class="px-3 small text-muted">{{ tx.reference || '—' }}</td>
+            <td class="px-3">
+              <span class="badge px-2 py-1 small fw-semibold"
+                    [style.background]="tx.status === 'COMPLETED' ? '#ECFDF5' : tx.status === 'PENDING' ? '#FFFBEB' : '#f0f0f0'"
+                    [style.color]="tx.status === 'COMPLETED' ? '#10B981' : tx.status === 'PENDING' ? '#F59E0B' : '#6c757d'">
+                {{ statusInfo(tx.status).label }}
+              </span>
+            </td>
+            <td class="px-3 text-center">
+              <button *ngIf="tx.proof_url" cButton size="sm" color="info" variant="ghost"
+                      (click)="viewProof(tx)" title="Voir la pièce justificative"
+                      style="border-radius:8px;">
+                <svg cIcon name="cilFile" size="sm"></svg>
+              </button>
+              <span *ngIf="!tx.proof_url" class="text-muted small">—</span>
+            </td>
+            <td class="px-3 text-center">
+              <div class="d-flex justify-content-center gap-1">
+                <button cButton size="sm" color="warning" variant="outline" (click)="openEdit(tx)"
+                        title="Modifier" style="border-radius:8px;">
+                  <svg cIcon name="cilPencil" size="sm"></svg>
                 </button>
-                <span *ngIf="!tx.proof_url" class="text-muted small">—</span>
-              </td>
-              <td class="text-center">
-                <div class="d-flex justify-content-center gap-1">
-                  <button cButton size="sm" color="light" (click)="openEdit(tx)" title="Modifier">
-                    <svg cIcon name="cilPencil" size="sm"></svg>
-                  </button>
-                  <button cButton size="sm" color="danger" variant="ghost" (click)="delete(tx)" title="Supprimer">
-                    <svg cIcon name="cilTrash" size="sm"></svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                <button cButton size="sm" color="danger" variant="ghost" (click)="delete(tx)"
+                        title="Supprimer" style="border-radius:8px;">
+                  <svg cIcon name="cilTrash" size="sm"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-      <!-- Pagination -->
-      <div *ngIf="totalPages > 1" class="d-flex align-items-center justify-content-between p-3 border-top">
-        <small class="text-muted">{{ totalItems }} transaction(s)</small>
-        <div class="d-flex gap-1">
-          <button cButton size="sm" color="light" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">‹</button>
-          <span class="px-3 py-1 small">{{ currentPage }} / {{ totalPages }}</span>
-          <button cButton size="sm" color="light" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">›</button>
-        </div>
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1"
+         class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
+         style="background:#fafafa; border-radius:0 0 12px 12px;">
+      <small class="text-muted">{{ totalItems }} transaction(s)</small>
+      <div class="d-flex gap-1 align-items-center">
+        <button cButton size="sm" color="light" [disabled]="currentPage === 1"
+                (click)="goToPage(currentPage - 1)" style="border-radius:6px;">‹</button>
+        <span class="px-3 py-1 small text-muted">{{ currentPage }} / {{ totalPages }}</span>
+        <button cButton size="sm" color="light" [disabled]="currentPage === totalPages"
+                (click)="goToPage(currentPage + 1)" style="border-radius:6px;">›</button>
       </div>
-    </c-card-body>
-  </c-card>
+    </div>
+  </div>
 
 </div>
 
 <!-- ===== Modal Transaction ===== -->
-<c-modal [visible]="showModal" (visibleChange)="showModal = $event" size="lg">
+<c-modal [visible]="showModal" (visibleChange)="showModal = $event" size="lg" backdrop="static">
   <c-modal-header>
     <h5 cModalTitle>{{ editMode ? 'Modifier la transaction' : 'Nouvelle transaction' }}</h5>
+    <button cButtonClose (click)="showModal = false"></button>
   </c-modal-header>
   <c-modal-body>
     <form [formGroup]="form">
       <div class="row g-3">
 
         <div class="col-md-6">
-          <label cLabel>Compte bancaire *</label>
-          <select cSelect formControlName="bank_account_id" [class.is-invalid]="submitted && form.get('bank_account_id')?.invalid">
+          <label cLabel class="fw-semibold small mb-1">Compte bancaire *</label>
+          <select cSelect formControlName="bank_account_id" style="border-radius:8px"
+                  [class.is-invalid]="submitted && form.get('bank_account_id')?.invalid">
             <option value="">Sélectionner un compte...</option>
             <option *ngFor="let a of accounts" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
           </select>
@@ -165,22 +186,24 @@
         </div>
 
         <div class="col-md-6">
-          <label cLabel>Type de transaction *</label>
-          <select cSelect formControlName="transaction_type" [class.is-invalid]="submitted && form.get('transaction_type')?.invalid">
+          <label cLabel class="fw-semibold small mb-1">Type de transaction *</label>
+          <select cSelect formControlName="transaction_type" style="border-radius:8px"
+                  [class.is-invalid]="submitted && form.get('transaction_type')?.invalid">
             <option *ngFor="let t of txTypes" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
 
         <div class="col-md-4">
-          <label cLabel>Montant *</label>
-          <input cFormControl type="number" formControlName="amount" min="0.01" step="0.01" placeholder="0"
+          <label cLabel class="fw-semibold small mb-1">Montant *</label>
+          <input cFormControl type="number" formControlName="amount" min="0.01" step="0.01"
+                 placeholder="0" style="border-radius:8px"
                  [class.is-invalid]="submitted && form.get('amount')?.invalid" />
-          <div class="invalid-feedback">Requis, > 0</div>
+          <div class="invalid-feedback">Requis, supérieur à 0</div>
         </div>
 
         <div class="col-md-3">
-          <label cLabel>Devise</label>
-          <select cSelect formControlName="currency">
+          <label cLabel class="fw-semibold small mb-1">Devise</label>
+          <select cSelect formControlName="currency" style="border-radius:8px">
             <option value="GNF">GNF</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
@@ -188,65 +211,71 @@
         </div>
 
         <div class="col-md-5">
-          <label cLabel>Date *</label>
-          <input cFormControl type="date" formControlName="transaction_date"
+          <label cLabel class="fw-semibold small mb-1">Date *</label>
+          <input cFormControl type="date" formControlName="transaction_date" style="border-radius:8px"
                  [class.is-invalid]="submitted && form.get('transaction_date')?.invalid" />
           <div class="invalid-feedback">Requis</div>
         </div>
 
         <div class="col-md-6">
-          <label cLabel>Référence</label>
-          <input cFormControl formControlName="reference" placeholder="N° chèque, virement, etc." />
+          <label cLabel class="fw-semibold small mb-1">Référence</label>
+          <input cFormControl formControlName="reference" placeholder="N° chèque, virement..."
+                 style="border-radius:8px" />
         </div>
 
         <div class="col-md-3">
-          <label cLabel>Statut</label>
-          <select cSelect formControlName="status">
+          <label cLabel class="fw-semibold small mb-1">Statut</label>
+          <select cSelect formControlName="status" style="border-radius:8px">
             <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
           </select>
         </div>
 
         <div class="col-md-3">
-          <label cLabel>Type de preuve</label>
-          <select cSelect formControlName="proof_type">
+          <label cLabel class="fw-semibold small mb-1">Type de preuve</label>
+          <select cSelect formControlName="proof_type" style="border-radius:8px">
             <option [ngValue]="null">Sans preuve</option>
             <option *ngFor="let p of proofTypes" [value]="p.value">{{ p.label }}</option>
           </select>
         </div>
 
         <div class="col-12">
-          <label cLabel>Description / Notes</label>
-          <textarea cFormControl formControlName="description" rows="2" placeholder="Détails optionnels..."></textarea>
+          <label cLabel class="fw-semibold small mb-1">Description / Notes</label>
+          <textarea cFormControl formControlName="description" rows="2"
+                    placeholder="Détails optionnels..." style="border-radius:8px"></textarea>
         </div>
 
-        <!-- Proof file upload -->
+        <!-- Upload pièce justificative -->
         <div class="col-12">
-          <label cLabel class="fw-semibold">
+          <label cLabel class="fw-semibold small mb-1">
             <svg cIcon name="cilFile" class="me-1" size="sm"></svg>
             Pièce justificative
             <span class="fw-normal text-muted">(Photo compressée automatiquement · PDF · max 10 Mo)</span>
           </label>
-          <input type="file" class="form-control" accept="image/*,.pdf" (change)="onFileChange($event)" />
-          <div class="form-text">JPG, PNG (compressés auto) ou PDF</div>
+          <input type="file" class="form-control" accept="image/*,.pdf" style="border-radius:8px"
+                 (change)="onFileChange($event)" />
+          <div class="form-text">JPG, PNG (compressés automatiquement) ou PDF</div>
         </div>
 
-        <!-- Compression info -->
+        <!-- Info compression -->
         <div *ngIf="proofSizeInfo" class="col-12">
-          <div class="alert alert-info py-2 mb-0 small">
+          <div class="rounded-3 px-3 py-2 small" style="background:#EFF6FF; color:#3B82F6; border:1px solid #BFDBFE;">
             <svg cIcon name="cilCheck" size="sm" class="me-1"></svg>
             <strong>Fichier :</strong> {{ proofSizeInfo }}
           </div>
         </div>
 
-        <!-- Preview -->
+        <!-- Aperçu image -->
         <div *ngIf="proofPreview && proofPreview !== 'pdf'" class="col-12">
-          <div class="border rounded p-2 bg-light text-center">
-            <img [src]="proofPreview" alt="Aperçu" class="img-fluid rounded shadow-sm" style="max-height: 220px;" />
+          <div class="border rounded-3 p-2 text-center" style="background:#f8fafc;">
+            <img [src]="proofPreview" alt="Aperçu" class="img-fluid rounded shadow-sm"
+                 style="max-height:220px;" />
           </div>
         </div>
+
+        <!-- Aperçu PDF -->
         <div *ngIf="proofPreview === 'pdf'" class="col-12">
-          <div class="border rounded p-3 bg-light text-center">
-            <svg cIcon name="cilFile" size="3xl" class="text-danger"></svg>
+          <div class="border rounded-3 p-3 text-center" style="background:#f8fafc;">
+            <svg cIcon name="cilFile" size="3xl" style="color:#EF4444;"></svg>
             <div class="small mt-1 text-muted">{{ proofFile?.name }}</div>
           </div>
         </div>
@@ -255,8 +284,9 @@
     </form>
   </c-modal-body>
   <c-modal-footer>
-    <button cButton color="secondary" [disabled]="uploading" (click)="showModal = false">Annuler</button>
-    <button cButton color="primary" [disabled]="uploading" (click)="save()">
+    <button cButton color="secondary" [disabled]="uploading" (click)="showModal = false"
+            style="border-radius:8px">Annuler</button>
+    <button cButton color="primary" [disabled]="uploading" (click)="save()" style="border-radius:8px">
       <c-spinner *ngIf="uploading" size="sm" class="me-1"></c-spinner>
       {{ uploading ? 'Envoi...' : (editMode ? 'Enregistrer' : 'Créer') }}
     </button>
@@ -264,18 +294,21 @@
 </c-modal>
 
 <!-- ===== Modal Visualisation Preuve ===== -->
-<c-modal [visible]="showProofModal" (visibleChange)="showProofModal = $event" size="xl">
+<c-modal [visible]="showProofModal" (visibleChange)="showProofModal = $event" size="xl" backdrop="static">
   <c-modal-header>
     <h5 cModalTitle>Pièce justificative</h5>
+    <button cButtonClose (click)="showProofModal = false"></button>
   </c-modal-header>
   <c-modal-body class="text-center p-2">
-    <img *ngIf="proofViewType === 'image'" [src]="proofViewUrl" alt="Preuve" class="img-fluid rounded shadow" style="max-height: 80vh;" />
-    <iframe *ngIf="proofViewType === 'pdf'" [src]="proofViewUrl" class="w-100 border-0 rounded" style="height: 80vh;"></iframe>
+    <img *ngIf="proofViewType === 'image'" [src]="proofViewUrl" alt="Preuve"
+         class="img-fluid rounded shadow" style="max-height:80vh;" />
+    <iframe *ngIf="proofViewType === 'pdf'" [src]="proofViewUrl"
+            class="w-100 border-0 rounded" style="height:80vh;"></iframe>
   </c-modal-body>
   <c-modal-footer>
-    <a [href]="proofViewUrl" target="_blank" cButton color="primary">
+    <a [href]="proofViewUrl" target="_blank" cButton color="primary" style="border-radius:8px">
       <svg cIcon name="cilExternalLink" class="me-1" size="sm"></svg> Ouvrir
     </a>
-    <button cButton color="secondary" (click)="showProofModal = false">Fermer</button>
+    <button cButton color="secondary" (click)="showProofModal = false" style="border-radius:8px">Fermer</button>
   </c-modal-footer>
 </c-modal>

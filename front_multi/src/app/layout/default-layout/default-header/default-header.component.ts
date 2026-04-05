@@ -109,12 +109,12 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
         // Convert user modules to Module format for display
         this.activeModules = userModules.map((userModule: UserModulePermission) => ({
           id: 0, // Will be set by backend
-          name: userModule.module_name,
+          name: userModule.module_name ?? userModule.module_code,
           code: userModule.module_code,
-          description: userModule.module_name,
+          description: userModule.module_name ?? '',
           icon: this.getModuleIcon(userModule.module_code) || '',
           is_active: userModule.is_active,
-          permissions: userModule.permissions,
+          permissions: userModule.permissions ?? [],
           route: this.getModuleRoute(userModule.module_code)
         }));
         this.loadingModules = false;

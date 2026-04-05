@@ -1,207 +1,257 @@
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
+<div class="p-3 p-md-4">
+
+  <!-- Header -->
+  <div class="mb-4" style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;padding:28px 32px;color:white;">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h2 style="font-size:1.6rem;font-weight:700;margin:0 0 4px;">Tableau de Bord</h2>
+        <p style="margin:0;opacity:0.75;font-size:0.9rem;">Vue d'ensemble de votre activite</p>
+      </div>
+      <button (click)="refreshData()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:white;padding:8px 18px;font-size:0.875rem;font-weight:600;cursor:pointer;">
+        Actualiser
+      </button>
     </div>
   </div>
 
-  <!-- Loading State -->
-  <div *ngIf="loading" class="text-center p-5">
-    <c-spinner size="sm"></c-spinner>
-    <p class="mt-3">Chargement du tableau de bord...</p>
+  <!-- Alert -->
+  <div *ngIf="error" class="alert alert-danger d-flex align-items-center justify-content-between mb-4" style="border-radius:10px;" role="alert">
+    <span>{{ error }}</span>
+    <button type="button" class="btn-close" (click)="error = null"></button>
   </div>
 
-  <!-- Dashboard Content -->
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status" style="width:2.5rem;height:2.5rem;"></div>
+    <p class="mt-3 text-muted">Chargement du tableau de bord...</p>
+  </div>
+
+  <!-- Content -->
   <div *ngIf="!loading">
-    <!-- Statistics Cards -->
-    <div class="row mb-4" *ngIf="stats">
-      <div class="col-md-3">
-        <c-card class="text-center">
-          <c-card-body>
-            <h4 class="text-primary">{{ stats.total_users || 0 }}</h4>
-            <small class="text-muted">Utilisateurs</small>
-          </c-card-body>
-        </c-card>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4" *ngIf="stats">
+      <!-- Utilisateurs -->
+      <div class="col-6 col-md-3">
+        <div style="background:white;border-radius:12px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:44px;height:44px;border-radius:10px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg cIcon name="cilPeople" style="color:#4F46E5;width:22px;height:22px;"></svg>
+            </div>
+            <div>
+              <div style="font-size:1.65rem;font-weight:700;line-height:1;color:#1e293b;">{{ stats.total_users || 0 }}</div>
+              <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Utilisateurs</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="col-md-3">
-        <c-card class="text-center">
-          <c-card-body>
-            <h4 class="text-success">{{ stats.total_products || 0 }}</h4>
-            <small class="text-muted">Produits</small>
-          </c-card-body>
-        </c-card>
+      <!-- Produits -->
+      <div class="col-6 col-md-3">
+        <div style="background:white;border-radius:12px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:44px;height:44px;border-radius:10px;background:#F0FDF4;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg cIcon name="cilBasket" style="color:#16A34A;width:22px;height:22px;"></svg>
+            </div>
+            <div>
+              <div style="font-size:1.65rem;font-weight:700;line-height:1;color:#1e293b;">{{ stats.total_products || 0 }}</div>
+              <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Produits</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="col-md-3">
-        <c-card class="text-center">
-          <c-card-body>
-            <h4 class="text-info">{{ stats.total_clients || 0 }}</h4>
-            <small class="text-muted">Clients</small>
-          </c-card-body>
-        </c-card>
+      <!-- Clients -->
+      <div class="col-6 col-md-3">
+        <div style="background:white;border-radius:12px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:44px;height:44px;border-radius:10px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg cIcon name="cilUser" style="color:#2563EB;width:22px;height:22px;"></svg>
+            </div>
+            <div>
+              <div style="font-size:1.65rem;font-weight:700;line-height:1;color:#1e293b;">{{ stats.total_clients || 0 }}</div>
+              <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Clients</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="col-md-3">
-        <c-card class="text-center">
-          <c-card-body>
-            <h4 class="text-warning">{{ stats.total_revenue | currency:'GNF':'symbol':'1.0-0' }}</h4>
-            <small class="text-muted">Revenus</small>
-          </c-card-body>
-        </c-card>
+      <!-- Revenus -->
+      <div class="col-6 col-md-3">
+        <div style="background:white;border-radius:12px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:44px;height:44px;border-radius:10px;background:#FFFBEB;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg cIcon name="cilDollar" style="color:#D97706;width:22px;height:22px;"></svg>
+            </div>
+            <div>
+              <div style="font-size:1.1rem;font-weight:700;line-height:1.2;color:#1e293b;">{{ stats.total_revenue | currency:'GNF':'symbol':'1.0-0' }}</div>
+              <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Revenus</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="row">
-      <!-- Recent Activities -->
-      <div class="col-md-6">
-        <c-card class="mb-4">
-          <c-card-header>
-            <strong>Activités Récentes</strong>
-          </c-card-header>
-          <c-card-body>
-            <div *ngIf="activities.length === 0" class="text-center text-muted p-3">
-              Aucune activité récente
+    <!-- Activities + Module Usage -->
+    <div class="row g-3 mb-4">
+      <!-- Activites Recentes -->
+      <div class="col-12 col-md-6">
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
+          <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;">
+              <svg cIcon name="cilBell" style="color:#4F46E5;width:16px;height:16px;"></svg>
             </div>
-            <div *ngFor="let activity of activities" class="border-bottom pb-2 mb-2">
-              <div class="d-flex justify-content-between">
+            <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Activites Recentes</span>
+          </div>
+          <div style="padding:16px 20px;">
+            <div *ngIf="activities.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
+              Aucune activite recente
+            </div>
+            <div *ngFor="let activity of activities" style="border-bottom:1px solid #f8f9fa;padding-bottom:12px;margin-bottom:12px;">
+              <div class="d-flex justify-content-between align-items-start gap-2">
                 <div>
-                  <h6 class="mb-1">{{ activity.title }}</h6>
-                  <small class="text-muted">{{ activity.description }}</small>
+                  <div style="font-weight:600;font-size:0.875rem;color:#1e293b;">{{ activity.title }}</div>
+                  <div style="font-size:0.8rem;color:#6c757d;margin-top:2px;">{{ activity.description }}</div>
                 </div>
-                <small class="text-muted">{{ activity.created_at | date:'dd/MM/yyyy HH:mm' }}</small>
+                <span style="font-size:0.75rem;color:#adb5bd;white-space:nowrap;">{{ activity.created_at | date:'dd/MM HH:mm' }}</span>
               </div>
             </div>
-          </c-card-body>
-        </c-card>
+          </div>
+        </div>
       </div>
 
-      <!-- Module Usage -->
-      <div class="col-md-6">
-        <c-card class="mb-4">
-          <c-card-header>
-            <strong>Usage des Modules</strong>
-          </c-card-header>
-          <c-card-body>
-            <div *ngIf="moduleUsage.length === 0" class="text-center text-muted p-3">
-              Aucune donnée d'usage disponible
+      <!-- Usage des Modules -->
+      <div class="col-12 col-md-6">
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
+          <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:#F0FDF4;display:flex;align-items:center;justify-content:center;">
+              <svg cIcon name="cilChart" style="color:#16A34A;width:16px;height:16px;"></svg>
+            </div>
+            <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Usage des Modules</span>
+          </div>
+          <div style="padding:16px 20px;">
+            <div *ngIf="moduleUsage.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
+              Aucune donnee d'usage disponible
             </div>
             <div *ngFor="let module of moduleUsage" class="mb-3">
               <div class="d-flex justify-content-between mb-1">
-                <span>{{ module.module_name }}</span>
-                <span>{{ module.percentage }}%</span>
+                <span style="font-size:0.875rem;font-weight:500;color:#374151;">{{ module.module_name }}</span>
+                <span style="font-size:0.8rem;font-weight:600;color:#6c757d;">{{ module.percentage }}%</span>
               </div>
-              <div class="progress" style="height: 8px;">
-                <div class="progress-bar" 
+              <div class="progress" style="height:7px;border-radius:4px;">
+                <div class="progress-bar"
                      [style.width.%]="module.percentage"
-                     [class]="'bg-' + (module.percentage > 70 ? 'success' : module.percentage > 40 ? 'warning' : 'danger')">
+                     [class]="'bg-' + (module.percentage > 70 ? 'success' : module.percentage > 40 ? 'warning' : 'danger')"
+                     style="border-radius:4px;">
                 </div>
               </div>
             </div>
-          </c-card-body>
-        </c-card>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Subscription Trends & Revenue Chart -->
-    <div class="row">
-      <div class="col-md-6">
-        <c-card class="mb-4">
-          <c-card-header>
-            <strong>Tendances d'Abonnement</strong>
-          </c-card-header>
-          <c-card-body>
-            <div *ngIf="subscriptionLabels.length === 0" class="text-center text-muted p-3">
-              Aucune donnée de tendance disponible
+    <!-- Tendances + Revenus -->
+    <div class="row g-3 mb-4">
+      <!-- Tendances d'Abonnement -->
+      <div class="col-12 col-md-6">
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+          <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;">
+              <svg cIcon name="cilGraph" style="color:#2563EB;width:16px;height:16px;"></svg>
             </div>
-            <div *ngIf="subscriptionLabels.length > 0">
-              <div class="table-responsive">
-                <table class="table table-sm">
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th *ngFor="let label of subscriptionLabels">{{ label }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><small class="text-success">Nouveaux</small></td>
-                      <td *ngFor="let value of subscriptionNewData" class="text-success">{{ value }}</td>
-                    </tr>
-                    <tr>
-                      <td><small class="text-danger">Annulés</small></td>
-                      <td *ngFor="let value of subscriptionCancelledData" class="text-danger">{{ value }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Tendances d'Abonnement</span>
+          </div>
+          <div style="padding:16px 20px;">
+            <div *ngIf="subscriptionLabels.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
+              Aucune donnee de tendance disponible
             </div>
-          </c-card-body>
-        </c-card>
+            <div *ngIf="subscriptionLabels.length > 0" class="table-responsive">
+              <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+                <thead style="background:#f8fafc;">
+                  <tr>
+                    <th style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;"></th>
+                    <th *ngFor="let label of subscriptionLabels" style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;">{{ label }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding:10px 12px;">
+                      <span style="background:#ECFDF5;color:#10B981;padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:600;">Nouveaux</span>
+                    </td>
+                    <td *ngFor="let value of subscriptionNewData" style="padding:10px 12px;font-weight:600;color:#10B981;">{{ value }}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 12px;">
+                      <span style="background:#FEF2F2;color:#EF4444;padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:600;">Annules</span>
+                    </td>
+                    <td *ngFor="let value of subscriptionCancelledData" style="padding:10px 12px;font-weight:600;color:#EF4444;">{{ value }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="col-md-6">
-        <c-card class="mb-4">
-          <c-card-header>
-            <strong>Graphique des Revenus</strong>
-          </c-card-header>
-          <c-card-body>
-            <div *ngIf="revenueLabels.length === 0" class="text-center text-muted p-3">
-              Aucune donnée de revenus disponible
+      <!-- Graphique des Revenus -->
+      <div class="col-12 col-md-6">
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+          <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:#FFFBEB;display:flex;align-items:center;justify-content:center;">
+              <svg cIcon name="cilDollar" style="color:#D97706;width:16px;height:16px;"></svg>
             </div>
-            <div *ngIf="revenueLabels.length > 0">
-              <div class="table-responsive">
-                <table class="table table-sm">
-                  <thead>
-                    <tr>
-                      <th *ngFor="let label of revenueLabels">{{ label }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td *ngFor="let value of revenueData" class="text-success">
-                        {{ value | number:'1.0-0' }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Graphique des Revenus</span>
+          </div>
+          <div style="padding:16px 20px;">
+            <div *ngIf="revenueLabels.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
+              Aucune donnee de revenus disponible
             </div>
-          </c-card-body>
-        </c-card>
+            <div *ngIf="revenueLabels.length > 0" class="table-responsive">
+              <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+                <thead style="background:#f8fafc;">
+                  <tr>
+                    <th *ngFor="let label of revenueLabels" style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;">{{ label }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td *ngFor="let value of revenueData" style="padding:10px 12px;font-weight:600;color:#10B981;">
+                      {{ value | number:'1.0-0' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="row">
-      <div class="col-12">
-        <c-card>
-          <c-card-header>
-            <strong>Actions Rapides</strong>
-          </c-card-header>
-          <c-card-body>
-            <div class="d-flex flex-wrap gap-2">
-              <button cButton color="primary" routerLink="/products/advanced">
-                <svg cIcon name="cilBasket" class="me-1"></svg>
-                Gestion Produits
-              </button>
-              <button cButton color="success" routerLink="/payments/advanced">
-                <svg cIcon name="cilDollar" class="me-1"></svg>
-                Gestion Paiements
-              </button>
-              <button cButton color="info" routerLink="/finance/currencies-advanced">
-                <svg cIcon name="cilCurrencyDollar" class="me-1"></svg>
-                Gestion Devises
-              </button>
-              <button cButton color="warning" routerLink="/organisation/settings-advanced">
-                <svg cIcon name="cilSettings" class="me-1"></svg>
-                Paramètres Avancés
-              </button>
-              <button cButton color="secondary" (click)="refreshData()">
-                <svg cIcon name="cilReload" class="me-1"></svg>
-                Actualiser
-              </button>
-            </div>
-          </c-card-body>
-        </c-card>
+    <!-- Actions Rapides -->
+    <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:#F5F3FF;display:flex;align-items:center;justify-content:center;">
+          <svg cIcon name="cilSpeedometer" style="color:#7C3AED;width:16px;height:16px;"></svg>
+        </div>
+        <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Actions Rapides</span>
+      </div>
+      <div style="padding:16px 20px;">
+        <div class="d-flex flex-wrap gap-2">
+          <a routerLink="/products/advanced" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#2563EB,#1d4ed8);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:0.875rem;font-weight:600;text-decoration:none;">
+            <svg cIcon name="cilBasket" style="width:14px;height:14px;"></svg> Gestion Produits
+          </a>
+          <a routerLink="/payments/advanced" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#16A34A,#15803d);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:0.875rem;font-weight:600;text-decoration:none;">
+            <svg cIcon name="cilDollar" style="width:14px;height:14px;"></svg> Gestion Paiements
+          </a>
+          <a routerLink="/finance/currencies-advanced" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0891B2,#0e7490);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:0.875rem;font-weight:600;text-decoration:none;">
+            <svg cIcon name="cilCurrencyDollar" style="width:14px;height:14px;"></svg> Gestion Devises
+          </a>
+          <a routerLink="/organisation/settings-advanced" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#D97706,#b45309);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:0.875rem;font-weight:600;text-decoration:none;">
+            <svg cIcon name="cilSettings" style="width:14px;height:14px;"></svg> Parametres Avances
+          </a>
+          <button (click)="refreshData()" style="display:inline-flex;align-items:center;gap:6px;background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:8px 16px;font-size:0.875rem;font-weight:600;cursor:pointer;color:#495057;">
+            <svg cIcon name="cilReload" style="width:14px;height:14px;"></svg> Actualiser
+          </button>
+        </div>
       </div>
     </div>
+
   </div>
 </div>

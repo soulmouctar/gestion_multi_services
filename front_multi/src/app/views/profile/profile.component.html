@@ -1,0 +1,255 @@
+<div class="p-3 p-md-4">
+
+  <!-- Header -->
+  <div class="mb-4 rounded-4 px-4 py-4 text-white"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)">
+    <div class="d-flex align-items-center gap-4 flex-wrap">
+      <!-- Avatar header -->
+      <div style="width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid rgba(255,255,255,.4);flex-shrink:0">
+        <img *ngIf="photoPreview && !selectedPhoto" [src]="photoPreview" alt="Avatar"
+             style="width:100%;height:100%;object-fit:cover" />
+        <img *ngIf="selectedPhoto && photoPreview" [src]="photoPreview" alt="Aperçu"
+             style="width:100%;height:100%;object-fit:cover" />
+        <div *ngIf="!photoPreview"
+             [style.background]="userAvatarBg"
+             style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#fff">
+          {{ avatarInitial }}
+        </div>
+      </div>
+      <div>
+        <h2 class="fw-bold mb-1" style="font-size:1.4rem">{{ profileForm.get('name')?.value || 'Mon Profil' }}</h2>
+        <p class="mb-1" style="opacity:.75;font-size:.875rem">{{ profileForm.get('email')?.value }}</p>
+        <span style="background:rgba(255,255,255,.15);border-radius:50px;padding:3px 14px;font-size:.78rem;font-weight:600">
+          {{ userRole }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- Colonne gauche : Photo + Profil + Mot de passe -->
+    <div class="col-12 col-lg-8">
+
+      <!-- ── Section photo ── -->
+      <div class="mb-3" style="background:#fff;border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04)">
+        <div class="px-4 py-3" style="border-bottom:1px solid #f0f0f0">
+          <span class="fw-bold" style="font-size:.95rem;color:#1e293b">Photo de profil</span>
+        </div>
+        <div class="px-4 py-4">
+
+          <!-- Alerts photo -->
+          <div *ngIf="successProfile" class="alert alert-success py-2 mb-3" style="border-radius:8px;font-size:.875rem">
+            {{ successProfile }}
+          </div>
+          <div *ngIf="errorProfile" class="alert alert-danger py-2 mb-3" style="border-radius:8px;font-size:.875rem">
+            {{ errorProfile }}
+          </div>
+
+          <input type="file" #avatarInput class="d-none"
+                 accept="image/jpeg,image/png,image/jpg,image/gif"
+                 (change)="onPhotoSelected($event)" />
+
+          <div class="d-flex align-items-center gap-4 flex-wrap">
+            <!-- Cercle aperçu cliquable -->
+            <div (click)="triggerPhotoInput(avatarInput)"
+                 style="width:96px;height:96px;border-radius:50%;overflow:hidden;flex-shrink:0;
+                        border:2px dashed #818cf8;cursor:pointer;position:relative">
+              <img *ngIf="photoPreview" [src]="photoPreview" alt="Aperçu"
+                   style="width:100%;height:100%;object-fit:cover" />
+              <div *ngIf="!photoPreview"
+                   [style.background]="userAvatarBg"
+                   style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#fff">
+                {{ avatarInitial }}
+              </div>
+              <!-- Overlay -->
+              <div style="position:absolute;inset:0;background:rgba(0,0,0,.35);
+                          display:flex;align-items:center;justify-content:center;
+                          opacity:0;transition:.2s"
+                   onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0'">
+                <span style="color:#fff;font-size:1.4rem">📷</span>
+              </div>
+            </div>
+
+            <!-- Info & actions -->
+            <div>
+              <div class="fw-semibold mb-1" style="font-size:.9rem;color:#1e293b">
+                {{ selectedPhoto ? selectedPhoto.name : 'Aucune photo sélectionnée' }}
+              </div>
+              <div class="text-muted mb-2" style="font-size:.78rem">JPG, PNG, GIF — max 2 MB</div>
+              <div class="d-flex gap-2 flex-wrap">
+                <button type="button" (click)="triggerPhotoInput(avatarInput)"
+                        style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe;border-radius:8px;
+                               padding:6px 16px;font-size:.82rem;font-weight:600;cursor:pointer">
+                  📁 Choisir une photo
+                </button>
+                <button *ngIf="selectedPhoto" type="button" (click)="saveAvatar()"
+                        [disabled]="savingAvatar"
+                        style="background:#0f3460;color:#fff;border:none;border-radius:8px;
+                               padding:6px 16px;font-size:.82rem;font-weight:600;cursor:pointer">
+                  <span *ngIf="savingAvatar" class="spinner-border spinner-border-sm me-1"></span>
+                  {{ savingAvatar ? 'Enregistrement...' : '✓ Enregistrer la photo' }}
+                </button>
+                <button *ngIf="selectedPhoto" type="button" (click)="removePhotoPreview()"
+                        style="background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:8px;
+                               padding:6px 14px;font-size:.82rem;font-weight:600;cursor:pointer">
+                  ✕ Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Formulaire profil ── -->
+      <div class="mb-3" style="background:#fff;border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04)">
+        <div class="px-4 py-3" style="border-bottom:1px solid #f0f0f0">
+          <span class="fw-bold" style="font-size:.95rem;color:#1e293b">Informations personnelles</span>
+        </div>
+        <div class="px-4 py-4">
+
+          <div *ngIf="successProfile && !selectedPhoto" class="alert alert-success py-2 mb-3" style="border-radius:8px;font-size:.875rem">
+            {{ successProfile }}
+          </div>
+          <div *ngIf="errorProfile && !selectedPhoto" class="alert alert-danger py-2 mb-3" style="border-radius:8px;font-size:.875rem">
+            {{ errorProfile }}
+          </div>
+
+          <form [formGroup]="profileForm" (ngSubmit)="onSubmitProfile()">
+            <div class="row g-3 mb-4">
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small">Nom complet *</label>
+                <input cFormControl type="text" formControlName="name" placeholder="Prénom Nom"
+                       style="border-radius:8px"
+                       [class.is-invalid]="submittedProfile && f['name'].invalid" />
+                <div class="invalid-feedback">Le nom est requis</div>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small">Email *</label>
+                <input cFormControl type="email" formControlName="email" placeholder="email@exemple.com"
+                       style="border-radius:8px"
+                       [class.is-invalid]="submittedProfile && f['email'].invalid" />
+                <div class="invalid-feedback">
+                  <span *ngIf="f['email'].errors?.['required']">L'email est requis</span>
+                  <span *ngIf="f['email'].errors?.['email']">Format invalide</span>
+                </div>
+              </div>
+            </div>
+            <button cButton color="primary" type="submit" [disabled]="savingProfile"
+                    style="border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;font-weight:600;padding:8px 24px">
+              <span *ngIf="savingProfile" class="spinner-border spinner-border-sm me-2"></span>
+              {{ savingProfile ? 'Enregistrement...' : 'Mettre à jour le profil' }}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── Changer mot de passe ── -->
+      <div style="background:#fff;border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04)">
+        <div class="px-4 py-3" style="border-bottom:1px solid #f0f0f0">
+          <span class="fw-bold" style="font-size:.95rem;color:#1e293b">Changer le mot de passe</span>
+        </div>
+        <div class="px-4 py-4">
+
+          <div *ngIf="successPassword" class="alert alert-success py-2 mb-3" style="border-radius:8px;font-size:.875rem">
+            {{ successPassword }}
+          </div>
+          <div *ngIf="errorPassword" class="alert alert-danger py-2 mb-3" style="border-radius:8px;font-size:.875rem">
+            {{ errorPassword }}
+          </div>
+
+          <form [formGroup]="passwordForm" (ngSubmit)="onSubmitPassword()">
+            <div class="row g-3 mb-4">
+              <div class="col-12">
+                <label class="form-label fw-semibold small">Mot de passe actuel *</label>
+                <input cFormControl [type]="showCurrentPassword ? 'text' : 'password'"
+                       formControlName="current_password" placeholder="••••••••"
+                       style="border-radius:8px"
+                       [class.is-invalid]="submittedPassword && pf['current_password'].invalid" />
+                <div class="invalid-feedback">Le mot de passe actuel est requis</div>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small">Nouveau mot de passe *</label>
+                <input cFormControl [type]="showNewPassword ? 'text' : 'password'"
+                       formControlName="new_password" placeholder="Min. 8 caractères"
+                       style="border-radius:8px"
+                       [class.is-invalid]="submittedPassword && pf['new_password'].invalid" />
+                <div class="invalid-feedback">
+                  <span *ngIf="pf['new_password'].errors?.['required']">Requis</span>
+                  <span *ngIf="pf['new_password'].errors?.['minlength']">Minimum 8 caractères</span>
+                </div>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small">Confirmer le mot de passe *</label>
+                <input cFormControl [type]="showNewPassword ? 'text' : 'password'"
+                       formControlName="new_password_confirmation" placeholder="Répéter le mot de passe"
+                       style="border-radius:8px"
+                       [class.is-invalid]="submittedPassword && (pf['new_password_confirmation'].invalid || passwordForm.errors?.['passwordMismatch'])" />
+                <div class="invalid-feedback">Les mots de passe ne correspondent pas</div>
+              </div>
+            </div>
+            <button cButton color="warning" type="submit" [disabled]="savingPassword"
+                    style="border-radius:8px;font-weight:600;color:#fff;padding:8px 24px">
+              <span *ngIf="savingPassword" class="spinner-border spinner-border-sm me-2"></span>
+              {{ savingPassword ? 'Modification...' : 'Changer le mot de passe' }}
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Colonne droite : Informations du compte -->
+    <div class="col-12 col-lg-4">
+      <div style="background:#fff;border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:16px">
+        <div class="px-4 py-3" style="border-bottom:1px solid #f0f0f0">
+          <span class="fw-bold" style="font-size:.95rem;color:#1e293b">Informations du compte</span>
+        </div>
+        <div class="px-4 py-4">
+
+          <!-- Grand avatar -->
+          <div class="text-center mb-4">
+            <div style="width:96px;height:96px;border-radius:50%;overflow:hidden;margin:0 auto 12px;border:3px solid #e2e8f0">
+              <img *ngIf="photoPreview" [src]="photoPreview" alt="Avatar"
+                   style="width:100%;height:100%;object-fit:cover" />
+              <div *ngIf="!photoPreview"
+                   [style.background]="userAvatarBg"
+                   style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#fff">
+                {{ avatarInitial }}
+              </div>
+            </div>
+            <div class="fw-bold" style="color:#1e293b;font-size:.95rem">{{ profileForm.get('name')?.value }}</div>
+            <div class="text-muted" style="font-size:.8rem;margin-top:2px">{{ profileForm.get('email')?.value }}</div>
+          </div>
+
+          <!-- Infos -->
+          <div class="mb-2 p-3 rounded-3" style="background:#f8fafc;display:flex;justify-content:space-between;align-items:center">
+            <span class="text-muted small">Rôle</span>
+            <span style="background:#eef2ff;color:#4f46e5;padding:3px 12px;border-radius:50px;font-size:.78rem;font-weight:600">
+              {{ userRole }}
+            </span>
+          </div>
+          <div class="mb-2 p-3 rounded-3" style="background:#f8fafc;display:flex;justify-content:space-between;align-items:center">
+            <span class="text-muted small">Organisation</span>
+            <span class="fw-semibold small" style="color:#1e293b">{{ currentTenant?.name || 'N/A' }}</span>
+          </div>
+          <div class="mb-4 p-3 rounded-3" style="background:#f8fafc;display:flex;justify-content:space-between;align-items:center">
+            <span class="text-muted small">Statut</span>
+            <span style="background:#ecfdf5;color:#10b981;padding:3px 12px;border-radius:50px;font-size:.78rem;font-weight:600">
+              Actif
+            </span>
+          </div>
+
+          <button type="button" (click)="logout()"
+                  style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+                         background:#fef2f2;color:#ef4444;border:1px solid #fecdd3;
+                         border-radius:8px;padding:10px 16px;font-size:.875rem;font-weight:600;cursor:pointer">
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

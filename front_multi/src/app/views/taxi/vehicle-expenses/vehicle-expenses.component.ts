@@ -143,9 +143,10 @@ export class VehicleExpensesComponent implements OnInit {
   loadStatistics(): void {
     this.loadingStats = true;
     const filters = this.filterForm.value;
-    let url = `vehicle-expenses/statistics`;
-    if (filters.date_from) url += `&date_from=${filters.date_from}`;
-    if (filters.date_to) url += `&date_to=${filters.date_to}`;
+    const params: string[] = [];
+    if (filters.date_from) params.push(`date_from=${filters.date_from}`);
+    if (filters.date_to)   params.push(`date_to=${filters.date_to}`);
+    const url = `vehicle-expenses/statistics${params.length ? '?' + params.join('&') : ''}`;
 
     this.apiService.get<any>(url).subscribe({
       next: (r) => {
@@ -157,6 +158,7 @@ export class VehicleExpensesComponent implements OnInit {
       },
       error: () => {
         this.loadingStats = false;
+        this.cdr.detectChanges();
       }
     });
   }

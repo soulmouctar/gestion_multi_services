@@ -6,9 +6,9 @@ import { ModuleService } from './module.service';
 
 export interface UserModulePermission {
   module_code: string;
-  module_name: string;
+  module_name?: string;
   is_active: boolean;
-  permissions: string[];
+  permissions?: string[];
 }
 
 export interface UserPermissions {
@@ -93,20 +93,15 @@ export class PermissionService {
       return;
     }
 
-    this.userService.getUserModulePermissions(userId).subscribe({
-      next: (response) => {
-        const permissions: UserPermissions = {
-          userId,
-          role: this.authService.currentUser?.role || 'USER',
-          modules: response.data || []
-        };
-        this.userPermissions.next(permissions);
-      },
-      error: (error) => {
-        console.error('Error loading user permissions:', error);
-        this.userPermissions.next(null);
-      }
-    });
+    // Use the module_permissions already stored in the auth session (returned at login)
+    // — avoids calling an admin-only API endpoint for regular users
+    const storedModules = this.authService.currentUser?.module_permissions || [];
+    const permissions: UserPermissions = {
+      userId,
+      role: this.authService.currentUser?.role || 'USER',
+      modules: storedModules
+    };
+    this.userPermissions.next(permissions);
   }
 
   /**
@@ -152,7 +147,7 @@ export class PermissionService {
           m => m.module_code === moduleCode && m.is_active
         );
 
-        return modulePermission?.permissions.includes(permission) || false;
+        return modulePermission?.permissions?.includes(permission) || false;
       })
     );
   }
@@ -230,7 +225,7 @@ export class PermissionService {
   getNavigationModules(): Observable<UserModulePermission[]> {
     return this.getActiveModules().pipe(
       map(modules => modules.filter(module => 
-        module.permissions.includes('view')
+        module.permissions?.includes('view')
       ))
     );
   }

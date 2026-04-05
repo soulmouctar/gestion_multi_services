@@ -71,73 +71,131 @@
 </c-container>
 
 <c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static" size="lg">
-  <c-modal-header><h5 cModalTitle>{{ editMode ? 'Modifier l\'unité de logement' : 'Nouvelle unité de logement' }}</h5><button type="button" class="btn-close" (click)="showFormModal = false"></button></c-modal-header>
+  <c-modal-header>
+    <h5 cModalTitle class="fw-bold">{{ editMode ? '✏️ Modifier l\'unité de logement' : '🏠 Nouvelle unité de logement' }}</h5>
+    <button type="button" class="btn-close" (click)="showFormModal = false"></button>
+  </c-modal-header>
   <c-modal-body>
+    <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null" class="mb-3">{{ successMessage }}</c-alert>
+    <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null" class="mb-3">{{ error }}</c-alert>
+
     <form [formGroup]="unitForm">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label cLabel>Bâtiment</label>
-          <select cSelect formControlName="building_id" (change)="onBuildingChange($event)">
+      <div class="row g-3">
+        <!-- Building -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Bâtiment</label>
+          <select cSelect formControlName="building_id" (change)="onBuildingChange($event)" style="border-radius:8px">
             <option [ngValue]="null">-- Sélectionner un bâtiment --</option>
             <option *ngFor="let b of buildings" [ngValue]="b.id">{{ b.name }}</option>
           </select>
-          <small class="text-muted">Sélectionnez d'abord le bâtiment pour filtrer les étages</small>
+          <div class="form-text text-muted">Sélectionnez d'abord le bâtiment pour filtrer les étages</div>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Étage *</label>
-          <select cSelect formControlName="floor_id" [class.is-invalid]="submitted && unitForm.get('floor_id')?.invalid">
+
+        <!-- Floor -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Étage *</label>
+          <select cSelect formControlName="floor_id"
+            [class.is-invalid]="submitted && unitForm.get('floor_id')?.invalid"
+            style="border-radius:8px"
+            [disabled]="!unitForm.get('building_id')?.value">
             <option [ngValue]="null">-- Sélectionner un étage --</option>
-            <option *ngFor="let f of filteredFloors" [ngValue]="f.id">{{ f.building?.name }} - Étage {{ f.floor_number }}</option>
-          </select>
-          <div class="invalid-feedback" *ngIf="submitted && unitForm.get('floor_id')?.hasError('required')">L'étage est obligatoire</div>
-          <small *ngIf="unitForm.get('building_id')?.value && filteredFloors.length === 0" class="text-warning">
-            ⚠️ Aucun étage n'existe pour ce bâtiment. Veuillez d'abord créer des étages.
-          </small>
-        </div>
-      </div>
-      
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label cLabel>Configuration</label>
-          <select cSelect formControlName="unit_configuration_id" (change)="onConfigurationChange($event)">
-            <option [ngValue]="null">-- Aucune configuration --</option>
-            <option *ngFor="let c of configurations" [ngValue]="c.id">
-              {{ c.name }} 
-              <span *ngIf="c.bedrooms || c.living_rooms || c.bathrooms">
-                ({{ c.bedrooms || 0 }} ch, {{ c.living_rooms || 0 }} salon, {{ c.bathrooms || 0 }} sdb)
-              </span>
+            <option *ngFor="let f of filteredFloors" [ngValue]="f.id">
+              {{ f.building?.name || 'Bâtiment' }} — Étage {{ f.floor_number }}
             </option>
           </select>
-          <small class="text-muted">La configuration définit le type de logement (studio, F2, F3...)</small>
+          <div class="invalid-feedback" *ngIf="submitted && unitForm.get('floor_id')?.hasError('required')">
+            L'étage est obligatoire
+          </div>
+
+          <!-- No floors warning + inline create -->
+          <div *ngIf="unitForm.get('building_id')?.value && filteredFloors.length === 0 && !showInlineFloor"
+            class="mt-2 p-3 rounded" style="background:#fff3cd;border:1px solid #ffc107">
+            <div class="fw-semibold small text-warning mb-1">⚠️ Aucun étage pour ce bâtiment</div>
+            <p class="small mb-2 text-muted">Créez un étage pour pouvoir ajouter des unités.</p>
+            <button type="button" cButton color="warning" size="sm" variant="outline"
+              (click)="showInlineFloor = true; inlineFloorNumber = 0"
+              style="border-radius:8px;font-size:.8rem;font-weight:600">
+              + Créer un étage maintenant
+            </button>
+          </div>
+
+          <!-- Inline floor creation form -->
+          <div *ngIf="showInlineFloor" class="mt-2 p-3 rounded" style="background:#e8f5e9;border:1px solid #4caf50">
+            <div class="fw-semibold small text-success mb-2">➕ Créer un étage</div>
+            <div class="d-flex gap-2 align-items-center">
+              <div class="flex-grow-1">
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="inlineFloorNumber"
+                  [ngModelOptions]="{standalone:true}" min="0" max="50"
+                  placeholder="N° étage (0 = RDC, 1 = 1er, ...)"
+                  style="border-radius:8px">
+              </div>
+              <button type="button" cButton color="success" size="sm" (click)="createFloorInline()"
+                [disabled]="savingFloor || inlineFloorNumber === null"
+                style="border-radius:8px;white-space:nowrap">
+                <span *ngIf="savingFloor" class="spinner-border spinner-border-sm me-1"></span>
+                Créer l'étage
+              </button>
+              <button type="button" cButton color="secondary" size="sm" variant="ghost"
+                (click)="showInlineFloor = false" style="border-radius:8px">✕</button>
+            </div>
+            <div class="form-text text-muted">0 = Rez-de-chaussée · 1 = 1er étage · 2 = 2ème étage...</div>
+          </div>
         </div>
-        <div class="col-md-6 mb-3">
-          <label cLabel>Loyer mensuel (GNF) *</label>
-          <input cFormControl type="number" formControlName="rent_amount" min="0" [class.is-invalid]="submitted && unitForm.get('rent_amount')?.invalid" />
+
+        <!-- Configuration -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Configuration (type logement)</label>
+          <select cSelect formControlName="unit_configuration_id" (change)="onConfigurationChange($event)" style="border-radius:8px">
+            <option [ngValue]="null">-- Aucune configuration --</option>
+            <option *ngFor="let c of configurations" [ngValue]="c.id">
+              {{ c.name }}
+              <ng-container *ngIf="c.bedrooms || c.living_rooms || c.bathrooms">
+                ({{ c.bedrooms || 0 }} ch, {{ c.living_rooms || 0 }} salon, {{ c.bathrooms || 0 }} sdb)
+              </ng-container>
+            </option>
+          </select>
+          <div class="form-text text-muted">Studio, F2, F3, villa...</div>
+        </div>
+
+        <!-- Rent -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Loyer mensuel (GNF) *</label>
+          <div class="input-group">
+            <input cFormControl type="number" formControlName="rent_amount" min="0"
+              [class.is-invalid]="submitted && unitForm.get('rent_amount')?.invalid"
+              placeholder="0" style="border-radius:8px 0 0 8px">
+            <span class="input-group-text" style="border-radius:0 8px 8px 0;background:#f8f9fa;font-size:.8rem;font-weight:600">GNF</span>
+          </div>
           <div class="invalid-feedback" *ngIf="submitted && unitForm.get('rent_amount')?.hasError('required')">Le loyer est obligatoire</div>
           <div class="invalid-feedback" *ngIf="submitted && unitForm.get('rent_amount')?.hasError('min')">Le loyer doit être positif</div>
         </div>
-      </div>
-      
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label cLabel>Statut</label>
-          <select cSelect formControlName="status">
-            <option value="LIBRE">Libre</option>
-            <option value="OCCUPE">Occupé</option>
+
+        <!-- Status -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Statut</label>
+          <select cSelect formControlName="status" style="border-radius:8px">
+            <option value="LIBRE">🟢 Libre</option>
+            <option value="OCCUPE">🟡 Occupé</option>
           </select>
         </div>
-      </div>
-      
-      <!-- Résumé de la configuration sélectionnée -->
-      <div *ngIf="unitForm.get('unit_configuration_id')?.value" class="alert alert-info mt-3">
-        <strong>Configuration sélectionnée:</strong> {{ getConfigName(unitForm.get('unit_configuration_id')?.value) }}
-        <br><small>{{ getConfigDetails(unitForm.get('unit_configuration_id')?.value) }}</small>
+
+        <!-- Config summary -->
+        <div class="col-12" *ngIf="unitForm.get('unit_configuration_id')?.value">
+          <div class="p-3 rounded" style="background:#e8eaf6;border:1px solid #3949ab22">
+            <strong style="color:#3949ab">Configuration sélectionnée :</strong>
+            {{ getConfigName(unitForm.get('unit_configuration_id')?.value) }}
+            <span class="text-muted ms-2 small">{{ getConfigDetails(unitForm.get('unit_configuration_id')?.value) }}</span>
+          </div>
+        </div>
       </div>
     </form>
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="showFormModal = false">Annuler</button>
-    <button cButton color="primary" (click)="save()">{{ editMode ? 'Mettre à jour' : 'Créer' }}</button>
+    <button cButton color="primary" (click)="save()"
+      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
+      {{ editMode ? 'Mettre à jour' : 'Créer l\'unité' }}
+    </button>
   </c-modal-footer>
 </c-modal>
 

@@ -1,47 +1,159 @@
-<div class="container-fluid">
-  <c-card>
-    <c-card-header>
-      <h4 class="mb-0">
-        <svg cIcon name="cilLocationPin" class="me-2"></svg>
-        Suivi des Conteneurs
-      </h4>
-    </c-card-header>
-    <c-card-body>
-      <c-alert color="info" class="mb-4">
-        <svg cIcon name="cilInfo" class="me-2"></svg>
-        Le module de suivi des conteneurs est en cours de développement. 
+<div class="p-3 p-md-4">
+
+  <!-- ===== HEADER ===== -->
+  <div class="mb-4 p-4"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;">
+    <div class="d-flex align-items-center gap-3">
+      <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+           style="width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,0.12)">
+        <svg cIcon name="cilLocationPin" style="color:#fff;width:24px;height:24px"></svg>
+      </div>
+      <div>
+        <h4 class="fw-bold mb-1" style="color:#fff">Suivi des Conteneurs</h4>
+        <p class="mb-0" style="color:rgba(255,255,255,0.65);font-size:0.875rem">
+          Localisation et statut en temps réel
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BANDEAU EN DEVELOPPEMENT ===== -->
+  <div class="mb-4 p-3 d-flex align-items-start gap-3"
+       style="background:#EFF6FF;border-radius:12px;border-left:4px solid #3B82F6">
+    <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+         style="width:36px;height:36px;border-radius:8px;background:#DBEAFE;margin-top:1px">
+      <svg cIcon name="cilInfo" style="color:#3B82F6;width:16px;height:16px"></svg>
+    </div>
+    <div>
+      <div class="fw-bold" style="color:#1e40af;font-size:0.9rem">Module en cours de développement</div>
+      <div style="color:#3B82F6;font-size:0.82rem;margin-top:3px">
         Cette fonctionnalité permettra de suivre la localisation et le statut de vos conteneurs en temps réel.
-      </c-alert>
-      
-      <div class="row">
-        <div class="col-md-4">
-          <div class="card text-center">
-            <div class="card-body">
-              <svg cIcon name="cilLocationPin" size="xl" class="text-primary mb-3"></svg>
-              <h5>Localisation GPS</h5>
-              <p class="text-muted">Suivi en temps réel de la position de vos conteneurs</p>
-            </div>
-          </div>
+        Elle sera disponible dans une prochaine mise à jour.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FONCTIONNALITÉS À VENIR ===== -->
+  <div class="row g-3 mb-4">
+
+    <!-- Localisation GPS -->
+    <div class="col-md-4">
+      <div class="h-100 p-4 text-center"
+           style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+                  transition:transform .15s,box-shadow .15s"
+           onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.1)'"
+           onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
+        <div class="d-inline-flex align-items-center justify-content-center mb-3"
+             style="width:60px;height:60px;border-radius:16px;
+                    background:linear-gradient(135deg,#6366F1,#8B5CF6)">
+          <svg cIcon name="cilLocationPin" size="xl" style="color:#fff"></svg>
         </div>
-        <div class="col-md-4">
-          <div class="card text-center">
-            <div class="card-body">
-              <svg cIcon name="cilChart" size="xl" class="text-success mb-3"></svg>
-              <h5>Historique</h5>
-              <p class="text-muted">Consultez l'historique des déplacements et statuts</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card text-center">
-            <div class="card-body">
-              <svg cIcon name="cilBell" size="xl" class="text-warning mb-3"></svg>
-              <h5>Alertes</h5>
-              <p class="text-muted">Recevez des notifications pour les événements importants</p>
-            </div>
-          </div>
+        <h6 class="fw-bold mb-2" style="color:#1e293b">Localisation GPS</h6>
+        <p class="mb-0" style="color:#64748b;font-size:0.85rem">
+          Suivi en temps réel de la position de vos conteneurs sur la carte
+        </p>
+        <div class="mt-3">
+          <span class="px-3 py-1 rounded-pill" style="font-size:0.72rem;background:#EEF2FF;color:#6366F1;font-weight:600">
+            Bientôt disponible
+          </span>
         </div>
       </div>
-    </c-card-body>
-  </c-card>
+    </div>
+
+    <!-- Historique -->
+    <div class="col-md-4">
+      <div class="h-100 p-4 text-center"
+           style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+                  transition:transform .15s,box-shadow .15s"
+           onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.1)'"
+           onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
+        <div class="d-inline-flex align-items-center justify-content-center mb-3"
+             style="width:60px;height:60px;border-radius:16px;
+                    background:linear-gradient(135deg,#10B981,#059669)">
+          <svg cIcon name="cilChart" size="xl" style="color:#fff"></svg>
+        </div>
+        <h6 class="fw-bold mb-2" style="color:#1e293b">Historique des déplacements</h6>
+        <p class="mb-0" style="color:#64748b;font-size:0.85rem">
+          Consultez l'historique complet des déplacements et changements de statut
+        </p>
+        <div class="mt-3">
+          <span class="px-3 py-1 rounded-pill" style="font-size:0.72rem;background:#ECFDF5;color:#10B981;font-weight:600">
+            Bientôt disponible
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alertes -->
+    <div class="col-md-4">
+      <div class="h-100 p-4 text-center"
+           style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+                  transition:transform .15s,box-shadow .15s"
+           onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.1)'"
+           onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
+        <div class="d-inline-flex align-items-center justify-content-center mb-3"
+             style="width:60px;height:60px;border-radius:16px;
+                    background:linear-gradient(135deg,#F59E0B,#D97706)">
+          <svg cIcon name="cilBell" size="xl" style="color:#fff"></svg>
+        </div>
+        <h6 class="fw-bold mb-2" style="color:#1e293b">Alertes & Notifications</h6>
+        <p class="mb-0" style="color:#64748b;font-size:0.85rem">
+          Recevez des notifications automatiques pour les événements importants
+        </p>
+        <div class="mt-3">
+          <span class="px-3 py-1 rounded-pill" style="font-size:0.72rem;background:#FFFBEB;color:#F59E0B;font-weight:600">
+            Bientôt disponible
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== APERCU DES ETATS ===== -->
+  <div style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);overflow:hidden">
+    <div class="px-4 py-3" style="border-bottom:1px solid #f0f0f0">
+      <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:0.9rem">
+        <svg cIcon name="cilList" class="me-1" style="color:#6366F1"></svg>
+        États de suivi prévus
+      </h6>
+    </div>
+    <div class="p-4">
+      <div class="row g-3">
+
+        <div class="col-md-3 col-6">
+          <div class="p-3 rounded d-flex align-items-center gap-2"
+               style="background:#ECFDF5;border:1px solid #A7F3D0">
+            <div style="width:10px;height:10px;border-radius:50%;background:#10B981;flex-shrink:0"></div>
+            <span style="font-size:0.85rem;color:#065F46;font-weight:600">Disponible</span>
+          </div>
+        </div>
+
+        <div class="col-md-3 col-6">
+          <div class="p-3 rounded d-flex align-items-center gap-2"
+               style="background:#EFF6FF;border:1px solid #BFDBFE">
+            <div style="width:10px;height:10px;border-radius:50%;background:#3B82F6;flex-shrink:0"></div>
+            <span style="font-size:0.85rem;color:#1e40af;font-weight:600">En transit</span>
+          </div>
+        </div>
+
+        <div class="col-md-3 col-6">
+          <div class="p-3 rounded d-flex align-items-center gap-2"
+               style="background:#FFFBEB;border:1px solid #FDE68A">
+            <div style="width:10px;height:10px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
+            <span style="font-size:0.85rem;color:#92400E;font-weight:600">En douane</span>
+          </div>
+        </div>
+
+        <div class="col-md-3 col-6">
+          <div class="p-3 rounded d-flex align-items-center gap-2"
+               style="background:#EEF2FF;border:1px solid #C7D2FE">
+            <div style="width:10px;height:10px;border-radius:50%;background:#6366F1;flex-shrink:0"></div>
+            <span style="font-size:0.85rem;color:#3730A3;font-weight:600">Au port</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
 </div>

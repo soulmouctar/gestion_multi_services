@@ -3,18 +3,24 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\User;
+use App\Services\UserModulePermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
 
 class AuthController extends BaseController
 {
+    public function __construct(
+        private readonly UserModulePermissionService $modulePermissionService
+    ) {}
+
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -91,6 +97,18 @@ class AuthController extends BaseController
                     });
             }
 
+            // Pour un ADMIN sans permissions en base (compte existant pré-migration),
+            // on les génère à la volée et on les persiste pour les prochaines connexions.
+            $isAdmin = $user->hasRole('ADMIN');
+            $hasStoredPermissions = DB::table('user_module_permissions')
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->exists();
+
+            if ($isAdmin && !$hasStoredPermissions && $user->tenant_id) {
+                $this->modulePermissionService->grantAllTenantModules($user->fresh());
+            }
+
             // Get user's module permissions
             $userModulePermissions = DB::table('user_module_permissions')
                 ->where('user_id', $user->id)
@@ -118,6 +136,58 @@ class AuthController extends BaseController
             \Log::error('Login error: ' . $e->getMessage());
             return $this->sendError('Login failed', ['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $validator = Validator::make($request->all(), [
+            'name'             => 'sometimes|string|max:150',
+            'email'            => 'sometimes|email|max:150|unique:users,email,' . $user->id,
+            'current_password' => 'sometimes|string',
+            'new_password'     => 'sometimes|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        if ($request->filled('new_password')) {
+            if (!Hash::check($request->current_password ?? '', $user->password)) {
+                return $this->sendError('Mot de passe actuel incorrect.', [], 422);
+            }
+            $user->password = Hash::make($request->new_password);
+        }
+
+        $user->fill($request->only(['name', 'email']));
+        $user->save();
+
+        return $this->sendResponse($user->fresh()->load('roles'), 'Profil mis à jour avec succès');
+    }
+
+    public function updateAvatar(Request $request)
+    {
+        $user = auth()->user();
+
+        $validator = Validator::make($request->all(), [
+            'avatar' => 'required|image|mimes:jpeg,jpg,png,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        // Supprimer l'ancienne photo
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar = $path;
+        $user->save();
+
+        return $this->sendResponse($user->fresh(), 'Photo de profil mise à jour');
     }
 
     public function logout(Request $request)

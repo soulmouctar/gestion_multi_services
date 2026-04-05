@@ -39,6 +39,8 @@ use App\Http\Controllers\Api\VehicleExpenseController;
 use App\Http\Controllers\Api\LeaseController;
 use App\Http\Controllers\Api\PersonalExpenseController;
 use App\Http\Controllers\Api\BankingController;
+use App\Http\Controllers\Api\RentalDashboardController;
+use App\Http\Controllers\Api\TaxiDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,14 +62,22 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         // Auth
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::put('/me', [AuthController::class, 'updateProfile']);
+        Route::post('/me/avatar', [AuthController::class, 'updateAvatar']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
 
-        // Tenants (Super Admin uniquement)
+        // Tenants CRUD - création, suppression, listing : Super Admin uniquement
         Route::middleware('role:SUPER_ADMIN')->group(function () {
-            Route::apiResource('tenants', TenantController::class);
+            Route::apiResource('tenants', TenantController::class)->except(['update']);
             Route::post('tenants/{id}/assign-module', [TenantController::class, 'assignModule']);
             Route::post('tenants/{id}/remove-module', [TenantController::class, 'removeModule']);
             Route::get('tenants/{tenantId}/modules', [TenantController::class, 'getTenantModules']);
+        });
+
+        // Mise à jour d'un tenant : Super Admin (tous) + Admin (son propre tenant uniquement)
+        Route::middleware('role:SUPER_ADMIN|ADMIN')->group(function () {
+            Route::put('tenants/{id}', [TenantController::class, 'update']);
+            Route::patch('tenants/{id}', [TenantController::class, 'update']);
         });
 
         // Gestion des utilisateurs (Admin & Super Admin)
@@ -75,6 +85,7 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::apiResource('users', UserController::class);
             Route::post('users/{id}/assign-role', [UserController::class, 'assignRole']);
             Route::post('users/{id}/remove-role', [UserController::class, 'removeRole']);
+            Route::post('users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
             Route::get('users/{id}/module-permissions', [UserController::class, 'getModulePermissions']);
             Route::post('users/{id}/module-permissions', [UserController::class, 'updateModulePermissions']);
         });
@@ -89,6 +100,12 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::apiResource('subscription-plans', SubscriptionPlanController::class);
             Route::apiResource('subscriptions', SubscriptionController::class);
             Route::apiResource('subscription-payments', SubscriptionPaymentController::class);
+        });
+
+        // Informations de l'organisation (Admin met à jour son propre tenant)
+        Route::middleware('role:SUPER_ADMIN|ADMIN')->group(function () {
+            Route::put('organisation/tenant', [TenantController::class, 'updateMyTenant']);
+            Route::get('organisation/tenant', [TenantController::class, 'getMyTenant']);
         });
 
         // Paramètres de l'organisation (Admin & Super Admin)
@@ -119,9 +136,14 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::post('invoice-headers/{id}/duplicate', [InvoiceHeaderController::class, 'duplicate']);
         });
 
-        // Devises (Admin & Super Admin)
+        // Devises - lecture accessible à tous les utilisateurs authentifiés
+        Route::get('currencies', [CurrencyController::class, 'index']);
+        Route::get('currencies/{id}', [CurrencyController::class, 'show']);
+        // Devises - modification réservée aux admins
         Route::middleware('role:SUPER_ADMIN|ADMIN')->group(function () {
-            Route::apiResource('currencies', CurrencyController::class);
+            Route::post('currencies', [CurrencyController::class, 'store']);
+            Route::put('currencies/{id}', [CurrencyController::class, 'update']);
+            Route::delete('currencies/{id}', [CurrencyController::class, 'destroy']);
             Route::post('currencies/{id}/set-default', [CurrencyController::class, 'setAsDefault']);
             Route::post('currencies/{id}/toggle-status', [CurrencyController::class, 'toggleStatus']);
         });
@@ -236,7 +258,13 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::post('leases/{lease}/payments',   [LeaseController::class, 'addPayment']);
         Route::delete('lease-payments/{id}',     [LeaseController::class, 'deletePayment']);
 
+        // Tableau de bord Immobilier
+        Route::get('rental/dashboard', [RentalDashboardController::class, 'dashboard']);
+        Route::get('rental/tenants',   [RentalDashboardController::class, 'tenants']);
+
         // Module Taxi
+        Route::get('taxi/dashboard', [TaxiDashboardController::class, 'dashboard']);
+        Route::get('taxi/documents', [TaxiDashboardController::class, 'documents']);
         Route::get('drivers/statistics', [DriverController::class, 'statistics']);
         Route::post('drivers/{id}/toggle-status', [DriverController::class, 'toggleStatus']);
         Route::post('drivers/{id}/activate', [DriverController::class, 'activate']);

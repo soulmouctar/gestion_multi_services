@@ -2,7 +2,7 @@ import { Component, OnInit, AfterViewInit, ChangeDetectorRef } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { IconDirective } from '@coreui/icons-angular';
-import { CardModule, ButtonModule, FormModule, AlertModule, GridModule, ModalModule, TableModule, BadgeModule, ButtonGroupModule } from '@coreui/angular';
+import { CardModule, ButtonModule, FormModule, AlertModule, GridModule, ModalModule, TableModule, BadgeModule, ButtonGroupModule, SpinnerModule } from '@coreui/angular';
 import { UserService, UserProfile, ModulePermission, CreateUserRequest, UpdateUserRequest } from '../../../core/services/user.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { Tenant, ApiResponse } from '../../../core/models/tenant.model';
@@ -24,7 +24,8 @@ import { AuthService } from '../../../core/services/auth.service';
     ModalModule,
     TableModule,
     BadgeModule,
-    ButtonGroupModule
+    ButtonGroupModule,
+    SpinnerModule
   ],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
@@ -46,6 +47,10 @@ export class UsersComponent implements OnInit, AfterViewInit {
   userToDelete: UserProfile | null = null;
   selectedUserForPermissions: UserProfile | null = null;
   selectedModuleForRoles: ModulePermission | null = null;
+
+  // Photo upload
+  selectedPhoto: File | null = null;
+  photoPreview: string | null = null;
 
   // Forms
   userForm!: FormGroup;
@@ -106,6 +111,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   // Data loading methods
   loadUsers(): void {
     this.loading = true;
+    this.cdr.detectChanges();
 
     this.userService.getUsers().subscribe({
       next: (response: ApiResponse<any>) => {
@@ -247,6 +253,8 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
       this.userForm.get('password')?.updateValueAndValidity();
       this.submitted = false;
+      this.selectedPhoto = null;
+      this.photoPreview = (this.editMode && user?.avatar_url) ? user.avatar_url : null;
       this.userModalOpen = true;
       this.cdr.detectChanges();
     }, 0);
@@ -258,6 +266,31 @@ export class UsersComponent implements OnInit, AfterViewInit {
     this.selectedUser = null;
     this.userForm.reset();
     this.submitted = false;
+    this.selectedPhoto = null;
+    this.photoPreview = null;
+  }
+
+  triggerPhotoInput(fileInput: HTMLInputElement): void {
+    fileInput.click();
+  }
+
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    if (file.size > 2 * 1024 * 1024) {
+      this.showErrorMessage('La photo ne doit pas dépasser 2 MB.');
+      return;
+    }
+    this.selectedPhoto = file;
+    const reader = new FileReader();
+    reader.onload = () => { this.photoPreview = reader.result as string; this.cdr.detectChanges(); };
+    reader.readAsDataURL(file);
+  }
+
+  removePhoto(): void {
+    this.selectedPhoto = null;
+    this.photoPreview = null;
   }
 
   onSubmitUser(): void {
@@ -285,7 +318,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
         updateData.password = this.userForm.value.password;
       }
 
-      this.userService.updateUser(this.selectedUser.id, updateData).subscribe({
+      this.userService.updateUser(this.selectedUser.id, updateData, this.selectedPhoto).subscribe({
         next: (response: ApiResponse<UserProfile>) => {
           const index = this.users.findIndex(u => u.id === this.selectedUser!.id);
           if (index !== -1) {
@@ -312,7 +345,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
         password: this.userForm.value.password
       };
 
-      this.userService.createUser(createData).subscribe({
+      this.userService.createUser(createData, this.selectedPhoto).subscribe({
         next: (response: ApiResponse<UserProfile>) => {
           this.users.push(response.data);
           this.users = [...this.users];
@@ -546,6 +579,21 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   getPermissionDisplayName(permission: string): string {
     return this.userService.getPermissionDisplayName(permission);
+  }
+
+  getUserAvatarBg(user: any): string {
+    const role = this.getUserRoleName(user);
+    const map: Record<string, string> = {
+      SUPER_ADMIN: '#dc3545', ADMIN: '#f39c12', USER: '#3949ab', VIEWER: '#6c757d'
+    };
+    return map[role] || '#3949ab';
+  }
+
+  /** Extract role name from user object — handles both user.role (string) and user.roles (Spatie array) */
+  getUserRoleName(user: any): string {
+    if (user?.role && user.role !== 'undefined') return user.role;
+    if (user?.roles && Array.isArray(user.roles) && user.roles.length > 0) return user.roles[0].name;
+    return 'USER';
   }
 
   getRoleBadgeColor(role: string): string {

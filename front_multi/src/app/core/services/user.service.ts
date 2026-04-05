@@ -24,6 +24,8 @@ export interface UserProfile {
   id: number;
   name: string;
   email: string;
+  avatar?: string;
+  avatar_url?: string;
   tenant_id?: number;
   tenant?: {
     id: number;
@@ -31,6 +33,7 @@ export interface UserProfile {
     email: string;
   };
   role: 'SUPER_ADMIN' | 'ADMIN' | 'USER';
+  is_active?: boolean;
   module_permissions?: ModulePermission[];
   created_at: string;
   updated_at: string;
@@ -77,6 +80,11 @@ export class UserService {
     });
   }
 
+  private getAuthHeadersMultipart(): HttpHeaders {
+    const token = localStorage.getItem('auth_token');
+    return new HttpHeaders({ 'Authorization': `Bearer ${token}` });
+  }
+
   // CRUD Operations
   getUsers(tenantId?: number): Observable<ApiResponse<any>> {
     const params = tenantId ? `?tenant_id=${tenantId}` : '';
@@ -89,13 +97,38 @@ export class UserService {
     });
   }
 
-  createUser(userData: CreateUserRequest): Observable<ApiResponse<UserProfile>> {
+  createUser(userData: CreateUserRequest, avatar?: File | null): Observable<ApiResponse<UserProfile>> {
+    if (avatar) {
+      const fd = new FormData();
+      fd.append('name', userData.name);
+      fd.append('email', userData.email);
+      fd.append('password', userData.password);
+      if (userData.tenant_id != null) fd.append('tenant_id', String(userData.tenant_id));
+      if (userData.role) fd.append('role', userData.role);
+      fd.append('avatar', avatar);
+      return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users`, fd, {
+        headers: this.getAuthHeadersMultipart()
+      });
+    }
     return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users`, userData, {
       headers: this.getAuthHeaders()
     });
   }
 
-  updateUser(id: number, userData: UpdateUserRequest): Observable<ApiResponse<UserProfile>> {
+  updateUser(id: number, userData: UpdateUserRequest, avatar?: File | null): Observable<ApiResponse<UserProfile>> {
+    if (avatar) {
+      const fd = new FormData();
+      if (userData.name) fd.append('name', userData.name);
+      if (userData.email) fd.append('email', userData.email);
+      if (userData.password) fd.append('password', userData.password);
+      if (userData.tenant_id != null) fd.append('tenant_id', String(userData.tenant_id));
+      if (userData.role) fd.append('role', userData.role);
+      fd.append('avatar', avatar);
+      fd.append('_method', 'PUT');
+      return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}`, fd, {
+        headers: this.getAuthHeadersMultipart()
+      });
+    }
     return this.http.put<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}`, userData, {
       headers: this.getAuthHeaders()
     });
@@ -103,6 +136,12 @@ export class UserService {
 
   deleteUser(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${this.API_URL}/users/${id}`, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  toggleUserStatus(id: number): Observable<ApiResponse<UserProfile>> {
+    return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}/toggle-status`, {}, {
       headers: this.getAuthHeaders()
     });
   }

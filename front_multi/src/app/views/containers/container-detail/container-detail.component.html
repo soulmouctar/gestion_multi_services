@@ -1,202 +1,237 @@
-<c-container>
-  <c-row>
-    <c-col xs="12">
-      <!-- Header with back button -->
-      <div class="d-flex align-items-center mb-3">
-        <button cButton color="secondary" variant="outline" size="sm" (click)="goBack()" class="me-3">
+<div class="p-3 p-md-4">
+
+  <!-- ===== HEADER ===== -->
+  <div class="mb-4 p-4" style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;color:#fff">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <button cButton color="light" variant="ghost" size="sm" (click)="goBack()"
+          style="color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.25);border-radius:8px">
           <svg cIcon name="cilArrowLeft" class="me-1"></svg> Retour
         </button>
-        <h4 class="mb-0" *ngIf="container">
-          Détail du Conteneur: <strong>{{ container.container_number }}</strong>
-        </h4>
+        <div>
+          <h4 class="fw-bold mb-0" style="color:#fff">
+            Détail du Conteneur
+            <span *ngIf="container" style="color:#93c5fd"> — {{ container.container_number }}</span>
+          </h4>
+          <p class="mb-0" style="color:rgba(255,255,255,0.6);font-size:0.82rem">Photos et informations d'arrivage</p>
+        </div>
+      </div>
+      <div *ngIf="container" class="d-flex gap-3">
+        <div class="text-center px-3" style="border-left:1px solid rgba(255,255,255,0.2)">
+          <div style="font-size:1.1rem;font-weight:700;color:#fff">{{ totalItems }}</div>
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.6)">Photo(s)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ALERTS ===== -->
+  <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null" class="mb-3">
+    {{ successMessage }}
+  </c-alert>
+  <c-alert *ngIf="error && !loading" color="danger" dismissible (dismissed)="error = null" class="mb-3">
+    {{ error }}
+  </c-alert>
+
+  <!-- ===== CONTAINER INFO ===== -->
+  <c-card class="mb-4" *ngIf="container" style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+    <c-card-header style="background:#f8fafc;border-radius:12px 12px 0 0">
+      <span class="fw-semibold" style="color:#1e293b">
+        <svg cIcon name="cilInstitution" class="me-1" style="color:#6366F1"></svg>
+        Informations du Conteneur
+      </span>
+    </c-card-header>
+    <c-card-body>
+      <div class="row g-3">
+        <div class="col-6 col-md-3">
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">N° Conteneur</div>
+          <div class="fw-bold mt-1" style="color:#6366F1;font-size:0.95rem">{{ container.container_number }}</div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Capacité Min</div>
+          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.capacity_min || '—' }}</div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Capacité Max</div>
+          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.capacity_max || '—' }}</div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Taux d'intérêt</div>
+          <div class="mt-1">
+            <span *ngIf="container.interest_rate" class="px-2 py-1 rounded-pill fw-semibold"
+              style="font-size:0.78rem;background:#EFF6FF;color:#3B82F6">
+              {{ container.interest_rate }} %
+            </span>
+            <span *ngIf="!container.interest_rate" style="color:#94a3b8">—</span>
+          </div>
+        </div>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <!-- ===== PHOTOS ===== -->
+  <c-card style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+    <c-card-header class="d-flex justify-content-between align-items-center" style="background:#f8fafc;border-radius:12px 12px 0 0">
+      <span class="fw-semibold" style="color:#1e293b">
+        <svg cIcon name="cilCamera" class="me-1" style="color:#6366F1"></svg>
+        Photos des Produits d'Arrivage
+        <span class="ms-1 px-2 py-0 rounded-pill" style="font-size:0.72rem;background:#EEF2FF;color:#6366F1">{{ totalItems }}</span>
+      </span>
+      <button cButton color="primary" size="sm" (click)="openPhotoModal()" style="border-radius:8px">
+        <svg cIcon name="cilCamera" class="me-1"></svg> Ajouter une photo
+      </button>
+    </c-card-header>
+    <c-card-body>
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="text-center py-5">
+        <c-spinner color="primary"></c-spinner>
+        <p class="mt-2 text-muted small">Chargement...</p>
       </div>
 
-      <!-- Container Info Card -->
-      <c-card class="mb-4" *ngIf="container">
-        <c-card-header>
-          <strong>Informations du Conteneur</strong>
-        </c-card-header>
-        <c-card-body>
-          <c-row>
-            <c-col md="3">
-              <strong>N° Conteneur:</strong><br>
-              <span class="text-primary">{{ container.container_number }}</span>
-            </c-col>
-            <c-col md="3">
-              <strong>Capacité Min:</strong><br>
-              {{ container.capacity_min || '-' }}
-            </c-col>
-            <c-col md="3">
-              <strong>Capacité Max:</strong><br>
-              {{ container.capacity_max || '-' }}
-            </c-col>
-            <c-col md="3">
-              <strong>Taux d'intérêt:</strong><br>
-              <c-badge color="info">{{ container.interest_rate ? container.interest_rate + ' %' : '-' }}</c-badge>
-            </c-col>
-          </c-row>
-        </c-card-body>
-      </c-card>
-
-      <!-- Photos Management Card -->
-      <c-card class="mb-4">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div>
-            <strong>Photos des Produits d'Arrivage</strong>
-            <small class="text-medium-emphasis ms-2">{{ totalItems }} photo(s)</small>
-          </div>
-          <button cButton color="primary" size="sm" (click)="openPhotoModal()">
-            <svg cIcon name="cilCamera" class="me-1"></svg> Ajouter une photo
-          </button>
-        </c-card-header>
-        <c-card-body>
-          <!-- Alerts -->
-          <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">
-            {{ successMessage }}
-          </c-alert>
-          <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">
-            {{ error }}
-          </c-alert>
-
-          <!-- Loading -->
-          <div *ngIf="loading" class="text-center p-4">
-            <c-spinner></c-spinner>
-            <p class="mt-2">Chargement...</p>
-          </div>
-
-          <!-- Photos Grid -->
-          <div *ngIf="!loading" class="row g-3">
-            <div class="col-md-4 col-lg-3" *ngFor="let photo of containerPhotos">
-              <c-card class="h-100">
-                <div class="position-relative">
-                  <img 
-                    [src]="getPhotoUrl(photo.image_path)" 
-                    class="card-img-top" 
-                    style="height: 200px; object-fit: cover;"
-                    [alt]="'Photo du conteneur ' + container?.container_number"
-                    (error)="$event.target.src = 'assets/images/placeholder.png'"
-                  >
-                  <button 
-                    cButton 
-                    color="danger" 
-                    size="sm" 
-                    class="position-absolute top-0 end-0 m-2"
-                    (click)="deletePhoto(photo)"
-                    title="Supprimer la photo"
-                  >
-                    <svg cIcon name="cilTrash"></svg>
-                  </button>
-                </div>
-                <c-card-body class="p-2">
-                  <small class="text-muted d-block">
-                    <strong>Produit:</strong> {{ getProductName(photo.product_id) }}
-                  </small>
-                  <small class="text-muted d-block" *ngIf="photo.description">
-                    <strong>Description:</strong> {{ photo.description }}
-                  </small>
-                  <small class="text-muted d-block">
-                    <strong>Ajoutée le:</strong> {{ photo.created_at | date:'dd/MM/yyyy HH:mm' }}
-                  </small>
-                </c-card-body>
-              </c-card>
+      <!-- Photos Grid -->
+      <div *ngIf="!loading" class="row g-3">
+        <div class="col-md-4 col-lg-3" *ngFor="let photo of containerPhotos">
+          <div class="h-100 position-relative overflow-hidden"
+            style="border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.09);background:#fff">
+            <div class="position-relative">
+              <img
+                [src]="getPhotoUrl(photo.image_path)"
+                class="w-100"
+                style="height:180px;object-fit:cover;display:block"
+                [alt]="'Photo du conteneur ' + container?.container_number"
+                (error)="$event.target.src = 'assets/images/placeholder.png'"
+              >
+              <button
+                cButton color="danger" size="sm"
+                class="position-absolute top-0 end-0 m-2"
+                (click)="deletePhoto(photo)"
+                title="Supprimer la photo"
+                style="border-radius:6px;padding:4px 8px">
+                <svg cIcon name="cilTrash"></svg>
+              </button>
             </div>
-            
-            <!-- Empty state -->
-            <div class="col-12" *ngIf="containerPhotos.length === 0">
-              <div class="text-center p-5 text-muted">
-                <svg cIcon name="cilCamera" size="3xl" class="mb-3"></svg>
-                <h5>Aucune photo d'arrivage</h5>
-                <p>Commencez par ajouter des photos des produits de ce conteneur.</p>
-                <button cButton color="primary" (click)="openPhotoModal()">
-                  <svg cIcon name="cilCamera" class="me-1"></svg> Ajouter la première photo
-                </button>
+            <div class="p-2">
+              <div style="font-size:0.75rem;color:#64748b">
+                <span class="fw-semibold" style="color:#1e293b">{{ getProductName(photo.product_id) }}</span>
+              </div>
+              <div *ngIf="photo.description" style="font-size:0.72rem;color:#64748b;margin-top:2px">
+                {{ photo.description }}
+              </div>
+              <div style="font-size:0.7rem;color:#94a3b8;margin-top:4px">
+                {{ photo.created_at | date:'dd/MM/yyyy HH:mm' }}
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Pagination -->
-          <nav *ngIf="!loading && totalPages > 1" class="d-flex justify-content-center mt-4">
-            <ul class="pagination">
-              <li class="page-item" [class.disabled]="currentPage === 1">
-                <a class="page-link" (click)="onPageChange(currentPage - 1)" style="cursor: pointer;">Précédent</a>
-              </li>
-              <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
-                <a class="page-link" (click)="onPageChange(page)" style="cursor: pointer;">{{ page }}</a>
-              </li>
-              <li class="page-item" [class.disabled]="currentPage === totalPages">
-                <a class="page-link" (click)="onPageChange(currentPage + 1)" style="cursor: pointer;">Suivant</a>
-              </li>
-            </ul>
-          </nav>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-</c-container>
+        <!-- Empty state -->
+        <div class="col-12" *ngIf="containerPhotos.length === 0">
+          <div class="text-center py-5" style="color:#94a3b8">
+            <div class="d-inline-flex align-items-center justify-content-center mb-3"
+              style="width:64px;height:64px;border-radius:16px;background:#EEF2FF">
+              <svg cIcon name="cilCamera" size="xl" style="color:#6366F1"></svg>
+            </div>
+            <h6 class="fw-semibold" style="color:#64748b">Aucune photo d'arrivage</h6>
+            <p style="font-size:0.85rem;color:#94a3b8">Commencez par ajouter des photos des produits de ce conteneur.</p>
+            <button cButton color="primary" (click)="openPhotoModal()" style="border-radius:8px">
+              <svg cIcon name="cilCamera" class="me-1"></svg> Ajouter la première photo
+            </button>
+          </div>
+        </div>
+      </div>
 
-<!-- Photo Upload Modal -->
-<c-modal [visible]="showPhotoModal" (visibleChange)="showPhotoModal = $event" size="lg">
-  <c-modal-header>
-    <h4 cModalTitle>Ajouter une Photo de Produit</h4>
+      <!-- Pagination -->
+      <nav *ngIf="!loading && totalPages > 1" class="d-flex justify-content-center mt-4">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <a class="page-link" (click)="onPageChange(currentPage - 1)" style="cursor:pointer;border-radius:6px 0 0 6px">Précédent</a>
+          </li>
+          <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+            <a class="page-link" (click)="onPageChange(page)" style="cursor:pointer">{{ page }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <a class="page-link" (click)="onPageChange(currentPage + 1)" style="cursor:pointer;border-radius:0 6px 6px 0">Suivant</a>
+          </li>
+        </ul>
+      </nav>
+
+    </c-card-body>
+  </c-card>
+
+</div>
+
+<!-- ===== MODAL: AJOUT PHOTO ===== -->
+<c-modal [visible]="showPhotoModal" (visibleChange)="showPhotoModal = $event" size="lg" backdrop="static">
+  <c-modal-header style="background:#f8fafc">
+    <h5 cModalTitle style="color:#1e293b">
+      <svg cIcon name="cilCamera" class="me-2" style="color:#6366F1"></svg>
+      Ajouter une Photo de Produit
+    </h5>
+    <button type="button" class="btn-close" (click)="showPhotoModal = false"></button>
   </c-modal-header>
   <form [formGroup]="photoForm" (ngSubmit)="uploadPhoto()">
     <c-modal-body>
-      <c-row>
-        <c-col md="12" class="mb-3">
-          <label cLabel for="product_id">Produit (optionnel)</label>
-          <select cSelect formControlName="product_id" id="product_id" class="form-control">
-            <option value="">-- Produit général --</option>
+      <div class="row g-3">
+        <div class="col-12">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.85rem;color:#374151">
+            Produit <span style="color:#94a3b8">(optionnel)</span>
+          </label>
+          <select cSelect formControlName="product_id" style="border-radius:8px">
+            <option value="">— Produit général —</option>
             <option *ngFor="let product of products" [value]="product.id">
               {{ product.name }} ({{ product.sku || 'Sans SKU' }})
             </option>
           </select>
-        </c-col>
-        
-        <c-col md="12" class="mb-3">
-          <label cLabel for="description">Description (optionnel)</label>
-          <textarea 
-            cFormControl 
-            formControlName="description" 
-            id="description" 
+        </div>
+
+        <div class="col-12">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.85rem;color:#374151">
+            Description <span style="color:#94a3b8">(optionnel)</span>
+          </label>
+          <textarea
+            cFormControl
+            formControlName="description"
             rows="3"
             placeholder="Description de la photo ou du produit..."
+            style="border-radius:8px"
           ></textarea>
-        </c-col>
-        
-        <c-col md="12" class="mb-3">
-          <label cLabel for="image">Photo *</label>
-          <input 
-            type="file" 
-            class="form-control" 
-            id="image"
+        </div>
+
+        <div class="col-12">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.85rem;color:#374151">
+            Photo <span class="text-danger">*</span>
+          </label>
+          <input
+            type="file"
+            class="form-control"
             accept="image/jpeg,image/png,image/jpg,image/gif"
             (change)="onFileSelected($event)"
-            required
+            style="border-radius:8px"
           >
-          <small class="text-muted">
-            Formats acceptés: JPEG, PNG, JPG, GIF. Taille maximum: 2MB.
-          </small>
-        </c-col>
-        
-        <c-col md="12" *ngIf="selectedFile">
-          <div class="alert alert-info">
-            <strong>Fichier sélectionné:</strong> {{ selectedFile.name }}
-            <br>
-            <strong>Taille:</strong> {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB
+          <div class="mt-1" style="font-size:0.75rem;color:#94a3b8">
+            Formats acceptés: JPEG, PNG, JPG, GIF. Taille maximum: 2 Mo.
           </div>
-        </c-col>
-      </c-row>
+        </div>
+
+        <div class="col-12" *ngIf="selectedFile">
+          <div class="p-3 d-flex align-items-center gap-2"
+            style="background:#EEF2FF;border-radius:8px;font-size:0.82rem">
+            <svg cIcon name="cilFile" style="color:#6366F1;flex-shrink:0"></svg>
+            <div>
+              <div class="fw-semibold" style="color:#1e293b">{{ selectedFile.name }}</div>
+              <div style="color:#64748b">{{ (selectedFile.size / 1024 / 1024).toFixed(2) }} Mo</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </c-modal-body>
-    <c-modal-footer>
-      <button cButton color="secondary" type="button" (click)="showPhotoModal = false" [disabled]="uploadingPhoto">
+    <c-modal-footer style="background:#f8fafc">
+      <button cButton color="secondary" variant="outline" type="button" (click)="showPhotoModal = false"
+        [disabled]="uploadingPhoto" style="border-radius:8px">
         Annuler
       </button>
-      <button 
-        cButton 
-        color="primary" 
-        type="submit" 
-        [disabled]="!selectedFile || uploadingPhoto"
-      >
+      <button cButton color="primary" type="submit" [disabled]="!selectedFile || uploadingPhoto" style="border-radius:8px">
         <c-spinner *ngIf="uploadingPhoto" size="sm" class="me-2"></c-spinner>
         {{ uploadingPhoto ? 'Upload en cours...' : 'Ajouter la photo' }}
       </button>

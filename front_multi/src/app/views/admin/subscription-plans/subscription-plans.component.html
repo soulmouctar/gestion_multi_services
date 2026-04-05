@@ -1,243 +1,221 @@
-<!-- Page Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h2 class="mb-0">Plans d'Abonnement</h2>
-    <p class="text-muted mb-0">Gestion des plans et tarifs d'abonnement</p>
-  </div>
-  <button 
-    class="btn btn-primary"
-    (click)="openPlanModal()"
-    [disabled]="loading">
-    <svg cIcon name="cil-plus" class="me-2"></svg>
-    Nouveau Plan
-  </button>
-</div>
+<div class="p-3 p-md-4">
 
-<!-- Filters -->
-<c-card class="mb-4">
-  <c-card-body>
-    <form [formGroup]="filterForm" class="row g-3">
-      <div class="d-flex gap-3">
-        <div class="input-group shadow-sm" style="width: 320px;">
-          <span class="input-group-text bg-light border-end-0">
-            <i class="fas fa-search text-muted"></i>
-          </span>
-          <input 
-            type="text" 
-            class="form-control border-start-0" 
-            placeholder="Rechercher un plan..."
-            formControlName="search"
-            (input)="applyFilters()">
-        </div>
-        <select class="form-select shadow-sm" style="width: 160px;" formControlName="status" (change)="applyFilters()">
-          <option value="ALL">📋 Tous</option>
-          <option value="ACTIVE">✅ Actifs</option>
-          <option value="INACTIVE">❌ Inactifs</option>
-        </select>
-        <button type="button" class="btn btn-outline-secondary shadow-sm" (click)="clearFilters()">
-          <i class="fas fa-times me-1"></i>Effacer
+  <!-- En-tête -->
+  <div class="rounded-4 mb-4 px-4 py-4 text-white"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h2 class="mb-1 fw-bold text-white">Plans d'Abonnement</h2>
+        <p class="mb-0 opacity-75">Gestion des plans et tarifs d'abonnement</p>
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <span class="badge fs-6 px-3 py-2" style="background:rgba(255,255,255,0.15)">
+          {{ plans.length }} plan{{ plans.length !== 1 ? 's' : '' }}
+        </span>
+        <span class="badge fs-6 px-3 py-2" style="background:rgba(16,185,129,.25);border:1px solid rgba(16,185,129,.4)">
+          {{ getActivePlansCount() }} actifs
+        </span>
+        <button class="btn btn-light fw-semibold rounded-pill px-4"
+                (click)="openPlanModal()" [disabled]="loading">
+          + Nouveau Plan
         </button>
       </div>
-    </form>
-  </c-card-body>
-</c-card>
+    </div>
+  </div>
 
-<!-- Plans List -->
-<c-card class="mb-4 shadow-sm border-0">
-  <c-card-header class="bg-gradient-primary text-white">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        <h4 class="mb-0 text-white">💎 Plans d'Abonnement</h4>
-        <small class="text-white-50">Créez et gérez vos offres d'abonnement</small>
+  <!-- Filtres -->
+  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <div class="card-body">
+      <form [formGroup]="filterForm" class="row g-3 align-items-end">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold text-muted small text-uppercase">Rechercher</label>
+          <input type="text" class="form-control" formControlName="search"
+                 placeholder="Rechercher un plan..." (input)="applyFilters()" style="border-radius:8px">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold text-muted small text-uppercase">Statut</label>
+          <select class="form-select" formControlName="status" (change)="applyFilters()" style="border-radius:8px">
+            <option value="ALL">Tous les statuts</option>
+            <option value="ACTIVE">Actifs</option>
+            <option value="INACTIVE">Inactifs</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100 rounded-pill" (click)="clearFilters()">
+            Effacer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tableau des plans -->
+  <div class="card" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3"
+         style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+      <span class="fw-bold fs-5">Liste des Plans</span>
+      <span *ngIf="loading" class="spinner-border spinner-border-sm text-primary"></span>
+    </div>
+    <div class="card-body p-0">
+
+      <!-- Chargement -->
+      <div *ngIf="loading && plans.length === 0" class="text-center py-5">
+        <div class="spinner-border text-primary mb-3"></div>
+        <p class="text-muted">Chargement des plans...</p>
       </div>
-      <div class="d-flex gap-2">
-        <span class="badge bg-light text-primary fw-bold">{{ plans.length }} plans</span>
-        <span class="badge bg-success fw-bold">{{ getActivePlansCount() }} actifs</span>
+
+      <!-- Vide -->
+      <div *ngIf="!loading && plans.length === 0" class="text-center py-5">
+        <div class="mb-3 opacity-40" style="font-size:3rem">&#128142;</div>
+        <h5 class="text-muted">Aucun plan trouvé</h5>
+        <p class="text-muted">Commencez par créer votre premier plan d'abonnement.</p>
+        <button class="btn btn-primary rounded-pill px-4" (click)="openPlanModal()">+ Créer un plan</button>
       </div>
-    </div>
-  </c-card-header>
-  
-  <c-card-body class="p-0">
-    <!-- Loading state -->
-    <div *ngIf="loading && plans.length === 0" class="text-center py-5">
-      <div class="spinner-border text-primary mb-3"></div>
-      <p class="text-muted">Chargement des plans...</p>
-    </div>
 
-    <!-- Empty state -->
-    <div *ngIf="!loading && plans.length === 0" class="text-center py-5">
-      <svg cIcon name="cil-credit-card" size="3xl" class="text-muted mb-3"></svg>
-      <h5>Aucun plan trouvé</h5>
-      <p class="text-muted">Commencez par créer votre premier plan d'abonnement.</p>
-      <button class="btn btn-primary" (click)="openPlanModal()">
-        <svg cIcon name="cil-plus" class="me-2"></svg>
-        Créer un plan
-      </button>
-    </div>
-
-    <!-- Plans table -->
-    <div class="table-responsive shadow-sm rounded">
-      <table class="table table-hover mb-0">
-        <thead class="table-dark">
-          <tr>
-            <th class="border-0"><i class="fas fa-tag me-2"></i>Plan</th>
-            <th class="border-0"><i class="fas fa-clock me-2"></i>Durée</th>
-            <th class="border-0"><i class="fas fa-euro-sign me-2"></i>Prix</th>
-            <th class="border-0"><i class="fas fa-calendar me-2"></i>Prix/mois</th>
-            <th class="border-0"><i class="fas fa-star me-2"></i>Fonctionnalités</th>
-            <th class="border-0"><i class="fas fa-users me-2"></i>Limites</th>
-            <th class="border-0"><i class="fas fa-toggle-on me-2"></i>Statut</th>
-            <th class="border-0"><i class="fas fa-cogs me-2"></i>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let plan of plans" class="align-middle">
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                  <i class="fas fa-gem text-white"></i>
-                </div>
-                <div>
-                  <strong class="text-dark">{{ plan.name }}</strong>
-                  <div class="text-muted small" *ngIf="plan.description">
-                    {{ plan.description }}
+      <!-- Table -->
+      <div class="table-responsive" *ngIf="plans.length > 0">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr style="background:#f8fafc">
+              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid #f0f0f0">Plan</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Durée</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Prix total</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Prix/mois</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Fonctionnalités</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Limites</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Statut</th>
+              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid #f0f0f0">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let plan of plans">
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                       style="width:42px;height:42px;background:linear-gradient(135deg,#667eea,#764ba2)">
+                    {{ plan.name.charAt(0).toUpperCase() }}
+                  </div>
+                  <div>
+                    <div class="fw-semibold">{{ plan.name }}</div>
+                    <small class="text-muted" *ngIf="plan.description">{{ plan.description }}</small>
                   </div>
                 </div>
-              </div>
-            </td>
-            <td>
-              <span class="badge bg-info text-dark fw-normal px-3 py-2">
-                {{ plan.duration_months }} mois
-              </span>
-            </td>
-            <td>
-              <span class="fw-bold text-success fs-6">
-                {{ plan.price | currency:'GNF':'symbol':'1.0-0' }}
-              </span>
-            </td>
-            <td>
-              <span class="text-primary fw-semibold">
-                {{ plan.monthly_price | currency:'GNF':'symbol':'1.0-0' }}
-              </span>
-            </td>
-            <td>
-              <div class="d-flex flex-wrap gap-1">
-                <span 
-                  *ngFor="let feature of plan.features || []; let i = index" 
-                  class="badge bg-light text-dark border small"
-                  [class.d-none]="i >= 2"
-                  [title]="feature">
-                  <i class="fas fa-check text-success me-1"></i>{{ feature }}
+              </td>
+              <td>
+                <span class="badge rounded-pill px-3 py-1"
+                      style="background:#EFF6FF;color:#3B82F6">
+                  {{ getDurationText(plan.duration_months) }}
                 </span>
-                <span *ngIf="plan.features && plan.features.length > 2" class="badge bg-primary small">
-                  +{{ plan.features.length - 2 }} autres
+              </td>
+              <td>
+                <span class="fw-bold text-success">
+                  {{ plan.price | currency:'GNF':'symbol':'1.0-0' }}
                 </span>
-              </div>
-            </td>
-            <td>
-              <div class="small">
-                <div class="mb-1">
-                  <i class="fas fa-users text-primary me-1"></i>
-                  <span class="fw-semibold">{{ plan.max_users || '∞' }}</span>
-                  <span class="text-muted">utilisateurs</span>
+              </td>
+              <td>
+                <span class="text-primary fw-semibold">
+                  {{ plan.monthly_price | currency:'GNF':'symbol':'1.0-0' }}
+                </span>
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1">
+                  <span *ngFor="let feature of plan.features || []; let i = index"
+                        [class.d-none]="i >= 2"
+                        class="badge rounded-pill small"
+                        style="background:#F0FDF4;color:#16A34A;font-size:.7rem"
+                        [title]="feature">
+                    {{ feature }}
+                  </span>
+                  <span *ngIf="plan.features && plan.features.length > 2"
+                        class="badge rounded-pill small"
+                        style="background:#EFF6FF;color:#3B82F6;font-size:.7rem">
+                    +{{ plan.features.length - 2 }}
+                  </span>
                 </div>
-                <div>
-                  <i class="fas fa-cube text-info me-1"></i>
-                  <span class="fw-semibold">{{ plan.max_modules || '∞' }}</span>
-                  <span class="text-muted">modules</span>
+              </td>
+              <td>
+                <div class="small">
+                  <div class="mb-1">
+                    <span class="fw-semibold">{{ plan.max_users || '&#x221e;' }}</span>
+                    <span class="text-muted ms-1">utilisateurs</span>
+                  </div>
+                  <div>
+                    <span class="fw-semibold">{{ plan.max_modules || '&#x221e;' }}</span>
+                    <span class="text-muted ms-1">modules</span>
+                  </div>
                 </div>
-              </div>
-            </td>
-            <td>
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  [checked]="plan.is_active"
-                  (change)="togglePlanStatus(plan)"
-                  [disabled]="loading">
-                <label class="form-check-label fw-semibold" [class.text-success]="plan.is_active" [class.text-muted]="!plan.is_active">
-                  {{ plan.is_active ? 'Actif' : 'Inactif' }}
-                </label>
-              </div>
-            </td>
-            <td>
-              <div class="d-flex gap-1">
-                <button 
-                  class="btn btn-sm btn-outline-info"
-                  (click)="openPlanModal(plan)"
-                  [disabled]="loading"
-                  title="Modifier">
-                  <svg cIcon name="cil-pencil"></svg>
-                </button>
-                <button 
-                  class="btn btn-sm"
-                  [class]="plan.is_active ? 'btn-outline-warning' : 'btn-outline-success'"
-                  (click)="togglePlanStatus(plan)"
-                  [disabled]="loading"
-                  [title]="plan.is_active ? 'Désactiver' : 'Activer'">
-                  <svg [cIcon]="plan.is_active ? 'cil-ban' : 'cil-check'"></svg>
-                </button>
-                <button 
-                  class="btn btn-sm btn-outline-danger"
-                  (click)="openDeleteModal(plan)"
-                  [disabled]="loading"
-                  title="Supprimer">
-                  <svg cIcon name="cil-trash"></svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </c-card-body>
-</c-card>
+              </td>
+              <td>
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox"
+                         [checked]="plan.is_active"
+                         (change)="togglePlanStatus(plan)"
+                         [disabled]="loading">
+                  <label class="form-check-label fw-semibold"
+                         [class.text-success]="plan.is_active"
+                         [class.text-muted]="!plan.is_active">
+                    {{ plan.is_active ? 'Actif' : 'Inactif' }}
+                  </label>
+                </div>
+              </td>
+              <td class="text-end pe-4">
+                <div class="d-flex gap-1 justify-content-end">
+                  <button class="btn btn-sm btn-outline-primary rounded-3"
+                          (click)="openPlanModal(plan)" [disabled]="loading" title="Modifier">
+                    <svg cIcon name="cil-pencil"></svg>
+                  </button>
+                  <button class="btn btn-sm rounded-3"
+                          [class]="plan.is_active ? 'btn-outline-warning' : 'btn-outline-success'"
+                          (click)="togglePlanStatus(plan)" [disabled]="loading"
+                          [title]="plan.is_active ? 'Désactiver' : 'Activer'">
+                    <svg [cIcon]="plan.is_active ? 'cil-ban' : 'cil-check'"></svg>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger rounded-3"
+                          (click)="openDeleteModal(plan)" [disabled]="loading" title="Supprimer">
+                    <svg cIcon name="cil-trash"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-<!-- Plan Modal -->
-<c-modal 
-  [visible]="planModalOpen" 
-  (visibleChange)="planModalOpen = $event"
-  size="xl">
-  <c-modal-header>
-    <h4 cModalTitle>
-      <svg cIcon name="cil-credit-card" class="me-2"></svg>
-      {{ editMode ? 'Modifier le Plan' : 'Nouveau Plan' }}
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal Plan -->
+<c-modal [visible]="planModalOpen" (visibleChange)="planModalOpen = $event" size="xl" backdrop="static">
+  <c-modal-header class="text-white py-4 px-4"
+                  style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)">
+    <h4 cModalTitle class="fw-bold text-white mb-0">
+      {{ editMode ? 'Modifier le Plan' : 'Nouveau Plan d\'Abonnement' }}
     </h4>
-    <button 
-      cButtonClose 
-      (click)="closePlanModal()"
-      [disabled]="loading">
-    </button>
+    <button cButtonClose class="btn-close-white" (click)="closePlanModal()" [disabled]="loading"></button>
   </c-modal-header>
-  
-  <c-modal-body>
+
+  <c-modal-body class="px-4 py-4">
     <form [formGroup]="planForm" (ngSubmit)="savePlan()">
       <div class="row g-3">
-        <!-- Name -->
+
         <div class="col-md-6">
-          <label class="form-label">Nom du Plan *</label>
-          <input 
-            type="text" 
-            class="form-control"
-            formControlName="name"
-            [class.is-invalid]="submitted && f['name'].errors"
-            placeholder="Ex: Plan Business">
+          <label class="form-label fw-semibold">Nom du Plan <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" formControlName="name"
+                 [class.is-invalid]="submitted && f['name'].errors"
+                 placeholder="Ex: Plan Business" style="border-radius:8px">
           <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
             <div *ngIf="f['name'].errors['required']">Le nom est requis</div>
-            <div *ngIf="f['name'].errors['maxlength']">Le nom ne peut pas dépasser 100 caractères</div>
+            <div *ngIf="f['name'].errors['maxlength']">Maximum 100 caractères</div>
           </div>
         </div>
 
-        <!-- Duration -->
         <div class="col-md-3">
-          <label class="form-label">Durée (mois) *</label>
-          <input 
-            type="number" 
-            class="form-control"
-            formControlName="duration_months"
-            [class.is-invalid]="submitted && f['duration_months'].errors"
-            min="1" max="60">
+          <label class="form-label fw-semibold">Durée (mois) <span class="text-danger">*</span></label>
+          <input type="number" class="form-control" formControlName="duration_months"
+                 [class.is-invalid]="submitted && f['duration_months'].errors"
+                 min="1" max="60" style="border-radius:8px">
           <div *ngIf="submitted && f['duration_months'].errors" class="invalid-feedback">
             <div *ngIf="f['duration_months'].errors['required']">La durée est requise</div>
             <div *ngIf="f['duration_months'].errors['min']">Minimum 1 mois</div>
@@ -245,96 +223,70 @@
           </div>
         </div>
 
-        <!-- Price -->
         <div class="col-md-3">
-          <label class="form-label">Prix Total (€) *</label>
-          <input 
-            type="number" 
-            class="form-control"
-            formControlName="price"
-            [class.is-invalid]="submitted && f['price'].errors"
-            step="0.01" min="0">
+          <label class="form-label fw-semibold">Prix Total <span class="text-danger">*</span></label>
+          <input type="number" class="form-control" formControlName="price"
+                 [class.is-invalid]="submitted && f['price'].errors"
+                 step="0.01" min="0" style="border-radius:8px">
           <div *ngIf="submitted && f['price'].errors" class="invalid-feedback">
             <div *ngIf="f['price'].errors['required']">Le prix est requis</div>
             <div *ngIf="f['price'].errors['min']">Le prix doit être positif</div>
           </div>
         </div>
 
-        <!-- Description -->
         <div class="col-12">
-          <label class="form-label">Description</label>
-          <textarea 
-            class="form-control"
-            formControlName="description"
-            rows="3"
-            [class.is-invalid]="submitted && f['description'].errors"
-            placeholder="Description du plan d'abonnement..."></textarea>
+          <label class="form-label fw-semibold">Description</label>
+          <textarea class="form-control" formControlName="description" rows="3"
+                    [class.is-invalid]="submitted && f['description'].errors"
+                    placeholder="Description du plan..." style="border-radius:8px"></textarea>
           <div *ngIf="submitted && f['description'].errors" class="invalid-feedback">
-            <div *ngIf="f['description'].errors['maxlength']">La description ne peut pas dépasser 255 caractères</div>
+            <div *ngIf="f['description'].errors['maxlength']">Maximum 255 caractères</div>
           </div>
         </div>
 
-        <!-- Limits -->
         <div class="col-md-6">
-          <label class="form-label">Limite Utilisateurs</label>
-          <input 
-            type="number" 
-            class="form-control"
-            formControlName="max_users"
-            [class.is-invalid]="submitted && f['max_users'].errors"
-            min="1"
-            placeholder="Laissez vide pour illimité">
-          <small class="form-text text-muted">Nombre maximum d'utilisateurs (vide = illimité)</small>
+          <label class="form-label fw-semibold">Limite Utilisateurs</label>
+          <input type="number" class="form-control" formControlName="max_users"
+                 [class.is-invalid]="submitted && f['max_users'].errors"
+                 min="1" placeholder="Vide = illimité" style="border-radius:8px">
+          <small class="form-text text-muted">Laisser vide pour illimité</small>
           <div *ngIf="submitted && f['max_users'].errors" class="invalid-feedback">
             <div *ngIf="f['max_users'].errors['min']">Minimum 1 utilisateur</div>
           </div>
         </div>
 
         <div class="col-md-6">
-          <label class="form-label">Limite Modules</label>
-          <input 
-            type="number" 
-            class="form-control"
-            formControlName="max_modules"
-            [class.is-invalid]="submitted && f['max_modules'].errors"
-            min="1"
-            placeholder="Laissez vide pour illimité">
-          <small class="form-text text-muted">Nombre maximum de modules (vide = illimité)</small>
+          <label class="form-label fw-semibold">Limite Modules</label>
+          <input type="number" class="form-control" formControlName="max_modules"
+                 [class.is-invalid]="submitted && f['max_modules'].errors"
+                 min="1" placeholder="Vide = illimité" style="border-radius:8px">
+          <small class="form-text text-muted">Laisser vide pour illimité</small>
           <div *ngIf="submitted && f['max_modules'].errors" class="invalid-feedback">
             <div *ngIf="f['max_modules'].errors['min']">Minimum 1 module</div>
           </div>
         </div>
 
-        <!-- Status -->
-        <div class="col-md-6">
-          <label class="form-label">Statut</label>
-          <div class="form-check form-switch mt-2">
-            <input 
-              class="form-check-input" 
-              type="checkbox" 
-              formControlName="is_active"
-              id="planStatus">
-            <label class="form-check-label" for="planStatus">
-              Plan actif
-            </label>
+        <div class="col-md-6 d-flex align-items-center">
+          <div class="rounded-3 p-3 w-100" style="background:#F8FAFC;border:1px solid #f0f0f0">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" formControlName="is_active" id="planStatus">
+              <label class="form-check-label fw-semibold" for="planStatus">Plan actif</label>
+            </div>
           </div>
         </div>
 
-        <!-- Features -->
         <div class="col-12">
-          <label class="form-label">Fonctionnalités *</label>
-          <div class="row g-2">
-            <div class="col-md-4" *ngFor="let feature of availableFeatures">
-              <div class="form-check">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  [checked]="isFeatureSelected(feature)"
-                  (change)="toggleFeature(feature)"
-                  [id]="'feature-' + feature">
-                <label class="form-check-label" [for]="'feature-' + feature">
-                  {{ feature }}
-                </label>
+          <label class="form-label fw-semibold">Fonctionnalités <span class="text-danger">*</span></label>
+          <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #f0f0f0">
+            <div class="row g-2">
+              <div class="col-md-4" *ngFor="let feature of availableFeatures">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox"
+                         [checked]="isFeatureSelected(feature)"
+                         (change)="toggleFeature(feature)"
+                         [id]="'feature-' + feature">
+                  <label class="form-check-label small" [for]="'feature-' + feature">{{ feature }}</label>
+                </div>
               </div>
             </div>
           </div>
@@ -342,66 +294,41 @@
             <small *ngIf="f['features'].errors['required']">Au moins une fonctionnalité est requise</small>
           </div>
         </div>
+
       </div>
     </form>
   </c-modal-body>
-  
-  <c-modal-footer>
-    <button 
-      type="button" 
-      class="btn btn-secondary" 
-      (click)="closePlanModal()"
-      [disabled]="loading">
-      Annuler
-    </button>
-    <button 
-      type="button" 
-      class="btn btn-primary" 
-      (click)="savePlan()"
-      [disabled]="loading">
+
+  <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+    <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
+            (click)="closePlanModal()" [disabled]="loading">Annuler</button>
+    <button type="button" class="btn btn-primary rounded-pill px-4"
+            (click)="savePlan()" [disabled]="loading">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-      {{ editMode ? 'Modifier' : 'Créer' }}
+      {{ editMode ? 'Enregistrer' : 'Créer le Plan' }}
     </button>
   </c-modal-footer>
 </c-modal>
 
-<!-- Delete Confirmation Modal -->
-<c-modal 
-  [visible]="deleteModalOpen" 
-  (visibleChange)="deleteModalOpen = $event">
-  <c-modal-header>
-    <h4 cModalTitle>
-      <svg cIcon name="cil-warning" class="me-2 text-warning"></svg>
-      Confirmer la suppression
-    </h4>
-    <button 
-      cButtonClose 
-      (click)="closeDeleteModal()"
-      [disabled]="loading">
-    </button>
+<!-- Modal confirmation suppression -->
+<c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
+  <c-modal-header class="px-4 py-3" style="border-bottom:1px solid #f0f0f0">
+    <h5 cModalTitle class="fw-bold">Confirmer la suppression</h5>
+    <button cButtonClose (click)="closeDeleteModal()" [disabled]="loading"></button>
   </c-modal-header>
-  
-  <c-modal-body>
-    <p>Êtes-vous sûr de vouloir supprimer le plan "<strong>{{ planToDelete?.name }}</strong>" ?</p>
-    <div class="alert alert-warning">
-      <svg cIcon name="cil-warning" class="me-2"></svg>
-      <strong>Attention :</strong> Cette action est irréversible et peut affecter les abonnements existants utilisant ce plan.
+  <c-modal-body class="px-4 py-4">
+    <p>Êtes-vous sûr de vouloir supprimer le plan <strong>{{ planToDelete?.name }}</strong> ?</p>
+    <div class="rounded-3 p-3 d-flex gap-2 align-items-start"
+         style="background:#FEF3C7;border:1px solid #FDE68A">
+      <svg cIcon name="cil-warning" class="text-warning flex-shrink-0 mt-1"></svg>
+      <span class="small text-warning-emphasis">Cette action est irréversible et peut affecter les abonnements utilisant ce plan.</span>
     </div>
   </c-modal-body>
-  
-  <c-modal-footer>
-    <button 
-      type="button" 
-      class="btn btn-secondary" 
-      (click)="closeDeleteModal()"
-      [disabled]="loading">
-      Annuler
-    </button>
-    <button 
-      type="button" 
-      class="btn btn-danger" 
-      (click)="confirmDelete()"
-      [disabled]="loading">
+  <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+    <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
+            (click)="closeDeleteModal()" [disabled]="loading">Annuler</button>
+    <button type="button" class="btn btn-danger rounded-pill px-4"
+            (click)="confirmDelete()" [disabled]="loading">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       Supprimer
     </button>

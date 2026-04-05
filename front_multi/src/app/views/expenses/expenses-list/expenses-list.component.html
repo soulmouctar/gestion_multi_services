@@ -1,159 +1,190 @@
-<!-- ===== KPIs MOIS ===== -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <c-card class="text-center h-100 border-start border-4 border-primary">
-      <c-card-body class="py-2">
-        <div class="fs-3 fw-bold text-primary">{{ monthStats.total_count || 0 }}</div>
-        <div class="text-muted small">Dépenses ce mois</div>
-      </c-card-body>
-    </c-card>
-  </div>
-  <div class="col-6 col-md-3">
-    <c-card class="text-center h-100 border-start border-4 border-danger">
-      <c-card-body class="py-2">
-        <div class="fs-5 fw-bold text-danger">{{ fmt(monthStats.total_amount) }}</div>
-        <div class="text-muted small">Total ce mois</div>
-      </c-card-body>
-    </c-card>
-  </div>
-  <div class="col-6 col-md-3">
-    <c-card class="text-center h-100 border-start border-4 border-success">
-      <c-card-body class="py-2">
-        <div class="fs-5 fw-bold text-success">{{ fmt(monthStats.paid_amount) }}</div>
-        <div class="text-muted small">Payées</div>
-      </c-card-body>
-    </c-card>
-  </div>
-  <div class="col-6 col-md-3">
-    <c-card class="text-center h-100 border-start border-4 border-warning">
-      <c-card-body class="py-2">
-        <div class="fs-5 fw-bold text-warning">{{ fmt(monthStats.pending_amount) }}</div>
-        <div class="text-muted small">En attente</div>
-      </c-card-body>
-    </c-card>
-  </div>
-</div>
+<div class="p-3 p-md-4">
 
-<!-- ===== FILTRES ===== -->
-<c-card class="mb-3">
-  <c-card-body>
+  <!-- Header -->
+  <div class="rounded-3 p-4 mb-4 text-white d-flex align-items-center justify-content-between flex-wrap gap-3"
+       style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 16px !important;">
+    <div>
+      <h4 class="fw-bold mb-1">Dépenses</h4>
+      <p class="mb-0 opacity-75 small">Suivi et gestion de vos dépenses personnelles</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a routerLink="/expenses/statistics" cButton color="light" size="sm" style="border-radius:8px">
+        <svg cIcon name="cilChartPie" class="me-1" size="sm"></svg> Statistiques
+      </a>
+      <button cButton color="success" size="sm" (click)="openNew()" style="border-radius:8px">
+        <svg cIcon name="cilPlus" class="me-1" size="sm"></svg> Nouvelle dépense
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistiques du mois -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid #f0f0f0; transition: box-shadow .2s;">
+        <div class="fs-3 fw-bold" style="color:#3B82F6;">{{ monthStats.total_count || 0 }}</div>
+        <div class="small text-muted mt-1">Dépenses ce mois</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+        <div class="fs-6 fw-bold" style="color:#EF4444;">{{ fmt(monthStats.total_amount) }}</div>
+        <div class="small text-muted mt-1">Total ce mois</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+        <div class="fs-6 fw-bold" style="color:#10B981;">{{ fmt(monthStats.paid_amount) }}</div>
+        <div class="small text-muted mt-1">Payées</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+        <div class="fs-6 fw-bold" style="color:#F59E0B;">{{ fmt(monthStats.pending_amount) }}</div>
+        <div class="small text-muted mt-1">En attente</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
     <form [formGroup]="filterForm" class="row g-2 align-items-end">
       <div class="col-6 col-md-2">
-        <label cLabel class="small">Catégorie</label>
-        <select cSelect formControlName="category_id" class="form-select-sm">
-          <option value="">Toutes catégories</option>
+        <label cLabel class="small fw-semibold text-muted mb-1">Catégorie</label>
+        <select cSelect formControlName="category_id" style="border-radius:8px">
+          <option value="">Toutes</option>
           <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
-        <label cLabel class="small">Statut</label>
-        <select cSelect formControlName="status" class="form-select-sm">
-          <option value="">Tous statuts</option>
+        <label cLabel class="small fw-semibold text-muted mb-1">Statut</label>
+        <select cSelect formControlName="status" style="border-radius:8px">
+          <option value="">Tous</option>
           <option value="PAID">Payée</option>
           <option value="PENDING">En attente</option>
           <option value="CANCELLED">Annulée</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
-        <label cLabel class="small">Du</label>
-        <input cFormControl type="date" formControlName="date_from" class="form-control-sm">
+        <label cLabel class="small fw-semibold text-muted mb-1">Du</label>
+        <input cFormControl type="date" formControlName="date_from" style="border-radius:8px" />
       </div>
       <div class="col-6 col-md-2">
-        <label cLabel class="small">Au</label>
-        <input cFormControl type="date" formControlName="date_to" class="form-control-sm">
+        <label cLabel class="small fw-semibold text-muted mb-1">Au</label>
+        <input cFormControl type="date" formControlName="date_to" style="border-radius:8px" />
       </div>
       <div class="col-12 col-md-2">
-        <label cLabel class="small">Recherche</label>
-        <input cFormControl type="text" formControlName="search" placeholder="Titre..." class="form-control-sm">
+        <label cLabel class="small fw-semibold text-muted mb-1">Recherche</label>
+        <input cFormControl type="text" formControlName="search" placeholder="Titre..." style="border-radius:8px" />
       </div>
       <div class="col-12 col-md-2 d-flex gap-2">
-        <button cButton color="primary" size="sm" (click)="applyFilters()">Filtrer</button>
-        <button cButton color="secondary" variant="outline" size="sm" (click)="resetFilters()">Reset</button>
+        <button cButton color="primary" size="sm" (click)="applyFilters()" style="border-radius:8px">
+          <svg cIcon name="cilMagnifyingGlass" size="sm" class="me-1"></svg> Filtrer
+        </button>
+        <button cButton color="secondary" variant="outline" size="sm" (click)="resetFilters()" style="border-radius:8px">
+          Réinit.
+        </button>
       </div>
     </form>
-  </c-card-body>
-</c-card>
+  </div>
 
-<!-- ===== TABLE ===== -->
-<c-card>
-  <c-card-header class="d-flex justify-content-between align-items-center">
-    <span class="fw-semibold">
-      Dépenses <small class="text-muted ms-1">{{ totalItems }} résultat(s)</small>
-    </span>
-    <div class="d-flex gap-2">
-      <a routerLink="/expenses/statistics" cButton color="info" variant="outline" size="sm">
-        <svg cIcon name="cilChartPie" class="me-1"></svg> Statistiques
-      </a>
-      <button cButton color="success" size="sm" (click)="openNew()">
-        <svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle dépense
-      </button>
+  <!-- Tableau -->
+  <div class="bg-white rounded-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+
+    <div class="d-flex align-items-center justify-content-between px-3 py-3 border-bottom">
+      <span class="fw-semibold">
+        Dépenses
+        <span class="small fw-normal text-muted ms-1">{{ totalItems }} résultat(s)</span>
+      </span>
     </div>
-  </c-card-header>
-  <c-card-body class="p-0">
-    <div *ngIf="loading" class="text-center py-4"><c-spinner size="sm"></c-spinner></div>
+
+    <!-- Chargement -->
+    <div *ngIf="loading" class="text-center py-5">
+      <c-spinner color="primary" size="sm"></c-spinner>
+      <p class="text-muted mt-2 small">Chargement...</p>
+    </div>
 
     <div *ngIf="!loading" class="table-responsive">
-      <table class="table table-hover table-sm align-middle mb-0">
-        <thead class="table-light">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#f8fafc;">
           <tr>
-            <th>Date</th>
-            <th>Titre</th>
-            <th>Catégorie</th>
-            <th class="text-end">Montant</th>
-            <th>Méthode</th>
-            <th class="text-center">Statut</th>
-            <th class="text-end">Actions</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Date</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Titre</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Catégorie</th>
+            <th class="px-3 py-3 small fw-semibold text-muted text-end">Montant</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Méthode</th>
+            <th class="px-3 py-3 small fw-semibold text-muted text-center">Statut</th>
+            <th class="px-3 py-3 small fw-semibold text-muted text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let exp of expenses">
-            <td class="small">{{ exp.expense_date | date:'dd/MM/yyyy' }}</td>
-            <td>
+            <td class="px-3 small">{{ exp.expense_date | date:'dd/MM/yyyy' }}</td>
+            <td class="px-3">
               <div class="fw-semibold small">{{ exp.title }}</div>
-              <div *ngIf="exp.description" class="text-muted" style="font-size:0.73rem">{{ exp.description | slice:0:50 }}{{ exp.description?.length > 50 ? '...' : '' }}</div>
-              <c-badge *ngIf="exp.is_recurring" color="info" class="small">Récurrent</c-badge>
+              <div *ngIf="exp.description" class="text-muted" style="font-size:0.73rem;">
+                {{ exp.description | slice:0:50 }}{{ exp.description?.length > 50 ? '...' : '' }}
+              </div>
+              <span *ngIf="exp.is_recurring"
+                    class="badge px-2 py-1 small"
+                    style="background:#EFF6FF; color:#3B82F6;">Récurrent</span>
             </td>
-            <td>
+            <td class="px-3">
               <span *ngIf="exp.category" class="d-flex align-items-center gap-1">
-                <span class="rounded-circle d-inline-block" [style.width]="'10px'" [style.height]="'10px'" [style.background]="exp.category?.color || '#6c757d'"></span>
+                <span class="rounded-circle d-inline-block flex-shrink-0"
+                      [style.width]="'10px'" [style.height]="'10px'"
+                      [style.background]="exp.category?.color || '#6c757d'"></span>
                 <span class="small">{{ exp.category?.name }}</span>
               </span>
               <span *ngIf="!exp.category" class="text-muted small">Sans catégorie</span>
             </td>
-            <td class="text-end fw-semibold">{{ fmt(exp.amount, exp.currency) }}</td>
-            <td class="small text-muted">{{ getMethodLabel(exp.payment_method) }}</td>
-            <td class="text-center">
-              <c-badge [color]="getStatusColor(exp.status)">{{ getStatusLabel(exp.status) }}</c-badge>
+            <td class="px-3 text-end fw-bold small">{{ fmt(exp.amount, exp.currency) }}</td>
+            <td class="px-3 small text-muted">{{ getMethodLabel(exp.payment_method) }}</td>
+            <td class="px-3 text-center">
+              <span class="badge px-2 py-1 small fw-semibold"
+                    [style.background]="exp.status === 'PAID' ? '#ECFDF5' : exp.status === 'PENDING' ? '#FFFBEB' : '#f0f0f0'"
+                    [style.color]="exp.status === 'PAID' ? '#10B981' : exp.status === 'PENDING' ? '#F59E0B' : '#6c757d'">
+                {{ getStatusLabel(exp.status) }}
+              </span>
             </td>
-            <td class="text-end">
+            <td class="px-3 text-end">
               <div class="d-flex gap-1 justify-content-end">
-                <button cButton color="warning" variant="outline" size="sm" (click)="openEdit(exp)">
+                <button cButton color="warning" variant="outline" size="sm" (click)="openEdit(exp)"
+                        title="Modifier" style="border-radius:8px">
                   <svg cIcon name="cilPencil" size="sm"></svg>
                 </button>
-                <button cButton color="danger" variant="outline" size="sm" (click)="delete(exp)">
+                <button cButton color="danger" variant="outline" size="sm" (click)="delete(exp)"
+                        title="Supprimer" style="border-radius:8px">
                   <svg cIcon name="cilTrash" size="sm"></svg>
                 </button>
               </div>
             </td>
           </tr>
           <tr *ngIf="expenses.length === 0">
-            <td colspan="7" class="text-center text-muted py-4">Aucune dépense pour cette période</td>
+            <td colspan="7" class="text-center text-muted py-5">
+              <svg cIcon name="cilNotes" size="3xl" class="mb-2 opacity-25"></svg>
+              <p class="mb-0">Aucune dépense pour cette période</p>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <!-- Pagination -->
-    <div *ngIf="totalPages > 1" class="d-flex justify-content-center gap-1 py-3">
-      <button cButton color="secondary" variant="outline" size="sm" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">‹</button>
-      <button *ngFor="let p of getPages()" cButton
-        [color]="p === currentPage ? 'primary' : 'secondary'"
-        [variant]="p === currentPage ? undefined : 'outline'"
-        size="sm" (click)="onPageChange(p)">{{ p }}</button>
-      <button cButton color="secondary" variant="outline" size="sm" [disabled]="currentPage === totalPages" (click)="onPageChange(currentPage + 1)">›</button>
+    <div *ngIf="!loading && totalPages > 1"
+         class="d-flex justify-content-center gap-1 py-3 border-top"
+         style="background:#fafafa; border-radius:0 0 12px 12px;">
+      <button cButton color="secondary" variant="outline" size="sm" [disabled]="currentPage === 1"
+              (click)="onPageChange(currentPage - 1)" style="border-radius:6px;">‹</button>
+      <button *ngFor="let p of getPages()" cButton size="sm"
+              [color]="p === currentPage ? 'primary' : 'secondary'"
+              [variant]="p === currentPage ? undefined : 'outline'"
+              (click)="onPageChange(p)" style="border-radius:6px;">{{ p }}</button>
+      <button cButton color="secondary" variant="outline" size="sm" [disabled]="currentPage === totalPages"
+              (click)="onPageChange(currentPage + 1)" style="border-radius:6px;">›</button>
     </div>
-  </c-card-body>
-</c-card>
+  </div>
+
+</div>
 
 <!-- ===== MODAL DÉPENSE ===== -->
 <c-modal [visible]="showModal" (visibleChange)="showModal = $event" size="lg" backdrop="static">
@@ -165,66 +196,71 @@
     <form [formGroup]="form">
       <div class="row g-3">
         <div class="col-12">
-          <label cLabel>Titre *</label>
+          <label cLabel class="fw-semibold small mb-1">Titre *</label>
           <input cFormControl formControlName="title" placeholder="Description courte de la dépense"
-            [class.is-invalid]="submitted && form.get('title')?.invalid">
+                 style="border-radius:8px"
+                 [class.is-invalid]="submitted && form.get('title')?.invalid" />
           <div class="invalid-feedback">Titre requis</div>
         </div>
         <div class="col-md-4">
-          <label cLabel>Montant *</label>
+          <label cLabel class="fw-semibold small mb-1">Montant *</label>
           <input cFormControl type="number" formControlName="amount" min="0" placeholder="0"
-            [class.is-invalid]="submitted && form.get('amount')?.invalid">
+                 style="border-radius:8px"
+                 [class.is-invalid]="submitted && form.get('amount')?.invalid" />
           <div class="invalid-feedback">Montant requis</div>
         </div>
         <div class="col-md-4">
-          <label cLabel>Devise *</label>
-          <select cSelect formControlName="currency">
+          <label cLabel class="fw-semibold small mb-1">Devise *</label>
+          <select cSelect formControlName="currency" style="border-radius:8px">
             <option *ngFor="let c of currencies" [value]="c.value">{{ c.label }}</option>
           </select>
         </div>
         <div class="col-md-4">
-          <label cLabel>Date *</label>
+          <label cLabel class="fw-semibold small mb-1">Date *</label>
           <input cFormControl type="date" formControlName="expense_date"
-            [class.is-invalid]="submitted && form.get('expense_date')?.invalid">
+                 style="border-radius:8px"
+                 [class.is-invalid]="submitted && form.get('expense_date')?.invalid" />
         </div>
         <div class="col-md-6">
-          <label cLabel>Catégorie</label>
-          <select cSelect formControlName="category_id">
+          <label cLabel class="fw-semibold small mb-1">Catégorie</label>
+          <select cSelect formControlName="category_id" style="border-radius:8px">
             <option [ngValue]="null">Sans catégorie</option>
             <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
           </select>
         </div>
         <div class="col-md-6">
-          <label cLabel>Méthode de paiement *</label>
-          <select cSelect formControlName="payment_method">
+          <label cLabel class="fw-semibold small mb-1">Méthode de paiement *</label>
+          <select cSelect formControlName="payment_method" style="border-radius:8px">
             <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div class="col-md-6">
-          <label cLabel>Statut</label>
-          <select cSelect formControlName="status">
+          <label cLabel class="fw-semibold small mb-1">Statut</label>
+          <select cSelect formControlName="status" style="border-radius:8px">
             <option value="PAID">Payée</option>
             <option value="PENDING">En attente</option>
             <option value="CANCELLED">Annulée</option>
           </select>
         </div>
         <div class="col-md-6">
-          <label cLabel>Référence</label>
-          <input cFormControl formControlName="reference" placeholder="N° reçu, facture...">
+          <label cLabel class="fw-semibold small mb-1">Référence</label>
+          <input cFormControl formControlName="reference" placeholder="N° reçu, facture..."
+                 style="border-radius:8px" />
         </div>
         <div class="col-12">
-          <label cLabel>Description</label>
-          <textarea cFormControl formControlName="description" rows="2" placeholder="Détails..."></textarea>
+          <label cLabel class="fw-semibold small mb-1">Description</label>
+          <textarea cFormControl formControlName="description" rows="2"
+                    placeholder="Détails supplémentaires..." style="border-radius:8px"></textarea>
         </div>
         <div class="col-12">
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" formControlName="is_recurring" id="isRec">
-            <label class="form-check-label" for="isRec">Dépense récurrente</label>
+            <input class="form-check-input" type="checkbox" formControlName="is_recurring" id="isRec" />
+            <label class="form-check-label small" for="isRec">Dépense récurrente</label>
           </div>
         </div>
         <div class="col-md-6" *ngIf="form.get('is_recurring')?.value">
-          <label cLabel>Périodicité</label>
-          <select cSelect formControlName="recurrence_period">
+          <label cLabel class="fw-semibold small mb-1">Périodicité</label>
+          <select cSelect formControlName="recurrence_period" style="border-radius:8px">
             <option value="DAILY">Quotidienne</option>
             <option value="WEEKLY">Hebdomadaire</option>
             <option value="MONTHLY">Mensuelle</option>
@@ -235,7 +271,9 @@
     </form>
   </c-modal-body>
   <c-modal-footer>
-    <button cButton color="secondary" (click)="showModal = false">Annuler</button>
-    <button cButton color="primary" (click)="save()">{{ editMode ? 'Modifier' : 'Enregistrer' }}</button>
+    <button cButton color="secondary" (click)="showModal = false" style="border-radius:8px">Annuler</button>
+    <button cButton color="primary" (click)="save()" style="border-radius:8px">
+      {{ editMode ? 'Modifier' : 'Enregistrer' }}
+    </button>
   </c-modal-footer>
 </c-modal>

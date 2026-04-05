@@ -3,8 +3,13 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'vehicles',
+    redirectTo: 'dashboard',
     pathMatch: 'full'
+  },
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./taxi-dashboard/taxi-dashboard.component').then(m => m.TaxiDashboardComponent),
+    title: 'Tableau de Bord Taxi'
   },
   {
     path: 'vehicles',
@@ -30,5 +35,10 @@ export const routes: Routes = [
     path: 'vehicle-expenses',
     loadComponent: () => import('./vehicle-expenses/vehicle-expenses.component').then(m => m.VehicleExpensesComponent),
     title: 'Dépenses Véhicules'
+  },
+  {
+    path: 'documents',
+    loadComponent: () => import('./taxi-documents/taxi-documents.component').then(m => m.TaxiDocumentsComponent),
+    title: 'Documents & Assurances'
   }
 ];

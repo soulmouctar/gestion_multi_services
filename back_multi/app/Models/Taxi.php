@@ -12,6 +12,16 @@ class Taxi extends Model
     protected $fillable = [
         'tenant_id',
         'plate_number',
+        'brand',
+        'vehicle_model',
+        'year',
+        'color',
+        'mileage',
+        'status',
+        'insurance_expiry',
+        'technical_inspection_expiry',
+        'circulation_permit_expiry',
+        'notes',
     ];
 
     public function tenant()

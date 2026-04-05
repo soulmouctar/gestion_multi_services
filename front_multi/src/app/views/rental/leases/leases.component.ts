@@ -55,6 +55,12 @@ export class LeasesComponent implements OnInit {
   // ===== SELECTED =====
   selectedLease: any = null;
 
+  // Months already paid for the selected lease (used in payment modal)
+  paidPeriods: string[] = [];
+  // Ordered list of unpaid months from contract start to today
+  unpaidMonths: string[] = [];
+  loadingPaidMonths = false;
+
   // ===== FORMS =====
   leaseForm: FormGroup;
   paymentForm: FormGroup;
@@ -275,14 +281,59 @@ export class LeasesComponent implements OnInit {
   openPaymentModal(lease: any): void {
     this.submitted = false;
     this.selectedLease = lease;
-    this.paymentForm.reset({
-      period_month:   this.currentMonth(),
-      amount:         lease.monthly_rent,
-      currency:       lease.currency || 'GNF',
-      payment_date:   this.today(),
-      payment_method: 'ESPECES',
-      reference: '', status: 'PAID', notes: ''
+    this.paidPeriods = [];
+    this.unpaidMonths = [];
+    this.loadingPaidMonths = true;
+
+    // Load existing payments to determine next unpaid month
+    this.apiService.get<any>(`leases/${lease.id}/payments?per_page=200`).subscribe({
+      next: (r) => {
+        const payments = r.success ? (r.data?.data || []) : [];
+        this.paidPeriods = payments
+          .filter((p: any) => p.status === 'PAID')
+          .map((p: any) => p.period_month as string);
+
+        // Build list of all months from contract start to today (max 24)
+        const startDate = new Date(lease.start_date);
+        const today = new Date();
+        const allMonths: string[] = [];
+        const cur = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        const limit = new Date(today.getFullYear(), today.getMonth(), 1);
+        while (cur <= limit && allMonths.length < 24) {
+          allMonths.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
+          cur.setMonth(cur.getMonth() + 1);
+        }
+
+        this.unpaidMonths = allMonths.filter(m => !this.paidPeriods.includes(m));
+        const suggestedMonth = this.unpaidMonths.length > 0 ? this.unpaidMonths[0] : this.currentMonth();
+
+        this.paymentForm.reset({
+          period_month:   suggestedMonth,
+          amount:         lease.monthly_rent,
+          currency:       lease.currency || 'GNF',
+          payment_date:   this.today(),
+          payment_method: 'ESPECES',
+          reference: '', status: 'PAID', notes: ''
+        });
+        this.loadingPaidMonths = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.paidPeriods = [];
+        this.unpaidMonths = [];
+        this.paymentForm.reset({
+          period_month:   this.currentMonth(),
+          amount:         lease.monthly_rent,
+          currency:       lease.currency || 'GNF',
+          payment_date:   this.today(),
+          payment_method: 'ESPECES',
+          reference: '', status: 'PAID', notes: ''
+        });
+        this.loadingPaidMonths = false;
+        this.cdr.detectChanges();
+      }
     });
+
     this.showPaymentModal = true;
   }
 
@@ -384,6 +435,19 @@ export class LeasesComponent implements OnInit {
   onLeasesPageChange(p: number): void  { if (p >= 1 && p <= this.leasesTotalPages)   { this.leasesPage = p;   this.loadLeases(); } }
   onPaymentsPageChange(p: number): void { if (p >= 1 && p <= this.paymentsTotalPages) { this.paymentsPage = p; this.loadAllPayments(); } }
   getPages(total: number): number[] { return Array.from({ length: total }, (_, i) => i + 1); }
+
+  /** Format "2026-04" → "Avril 2026" */
+  formatPeriod(period: string): string {
+    if (!period || period.length < 7) return period;
+    const [year, month] = period.split('-');
+    const months = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                    'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    return `${months[parseInt(month, 10) - 1]} ${year}`;
+  }
+
+  isPeriodAlreadyPaid(period: string): boolean {
+    return this.paidPeriods.includes(period);
+  }
 
   private today(): string { return new Date().toISOString().split('T')[0]; }
   private currentMonth(): string { return new Date().toISOString().substring(0, 7); }

@@ -1,251 +1,421 @@
-<div *ngIf="loading" class="text-center py-5">
-  <c-spinner color="primary"></c-spinner>
-  <div class="text-muted mt-2">Chargement...</div>
-</div>
+<div class="p-3 p-md-4">
 
-<div *ngIf="!loading">
-
-  <!-- ===== KPIs VENTES CONTENEURS ===== -->
-  <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-      <c-card class="h-100 border-start border-4 border-primary">
-        <c-card-body>
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="text-muted small text-uppercase mb-1">Total Ventes</div>
-              <div class="fs-3 fw-bold text-primary">{{ salesStats.total_sales || 0 }}</div>
-              <div class="text-muted small">Ce mois: {{ salesStats.sales_this_month || 0 }}</div>
-            </div>
-            <svg cIcon name="cilCart" size="xl" class="text-primary opacity-50 mt-1"></svg>
-          </div>
-        </c-card-body>
-      </c-card>
-    </div>
-    <div class="col-6 col-md-3">
-      <c-card class="h-100 border-start border-4 border-success">
-        <c-card-body>
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="text-muted small text-uppercase mb-1">Encaissé</div>
-              <div class="fs-5 fw-bold text-success">{{ formatAmount(salesStats.total_paid) }}</div>
-              <div class="text-muted small">Ce mois: {{ formatAmount(salesStats.revenue_this_month) }}</div>
-            </div>
-            <svg cIcon name="cilCash" size="xl" class="text-success opacity-50 mt-1"></svg>
-          </div>
-        </c-card-body>
-      </c-card>
-    </div>
-    <div class="col-6 col-md-3">
-      <c-card class="h-100 border-start border-4 border-warning">
-        <c-card-body>
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="text-muted small text-uppercase mb-1">Reste à encaisser</div>
-              <div class="fs-5 fw-bold text-warning">{{ formatAmount(salesStats.total_remaining) }}</div>
-              <div class="text-muted small">{{ pendingSales.length }} ventes en attente</div>
-            </div>
-            <svg cIcon name="cilClock" size="xl" class="text-warning opacity-50 mt-1"></svg>
-          </div>
-        </c-card-body>
-      </c-card>
-    </div>
-    <div class="col-6 col-md-3">
-      <c-card class="h-100 border-start border-4 border-info">
-        <c-card-body>
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="text-muted small text-uppercase mb-1">Stock disponible</div>
-              <div class="fs-3 fw-bold text-info">{{ getAvailableStock().length }}</div>
-              <div class="text-muted small">arrivages avec stock</div>
-            </div>
-            <svg cIcon name="cilLayers" size="xl" class="text-info opacity-50 mt-1"></svg>
-          </div>
-        </c-card-body>
-      </c-card>
-    </div>
+  <!-- ===== LOADING ===== -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary" size="sm"></c-spinner>
+    <div class="text-muted mt-2 small">Chargement du tableau de bord...</div>
   </div>
 
-  <!-- ===== ACCÈS RAPIDES ===== -->
-  <div class="mb-4">
-    <div class="d-flex flex-wrap gap-2">
-      <a routerLink="/containers/ventes" cButton color="primary" size="sm">
+  <div *ngIf="!loading">
+
+    <!-- ===== HEADER ===== -->
+    <div class="mb-4 p-4"
+         style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.12)">
+              <svg cIcon name="cilCart" style="color:#fff"></svg>
+            </div>
+            <h4 class="fw-bold mb-0" style="color:#fff">Tableau de Bord Commercial</h4>
+          </div>
+          <p class="mb-0 ms-1" style="color:rgba(255,255,255,0.65);font-size:0.875rem">
+            Aperçu global des ventes, stocks et encaissements
+          </p>
+        </div>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+          <div class="text-center px-3" style="border-left:1px solid rgba(255,255,255,0.2)">
+            <div style="font-size:1.5rem;font-weight:700;color:#fff">{{ salesStats.total_sales || 0 }}</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:.04em">Total ventes</div>
+          </div>
+          <div class="text-center px-3" style="border-left:1px solid rgba(255,255,255,0.2)">
+            <div style="font-size:1.1rem;font-weight:700;color:#34d399">{{ formatAmount(salesStats.total_paid) }}</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:.04em">Encaissé</div>
+          </div>
+          <div class="text-center px-3" style="border-left:1px solid rgba(255,255,255,0.2)">
+            <div style="font-size:1.1rem;font-weight:700;color:#fbbf24">{{ formatAmount(salesStats.total_remaining) }}</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:.04em">Reste à encaisser</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== KPI CARDS ===== -->
+    <div class="row g-3 mb-4">
+
+      <!-- Ventes totales -->
+      <div class="col-6 col-md-3">
+        <div class="h-100 p-3"
+             style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+                    transition:transform .15s,box-shadow .15s;"
+             onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.11)'"
+             onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
+          <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;border-radius:10px;background:#EEF2FF">
+              <svg cIcon name="cilCart" style="color:#6366F1"></svg>
+            </div>
+            <div class="overflow-hidden">
+              <div class="fw-bold" style="font-size:1.5rem;line-height:1.1;color:#1e293b">
+                {{ salesStats.total_sales || 0 }}
+              </div>
+              <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">
+                Total ventes
+              </div>
+              <div style="font-size:0.7rem;color:#94a3b8">
+                Ce mois&nbsp;: <strong style="color:#6366F1">{{ salesStats.sales_this_month || 0 }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Encaissé -->
+      <div class="col-6 col-md-3">
+        <div class="h-100 p-3"
+             style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+                    transition:transform .15s,box-shadow .15s;"
+             onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.11)'"
+             onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
+          <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;border-radius:10px;background:#ECFDF5">
+              <svg cIcon name="cilCash" style="color:#10B981"></svg>
+            </div>
+            <div class="overflow-hidden">
+              <div class="fw-bold" style="font-size:1rem;line-height:1.2;color:#1e293b">
+                {{ formatAmount(salesStats.total_paid) }}
+              </div>
+              <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Encaissé</div>
+              <div style="font-size:0.7rem;color:#94a3b8">
+                Ce mois&nbsp;: <strong style="color:#10B981">{{ formatAmount(salesStats.revenue_this_month) }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reste à encaisser -->
+      <div class="col-6 col-md-3">
+        <div class="h-100 p-3"
+             style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+                    transition:transform .15s,box-shadow .15s;"
+             onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.11)'"
+             onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
+          <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;border-radius:10px;background:#FFFBEB">
+              <svg cIcon name="cilClock" style="color:#F59E0B"></svg>
+            </div>
+            <div class="overflow-hidden">
+              <div class="fw-bold" style="font-size:1rem;line-height:1.2;color:#1e293b">
+                {{ formatAmount(salesStats.total_remaining) }}
+              </div>
+              <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">
+                Reste à encaisser
+              </div>
+              <div style="font-size:0.7rem;color:#94a3b8">
+                <strong style="color:#F59E0B">{{ pendingSales.length }}</strong> vente(s) en attente
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stock disponible -->
+      <div class="col-6 col-md-3">
+        <div class="h-100 p-3"
+             style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+                    transition:transform .15s,box-shadow .15s;"
+             onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.11)'"
+             onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
+          <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;border-radius:10px;background:#EFF6FF">
+              <svg cIcon name="cilLayers" style="color:#3B82F6"></svg>
+            </div>
+            <div class="overflow-hidden">
+              <div class="fw-bold" style="font-size:1.5rem;line-height:1.1;color:#1e293b">
+                {{ getAvailableStock().length }}
+              </div>
+              <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">
+                Stock disponible
+              </div>
+              <div style="font-size:0.7rem;color:#94a3b8">arrivages avec stock</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ACCÈS RAPIDES ===== -->
+    <div class="mb-4 p-3 d-flex flex-wrap gap-2 align-items-center"
+         style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
+      <span style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;font-weight:600"
+            class="me-1">Accès rapides</span>
+      <a routerLink="/containers/ventes" cButton color="primary" size="sm" style="border-radius:8px">
         <svg cIcon name="cilCart" class="me-1"></svg> Nouvelle vente
       </a>
-      <a routerLink="/containers/ventes" cButton color="info" variant="outline" size="sm">
+      <a routerLink="/containers/ventes" cButton color="info" variant="outline" size="sm" style="border-radius:8px">
         <svg cIcon name="cilLayers" class="me-1"></svg> Stocks / Arrivages
       </a>
-      <a routerLink="/containers/list" cButton color="secondary" variant="outline" size="sm">
+      <a routerLink="/containers/list" cButton color="secondary" variant="outline" size="sm" style="border-radius:8px">
         <svg cIcon name="cilList" class="me-1"></svg> Conteneurs
       </a>
-      <a routerLink="/clients/list" cButton color="success" variant="outline" size="sm">
+      <a routerLink="/clients/list" cButton color="success" variant="outline" size="sm" style="border-radius:8px">
         <svg cIcon name="cilPeople" class="me-1"></svg> Clients
       </a>
     </div>
-  </div>
 
-  <div class="row g-3">
+    <!-- ===== GRILLE PRINCIPALE ===== -->
+    <div class="row g-3">
 
-    <!-- ===== STOCK DISPONIBLE ===== -->
-    <div class="col-12 col-lg-6">
-      <c-card class="h-100">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <span class="fw-semibold">
-            <svg cIcon name="cilLayers" class="me-1 text-info"></svg>
-            Stock disponible (pneus / habits)
-          </span>
-          <a routerLink="/containers/ventes" cButton color="info" size="sm" variant="outline">Gérer →</a>
-        </c-card-header>
-        <c-card-body class="p-0">
-          <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Description</th>
-                  <th class="text-center">Qté</th>
-                  <th class="text-end">P.U. vente</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let a of getAvailableStock().slice(0, 8)">
-                  <td>
-                    <div class="fw-semibold small">{{ a.description || a.container?.reference || '—' }}</div>
-                    <div class="text-muted" style="font-size:0.75rem">{{ a.arrival_date | date:'dd/MM/yyyy' }}</div>
-                  </td>
-                  <td class="text-center">
-                    <c-badge [color]="a.remaining_quantity > 10 ? 'success' : 'warning'">
-                      {{ a.remaining_quantity }}
-                    </c-badge>
-                  </td>
-                  <td class="text-end small fw-semibold">{{ formatAmount(a.unit_sale_price, a.currency) }}</td>
-                </tr>
-                <tr *ngIf="getAvailableStock().length === 0">
-                  <td colspan="3" class="text-center text-muted py-4">Aucun stock disponible</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </c-card-body>
-      </c-card>
+      <!-- Stock disponible -->
+      <div class="col-12 col-lg-6">
+        <c-card class="h-100" style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <c-card-header class="d-flex justify-content-between align-items-center py-3 px-4"
+                         style="background:#f8fafc;border-radius:12px 12px 0 0;border-bottom:1px solid #f0f0f0">
+            <span class="fw-semibold" style="color:#1e293b;font-size:0.9rem">
+              <svg cIcon name="cilLayers" class="me-1" style="color:#3B82F6"></svg>
+              Stock disponible
+              <span class="ms-2 px-2 py-0 rounded-pill fw-semibold"
+                    style="font-size:0.72rem;background:#EFF6FF;color:#3B82F6">
+                {{ getAvailableStock().length }}
+              </span>
+            </span>
+            <a routerLink="/containers/ventes" cButton color="info" size="sm" variant="outline"
+               style="border-radius:6px;font-size:0.78rem">Gérer</a>
+          </c-card-header>
+          <c-card-body class="p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+                  <tr>
+                    <th class="ps-4 py-2" style="font-weight:600">Description</th>
+                    <th class="text-center py-2" style="font-weight:600">Qté</th>
+                    <th class="text-end pe-4 py-2" style="font-weight:600">P.U. vente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let a of getAvailableStock().slice(0, 8)">
+                    <td class="ps-4 py-2">
+                      <div class="fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                        {{ a.description || a.container?.reference || '—' }}
+                      </div>
+                      <div style="font-size:0.72rem;color:#94a3b8">
+                        {{ a.arrival_date | date:'dd/MM/yyyy' }}
+                      </div>
+                    </td>
+                    <td class="text-center py-2">
+                      <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.75rem"
+                            [style.background]="a.remaining_quantity > 10 ? '#ECFDF5' : '#FFFBEB'"
+                            [style.color]="a.remaining_quantity > 10 ? '#10B981' : '#F59E0B'">
+                        {{ a.remaining_quantity }}
+                      </span>
+                    </td>
+                    <td class="text-end pe-4 py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                      {{ formatAmount(a.unit_sale_price, a.currency) }}
+                    </td>
+                  </tr>
+                  <tr *ngIf="getAvailableStock().length === 0">
+                    <td colspan="3" class="text-center py-5" style="color:#94a3b8">
+                      <svg cIcon name="cilInbox" size="xl" class="d-block mx-auto mb-2" style="opacity:.3"></svg>
+                      <span style="font-size:0.85rem">Aucun stock disponible</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+
+      <!-- Versements en attente -->
+      <div class="col-12 col-lg-6">
+        <c-card class="h-100" style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <c-card-header class="d-flex justify-content-between align-items-center py-3 px-4"
+                         style="background:#f8fafc;border-radius:12px 12px 0 0;border-bottom:1px solid #f0f0f0">
+            <span class="fw-semibold" style="color:#1e293b;font-size:0.9rem">
+              <svg cIcon name="cilClock" class="me-1" style="color:#F59E0B"></svg>
+              Versements en attente
+              <span class="ms-2 px-2 py-0 rounded-pill fw-semibold"
+                    style="font-size:0.72rem;background:#FFFBEB;color:#F59E0B">
+                {{ pendingSales.length }}
+              </span>
+            </span>
+            <a routerLink="/containers/ventes" cButton color="warning" size="sm" variant="outline"
+               style="border-radius:6px;font-size:0.78rem">Voir tout</a>
+          </c-card-header>
+          <c-card-body class="p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+                  <tr>
+                    <th class="ps-4 py-2" style="font-weight:600">Client</th>
+                    <th class="text-end py-2" style="font-weight:600">Restant</th>
+                    <th class="pe-4 py-2" style="width:130px;font-weight:600">Progression</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let s of pendingSales">
+                    <td class="ps-4 py-2">
+                      <div class="fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                        {{ s.client?.name || s.client_name || '—' }}
+                      </div>
+                      <div style="font-size:0.72rem;color:#94a3b8">
+                        {{ s.sale_type }} &mdash; {{ s.sale_date | date:'dd/MM/yyyy' }}
+                      </div>
+                    </td>
+                    <td class="text-end py-2 fw-semibold" style="font-size:0.85rem;color:#F59E0B">
+                      {{ formatAmount(s.remaining_amount, s.currency) }}
+                    </td>
+                    <td class="pe-4 py-2">
+                      <c-progress [value]="getPaymentProgress(s)"
+                                  [color]="getProgressColor(getPaymentProgress(s))"
+                                  height="6">
+                      </c-progress>
+                      <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px">
+                        {{ getPaymentProgress(s) }}%
+                      </div>
+                    </td>
+                  </tr>
+                  <tr *ngIf="pendingSales.length === 0">
+                    <td colspan="3" class="text-center py-5">
+                      <svg cIcon name="cilCheckCircle" size="xl" class="d-block mx-auto mb-2"
+                           style="color:#10B981;opacity:.6"></svg>
+                      <span style="font-size:0.85rem;color:#10B981">Aucun paiement en attente</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+
+      <!-- Ventes récentes -->
+      <div class="col-12">
+        <c-card style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <c-card-header class="d-flex justify-content-between align-items-center py-3 px-4"
+                         style="background:#f8fafc;border-radius:12px 12px 0 0;border-bottom:1px solid #f0f0f0">
+            <span class="fw-semibold" style="color:#1e293b;font-size:0.9rem">
+              <svg cIcon name="cilCart" class="me-1" style="color:#6366F1"></svg>
+              Ventes récentes
+              <span class="ms-2 px-2 py-0 rounded-pill fw-semibold"
+                    style="font-size:0.72rem;background:#EEF2FF;color:#6366F1">
+                {{ recentSales.length }}
+              </span>
+            </span>
+            <a routerLink="/containers/ventes" cButton color="secondary" size="sm" variant="outline"
+               style="border-radius:6px;font-size:0.78rem">Toutes les ventes</a>
+          </c-card-header>
+          <c-card-body class="p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+                  <tr>
+                    <th class="ps-4 py-2" style="font-weight:600">Client</th>
+                    <th class="py-2" style="font-weight:600">Type</th>
+                    <th class="text-center py-2" style="font-weight:600">Qté</th>
+                    <th class="text-end py-2" style="font-weight:600">Prix vente</th>
+                    <th class="text-end py-2" style="font-weight:600">Encaissé</th>
+                    <th class="text-center py-2" style="font-weight:600">Statut</th>
+                    <th class="pe-4 py-2" style="font-weight:600">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let s of recentSales">
+                    <td class="ps-4 py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                      {{ s.client?.name || s.client_name || '—' }}
+                    </td>
+                    <td class="py-2">
+                      <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem"
+                            [style.background]="s.sale_type === 'TOTAL' ? '#EEF2FF' : '#EFF6FF'"
+                            [style.color]="s.sale_type === 'TOTAL' ? '#6366F1' : '#3B82F6'">
+                        {{ s.sale_type }}
+                      </span>
+                    </td>
+                    <td class="text-center py-2" style="font-size:0.85rem">{{ s.quantity_sold }}</td>
+                    <td class="text-end py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                      {{ formatAmount(s.sale_price, s.currency) }}
+                    </td>
+                    <td class="text-end py-2" style="font-size:0.85rem;color:#10B981;font-weight:600">
+                      {{ formatAmount(s.amount_paid, s.currency) }}
+                    </td>
+                    <td class="text-center py-2">
+                      <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem"
+                            [style.background]="getSaleStatusColor(s.status) === 'success' ? '#ECFDF5'
+                                              : getSaleStatusColor(s.status) === 'warning' ? '#FFFBEB'
+                                              : getSaleStatusColor(s.status) === 'danger'  ? '#FEE2E2'
+                                              : '#EEF2FF'"
+                            [style.color]="getSaleStatusColor(s.status) === 'success' ? '#10B981'
+                                         : getSaleStatusColor(s.status) === 'warning' ? '#F59E0B'
+                                         : getSaleStatusColor(s.status) === 'danger'  ? '#EF4444'
+                                         : '#6366F1'">
+                        {{ getSaleStatusLabel(s.status) }}
+                      </span>
+                    </td>
+                    <td class="pe-4 py-2" style="font-size:0.82rem;color:#94a3b8">
+                      {{ s.sale_date | date:'dd/MM/yyyy' }}
+                    </td>
+                  </tr>
+                  <tr *ngIf="recentSales.length === 0">
+                    <td colspan="7" class="text-center py-5" style="color:#94a3b8">
+                      <svg cIcon name="cilInbox" size="xl" class="d-block mx-auto mb-2" style="opacity:.3"></svg>
+                      <span style="font-size:0.85rem">Aucune vente enregistrée</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+
+      <!-- Avances clients -->
+      <div *ngIf="clientAdvances.length > 0" class="col-12 col-md-6">
+        <c-card style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <c-card-header class="d-flex justify-content-between align-items-center py-3 px-4"
+                         style="background:#f8fafc;border-radius:12px 12px 0 0;border-bottom:1px solid #f0f0f0">
+            <span class="fw-semibold" style="color:#1e293b;font-size:0.9rem">
+              <svg cIcon name="cilMoney" class="me-1" style="color:#10B981"></svg>
+              Avances clients
+              <span class="ms-2 px-2 py-0 rounded-pill fw-semibold"
+                    style="font-size:0.72rem;background:#ECFDF5;color:#10B981">
+                {{ clientAdvances.length }}
+              </span>
+            </span>
+          </c-card-header>
+          <c-card-body class="p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+                  <tr>
+                    <th class="ps-4 py-2" style="font-weight:600">Client</th>
+                    <th class="text-end py-2" style="font-weight:600">Montant</th>
+                    <th class="pe-4 py-2" style="font-weight:600">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let a of clientAdvances">
+                    <td class="ps-4 py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                      {{ a.client?.name || '—' }}
+                    </td>
+                    <td class="text-end py-2 fw-semibold" style="font-size:0.85rem;color:#10B981">
+                      {{ formatAmount(a.amount, a.currency) }}
+                    </td>
+                    <td class="pe-4 py-2" style="font-size:0.82rem;color:#94a3b8">
+                      {{ a.advance_date | date:'dd/MM/yyyy' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+
     </div>
-
-    <!-- ===== PAIEMENTS EN ATTENTE ===== -->
-    <div class="col-12 col-lg-6">
-      <c-card class="h-100">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <span class="fw-semibold">
-            <svg cIcon name="cilClock" class="me-1 text-warning"></svg>
-            Versements en attente
-          </span>
-          <a routerLink="/containers/ventes" cButton color="warning" size="sm" variant="outline">Voir tout →</a>
-        </c-card-header>
-        <c-card-body class="p-0">
-          <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Client</th>
-                  <th class="text-end">Restant</th>
-                  <th style="width:100px">Progression</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let s of pendingSales">
-                  <td>
-                    <div class="fw-semibold small">{{ s.client?.name || s.client_name || '—' }}</div>
-                    <div class="text-muted" style="font-size:0.75rem">{{ s.sale_type }} — {{ s.sale_date | date:'dd/MM/yyyy' }}</div>
-                  </td>
-                  <td class="text-end text-warning fw-semibold small">
-                    {{ formatAmount(s.remaining_amount, s.currency) }}
-                  </td>
-                  <td>
-                    <c-progress [value]="getPaymentProgress(s)" [color]="getProgressColor(getPaymentProgress(s))" height="6"></c-progress>
-                    <div class="text-muted" style="font-size:0.7rem">{{ getPaymentProgress(s) }}%</div>
-                  </td>
-                </tr>
-                <tr *ngIf="pendingSales.length === 0">
-                  <td colspan="3" class="text-center text-muted py-4">
-                    <svg cIcon name="cilCheckCircle" class="text-success me-1"></svg>
-                    Aucun paiement en attente
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </c-card-body>
-      </c-card>
-    </div>
-
-    <!-- ===== VENTES RÉCENTES ===== -->
-    <div class="col-12">
-      <c-card>
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <span class="fw-semibold">
-            <svg cIcon name="cilCart" class="me-1 text-primary"></svg>
-            Ventes récentes
-          </span>
-          <a routerLink="/containers/ventes" cButton color="secondary" size="sm" variant="outline">Toutes les ventes →</a>
-        </c-card-header>
-        <c-card-body class="p-0">
-          <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Client</th>
-                  <th>Type</th>
-                  <th class="text-center">Qté</th>
-                  <th class="text-end">Prix vente</th>
-                  <th class="text-end">Encaissé</th>
-                  <th class="text-center">Statut</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let s of recentSales">
-                  <td class="fw-semibold small">{{ s.client?.name || s.client_name || '—' }}</td>
-                  <td>
-                    <c-badge [color]="s.sale_type === 'TOTAL' ? 'primary' : 'info'" class="small">{{ s.sale_type }}</c-badge>
-                  </td>
-                  <td class="text-center">{{ s.quantity_sold }}</td>
-                  <td class="text-end fw-semibold small">{{ formatAmount(s.sale_price, s.currency) }}</td>
-                  <td class="text-end small">{{ formatAmount(s.amount_paid, s.currency) }}</td>
-                  <td class="text-center">
-                    <c-badge [color]="getSaleStatusColor(s.status)" class="small">{{ getSaleStatusLabel(s.status) }}</c-badge>
-                  </td>
-                  <td class="text-muted small">{{ s.sale_date | date:'dd/MM/yyyy' }}</td>
-                </tr>
-                <tr *ngIf="recentSales.length === 0">
-                  <td colspan="7" class="text-center text-muted py-4">Aucune vente enregistrée</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </c-card-body>
-      </c-card>
-    </div>
-
-    <!-- ===== AVANCES CLIENTS ===== -->
-    <div *ngIf="clientAdvances.length > 0" class="col-12 col-md-6">
-      <c-card>
-        <c-card-header class="fw-semibold">
-          <svg cIcon name="cilMoney" class="me-1 text-success"></svg>
-          Avances clients
-        </c-card-header>
-        <c-card-body class="p-0">
-          <table class="table table-sm mb-0">
-            <thead class="table-light">
-              <tr><th>Client</th><th class="text-end">Montant</th><th>Date</th></tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let a of clientAdvances">
-                <td class="small fw-semibold">{{ a.client?.name || '—' }}</td>
-                <td class="text-end small text-success fw-semibold">{{ formatAmount(a.amount, a.currency) }}</td>
-                <td class="text-muted small">{{ a.advance_date | date:'dd/MM/yyyy' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </c-card-body>
-      </c-card>
-    </div>
-
   </div>
 </div>

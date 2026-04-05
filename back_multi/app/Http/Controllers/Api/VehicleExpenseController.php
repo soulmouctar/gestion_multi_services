@@ -11,10 +11,13 @@ class VehicleExpenseController extends BaseController
 {
     public function index(Request $request)
     {
-        $query = VehicleExpense::with('tenant', 'taxi', 'driver');
+        $user     = auth()->user();
+        $tenantId = $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
 
-        if ($request->has('tenant_id')) {
-            $query->where('tenant_id', $request->tenant_id);
+        $query = VehicleExpense::with('taxi', 'driver');
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
         }
 
         if ($request->has('taxi_id')) {
@@ -44,22 +47,24 @@ class VehicleExpenseController extends BaseController
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'tenant_id' => 'required|exists:tenants,id',
-            'taxi_id' => 'required|exists:taxis,id',
-            'driver_id' => 'nullable|exists:drivers,id',
-            'expense_date' => 'required|date',
-            'expense_type' => 'required|in:CARBURANT,ENTRETIEN,REPARATION,ASSURANCE,VISITE_TECHNIQUE,AMENDE,LAVAGE,AUTRE',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string|max:255',
+            'taxi_id'        => 'required|exists:taxis,id',
+            'driver_id'      => 'nullable|exists:drivers,id',
+            'expense_date'   => 'required|date',
+            'expense_type'   => 'required|in:CARBURANT,ENTRETIEN,REPARATION,ASSURANCE,VISITE_TECHNIQUE,AMENDE,LAVAGE,AUTRE',
+            'amount'         => 'required|numeric|min:0',
+            'description'    => 'nullable|string|max:255',
             'receipt_number' => 'nullable|string|max:50',
-            'notes' => 'nullable|string|max:1000',
+            'notes'          => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $expense = VehicleExpense::create($request->all());
+        $expense = VehicleExpense::create([
+            ...$request->only(['taxi_id', 'driver_id', 'expense_date', 'expense_type', 'amount', 'description', 'receipt_number', 'notes']),
+            'tenant_id' => auth()->user()->tenant_id,
+        ]);
 
         return $this->sendResponse(
             $expense->load('taxi', 'driver'),
@@ -125,51 +130,56 @@ class VehicleExpenseController extends BaseController
 
     public function statistics(Request $request)
     {
-        $tenantId = $request->get('tenant_id', 1);
-        $dateFrom = $request->get('date_from', now()->startOfMonth()->format('Y-m-d'));
-        $dateTo = $request->get('date_to', now()->format('Y-m-d'));
+        $user     = auth()->user();
+        $tenantId = $user->hasRole('SUPER_ADMIN')
+            ? $request->get('tenant_id', $user->tenant_id)
+            : $user->tenant_id;
 
-        // Total by expense type
-        $byType = DB::table('vehicle_expenses')
-            ->where('tenant_id', $tenantId)
-            ->whereBetween('expense_date', [$dateFrom, $dateTo])
-            ->groupBy('expense_type')
-            ->selectRaw('expense_type, SUM(amount) as total, COUNT(*) as count')
-            ->get();
+        $dateFrom = $request->get('date_from');
+        $dateTo   = $request->get('date_to');
 
-        // Total by taxi
-        $byTaxi = DB::table('vehicle_expenses')
-            ->join('taxis', 'vehicle_expenses.taxi_id', '=', 'taxis.id')
-            ->where('vehicle_expenses.tenant_id', $tenantId)
-            ->whereBetween('expense_date', [$dateFrom, $dateTo])
-            ->groupBy('taxis.id', 'taxis.plate_number')
-            ->selectRaw('taxis.id, taxis.plate_number, SUM(amount) as total, COUNT(*) as count')
-            ->orderByDesc('total')
-            ->limit(10)
-            ->get();
+        // Applique les filtres optionnels
+        $applyDates = function ($q) use ($dateFrom, $dateTo) {
+            if ($dateFrom) $q->where('expense_date', '>=', $dateFrom);
+            if ($dateTo)   $q->where('expense_date', '<=', $dateTo);
+            return $q;
+        };
 
-        // Monthly breakdown
-        $monthlyBreakdown = DB::table('vehicle_expenses')
-            ->where('tenant_id', $tenantId)
-            ->whereBetween('expense_date', [$dateFrom, $dateTo])
-            ->selectRaw('DATE_FORMAT(expense_date, "%Y-%m") as month, SUM(amount) as total, COUNT(*) as count')
-            ->groupBy('month')
-            ->orderBy('month', 'desc')
-            ->get();
+        // Summary global
+        $summaryRaw = $applyDates(
+            DB::table('vehicle_expenses')->where('tenant_id', $tenantId)
+        )->selectRaw('COALESCE(SUM(amount),0) as total_expenses, COUNT(*) as expense_count, COALESCE(AVG(amount),0) as avg_expense')
+         ->first();
 
-        // Summary
-        $summary = DB::table('vehicle_expenses')
-            ->where('tenant_id', $tenantId)
-            ->whereBetween('expense_date', [$dateFrom, $dateTo])
-            ->selectRaw('SUM(amount) as total_expenses, COUNT(*) as expense_count, AVG(amount) as avg_expense')
-            ->first();
+        $summary = [
+            'total_expenses' => (float) ($summaryRaw->total_expenses ?? 0),
+            'expense_count'  => (int)   ($summaryRaw->expense_count  ?? 0),
+            'avg_expense'    => (float) ($summaryRaw->avg_expense    ?? 0),
+        ];
+
+        // Par type de dépense
+        $byType = $applyDates(
+            DB::table('vehicle_expenses')->where('tenant_id', $tenantId)
+        )->groupBy('expense_type')
+         ->selectRaw('expense_type, COALESCE(SUM(amount),0) as total, COUNT(*) as count')
+         ->get();
+
+        // Par taxi
+        $byTaxi = $applyDates(
+            DB::table('vehicle_expenses')
+                ->join('taxis', 'vehicle_expenses.taxi_id', '=', 'taxis.id')
+                ->where('vehicle_expenses.tenant_id', $tenantId)
+        )->groupBy('taxis.id', 'taxis.plate_number')
+         ->selectRaw('taxis.id, taxis.plate_number, COALESCE(SUM(vehicle_expenses.amount),0) as total, COUNT(*) as count')
+         ->orderByDesc('total')
+         ->limit(10)
+         ->get();
 
         return $this->sendResponse([
             'summary' => $summary,
             'by_type' => $byType,
             'by_taxi' => $byTaxi,
-            'monthly_breakdown' => $monthlyBreakdown,
-            'period' => ['from' => $dateFrom, 'to' => $dateTo]
+            'period'  => ['from' => $dateFrom, 'to' => $dateTo],
         ], 'Statistics retrieved successfully');
     }
 

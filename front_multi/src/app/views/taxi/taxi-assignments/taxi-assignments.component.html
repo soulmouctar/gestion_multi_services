@@ -1,114 +1,174 @@
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
-      <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
+<div class="p-3 p-md-4">
+
+  <!-- En-tête -->
+  <div class="mb-4 p-4" style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;color:#fff;">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h4 class="mb-1 fw-bold" style="color:#fff;">
+          <svg cIcon name="cilTransfer" class="me-2" style="width:22px;height:22px;fill:#fff;"></svg>
+          Affectations Taxi &mdash; Conducteur
+        </h4>
+        <p class="mb-0" style="color:rgba(255,255,255,.65);font-size:.9rem;">
+          Gestion des affectations actives &mdash;
+          <span style="color:#93c5fd;">{{ totalItems }} affectation(s)</span>
+        </p>
+      </div>
+      <button class="btn btn-light fw-semibold d-flex align-items-center gap-2"
+              style="border-radius:10px;font-size:.875rem;"
+              (click)="openCreateModal()">
+        <svg cIcon name="cilPlus" style="width:16px;height:16px;"></svg>
+        Nouvelle affectation
+      </button>
     </div>
   </div>
 
-  <c-card>
-    <c-card-header class="d-flex justify-content-between align-items-center">
-      <div>
-        <strong>Affectations Taxi-Conducteur</strong>
-        <small class="text-muted ms-2">({{ totalItems }} affectation(s))</small>
-      </div>
-      <button cButton color="primary" (click)="openCreateModal()">
-        <svg cIcon name="cilPlus" class="me-1"></svg>
-        Nouvelle Affectation
-      </button>
-    </c-card-header>
-    <c-card-body>
-      <div *ngIf="loading" class="text-center p-4">
-        <c-spinner></c-spinner>
-        <p class="mt-2">Chargement...</p>
-      </div>
+  <!-- Alertes -->
+  <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null" class="mb-3">
+    {{ successMessage }}
+  </c-alert>
+  <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null" class="mb-3">
+    {{ error }}
+  </c-alert>
 
-      <div *ngIf="!loading && assignments.length === 0" class="text-center text-muted p-4">
-        Aucune affectation trouvée
-      </div>
+  <!-- ===== TABLE AFFECTATIONS ===== -->
+  <div style="background:#fff;border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);overflow:hidden;">
 
-      <div *ngIf="!loading && assignments.length > 0" class="table-responsive">
-        <table class="table table-striped table-hover">
-          <thead class="table-light">
-            <tr>
-              <th>Taxi</th>
-              <th>Conducteur</th>
-              <th>Date début</th>
-              <th>Date fin</th>
-              <th>Statut</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let assignment of assignments">
-              <td>
-                <strong>{{ assignment.taxi?.plate_number || 'N/A' }}</strong>
-              </td>
-              <td>
-                {{ assignment.driver?.name || 'N/A' }}
-                <br>
-                <small class="text-muted">{{ assignment.driver?.phone || '' }}</small>
-              </td>
-              <td>{{ assignment.start_date | date:'dd/MM/yyyy' }}</td>
-              <td>{{ assignment.end_date ? (assignment.end_date | date:'dd/MM/yyyy') : 'Indéterminée' }}</td>
-              <td>
-                <c-badge [color]="getStatusColor(assignment)">
-                  {{ getAssignmentStatus(assignment) }}
-                </c-badge>
-              </td>
-              <td>
-                <c-button-group size="sm">
-                  <button cButton color="warning" variant="outline" size="sm" (click)="openEditModal(assignment)">
-                    <svg cIcon name="cilPencil"></svg>
-                  </button>
-                  <button cButton color="danger" variant="outline" size="sm" (click)="deleteAssignment(assignment)">
-                    <svg cIcon name="cilTrash"></svg>
-                  </button>
-                </c-button-group>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- Chargement -->
+    <div *ngIf="loading" class="text-center py-5">
+      <c-spinner style="color:#0f3460;"></c-spinner>
+      <p class="mt-3 text-muted">Chargement des affectations...</p>
+    </div>
 
-      <!-- Pagination -->
-      <div *ngIf="totalPages > 1" class="d-flex justify-content-center mt-3">
-        <ul class="pagination">
-          <li class="page-item" [class.disabled]="currentPage === 1">
-            <button class="page-link" (click)="onPageChange(currentPage - 1)" [disabled]="currentPage === 1">
-              Précédent
-            </button>
-          </li>
-          <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index" 
-              [class.active]="currentPage === i + 1">
-            <button class="page-link" (click)="onPageChange(i + 1)">{{ i + 1 }}</button>
-          </li>
-          <li class="page-item" [class.disabled]="currentPage === totalPages">
-            <button class="page-link" (click)="onPageChange(currentPage + 1)" [disabled]="currentPage === totalPages">
-              Suivant
-            </button>
-          </li>
-        </ul>
+    <!-- État vide -->
+    <div *ngIf="!loading && assignments.length === 0" class="text-center py-5" style="color:#94a3b8;">
+      <div style="font-size:2.5rem;margin-bottom:12px;">🚕</div>
+      <p class="mb-0">Aucune affectation enregistrée</p>
+      <small>Cliquez sur « Nouvelle affectation » pour commencer</small>
+    </div>
+
+    <!-- Tableau -->
+    <div *ngIf="!loading && assignments.length > 0" class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#f8fafc;">
+          <tr>
+            <th class="px-4 py-3" style="font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;">Taxi</th>
+            <th class="py-3" style="font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;">Conducteur</th>
+            <th class="py-3" style="font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;">Date début</th>
+            <th class="py-3" style="font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;">Date fin</th>
+            <th class="py-3" style="font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;">Statut</th>
+            <th class="py-3 pe-4" style="width:110px;font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let assignment of assignments" style="border-bottom:1px solid #f1f5f9;">
+            <!-- Taxi -->
+            <td class="px-4 py-3">
+              <div style="display:inline-flex;align-items:center;gap:8px;">
+                <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg cIcon name="cilCar" style="width:16px;height:16px;fill:#fff;"></svg>
+                </div>
+                <span class="fw-bold" style="color:#0f3460;">{{ assignment.taxi?.plate_number || 'N/A' }}</span>
+              </div>
+            </td>
+            <!-- Conducteur -->
+            <td class="py-3">
+              <div class="fw-semibold" style="color:#1e293b;">{{ assignment.driver?.name || 'N/A' }}</div>
+              <div style="font-size:.78rem;color:#94a3b8;">{{ assignment.driver?.phone || '' }}</div>
+            </td>
+            <!-- Date début -->
+            <td class="py-3" style="color:#475569;">
+              {{ assignment.start_date | date:'dd/MM/yyyy' }}
+            </td>
+            <!-- Date fin -->
+            <td class="py-3">
+              <span *ngIf="assignment.end_date" style="color:#475569;">
+                {{ assignment.end_date | date:'dd/MM/yyyy' }}
+              </span>
+              <span *ngIf="!assignment.end_date"
+                style="padding:3px 8px;border-radius:12px;font-size:.75rem;background:#ECFDF5;color:#10B981;font-weight:600;">
+                Indéterminée
+              </span>
+            </td>
+            <!-- Statut -->
+            <td class="py-3">
+              <span *ngIf="getAssignmentStatus(assignment) === 'Active'"
+                style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.78rem;font-weight:600;background:#ECFDF5;color:#10B981;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#10B981;display:inline-block;"></span>
+                Active
+              </span>
+              <span *ngIf="getAssignmentStatus(assignment) === 'À venir'"
+                style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.78rem;font-weight:600;background:#FFFBEB;color:#F59E0B;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block;"></span>
+                À venir
+              </span>
+              <span *ngIf="getAssignmentStatus(assignment) === 'Terminée'"
+                style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.78rem;font-weight:600;background:#F8FAFC;color:#64748b;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#94a3b8;display:inline-block;"></span>
+                Terminée
+              </span>
+            </td>
+            <!-- Actions -->
+            <td class="py-3 pe-4">
+              <div class="d-flex gap-2 justify-content-end">
+                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                        style="width:32px;height:32px;border-radius:8px;border:1px solid #FEF9C3;background:#FEFCE8;color:#D97706;"
+                        (click)="openEditModal(assignment)" title="Modifier">
+                  <svg cIcon name="cilPencil" style="width:14px;height:14px;"></svg>
+                </button>
+                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                        style="width:32px;height:32px;border-radius:8px;border:1px solid #FEE2E2;background:#FEF2F2;color:#EF4444;"
+                        (click)="deleteAssignment(assignment)" title="Supprimer">
+                  <svg cIcon name="cilTrash" style="width:14px;height:14px;"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="!loading && totalPages > 1"
+         class="d-flex justify-content-between align-items-center px-4 py-3"
+         style="border-top:1px solid #f1f5f9;">
+      <span style="font-size:.8rem;color:#64748b;">
+        Page {{ currentPage }} / {{ totalPages }} &mdash; {{ totalItems }} affectation(s)
+      </span>
+      <div class="d-flex gap-1">
+        <button class="btn btn-sm"
+                style="border-radius:8px;border:1px solid #e2e8f0;color:#475569;"
+                [disabled]="currentPage === 1"
+                (click)="onPageChange(currentPage - 1)">‹ Préc.</button>
+        <button *ngFor="let page of [].constructor(totalPages); let i = index"
+                class="btn btn-sm"
+                [style]="currentPage === i + 1
+                  ? 'border-radius:8px;background:#0f3460;color:#fff;border:1px solid #0f3460;'
+                  : 'border-radius:8px;border:1px solid #e2e8f0;color:#475569;'"
+                (click)="onPageChange(i + 1)">{{ i + 1 }}</button>
+        <button class="btn btn-sm"
+                style="border-radius:8px;border:1px solid #e2e8f0;color:#475569;"
+                [disabled]="currentPage === totalPages"
+                (click)="onPageChange(currentPage + 1)">Suiv. ›</button>
       </div>
-    </c-card-body>
-  </c-card>
+    </div>
+  </div>
 </div>
 
-<!-- Assignment Modal -->
+<!-- ===== MODAL : Créer / Modifier une affectation ===== -->
 <c-modal [visible]="showModal" (visibleChange)="showModal = $event" backdrop="static">
-  <c-modal-header>
-    <h5 cModalTitle>{{ modalTitle }}</h5>
+  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+    <h5 cModalTitle class="fw-bold" style="color:#1e293b;">{{ modalTitle }}</h5>
     <button type="button" class="btn-close" (click)="showModal = false"></button>
   </c-modal-header>
   <c-modal-body>
     <form [formGroup]="assignmentForm">
       <div class="mb-3">
-        <label cLabel>Taxi *</label>
-        <select cSelect formControlName="taxi_id" [class.is-invalid]="submitted && assignmentForm.get('taxi_id')?.invalid">
+        <label cLabel class="fw-semibold mb-1" style="font-size:.875rem;color:#374151;">Taxi *</label>
+        <select cSelect formControlName="taxi_id"
+                style="border-radius:8px;"
+                [class.is-invalid]="submitted && assignmentForm.get('taxi_id')?.invalid">
           <option value="">Sélectionner un taxi</option>
-          <option *ngFor="let taxi of taxis" [value]="taxi.id">
-            {{ taxi.plate_number }}
-          </option>
+          <option *ngFor="let taxi of taxis" [value]="taxi.id">{{ taxi.plate_number }}</option>
         </select>
         <div *ngIf="submitted && assignmentForm.get('taxi_id')?.invalid" class="invalid-feedback">
           Veuillez sélectionner un taxi
@@ -116,11 +176,13 @@
       </div>
 
       <div class="mb-3">
-        <label cLabel>Conducteur *</label>
-        <select cSelect formControlName="driver_id" [class.is-invalid]="submitted && assignmentForm.get('driver_id')?.invalid">
+        <label cLabel class="fw-semibold mb-1" style="font-size:.875rem;color:#374151;">Conducteur *</label>
+        <select cSelect formControlName="driver_id"
+                style="border-radius:8px;"
+                [class.is-invalid]="submitted && assignmentForm.get('driver_id')?.invalid">
           <option value="">Sélectionner un conducteur</option>
           <option *ngFor="let driver of drivers" [value]="driver.id">
-            {{ driver.name }} {{ driver.phone ? '(' + driver.phone + ')' : '' }}
+            {{ driver.name }}{{ driver.phone ? ' (' + driver.phone + ')' : '' }}
           </option>
         </select>
         <div *ngIf="submitted && assignmentForm.get('driver_id')?.invalid" class="invalid-feedback">
@@ -128,26 +190,28 @@
         </div>
       </div>
 
-      <div class="mb-3">
-        <label cLabel>Date de début *</label>
-        <input cFormControl type="date" formControlName="start_date" 
-               [class.is-invalid]="submitted && assignmentForm.get('start_date')?.invalid" />
-        <div *ngIf="submitted && assignmentForm.get('start_date')?.invalid" class="invalid-feedback">
-          Veuillez saisir la date de début
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label cLabel class="fw-semibold mb-1" style="font-size:.875rem;color:#374151;">Date de début *</label>
+          <input cFormControl type="date" formControlName="start_date"
+                 style="border-radius:8px;"
+                 [class.is-invalid]="submitted && assignmentForm.get('start_date')?.invalid" />
+          <div *ngIf="submitted && assignmentForm.get('start_date')?.invalid" class="invalid-feedback">
+            Veuillez saisir la date de début
+          </div>
         </div>
-      </div>
-
-      <div class="mb-3">
-        <label cLabel>Date de fin</label>
-        <input cFormControl type="date" formControlName="end_date" />
-        <small class="form-text text-muted">Laissez vide pour une affectation indéterminée</small>
+        <div class="col-md-6 mb-3">
+          <label cLabel class="fw-semibold mb-1" style="font-size:.875rem;color:#374151;">Date de fin</label>
+          <input cFormControl type="date" formControlName="end_date" style="border-radius:8px;" />
+          <small class="text-muted" style="font-size:.78rem;">Laissez vide pour une durée indéterminée</small>
+        </div>
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showModal = false">Annuler</button>
-    <button cButton color="primary" (click)="saveAssignment()">
-      {{ isEditing ? 'Modifier' : 'Créer' }}
+  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+    <button class="btn btn-outline-secondary" style="border-radius:8px;" (click)="showModal = false">Annuler</button>
+    <button class="btn btn-primary fw-semibold" style="border-radius:8px;background:#0f3460;border-color:#0f3460;" (click)="saveAssignment()">
+      {{ isEditing ? 'Modifier' : 'Créer l\'affectation' }}
     </button>
   </c-modal-footer>
 </c-modal>

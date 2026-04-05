@@ -1,206 +1,167 @@
-<c-container>
-  <c-row>
-    <c-col xs="12">
-      <c-card class="mb-4">
-        <c-card-header>
-          <strong>Gestion des Paiements</strong>
-          <small class="text-medium-emphasis"> Liste et filtres</small>
-        </c-card-header>
-        
-        <c-card-body>
-          <!-- Filtres -->
-          <form [formGroup]="filterForm" class="mb-4">
-            <c-row>
-              <c-col md="3">
-                <label cLabel for="search">Recherche</label>
-                <input
-                  cFormControl
-                  type="text"
-                  id="search"
-                  formControlName="search"
-                  placeholder="Rechercher..."
-                />
-              </c-col>
-              <c-col md="2">
-                <label cLabel for="type">Type</label>
-                <select cSelect formControlName="type" id="type">
-                  <option value="">Tous</option>
-                  <option value="INCOME">Recette</option>
-                  <option value="EXPENSE">Dépense</option>
-                </select>
-              </c-col>
-              <c-col md="2">
-                <label cLabel for="method">Méthode</label>
-                <select cSelect formControlName="method" id="method">
-                  <option value="">Toutes</option>
-                  <option value="ORANGE_MONEY">Orange Money</option>
-                  <option value="VIREMENT">Virement</option>
-                  <option value="CHEQUE">Chèque</option>
-                  <option value="ESPECES">Espèces</option>
-                </select>
-              </c-col>
-              <c-col md="2">
-                <label cLabel for="date_from">Date début</label>
-                <input
-                  cFormControl
-                  type="date"
-                  id="date_from"
-                  formControlName="date_from"
-                />
-              </c-col>
-              <c-col md="2">
-                <label cLabel for="date_to">Date fin</label>
-                <input
-                  cFormControl
-                  type="date"
-                  id="date_to"
-                  formControlName="date_to"
-                />
-              </c-col>
-            </c-row>
-          </form>
+<div class="p-3 p-md-4">
 
-          <!-- Actions en lot -->
-          <div class="mb-3" *ngIf="selectedPayments.size > 0">
-            <c-button-group>
-              <button
-                cButton
-                color="danger"
-                variant="outline"
-                (click)="deleteSelectedPayments()"
-              >
-                <svg cIcon name="cilTrash"></svg>
-                Supprimer ({{ selectedPayments.size }})
-              </button>
-              <button
-                cButton
-                color="success"
-                variant="outline"
-                (click)="exportPayments()"
-              >
-                <svg cIcon name="cilCloudDownload"></svg>
-                Exporter
-              </button>
-            </c-button-group>
-          </div>
+  <!-- Header -->
+  <div class="rounded-3 p-4 mb-4 text-white d-flex align-items-center justify-content-between"
+       style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 16px !important;">
+    <div>
+      <h4 class="fw-bold mb-1">Gestion des Paiements</h4>
+      <p class="mb-0 opacity-75 small">Liste de tous les paiements enregistrés</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button cButton color="light" size="sm" (click)="exportPayments()" style="border-radius:8px">
+        <svg cIcon name="cilCloudDownload" class="me-1" size="sm"></svg> Exporter
+      </button>
+    </div>
+  </div>
 
-          <!-- Messages d'erreur -->
-          <c-alert
-            *ngIf="error"
-            color="danger"
-            dismissible
-            (dismissed)="error = null"
-          >
-            {{ error }}
-          </c-alert>
+  <!-- Filtres -->
+  <div class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+    <form [formGroup]="filterForm">
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-3">
+          <label cLabel class="small fw-semibold text-muted mb-1">Recherche</label>
+          <input cFormControl type="text" formControlName="search" placeholder="Rechercher..."
+                 style="border-radius:8px" />
+        </div>
+        <div class="col-6 col-md-2">
+          <label cLabel class="small fw-semibold text-muted mb-1">Type</label>
+          <select cSelect formControlName="type" style="border-radius:8px">
+            <option value="">Tous</option>
+            <option value="CLIENT">Paiement Client</option>
+            <option value="SUPPLIER">Fournisseur</option>
+            <option value="DEPOT">Dépôt</option>
+            <option value="RETRAIT">Retrait</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label cLabel class="small fw-semibold text-muted mb-1">Méthode</label>
+          <select cSelect formControlName="method" style="border-radius:8px">
+            <option value="">Toutes</option>
+            <option value="ORANGE_MONEY">Orange Money</option>
+            <option value="VIREMENT">Virement</option>
+            <option value="CHEQUE">Chèque</option>
+            <option value="ESPECES">Espèces</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label cLabel class="small fw-semibold text-muted mb-1">Date début</label>
+          <input cFormControl type="date" formControlName="date_from" style="border-radius:8px" />
+        </div>
+        <div class="col-6 col-md-2">
+          <label cLabel class="small fw-semibold text-muted mb-1">Date fin</label>
+          <input cFormControl type="date" formControlName="date_to" style="border-radius:8px" />
+        </div>
+        <div class="col-12 col-md-1">
+          <button cButton color="primary" size="sm" (click)="applyFilters()" class="w-100" style="border-radius:8px">
+            <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
 
-          <!-- Spinner de chargement -->
-          <div *ngIf="loading" class="text-center p-4">
-            <c-spinner></c-spinner>
-            <p class="mt-2">Chargement des paiements...</p>
-          </div>
+  <!-- Alerte erreur -->
+  <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null" class="mb-3">
+    {{ error }}
+  </c-alert>
 
-          <!-- Tableau des paiements -->
-          <div class="table-responsive" *ngIf="!loading">
-          <table class="table table-striped table-hover">
-            <thead>
-              <tr>
-                <th>
-                  <input
-                    type="checkbox"
-                    [checked]="selectAll"
-                    (change)="toggleSelectAll()"
-                  />
-                </th>
-                <th>Type</th>
-                <th>Méthode</th>
-                <th>Montant</th>
-                <th>Devise</th>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let payment of payments; trackBy: trackByPaymentId">
-                <td>
-                  <input
-                    type="checkbox"
-                    [checked]="isPaymentSelected(payment.id)"
-                    (change)="togglePaymentSelection(payment.id)"
-                  />
-                </td>
-                <td>
-                  <c-badge [color]="getPaymentTypeClass(payment.type)">
-                    {{ getPaymentTypeLabel(payment.type) }}
-                  </c-badge>
-                </td>
-                <td>{{ getPaymentMethodLabel(payment.method) }}</td>
-                <td class="text-end">
-                  <strong>{{ payment.amount | number:'1.2-2' }}</strong>
-                </td>
-                <td>{{ payment.currency }}</td>
-                <td>{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
-                <td>{{ payment.description || '-' }}</td>
-                <td>
-                  <c-button-group size="sm">
-                    <button
-                      cButton
-                      color="info"
-                      variant="outline"
-                      size="sm"
-                      title="Voir les détails"
-                    >
-                      <svg cIcon name="cilEye"></svg>
-                    </button>
-                    <button
-                      cButton
-                      color="warning"
-                      variant="outline"
-                      size="sm"
-                      title="Modifier"
-                    >
-                      <svg cIcon name="cilPencil"></svg>
-                    </button>
-                  </c-button-group>
-                </td>
-              </tr>
-              <tr *ngIf="payments.length === 0">
-                <td colspan="8" class="text-center text-medium-emphasis p-4">
-                  Aucun paiement trouvé
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          </div>
+  <!-- Actions groupées -->
+  <div class="mb-3" *ngIf="selectedPayments.size > 0">
+    <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:#FEE2E2; border:1px solid #FCA5A5;">
+      <span class="small fw-semibold" style="color:#EF4444;">{{ selectedPayments.size }} sélectionné(s)</span>
+      <button cButton color="danger" size="sm" (click)="deleteSelectedPayments()" style="border-radius:8px">
+        <svg cIcon name="cilTrash" class="me-1" size="sm"></svg> Supprimer
+      </button>
+    </div>
+  </div>
 
-          <!-- Pagination -->
-          <nav *ngIf="!loading && totalPages > 1" class="d-flex justify-content-center mt-3">
-            <ul class="pagination">
-              <li class="page-item" [class.disabled]="currentPage === 1">
-                <a class="page-link" (click)="onPageChange(currentPage - 1)">Précédent</a>
-              </li>
-              <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
-                <a class="page-link" (click)="onPageChange(page)">{{ page }}</a>
-              </li>
-              <li class="page-item" [class.disabled]="currentPage === totalPages">
-                <a class="page-link" (click)="onPageChange(currentPage + 1)">Suivant</a>
-              </li>
-            </ul>
-          </nav>
+  <!-- Tableau -->
+  <div class="bg-white rounded-3" style="border-radius:12px; border:1px solid #f0f0f0;">
 
-          <!-- Informations de pagination -->
-          <div *ngIf="!loading" class="d-flex justify-content-between align-items-center mt-3">
-            <small class="text-medium-emphasis">
-              Affichage de {{ (currentPage - 1) * itemsPerPage + 1 }} à 
-              {{ Math.min(currentPage * itemsPerPage, totalItems) }} sur {{ totalItems }} paiements
-            </small>
-            <small class="text-medium-emphasis">
-              Page {{ currentPage }} sur {{ totalPages }}
-            </small>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-</c-container>
+    <!-- Chargement -->
+    <div *ngIf="loading" class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="text-muted mt-2 small">Chargement des paiements...</p>
+    </div>
+
+    <div *ngIf="!loading" class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#f8fafc;">
+          <tr>
+            <th class="px-3 py-3" style="width:40px;">
+              <input type="checkbox" class="form-check-input" [checked]="selectAll" (change)="toggleSelectAll()" />
+            </th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Type</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Méthode</th>
+            <th class="px-3 py-3 small fw-semibold text-muted text-end">Montant</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Devise</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Date</th>
+            <th class="px-3 py-3 small fw-semibold text-muted">Description</th>
+            <th class="px-3 py-3 small fw-semibold text-muted text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let payment of payments; trackBy: trackByPaymentId">
+            <td class="px-3">
+              <input type="checkbox" class="form-check-input"
+                     [checked]="isPaymentSelected(payment.id)"
+                     (change)="togglePaymentSelection(payment.id)" />
+            </td>
+            <td class="px-3">
+              <span class="badge px-2 py-1 small fw-semibold"
+                    [style.background]="isIncomingType(payment.type) ? '#ECFDF5' : '#FEE2E2'"
+                    [style.color]="isIncomingType(payment.type) ? '#10B981' : '#EF4444'">
+                {{ getPaymentTypeLabel(payment.type) }}
+              </span>
+            </td>
+            <td class="px-3 small">{{ getPaymentMethodLabel(payment.method) }}</td>
+            <td class="px-3 text-end fw-bold">{{ payment.amount | number:'1.2-2' }}</td>
+            <td class="px-3 small text-muted">{{ payment.currency }}</td>
+            <td class="px-3 small">{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
+            <td class="px-3 small text-muted">{{ payment.description || '—' }}</td>
+            <td class="px-3 text-center">
+              <div class="d-flex gap-1 justify-content-center">
+                <button cButton color="info" variant="outline" size="sm" title="Voir les détails"
+                        style="border-radius:8px">
+                  <svg cIcon name="cilEye" size="sm"></svg>
+                </button>
+                <button cButton color="warning" variant="outline" size="sm" title="Modifier"
+                        style="border-radius:8px">
+                  <svg cIcon name="cilPencil" size="sm"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="payments.length === 0">
+            <td colspan="8" class="text-center text-muted py-5">
+              <svg cIcon name="cilNotes" size="3xl" class="mb-2 opacity-25"></svg>
+              <p class="mb-0">Aucun paiement trouvé</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination & infos -->
+    <div *ngIf="!loading && totalItems > 0" class="d-flex align-items-center justify-content-between px-3 py-2 border-top" style="background:#fafafa; border-radius:0 0 12px 12px;">
+      <small class="text-muted">
+        Affichage de {{ (currentPage - 1) * itemsPerPage + 1 }} à
+        {{ Math.min(currentPage * itemsPerPage, totalItems) }} sur {{ totalItems }} paiements
+      </small>
+      <nav *ngIf="totalPages > 1">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <a class="page-link" style="border-radius:6px 0 0 6px; cursor:pointer;" (click)="onPageChange(currentPage - 1)">‹</a>
+          </li>
+          <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+            <a class="page-link" style="cursor:pointer;" (click)="onPageChange(page)">{{ page }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <a class="page-link" style="border-radius:0 6px 6px 0; cursor:pointer;" (click)="onPageChange(currentPage + 1)">›</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+</div>

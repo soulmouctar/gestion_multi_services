@@ -135,8 +135,10 @@ export class PaymentsListComponent implements OnInit {
 
   getPaymentTypeLabel(type: string): string {
     const types: { [key: string]: string } = {
-      'INCOME': 'Recette',
-      'EXPENSE': 'Dépense'
+      'CLIENT':   'Paiement Client',
+      'SUPPLIER': 'Fournisseur',
+      'DEPOT':    'Dépôt',
+      'RETRAIT':  'Retrait'
     };
     return types[type] || type;
   }
@@ -144,15 +146,16 @@ export class PaymentsListComponent implements OnInit {
   getPaymentMethodLabel(method: string): string {
     const methods: { [key: string]: string } = {
       'ORANGE_MONEY': 'Orange Money',
-      'VIREMENT': 'Virement',
-      'CHEQUE': 'Chèque',
-      'ESPECES': 'Espèces'
+      'VIREMENT':     'Virement',
+      'CHEQUE':       'Chèque',
+      'ESPECES':      'Espèces'
     };
     return methods[method] || method;
   }
 
-  getPaymentTypeClass(type: string): string {
-    return type === 'INCOME' ? 'success' : 'danger';
+  /** Renvoie true pour les types "entrant" (fond vert), false pour les types "sortant" (fond rouge) */
+  isIncomingType(type: string): boolean {
+    return type === 'CLIENT' || type === 'DEPOT';
   }
 
   toggleSelectAll(): void {

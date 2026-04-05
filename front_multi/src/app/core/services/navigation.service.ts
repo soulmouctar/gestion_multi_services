@@ -155,16 +155,18 @@ export class NavigationService {
 
         case 'RENTAL':
           moduleNavigation.push({
-            name: 'Location',
+            name: 'Location Immobilière',
             url: '/rental',
             iconComponent: { name: 'cilHome' },
             children: [
+              { name: 'Tableau de Bord',              url: '/rental/dashboard',          icon: 'nav-icon-bullet' },
               { name: 'Contrats de Location',         url: '/rental/leases',             icon: 'nav-icon-bullet' },
+              { name: 'Locataires',                   url: '/rental/tenants',            icon: 'nav-icon-bullet' },
               { name: 'Unités de Logement',           url: '/rental/housing-units',      icon: 'nav-icon-bullet' },
               { name: 'Bâtiments',                    url: '/rental/buildings',          icon: 'nav-icon-bullet' },
               { name: 'Emplacements',                 url: '/rental/locations',          icon: 'nav-icon-bullet' },
               { name: 'Étages',                       url: '/rental/floors',             icon: 'nav-icon-bullet' },
-              { name: 'Configurations',               url: '/rental/unit-configurations', icon: 'nav-icon-bullet' },
+              { name: 'Configurations Unités',        url: '/rental/unit-configurations', icon: 'nav-icon-bullet' },
             ]
           });
           break;
@@ -188,11 +190,13 @@ export class NavigationService {
             url: '/taxi',
             iconComponent: { name: 'cilLocationPin' },
             children: [
+              { name: 'Tableau de Bord',              url: '/taxi/dashboard',            icon: 'nav-icon-bullet' },
               { name: 'Véhicules',                    url: '/taxi/vehicles',             icon: 'nav-icon-bullet' },
               { name: 'Conducteurs',                  url: '/taxi/drivers',              icon: 'nav-icon-bullet' },
               { name: 'Affectations',                 url: '/taxi/assignments',          icon: 'nav-icon-bullet' },
               { name: 'Versements Journaliers',       url: '/taxi/daily-payments',       icon: 'nav-icon-bullet' },
               { name: 'Dépenses Véhicules',           url: '/taxi/vehicle-expenses',     icon: 'nav-icon-bullet' },
+              { name: 'Documents & Assurances',       url: '/taxi/documents',            icon: 'nav-icon-bullet' },
             ]
           });
           break;

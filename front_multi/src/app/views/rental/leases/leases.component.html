@@ -164,7 +164,7 @@
           <tbody>
             <tr *ngFor="let p of payments">
               <td class="fw-semibold">{{ p.lease?.renter_name || '—' }}</td>
-              <td>{{ p.period_month }}</td>
+              <td><span class="badge bg-primary-subtle text-primary-emphasis">{{ formatPeriod(p.period_month) }}</span></td>
               <td class="text-end fw-semibold">{{ formatAmount(p.amount, p.currency) }}</td>
               <td class="text-muted small">{{ getPaymentMethodLabel(p.payment_method) }}</td>
               <td class="text-muted small">{{ p.payment_date | date:'dd/MM/yyyy' }}</td>
@@ -297,16 +297,55 @@
     <button cButtonClose (click)="showPaymentModal = false"></button>
   </c-modal-header>
   <c-modal-body>
+    <!-- Tenant info -->
     <div *ngIf="selectedLease" class="alert alert-info small mb-3">
       <strong>{{ selectedLease.renter_name }}</strong> —
       Loyer: <strong>{{ formatAmount(selectedLease.monthly_rent, selectedLease.currency) }}</strong>
     </div>
+
+    <!-- Unpaid months summary -->
+    <div *ngIf="loadingPaidMonths" class="text-center text-muted small mb-3">
+      <c-spinner size="sm"></c-spinner> Chargement de l'historique...
+    </div>
+
+    <div *ngIf="!loadingPaidMonths && unpaidMonths.length > 0" class="mb-3">
+      <div class="fw-semibold small text-danger mb-1">
+        ⚠ {{ unpaidMonths.length }} mois impayé(s) — Sélectionnez le mois à régler :
+      </div>
+      <div class="d-flex flex-wrap gap-1">
+        <button *ngFor="let m of unpaidMonths"
+          type="button"
+          class="btn btn-sm"
+          [class.btn-danger]="paymentForm.get('period_month')?.value === m"
+          [class.btn-outline-secondary]="paymentForm.get('period_month')?.value !== m"
+          (click)="paymentForm.patchValue({ period_month: m })">
+          {{ formatPeriod(m) }}
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="!loadingPaidMonths && unpaidMonths.length === 0 && paidPeriods.length > 0"
+      class="alert alert-success small mb-3">
+      ✅ Tous les loyers sont à jour. Vous pouvez enregistrer un paiement anticipé.
+    </div>
+
     <form [formGroup]="paymentForm">
       <div class="row g-3">
         <div class="col-md-6">
-          <label cLabel>Période (mois) *</label>
-          <input cFormControl type="month" formControlName="period_month"
-            [class.is-invalid]="submitted && paymentForm.get('period_month')?.invalid">
+          <label cLabel class="fw-semibold">
+            Période payée *
+            <span *ngIf="isPeriodAlreadyPaid(paymentForm.get('period_month')?.value)"
+              class="text-warning small ms-1">⚠ déjà enregistré</span>
+          </label>
+          <!-- Show formatted current selection + allow manual override -->
+          <div class="input-group">
+            <input cFormControl type="month" formControlName="period_month"
+              [class.is-invalid]="submitted && paymentForm.get('period_month')?.invalid"
+              [class.border-warning]="isPeriodAlreadyPaid(paymentForm.get('period_month')?.value)">
+          </div>
+          <div class="form-text text-muted" *ngIf="paymentForm.get('period_month')?.value">
+            Mois sélectionné : <strong>{{ formatPeriod(paymentForm.get('period_month')?.value) }}</strong>
+          </div>
           <div class="invalid-feedback">Période requise</div>
         </div>
         <div class="col-md-6">
@@ -366,7 +405,7 @@
       <div class="fw-semibold">{{ selectedLease.renter_name }}</div>
       <div class="text-muted small">
         Loyer: {{ formatAmount(selectedLease.monthly_rent, selectedLease.currency) }} —
-        Mois payés: {{ getPaidMonths(selectedLease) }}
+        Mois payés: <strong class="text-success">{{ selectedLeasePayments.length }}</strong>
       </div>
     </div>
 
@@ -384,7 +423,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let p of selectedLeasePayments">
-            <td>{{ p.period_month }}</td>
+            <td><span class="badge bg-primary-subtle text-primary-emphasis">{{ formatPeriod(p.period_month) }}</span></td>
             <td class="text-end fw-semibold">{{ formatAmount(p.amount, p.currency) }}</td>
             <td class="text-muted small">{{ getPaymentMethodLabel(p.payment_method) }}</td>
             <td class="text-muted small">{{ p.payment_date | date:'dd/MM/yyyy' }}</td>

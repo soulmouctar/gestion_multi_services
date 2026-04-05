@@ -1,363 +1,308 @@
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <c-card>
-        <c-card-header>
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h4 class="mb-0">Gestion des Utilisateurs</h4>
-              <small class="text-muted">{{ filteredUsers.length }} utilisateur(s) affiché(s) sur {{ users.length }} total</small>
-            </div>
-            <button 
-              cButton 
-              color="primary" 
-              (click)="openUserModal()"
-              [disabled]="loading">
-              + Nouvel Utilisateur
-            </button>
-          </div>
-        </c-card-header>
-        
-        <c-card-body>
-          <!-- Filtres -->
-          <form [formGroup]="filterForm" class="mb-4">
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-label">Rechercher</label>
-                <input 
-                  cFormControl 
-                  type="text" 
-                  formControlName="search"
-                  placeholder="Nom ou email..."
-                  class="form-control"
-                  (input)="applyFilters()">
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">Rôle</label>
-                <select cFormControl formControlName="role" class="form-select" (change)="applyFilters()">
-                  <option value="ALL">Tous les rôles</option>
-                  <option *ngFor="let role of availableRoles" [value]="role">
-                    {{ getRoleDisplayName(role) }}
-                  </option>
-                </select>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">Organisation</label>
-                <select cFormControl formControlName="tenant_id" class="form-select" (change)="applyFilters()">
-                  <option value="ALL">Toutes les organisations</option>
-                  <option *ngFor="let tenant of tenants" [value]="tenant.id">
-                    {{ tenant.name }}
-                  </option>
-                </select>
-              </div>
-              <div class="col-md-2 d-flex align-items-end">
-                <div class="btn-group w-100">
-                  <button 
-                    cButton 
-                    color="outline-primary" 
-                    (click)="applyFilters()"
-                    [disabled]="loading">
-                    🔍
-                  </button>
-                  <button 
-                    cButton 
-                    color="outline-secondary" 
-                    (click)="clearFilters()"
-                    [disabled]="loading">
-                    ✖️
-                  </button>
-                </div>
-              </div>
-            </div>
-          </form>
 
-          <!-- Loading -->
-          <div *ngIf="loading && users.length === 0" class="text-center py-4">
-            <div class="spinner-border" role="status">
-              <span class="visually-hidden">Chargement...</span>
-            </div>
-          </div>
-
-          <!-- Empty state -->
-          <div *ngIf="!loading && filteredUsers.length === 0" class="alert alert-info">
-            <svg cIcon name="cil-info-circle" class="me-2"></svg>
-            Aucun utilisateur trouvé.
-          </div>
-
-          <!-- Users table -->
-          <div class="table-responsive" *ngIf="filteredUsers.length > 0">
-            <table cTable striped hover>
-              <thead class="table-light">
-                <tr>
-                  <th scope="col" class="fw-semibold text-dark">Utilisateur</th>
-                  <th scope="col" class="fw-semibold text-dark">Organisation</th>
-                  <th scope="col" class="fw-semibold text-dark">Rôle</th>
-                  <th scope="col" class="fw-semibold text-dark">Modules</th>
-                  <th scope="col" class="fw-semibold text-dark">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let user of filteredUsers">
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
-                           style="width: 40px; height: 40px;">
-                        {{ user.name.charAt(0).toUpperCase() }}
-                      </div>
-                      <div>
-                        <strong>{{ user.name }}</strong>
-                        <br>
-                        <small class="text-muted">{{ user.email }}</small>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <c-badge color="light" class="text-dark">
-                      {{ getTenantName(user.tenant_id || 0) }}
-                    </c-badge>
-                  </td>
-                  <td>
-                    <c-badge 
-                      [color]="getRoleBadgeColor(user.role)"
-                      class="me-1">
-                      {{ getRoleDisplayName(user.role) }}
-                    </c-badge>
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <c-badge color="info" class="me-2">
-                        {{ getUserModuleCount(user) }} modules
-                      </c-badge>
-                      <button 
-                        cButton 
-                        size="sm" 
-                        color="outline-info"
-                        (click)="openPermissionModal(user)"
-                        [disabled]="loading"
-                        title="Gérer les permissions">
-                        <svg cIcon name="cil-settings"></svg>
-                      </button>
-                    </div>
-                  </td>
-                  <td>
-                    <c-button-group role="group">
-                      <button 
-                        cButton 
-                        size="sm" 
-                        color="ghost" 
-                        class="text-info"
-                        (click)="openUserModal(user)"
-                        [disabled]="loading"
-                        title="Modifier">
-                        <svg cIcon name="cil-pencil"></svg>
-                      </button>
-                      <button 
-                        cButton 
-                        size="sm" 
-                        color="ghost" 
-                        class="text-danger"
-                        (click)="deleteUser(user)"
-                        [disabled]="loading"
-                        title="Supprimer">
-                        <svg cIcon name="cil-trash"></svg>
-                      </button>
-                    </c-button-group>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </c-card-body>
-      </c-card>
+  <!-- Page Header -->
+  <div style="background:linear-gradient(135deg,#1a237e 0%,#283593 50%,#3949ab 100%);border-radius:16px;padding:24px 28px;margin-bottom:24px;color:white">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h4 class="mb-1 fw-bold" style="font-size:1.4rem">👥 Gestion des Utilisateurs</h4>
+        <p class="mb-0" style="opacity:.8;font-size:.875rem">{{ filteredUsers.length }} utilisateur(s) affiché(s) sur {{ users.length }} total</p>
+      </div>
+      <button cButton color="light" (click)="openUserModal()" [disabled]="loading"
+        style="background:white;color:#1a237e;border:none;border-radius:10px;font-weight:700;padding:10px 22px">
+        + Nouvel Utilisateur
+      </button>
     </div>
   </div>
+
+  <!-- Filters -->
+  <c-card class="mb-4" style="border-radius:14px;border:none;box-shadow:0 2px 12px rgba(0,0,0,.07)">
+    <c-card-body>
+      <form [formGroup]="filterForm">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:#6c757d">Rechercher</label>
+            <input cFormControl type="text" formControlName="search" placeholder="Nom ou email..." (input)="applyFilters()" style="border-radius:8px;border:1px solid #dee2e6;padding:9px 12px">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:#6c757d">Rôle</label>
+            <select cFormControl formControlName="role" class="form-select" (change)="applyFilters()" style="border-radius:8px">
+              <option value="ALL">Tous les rôles</option>
+              <option *ngFor="let role of availableRoles" [value]="role">{{ getRoleDisplayName(role) }}</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:#6c757d">Organisation</label>
+            <select cFormControl formControlName="tenant_id" class="form-select" (change)="applyFilters()" style="border-radius:8px">
+              <option value="ALL">Toutes les organisations</option>
+              <option *ngFor="let tenant of tenants" [value]="tenant.id">{{ tenant.name }}</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex gap-2">
+            <button cButton color="primary" style="border-radius:8px;flex:1" (click)="applyFilters()" [disabled]="loading">🔍</button>
+            <button cButton color="secondary" variant="outline" style="border-radius:8px;flex:1" (click)="clearFilters()" [disabled]="loading">✕</button>
+          </div>
+        </div>
+      </form>
+    </c-card-body>
+  </c-card>
+
+  <!-- Users Table -->
+  <c-card style="border-radius:14px;border:none;box-shadow:0 2px 12px rgba(0,0,0,.07)">
+    <c-card-body class="p-0">
+
+      <div *ngIf="loading && users.length === 0" class="text-center py-5">
+        <c-spinner></c-spinner>
+        <p class="mt-2 text-muted">Chargement...</p>
+      </div>
+
+      <div *ngIf="!loading && filteredUsers.length === 0" class="text-center py-5 text-muted">
+        <div style="font-size:3rem">👤</div>
+        <p>Aucun utilisateur trouvé</p>
+      </div>
+
+      <div class="table-responsive" *ngIf="filteredUsers.length > 0">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th style="padding:14px 20px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Utilisateur</th>
+              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Organisation</th>
+              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Type</th>
+              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Statut</th>
+              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Modules</th>
+              <th style="padding:14px 20px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef;text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of filteredUsers" style="border-bottom:1px solid #f0f0f0">
+              <!-- User info -->
+              <td style="padding:14px 20px">
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;overflow:hidden">
+                    <img *ngIf="user.avatar_url" [src]="user.avatar_url" alt="avatar"
+                         style="width:100%;height:100%;object-fit:cover"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+                    <div [style.background]="getUserAvatarBg(user)"
+                         [style.display]="user.avatar_url ? 'none' : 'flex'"
+                         style="width:40px;height:40px;border-radius:50%;align-items:center;justify-content:center;color:white;font-weight:700;font-size:.9rem">
+                      {{ user.name?.charAt(0)?.toUpperCase() }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="fw-semibold">{{ user.name }}</div>
+                    <div style="font-size:.8rem;color:#6c757d">{{ user.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <!-- Organisation -->
+              <td style="padding:14px 16px;font-size:.875rem;color:#495057">
+                {{ getTenantName(user.tenant_id || 0) }}
+              </td>
+              <!-- Role -->
+              <td style="padding:14px 16px">
+                <span class="badge rounded-pill"
+                  [ngClass]="{
+                    'bg-danger': getUserRoleName(user) === 'SUPER_ADMIN',
+                    'bg-warning text-dark': getUserRoleName(user) === 'ADMIN',
+                    'bg-primary': getUserRoleName(user) === 'USER',
+                    'bg-secondary': getUserRoleName(user) === 'VIEWER'
+                  }"
+                  style="font-size:.75rem;padding:5px 12px;font-weight:600">
+                  {{ getRoleDisplayName(getUserRoleName(user)) }}
+                </span>
+              </td>
+              <!-- Status -->
+              <td style="padding:14px 16px">
+                <span class="badge rounded-pill"
+                  [ngClass]="user.is_active !== false ? 'bg-success' : 'bg-danger'"
+                  style="font-size:.72rem;padding:4px 10px;font-weight:600">
+                  {{ user.is_active !== false ? '● Actif' : '○ Inactif' }}
+                </span>
+              </td>
+              <!-- Modules -->
+              <td style="padding:14px 16px">
+                <div class="d-flex align-items-center gap-2">
+                  <span style="background:#cfe2ff;color:#0a58ca;border-radius:50px;padding:4px 12px;font-size:.75rem;font-weight:700">
+                    {{ getUserModuleCount(user) }} module(s)
+                  </span>
+                  <button cButton size="sm" color="info" variant="outline"
+                    (click)="openPermissionModal(user)" [disabled]="loading"
+                    title="Gérer les permissions" style="border-radius:8px;padding:4px 10px;font-size:.75rem">
+                    <svg cIcon name="cil-settings" size="sm"></svg>
+                  </button>
+                </div>
+              </td>
+              <!-- Actions -->
+              <td style="padding:14px 20px;text-align:right">
+                <div class="d-flex gap-2 justify-content-end">
+                  <button cButton size="sm" color="warning" variant="outline"
+                    (click)="openUserModal(user)" [disabled]="loading"
+                    title="Modifier l'utilisateur" style="border-radius:8px">
+                    <svg cIcon name="cil-pencil" size="sm"></svg>
+                  </button>
+                  <button cButton size="sm" color="danger" variant="outline"
+                    (click)="deleteUser(user)" [disabled]="loading"
+                    title="Supprimer l'utilisateur" style="border-radius:8px">
+                    <svg cIcon name="cil-trash" size="sm"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </c-card-body>
+  </c-card>
 </div>
 
-<!-- User Modal -->
-<c-modal 
-  [visible]="userModalOpen" 
-  (visibleChange)="userModalOpen = $event"
-  size="lg">
-  <c-modal-header>
-    <h4 cModalTitle>{{ editMode ? 'Modifier' : 'Créer' }} un Utilisateur</h4>
-    <button 
-      cButtonClose 
-      (click)="closeUserModal()"
-      [disabled]="loading">
-    </button>
+<!-- ===== CREATE/EDIT USER MODAL ===== -->
+<c-modal [visible]="userModalOpen" (visibleChange)="userModalOpen = $event" size="lg">
+  <c-modal-header style="border-bottom:1px solid #f0f0f0">
+    <h5 cModalTitle class="fw-bold">{{ editMode ? '✏️ Modifier' : '➕ Créer' }} un Utilisateur</h5>
+    <button cButtonClose (click)="closeUserModal()" [disabled]="loading"></button>
   </c-modal-header>
-  
   <c-modal-body>
-    <form [formGroup]="userForm" (ngSubmit)="onSubmitUser()">
-      <div class="row">
-        <div class="col-md-6">
-          <div class="mb-3">
-            <label class="form-label">Nom complet *</label>
-            <input 
-              cFormControl 
-              type="text" 
-              formControlName="name"
-              placeholder="Nom complet"
-              [class.is-invalid]="submitted && f['name'].errors"
-              class="form-control">
-            <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
-              <div *ngIf="f['name'].errors['required']">Le nom est requis</div>
-              <div *ngIf="f['name'].errors['maxlength']">Le nom ne peut pas dépasser 150 caractères</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="col-md-6">
-          <div class="mb-3">
-            <label class="form-label">Email *</label>
-            <input 
-              cFormControl 
-              type="email" 
-              formControlName="email"
-              placeholder="email@exemple.com"
-              [class.is-invalid]="submitted && f['email'].errors"
-              class="form-control">
-            <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
-              <div *ngIf="f['email'].errors['required']">L'email est requis</div>
-              <div *ngIf="f['email'].errors['email']">Format d'email invalide</div>
-              <div *ngIf="f['email'].errors['maxlength']">L'email ne peut pas dépasser 150 caractères</div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <form [formGroup]="userForm">
+      <div class="row g-3">
 
-      <div class="row">
-        <div class="col-md-6">
-          <div class="mb-3">
-            <label class="form-label">{{ editMode ? 'Nouveau mot de passe (optionnel)' : 'Mot de passe *' }}</label>
-            <input 
-              cFormControl 
-              type="password" 
-              formControlName="password"
-              placeholder="••••••••"
-              [class.is-invalid]="submitted && f['password'].errors"
-              class="form-control">
-            <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
-              <div *ngIf="f['password'].errors['required']">Le mot de passe est requis</div>
-              <div *ngIf="f['password'].errors['minlength']">Le mot de passe doit contenir au moins 8 caractères</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="col-md-6">
-          <div class="mb-3">
-            <label class="form-label">Rôle *</label>
-            <select 
-              cFormControl 
-              formControlName="role"
-              [class.is-invalid]="submitted && f['role'].errors"
-              class="form-select"
-              (change)="onRoleChange($event)">
-              <option *ngFor="let role of availableRoles" [value]="role">
-                {{ getRoleDisplayName(role) }}
-              </option>
-            </select>
-            <div *ngIf="submitted && f['role'].errors" class="invalid-feedback">
-              <div *ngIf="f['role'].errors['required']">Le rôle est requis</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="row">
+        <!-- Photo de profil -->
         <div class="col-12">
-          <div class="mb-3">
-            <label class="form-label">Organisation</label>
-            <select 
-              cFormControl 
-              formControlName="tenant_id"
-              class="form-select">
-              <option value="">Aucune organisation spécifique</option>
-              <option *ngFor="let organisation of filteredTenants" [value]="organisation.id">
-                {{ organisation.name }}
-              </option>
-            </select>
-            <small class="form-text text-muted" *ngIf="userForm.get('role')?.value === 'SUPER_ADMIN'">
-              Les Super Admins n'ont pas besoin d'être assignés à une organisation spécifique.
-            </small>
-            <small class="form-text text-muted" *ngIf="userForm.get('role')?.value !== 'SUPER_ADMIN' && filteredTenants.length === 0">
-              Aucune organisation disponible. Veuillez d'abord créer des organisations.
-            </small>
+          <label class="form-label fw-semibold small">Photo de profil</label>
+          <input type="file" #photoInput class="d-none" accept="image/jpeg,image/png,image/jpg,image/gif"
+                 (change)="onPhotoSelected($event)" />
+          <div class="d-flex align-items-center gap-3 p-3 rounded-3"
+               style="background:#f8fafc;border:1px solid #e2e8f0;">
+            <!-- Cercle aperçu -->
+            <div (click)="triggerPhotoInput(photoInput)"
+                 style="width:72px;height:72px;border-radius:50%;overflow:hidden;flex-shrink:0;
+                        background:#eef2ff;border:2px dashed #818cf8;
+                        display:flex;align-items:center;justify-content:center;
+                        cursor:pointer;font-size:1.6rem">
+              <img *ngIf="photoPreview" [src]="photoPreview" alt="Aperçu"
+                   style="width:100%;height:100%;object-fit:cover" />
+              <span *ngIf="!photoPreview">📷</span>
+            </div>
+            <!-- Infos & boutons -->
+            <div>
+              <div class="fw-semibold mb-1" style="font-size:.85rem;color:#1e293b;">
+                {{ photoPreview ? 'Photo sélectionnée' : 'Aucune photo sélectionnée' }}
+              </div>
+              <div class="text-muted mb-2" style="font-size:.75rem;">Formats : JPG, PNG, GIF — max 2 MB</div>
+              <div class="d-flex gap-2">
+                <button type="button" (click)="triggerPhotoInput(photoInput)"
+                        style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe;border-radius:8px;
+                               padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;">
+                  📁 Choisir une photo
+                </button>
+                <button *ngIf="photoPreview" type="button" (click)="removePhoto()"
+                        style="background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:8px;
+                               padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;">
+                  ✕ Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Nom complet *</label>
+          <input cFormControl type="text" formControlName="name" placeholder="Prénom Nom"
+            [class.is-invalid]="submitted && f['name'].errors" style="border-radius:8px">
+          <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
+            <div *ngIf="f['name'].errors['required']">Le nom est requis</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Email *</label>
+          <input cFormControl type="email" formControlName="email" placeholder="email@exemple.com"
+            [class.is-invalid]="submitted && f['email'].errors" style="border-radius:8px">
+          <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
+            <div *ngIf="f['email'].errors['required']">L'email est requis</div>
+            <div *ngIf="f['email'].errors['email']">Format invalide</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">{{ editMode ? 'Nouveau mot de passe (optionnel)' : 'Mot de passe *' }}</label>
+          <input cFormControl type="password" formControlName="password" placeholder="••••••••"
+            [class.is-invalid]="submitted && f['password'].errors" style="border-radius:8px">
+          <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
+            <div *ngIf="f['password'].errors['required']">Mot de passe requis</div>
+            <div *ngIf="f['password'].errors['minlength']">Minimum 8 caractères</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Rôle *</label>
+          <select cFormControl formControlName="role" class="form-select"
+            [class.is-invalid]="submitted && f['role'].errors"
+            (change)="onRoleChange($event)" style="border-radius:8px">
+            <option *ngFor="let role of availableRoles" [value]="role">{{ getRoleDisplayName(role) }}</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold small">Organisation</label>
+          <select cFormControl formControlName="tenant_id" class="form-select" style="border-radius:8px">
+            <option value="">Aucune organisation spécifique</option>
+            <option *ngFor="let org of filteredTenants" [value]="org.id">{{ org.name }}</option>
+          </select>
+          <div class="form-text text-muted" *ngIf="userForm.get('role')?.value === 'SUPER_ADMIN'">
+            Les Super Admins n'appartiennent pas à une organisation.
           </div>
         </div>
       </div>
     </form>
   </c-modal-body>
-  
-  <c-modal-footer>
-    <button 
-      cButton 
-      color="secondary" 
-      (click)="closeUserModal()"
-      [disabled]="loading">
-      Annuler
-    </button>
-    <button 
-      cButton 
-      color="primary" 
-      (click)="onSubmitUser()"
-      [disabled]="loading">
+  <c-modal-footer style="border-top:1px solid #f0f0f0">
+    <button cButton color="secondary" (click)="closeUserModal()" [disabled]="loading">Annuler</button>
+    <button cButton color="primary" (click)="onSubmitUser()" [disabled]="loading"
+      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-      {{ editMode ? 'Modifier' : 'Créer' }}
+      {{ editMode ? 'Enregistrer' : 'Créer' }}
     </button>
   </c-modal-footer>
 </c-modal>
 
-<!-- Permission Modal -->
-<c-modal 
-  [visible]="permissionModalOpen" 
-  (visibleChange)="permissionModalOpen = $event"
-  size="lg">
+<!-- ===== PERMISSIONS MODAL ===== -->
+<c-modal [visible]="permissionModalOpen" (visibleChange)="permissionModalOpen = $event" size="lg">
   <c-modal-header>
-    <h4 cModalTitle>Modules pour {{ selectedUserForPermissions?.name }}</h4>
-    <button 
-      cButtonClose 
-      (click)="closePermissionModal()"
-      [disabled]="loading">
-    </button>
+    <h5 cModalTitle class="fw-bold">🛡️ Modules — {{ selectedUserForPermissions?.name }}</h5>
+    <button cButtonClose (click)="closePermissionModal()" [disabled]="loading"></button>
   </c-modal-header>
-  
   <c-modal-body>
-    <div class="table-responsive">
-      <table cTable class="table-borderless">
+    <div *ngIf="loading" class="text-center py-3"><c-spinner size="sm"></c-spinner></div>
+    <div class="table-responsive" *ngIf="!loading">
+      <table class="table table-sm table-borderless">
         <tbody>
-          <tr *ngFor="let module of availableModules; let i = index" class="border-bottom">
-            <td class="py-3">
-              <div class="d-flex align-items-center">
-                <strong class="me-3">{{ module.module_name }}</strong>
-                <small class="text-medium-emphasis">{{ module.module_code }}</small>
-              </div>
+          <tr *ngFor="let module of availableModules" class="border-bottom">
+            <td class="py-3 ps-2">
+              <div class="fw-semibold">{{ module.module_name }}</div>
+              <small class="text-muted">{{ module.module_code }}</small>
             </td>
             <td class="py-3 text-center">
-              <c-badge 
-                [color]="module.is_active ? 'success' : 'secondary'"
-                class="me-2">
-                {{ module.is_active ? 'ACTIF' : 'INACTIF' }}
-              </c-badge>
+              <span class="badge rounded-pill" [ngClass]="module.is_active ? 'bg-success' : 'bg-secondary'">
+                {{ module.is_active ? 'Actif' : 'Inactif' }}
+              </span>
+            </td>
+            <td class="py-3">
+              <div class="d-flex flex-wrap gap-1" *ngIf="module.is_active">
+                <span *ngFor="let perm of module.permissions"
+                  class="badge rounded-pill"
+                  style="background:#cfe2ff;color:#0a58ca;font-size:.7rem">
+                  {{ getPermissionDisplayName(perm) }}
+                </span>
+              </div>
             </td>
             <td class="py-3 text-end">
               <div class="d-flex gap-2 justify-content-end">
-                <button 
-                  cButton 
+                <button cButton size="sm"
                   [color]="module.is_active ? 'warning' : 'success'"
-                  size="sm"
-                  (click)="toggleModuleAccess(module)"
-                  [disabled]="loading">
+                  variant="outline"
+                  (click)="toggleModuleAccess(module)" [disabled]="loading"
+                  style="border-radius:8px;font-size:.75rem">
                   {{ module.is_active ? 'Désactiver' : 'Activer' }}
                 </button>
-                <button 
-                  *ngIf="module.is_active"
-                  cButton 
-                  color="info"
-                  size="sm"
-                  (click)="openRoleModal(module)"
-                  [disabled]="loading">
-                  Rôles
+                <button *ngIf="module.is_active" cButton size="sm" color="info" variant="outline"
+                  (click)="openRoleModal(module)" [disabled]="loading"
+                  style="border-radius:8px;font-size:.75rem">
+                  Permissions
                 </button>
               </div>
             </td>
@@ -366,78 +311,42 @@
       </table>
     </div>
   </c-modal-body>
-  
   <c-modal-footer>
-    <button 
-      cButton 
-      color="secondary" 
-      (click)="closePermissionModal()"
-      [disabled]="loading">
-      Fermer
-    </button>
-    <button 
-      cButton 
-      color="primary" 
-      (click)="savePermissions()"
-      [disabled]="loading">
+    <button cButton color="secondary" (click)="closePermissionModal()" [disabled]="loading">Fermer</button>
+    <button cButton color="primary" (click)="savePermissions()" [disabled]="loading"
+      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;font-weight:600">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       Sauvegarder
     </button>
   </c-modal-footer>
 </c-modal>
 
-<!-- Role Management Modal -->
-<c-modal 
-  [visible]="roleModalOpen" 
-  (visibleChange)="roleModalOpen = $event"
-  size="lg">
+<!-- ===== ROLE MODAL ===== -->
+<c-modal [visible]="roleModalOpen" (visibleChange)="roleModalOpen = $event" size="lg">
   <c-modal-header>
-    <h4 cModalTitle>Rôles pour {{ selectedModuleForRoles?.module_name }}</h4>
-    <button 
-      cButtonClose 
-      (click)="closeRoleModal()"
-      [disabled]="loading">
-    </button>
+    <h5 cModalTitle class="fw-bold">Permissions — {{ selectedModuleForRoles?.module_name }}</h5>
+    <button cButtonClose (click)="closeRoleModal()" [disabled]="loading"></button>
   </c-modal-header>
-  
   <c-modal-body>
-    <div class="mb-3">
-      <label class="form-label">Permissions disponibles :</label>
-      <div class="row">
-        <div *ngFor="let permission of getAvailablePermissionsForModule(selectedModuleForRoles?.module_code)" class="col-6 mb-2">
-          <div class="form-check">
-            <input 
-              class="form-check-input" 
-              type="checkbox" 
-              [checked]="hasPermission(selectedModuleForRoles!, permission)"
-              (change)="togglePermission(selectedModuleForRoles!, permission)"
-              [id]="selectedModuleForRoles?.module_code + '-' + permission">
-            <label class="form-check-label" [for]="selectedModuleForRoles?.module_code + '-' + permission">
-              {{ getPermissionDisplayName(permission) }}
-            </label>
-          </div>
+    <div class="row g-2">
+      <div *ngFor="let permission of getAvailablePermissionsForModule(selectedModuleForRoles?.module_code)" class="col-6">
+        <div class="form-check p-3" style="background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef">
+          <input class="form-check-input" type="checkbox"
+            [checked]="hasPermission(selectedModuleForRoles!, permission)"
+            (change)="togglePermission(selectedModuleForRoles!, permission)"
+            [id]="selectedModuleForRoles?.module_code + '-' + permission">
+          <label class="form-check-label fw-semibold" [for]="selectedModuleForRoles?.module_code + '-' + permission">
+            {{ getPermissionDisplayName(permission) }}
+          </label>
         </div>
       </div>
     </div>
   </c-modal-body>
-  
   <c-modal-footer>
-    <button 
-      cButton 
-      color="secondary" 
-      (click)="closeRoleModal()"
-      [disabled]="loading">
-      Annuler
-    </button>
-    <button 
-      cButton 
-      color="primary" 
-      (click)="saveRolePermissions()"
-      [disabled]="loading">
-      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-      Sauvegarder
+    <button cButton color="secondary" (click)="closeRoleModal()" [disabled]="loading">Annuler</button>
+    <button cButton color="primary" (click)="saveRolePermissions()" [disabled]="loading"
+      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;font-weight:600">
+      Appliquer
     </button>
   </c-modal-footer>
 </c-modal>
-
-<!-- Modal de suppression supprimé - maintenant géré par SweetAlert2 -->

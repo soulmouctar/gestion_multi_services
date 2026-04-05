@@ -1,173 +1,257 @@
-<div class="container-fluid">
+<div class="p-3 p-md-4">
 
   <!-- Header -->
-  <div class="row mb-4 align-items-center">
-    <div class="col">
-      <h2 class="mb-0">
-        <svg cIcon name="cilDollar" class="me-2 text-success"></svg>
-        Tableau de Bord Financier
-      </h2>
-      <p class="text-body-secondary mb-0">Vue d'ensemble de vos finances et transactions</p>
+  <div class="rounded-4 mb-4 px-4 py-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="rounded-3 d-flex align-items-center justify-content-center"
+             style="width:40px;height:40px;background:rgba(255,255,255,0.15);">
+          <svg cIcon name="cilDollar" style="color:#fff;width:20px;height:20px;"></svg>
+        </div>
+        <h4 class="mb-0 fw-bold text-white">Tableau de Bord Financier</h4>
+      </div>
+      <p class="mb-0 small" style="color:rgba(255,255,255,0.65);">Vue d'ensemble de vos finances et transactions</p>
     </div>
-    <div class="col-auto">
-      <a routerLink="/payments/list" class="btn btn-success">
-        <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau Paiement
-      </a>
-    </div>
+    <a routerLink="/payments/list"
+       class="btn fw-semibold"
+       style="background:#10B981;color:#fff;border-radius:10px;border:none;padding:8px 20px;">
+      <svg cIcon name="cilPlus" class="me-1" style="width:16px;height:16px;"></svg> Nouveau Paiement
+    </a>
   </div>
 
   <!-- Loading -->
   <div *ngIf="loading" class="text-center py-5">
     <c-spinner color="success"></c-spinner>
-    <p class="mt-2 text-body-secondary">Chargement des données financières...</p>
+    <p class="mt-3 text-body-secondary">Chargement des données financières...</p>
   </div>
 
   <ng-container *ngIf="!loading">
 
     <!-- KPI Cards -->
-    <c-row class="mb-4 g-3">
-      <c-col xs="12" sm="6" xl="3">
-        <c-card class="h-100 border-start border-success border-3">
-          <c-card-body>
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="text-body-secondary small text-uppercase fw-semibold">Total Paiements</div>
-                <div class="fs-3 fw-bold">{{ stats.totalPayments }}</div>
-                <div class="small text-body-secondary">{{ stats.totalAmount | number:'1.0-0' }} total</div>
-              </div>
-              <svg cIcon name="cilCreditCard" size="xl" class="text-success opacity-50"></svg>
-            </div>
-          </c-card-body>
-          <c-card-footer class="border-0 bg-transparent">
-            <a routerLink="/payments/list" class="btn btn-sm btn-outline-success">Voir paiements →</a>
-          </c-card-footer>
-        </c-card>
-      </c-col>
+    <div class="row g-3 mb-4">
 
-      <c-col xs="12" sm="6" xl="3">
-        <c-card class="h-100 border-start border-primary border-3">
-          <c-card-body>
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="text-body-secondary small text-uppercase fw-semibold">Ce mois</div>
-                <div class="fs-3 fw-bold">{{ stats.monthlyAmount | number:'1.0-0' }}</div>
-                <div class="small text-body-secondary">Encaissements</div>
-              </div>
-              <svg cIcon name="cilChartLine" size="xl" class="text-primary opacity-50"></svg>
+      <!-- Total Paiements -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="h-100 p-4 d-flex flex-column justify-content-between"
+             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .2s,box-shadow .2s;cursor:default;"
+             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
+             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Total Paiements</div>
+              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ stats.totalPayments }}</div>
+              <div class="small mt-1" style="color:#9CA3AF;">{{ stats.totalAmount | number:'1.0-0' }} GNF au total</div>
             </div>
-          </c-card-body>
-          <c-card-footer class="border-0 bg-transparent">
-            <a routerLink="/payments/advanced" class="btn btn-sm btn-outline-primary">Détails →</a>
-          </c-card-footer>
-        </c-card>
-      </c-col>
+            <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;background:#ECFDF5;">
+              <svg cIcon name="cilCreditCard" style="color:#10B981;width:22px;height:22px;"></svg>
+            </div>
+          </div>
+          <a routerLink="/payments/list"
+             class="text-decoration-none small fw-semibold mt-2"
+             style="color:#10B981;">Voir les paiements →</a>
+        </div>
+      </div>
 
-      <c-col xs="12" sm="6" xl="3">
-        <c-card class="h-100 border-start border-warning border-3">
-          <c-card-body>
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="text-body-secondary small text-uppercase fw-semibold">Factures</div>
-                <div class="fs-3 fw-bold">{{ stats.totalInvoices }}</div>
-              </div>
-              <svg cIcon name="cilDescription" size="xl" class="text-warning opacity-50"></svg>
+      <!-- Ce mois -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="h-100 p-4 d-flex flex-column justify-content-between"
+             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .2s,box-shadow .2s;cursor:default;"
+             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
+             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Ce mois</div>
+              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ stats.monthlyAmount | number:'1.0-0' }}</div>
+              <div class="small mt-1" style="color:#9CA3AF;">Encaissements du mois</div>
             </div>
-          </c-card-body>
-          <c-card-footer class="border-0 bg-transparent">
-            <a routerLink="/finance/invoices" class="btn btn-sm btn-outline-warning">Voir factures →</a>
-          </c-card-footer>
-        </c-card>
-      </c-col>
+            <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;background:#EFF6FF;">
+              <svg cIcon name="cilChartLine" style="color:#3B82F6;width:22px;height:22px;"></svg>
+            </div>
+          </div>
+          <a routerLink="/payments/advanced"
+             class="text-decoration-none small fw-semibold mt-2"
+             style="color:#3B82F6;">Voir les détails →</a>
+        </div>
+      </div>
 
-      <c-col xs="12" sm="6" xl="3">
-        <c-card class="h-100 border-start border-info border-3">
-          <c-card-body>
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="text-body-secondary small text-uppercase fw-semibold">Devises actives</div>
-                <div class="fs-3 fw-bold">{{ stats.totalCurrencies }}</div>
-              </div>
-              <svg cIcon name="cilGlobeAlt" size="xl" class="text-info opacity-50"></svg>
+      <!-- Factures -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="h-100 p-4 d-flex flex-column justify-content-between"
+             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .2s,box-shadow .2s;cursor:default;"
+             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
+             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Factures</div>
+              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ stats.totalInvoices }}</div>
+              <div class="small mt-1" style="color:#9CA3AF;">Total des factures</div>
             </div>
-          </c-card-body>
-          <c-card-footer class="border-0 bg-transparent">
-            <a routerLink="/finance/currencies" class="btn btn-sm btn-outline-info">Gérer devises →</a>
-          </c-card-footer>
-        </c-card>
-      </c-col>
-    </c-row>
+            <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;background:#FFFBEB;">
+              <svg cIcon name="cilDescription" style="color:#F59E0B;width:22px;height:22px;"></svg>
+            </div>
+          </div>
+          <a routerLink="/finance/invoices"
+             class="text-decoration-none small fw-semibold mt-2"
+             style="color:#F59E0B;">Voir les factures →</a>
+        </div>
+      </div>
+
+      <!-- Devises actives -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="h-100 p-4 d-flex flex-column justify-content-between"
+             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .2s,box-shadow .2s;cursor:default;"
+             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
+             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Devises actives</div>
+              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ stats.totalCurrencies }}</div>
+              <div class="small mt-1" style="color:#9CA3AF;">Devises configurées</div>
+            </div>
+            <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;background:#F0F9FF;">
+              <svg cIcon name="cilGlobeAlt" style="color:#0EA5E9;width:22px;height:22px;"></svg>
+            </div>
+          </div>
+          <a routerLink="/finance/currencies"
+             class="text-decoration-none small fw-semibold mt-2"
+             style="color:#0EA5E9;">Gérer les devises →</a>
+        </div>
+      </div>
+
+    </div>
 
     <!-- Accès rapides -->
-    <c-row class="mb-4">
-      <c-col xs="12">
-        <c-card>
-          <c-card-header><strong>Accès rapides</strong></c-card-header>
-          <c-card-body>
-            <div class="d-flex flex-wrap gap-2">
-              <a routerLink="/payments/list"       class="btn btn-outline-success"><svg cIcon name="cilCreditCard" class="me-1"></svg> Paiements</a>
-              <a routerLink="/payments/advanced"   class="btn btn-outline-success"><svg cIcon name="cilChartLine" class="me-1"></svg> Paiements avancés</a>
-              <a routerLink="/finance/invoices"    class="btn btn-outline-warning"><svg cIcon name="cilDescription" class="me-1"></svg> Factures</a>
-              <a routerLink="/finance/currencies"  class="btn btn-outline-info"><svg cIcon name="cilGlobeAlt" class="me-1"></svg> Devises</a>
-              <a routerLink="/finance/exchange-rates" class="btn btn-outline-info"><svg cIcon name="cilSwapHorizontal" class="me-1"></svg> Taux de change</a>
-            </div>
-          </c-card-body>
-        </c-card>
-      </c-col>
-    </c-row>
+    <div class="mb-4 p-4" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+      <div class="fw-semibold mb-3" style="color:#374151;font-size:14px;">Accès rapides</div>
+      <div class="d-flex flex-wrap gap-2">
+        <a routerLink="/payments/list"
+           class="btn btn-sm d-flex align-items-center gap-1"
+           style="background:#ECFDF5;color:#10B981;border:1px solid #A7F3D0;border-radius:8px;font-weight:600;">
+          <svg cIcon name="cilCreditCard" style="width:14px;height:14px;"></svg> Paiements
+        </a>
+        <a routerLink="/payments/advanced"
+           class="btn btn-sm d-flex align-items-center gap-1"
+           style="background:#EFF6FF;color:#3B82F6;border:1px solid #BFDBFE;border-radius:8px;font-weight:600;">
+          <svg cIcon name="cilChartLine" style="width:14px;height:14px;"></svg> Paiements avancés
+        </a>
+        <a routerLink="/finance/invoices"
+           class="btn btn-sm d-flex align-items-center gap-1"
+           style="background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;font-weight:600;">
+          <svg cIcon name="cilDescription" style="width:14px;height:14px;"></svg> Factures
+        </a>
+        <a routerLink="/finance/currencies"
+           class="btn btn-sm d-flex align-items-center gap-1"
+           style="background:#F0F9FF;color:#0EA5E9;border:1px solid #BAE6FD;border-radius:8px;font-weight:600;">
+          <svg cIcon name="cilGlobeAlt" style="width:14px;height:14px;"></svg> Devises
+        </a>
+        <a routerLink="/finance/exchange-rates"
+           class="btn btn-sm d-flex align-items-center gap-1"
+           style="background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:8px;font-weight:600;">
+          <svg cIcon name="cilSwapHorizontal" style="width:14px;height:14px;"></svg> Taux de change
+        </a>
+      </div>
+    </div>
 
-    <c-row class="g-4">
+    <!-- Tables récentes -->
+    <div class="row g-4">
+
       <!-- Paiements récents -->
-      <c-col xs="12" lg="6">
-        <c-card class="h-100">
-          <c-card-header class="d-flex justify-content-between align-items-center">
-            <strong><svg cIcon name="cilCreditCard" class="me-1 text-success"></svg> Paiements récents</strong>
-            <a routerLink="/payments/list" class="btn btn-sm btn-outline-success">Voir tout</a>
-          </c-card-header>
-          <c-card-body>
-            <div *ngIf="recentPayments.length === 0" class="text-center py-3 text-body-secondary">
-              <svg cIcon name="cilCreditCard" size="xl" class="mb-2 opacity-25"></svg>
-              <p class="mb-0">Aucun paiement enregistré</p>
+      <div class="col-12 col-lg-6">
+        <div class="h-100" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+          <div class="d-flex justify-content-between align-items-center px-4 py-3"
+               style="border-bottom:1px solid #F3F4F6;">
+            <div class="d-flex align-items-center gap-2">
+              <svg cIcon name="cilCreditCard" style="color:#10B981;width:18px;height:18px;"></svg>
+              <span class="fw-semibold" style="color:#111827;">Paiements récents</span>
             </div>
-            <table *ngIf="recentPayments.length > 0" class="table table-sm table-hover mb-0">
-              <thead><tr><th>Référence</th><th>Montant</th><th>Date</th></tr></thead>
+            <a routerLink="/payments/list"
+               class="btn btn-sm"
+               style="background:#ECFDF5;color:#10B981;border:1px solid #A7F3D0;border-radius:8px;font-weight:600;font-size:12px;">
+              Voir tout
+            </a>
+          </div>
+          <div class="p-3">
+            <div *ngIf="recentPayments.length === 0" class="text-center py-5">
+              <svg cIcon name="cilCreditCard" style="color:#D1D5DB;width:36px;height:36px;" class="mb-2"></svg>
+              <p class="mb-0 small text-body-secondary">Aucun paiement enregistré</p>
+            </div>
+            <table *ngIf="recentPayments.length > 0" class="table table-hover align-middle mb-0" style="font-size:13px;">
+              <thead>
+                <tr style="background:#F9FAFB;">
+                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Référence</th>
+                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Montant</th>
+                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr *ngFor="let pay of recentPayments">
-                  <td>{{ pay.reference || pay.id }}</td>
-                  <td><strong>{{ pay.amount | number:'1.0-0' }}</strong> {{ pay.currency || '' }}</td>
-                  <td class="text-body-secondary small">{{ pay.payment_date || pay.created_at | date:'dd/MM/yyyy' }}</td>
+                <tr *ngFor="let pay of recentPayments" style="border-color:#F3F4F6;">
+                  <td class="px-3 py-2">
+                    <span class="fw-semibold" style="color:#111827;">{{ pay.reference || pay.id }}</span>
+                  </td>
+                  <td class="px-3 py-2">
+                    <span class="fw-bold" style="color:#10B981;">{{ pay.amount | number:'1.0-0' }}</span>
+                    <span class="ms-1 small" style="color:#9CA3AF;">{{ pay.currency || 'GNF' }}</span>
+                  </td>
+                  <td class="px-3 py-2 small" style="color:#6B7280;">{{ pay.payment_date || pay.created_at | date:'dd/MM/yyyy' }}</td>
                 </tr>
               </tbody>
             </table>
-          </c-card-body>
-        </c-card>
-      </c-col>
+          </div>
+        </div>
+      </div>
 
       <!-- Factures récentes -->
-      <c-col xs="12" lg="6">
-        <c-card class="h-100">
-          <c-card-header class="d-flex justify-content-between align-items-center">
-            <strong><svg cIcon name="cilDescription" class="me-1 text-warning"></svg> Factures récentes</strong>
-            <a routerLink="/finance/invoices" class="btn btn-sm btn-outline-warning">Voir tout</a>
-          </c-card-header>
-          <c-card-body>
-            <div *ngIf="recentInvoices.length === 0" class="text-center py-3 text-body-secondary">
-              <svg cIcon name="cilDescription" size="xl" class="mb-2 opacity-25"></svg>
-              <p class="mb-0">Aucune facture enregistrée</p>
+      <div class="col-12 col-lg-6">
+        <div class="h-100" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+          <div class="d-flex justify-content-between align-items-center px-4 py-3"
+               style="border-bottom:1px solid #F3F4F6;">
+            <div class="d-flex align-items-center gap-2">
+              <svg cIcon name="cilDescription" style="color:#F59E0B;width:18px;height:18px;"></svg>
+              <span class="fw-semibold" style="color:#111827;">Factures récentes</span>
             </div>
-            <table *ngIf="recentInvoices.length > 0" class="table table-sm table-hover mb-0">
-              <thead><tr><th>N° Facture</th><th>Montant</th><th>Date</th></tr></thead>
+            <a routerLink="/finance/invoices"
+               class="btn btn-sm"
+               style="background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;font-weight:600;font-size:12px;">
+              Voir tout
+            </a>
+          </div>
+          <div class="p-3">
+            <div *ngIf="recentInvoices.length === 0" class="text-center py-5">
+              <svg cIcon name="cilDescription" style="color:#D1D5DB;width:36px;height:36px;" class="mb-2"></svg>
+              <p class="mb-0 small text-body-secondary">Aucune facture enregistrée</p>
+            </div>
+            <table *ngIf="recentInvoices.length > 0" class="table table-hover align-middle mb-0" style="font-size:13px;">
+              <thead>
+                <tr style="background:#F9FAFB;">
+                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">N° Facture</th>
+                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Montant</th>
+                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr *ngFor="let inv of recentInvoices">
-                  <td>{{ inv.invoice_number || inv.number || inv.id }}</td>
-                  <td><strong>{{ inv.total_amount ?? inv.amount ?? 0 | number:'1.0-0' }}</strong></td>
-                  <td class="text-body-secondary small">{{ inv.invoice_date || inv.created_at | date:'dd/MM/yyyy' }}</td>
+                <tr *ngFor="let inv of recentInvoices" style="border-color:#F3F4F6;">
+                  <td class="px-3 py-2">
+                    <span class="fw-semibold" style="color:#111827;">{{ inv.invoice_number || inv.number || inv.id }}</span>
+                  </td>
+                  <td class="px-3 py-2">
+                    <span class="fw-bold" style="color:#F59E0B;">{{ inv.total_amount ?? inv.amount ?? 0 | number:'1.0-0' }}</span>
+                    <span class="ms-1 small" style="color:#9CA3AF;">GNF</span>
+                  </td>
+                  <td class="px-3 py-2 small" style="color:#6B7280;">{{ inv.invoice_date || inv.created_at | date:'dd/MM/yyyy' }}</td>
                 </tr>
               </tbody>
             </table>
-          </c-card-body>
-        </c-card>
-      </c-col>
-    </c-row>
+          </div>
+        </div>
+      </div>
+
+    </div>
 
   </ng-container>
+
 </div>

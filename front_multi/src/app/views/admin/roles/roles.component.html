@@ -1,374 +1,328 @@
-<!-- Roles Management Component -->
-<div class="container-fluid">
-  <!-- Header -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <c-card>
-        <c-card-header>
-          <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">
-              🛡️
-              Gestion des Rôles et Permissions
-            </h4>
-            <div class="d-flex gap-2">
-              <button 
-                type="button" 
-                class="btn btn-success"
-                (click)="openPermissionModal()"
-                [disabled]="loading">
-                + Nouvelle Permission
-              </button>
-              <button 
-                type="button" 
-                class="btn btn-primary"
-                (click)="openRoleModal()"
-                [disabled]="loading">
-                + Nouveau Rôle
-              </button>
-            </div>
-          </div>
-        </c-card-header>
-      </c-card>
+<div class="p-3 p-md-4">
+
+  <!-- En-tête -->
+  <div class="rounded-4 mb-4 px-4 py-4 text-white"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h2 class="mb-1 fw-bold text-white">Rôles et Permissions</h2>
+        <p class="mb-0 opacity-75">Gestion des rôles utilisateurs et des permissions système</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-sm rounded-pill px-4"
+                style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)"
+                (click)="openPermissionModal()" [disabled]="loading">
+          + Nouvelle Permission
+        </button>
+        <button type="button" class="btn btn-light fw-semibold rounded-pill px-4"
+                (click)="openRoleModal()" [disabled]="loading">
+          + Nouveau Rôle
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Filters -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <c-card>
-        <c-card-body>
-          <form [formGroup]="filterForm" class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Rechercher</label>
-              <input 
-                type="text" 
-                class="form-control" 
-                formControlName="search"
-                placeholder="Nom du rôle ou permission..."
-                (input)="applyFilters()">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Guard</label>
-              <select class="form-select" formControlName="guard_name" (change)="applyFilters()">
-                <option value="ALL">Tous les guards</option>
-                <option value="web">Web</option>
-                <option value="api">API</option>
-              </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-              <button 
-                type="button" 
-                class="btn btn-outline-secondary w-100"
-                (click)="clearFilters()">
-                🗑️ Effacer
-              </button>
-            </div>
-          </form>
-        </c-card-body>
-      </c-card>
+  <!-- Statistiques -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card h-100 text-center"
+           style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+        <div class="card-body py-4">
+          <div class="fw-bold mb-1" style="font-size:2rem;color:#3B82F6">{{ filteredRoles.length }}</div>
+          <div class="text-muted small">Rôles</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100 text-center"
+           style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+        <div class="card-body py-4">
+          <div class="fw-bold mb-1" style="font-size:2rem;color:#10B981">{{ permissions.length }}</div>
+          <div class="text-muted small">Permissions</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100 text-center"
+           style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+        <div class="card-body py-4">
+          <div class="fw-bold mb-1" style="font-size:2rem;color:#D97706">{{ getAdminRoleCount() }}</div>
+          <div class="text-muted small">Administrateurs</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100 text-center"
+           style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+        <div class="card-body py-4">
+          <div class="fw-bold mb-1" style="font-size:2rem;color:#8B5CF6">{{ getUserRoleCount() }}</div>
+          <div class="text-muted small">Utilisateurs</div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Statistics -->
-  <div class="row mb-4">
-    <div class="col-md-3">
-      <c-card class="text-center">
-        <c-card-body>
-          <h3 class="text-primary">{{ filteredRoles.length }}</h3>
-          <p class="mb-0">Rôles</p>
-        </c-card-body>
-      </c-card>
-    </div>
-    <div class="col-md-3">
-      <c-card class="text-center">
-        <c-card-body>
-          <h3 class="text-success">{{ permissions.length }}</h3>
-          <p class="mb-0">Permissions</p>
-        </c-card-body>
-      </c-card>
-    </div>
-    <div class="col-md-3">
-      <c-card class="text-center">
-        <c-card-body>
-          <h3 class="text-warning">{{ getAdminRoleCount() }}</h3>
-          <p class="mb-0">Administrateurs</p>
-        </c-card-body>
-      </c-card>
-    </div>
-    <div class="col-md-3">
-      <c-card class="text-center">
-        <c-card-body>
-          <h3 class="text-info">{{ getUserRoleCount() }}</h3>
-          <p class="mb-0">Utilisateurs</p>
-        </c-card-body>
-      </c-card>
+  <!-- Filtres -->
+  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <div class="card-body">
+      <form [formGroup]="filterForm" class="row g-3 align-items-end">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold text-muted small text-uppercase">Rechercher</label>
+          <input type="text" class="form-control" formControlName="search"
+                 placeholder="Nom du rôle ou permission..." (input)="applyFilters()" style="border-radius:8px">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold text-muted small text-uppercase">Guard</label>
+          <select class="form-select" formControlName="guard_name" (change)="applyFilters()" style="border-radius:8px">
+            <option value="ALL">Tous les guards</option>
+            <option value="web">Web</option>
+            <option value="api">API</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100 rounded-pill" (click)="clearFilters()">
+            Effacer
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- Roles Table -->
-  <div class="row">
-    <div class="col-12">
-      <c-card>
-        <c-card-header>
-          <h5 class="mb-0">Liste des Rôles</h5>
-        </c-card-header>
-        <c-card-body>
-          <!-- Loading State -->
-          <div *ngIf="loading" class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Chargement...</span>
-            </div>
-            <p class="mt-2">Chargement des rôles...</p>
-          </div>
+  <!-- Tableau des rôles -->
+  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3"
+         style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+      <span class="fw-bold fs-5">Liste des Rôles</span>
+      <span *ngIf="loading" class="spinner-border spinner-border-sm text-primary"></span>
+    </div>
+    <div class="card-body p-0">
 
-          <!-- Empty State -->
-          <div *ngIf="!loading && filteredRoles.length === 0" class="text-center py-5">
-            🛡️
-            <h5 class="text-muted">Aucun rôle trouvé</h5>
-            <p class="text-muted">Commencez par créer un nouveau rôle.</p>
-            <button 
-              type="button" 
-              class="btn btn-primary"
-              (click)="openRoleModal()">
-              + Créer un rôle
+      <!-- Chargement -->
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border text-primary mb-3"></div>
+        <p class="text-muted">Chargement des rôles...</p>
+      </div>
+
+      <!-- Vide -->
+      <div *ngIf="!loading && filteredRoles.length === 0" class="text-center py-5">
+        <div class="mb-3 opacity-40" style="font-size:3rem">&#128737;</div>
+        <h5 class="text-muted">Aucun rôle trouvé</h5>
+        <p class="text-muted">Commencez par créer un nouveau rôle.</p>
+        <button type="button" class="btn btn-primary rounded-pill px-4" (click)="openRoleModal()">
+          + Créer un rôle
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div *ngIf="!loading && filteredRoles.length > 0" class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr style="background:#f8fafc">
+              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid #f0f0f0">Nom du Rôle</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Guard</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Permissions</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Créé le</th>
+              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid #f0f0f0">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let role of filteredRoles">
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge rounded-pill px-3 py-1 fw-semibold"
+                        [style.background]="role.name === 'SUPER_ADMIN' ? '#FEE2E2' : role.name === 'ADMIN' ? '#FEF3C7' : role.name === 'USER' ? '#EFF6FF' : '#F3F4F6'"
+                        [style.color]="role.name === 'SUPER_ADMIN' ? '#EF4444' : role.name === 'ADMIN' ? '#D97706' : role.name === 'USER' ? '#3B82F6' : '#6B7280'">
+                    {{ getRoleDisplayName(role.name) }}
+                  </span>
+                  <small class="text-muted">{{ role.name }}</small>
+                </div>
+              </td>
+              <td>
+                <span class="badge rounded-pill px-3 py-1"
+                      style="background:#F3F4F6;color:#374151">{{ role.guard_name }}</span>
+              </td>
+              <td>
+                <span class="badge rounded-pill px-3 py-1 mb-1"
+                      style="background:#EFF6FF;color:#3B82F6">
+                  {{ getPermissionCount(role) }} permission{{ getPermissionCount(role) !== 1 ? 's' : '' }}
+                </span>
+                <div *ngIf="role.permissions && role.permissions.length > 0" class="mt-1">
+                  <small class="text-muted">
+                    <span *ngFor="let permission of role.permissions.slice(0, 3); let last = last">
+                      {{ getPermissionDisplayName(permission.name) }}{{ !last ? ', ' : '' }}
+                    </span>
+                    <span *ngIf="role.permissions.length > 3">
+                      ... +{{ role.permissions.length - 3 }}
+                    </span>
+                  </small>
+                </div>
+              </td>
+              <td>
+                <small class="text-muted">{{ role.created_at | date:'dd/MM/yyyy HH:mm' }}</small>
+              </td>
+              <td class="text-end pe-4">
+                <div class="d-flex gap-1 justify-content-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary rounded-3"
+                          (click)="openRoleModal(role)" [disabled]="loading" title="Modifier">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-danger rounded-3"
+                          (click)="deleteRole(role)"
+                          [disabled]="loading || role.name === 'SUPER_ADMIN'"
+                          title="Supprimer">
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Liste des permissions -->
+  <div class="card" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <div class="card-header bg-white py-3"
+         style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+      <span class="fw-bold fs-5">
+        Liste des Permissions
+        <span class="text-muted fw-normal fs-6 ms-1">({{ permissions.length }})</span>
+      </span>
+    </div>
+    <div class="card-body">
+      <div *ngIf="permissions.length === 0" class="text-center py-4">
+        <p class="text-muted mb-2">Aucune permission disponible</p>
+        <button type="button" class="btn btn-outline-success rounded-pill px-4"
+                (click)="openPermissionModal()">+ Créer une permission</button>
+      </div>
+      <div *ngIf="permissions.length > 0" class="row g-3">
+        <div class="col-md-6 col-lg-4" *ngFor="let permission of permissions">
+          <div class="d-flex justify-content-between align-items-center rounded-3 px-3 py-3"
+               style="background:#F8FAFC;border:1px solid #f0f0f0">
+            <div>
+              <div class="fw-semibold small">{{ getPermissionDisplayName(permission.name) }}</div>
+              <code class="text-muted" style="font-size:.75rem">{{ permission.name }}</code>
+              <div class="mt-1">
+                <span class="badge rounded-pill"
+                      style="background:#F3F4F6;color:#374151;font-size:.7rem">{{ permission.guard_name }}</span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger rounded-3 ms-2 flex-shrink-0"
+                    (click)="deletePermission(permission)" [disabled]="loading" title="Supprimer">
+              <svg cIcon name="cilTrash"></svg>
             </button>
           </div>
-
-          <!-- Roles Table -->
-          <div *ngIf="!loading && filteredRoles.length > 0" class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Nom du Rôle</th>
-                  <th>Guard</th>
-                  <th>Permissions</th>
-                  <th>Date de création</th>
-                  <th class="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let role of filteredRoles">
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <c-badge 
-                        [color]="getRoleBadgeColor(role.name)" 
-                        class="me-2">
-                        {{ getRoleDisplayName(role.name) }}
-                      </c-badge>
-                      <small class="text-muted">{{ role.name }}</small>
-                    </div>
-                  </td>
-                  <td>
-                    <c-badge color="secondary">{{ role.guard_name }}</c-badge>
-                  </td>
-                  <td>
-                    <span class="badge bg-info">{{ getPermissionCount(role) }} permissions</span>
-                    <div *ngIf="role.permissions && role.permissions.length > 0" class="mt-1">
-                      <small class="text-muted">
-                        <span *ngFor="let permission of role.permissions.slice(0, 3); let last = last">
-                          {{ getPermissionDisplayName(permission.name) }}{{ !last ? ', ' : '' }}
-                        </span>
-                        <span *ngIf="role.permissions.length > 3">
-                          ... et {{ role.permissions.length - 3 }} autres
-                        </span>
-                      </small>
-                    </div>
-                  </td>
-                  <td>
-                    <small class="text-muted">
-                      {{ role.created_at | date:'dd/MM/yyyy HH:mm' }}
-                    </small>
-                  </td>
-                  <td class="text-end">
-                    <div class="btn-group" role="group">
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-primary btn-sm"
-                        (click)="openRoleModal(role)"
-                        [disabled]="loading">
-                        ✏️
-                      </button>
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-danger btn-sm"
-                        (click)="deleteRole(role)"
-                        [disabled]="loading || role.name === 'SUPER_ADMIN'">
-                        ×
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </c-card-body>
-      </c-card>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Permissions List -->
-  <div class="row mt-4">
-    <div class="col-12">
-      <c-card>
-        <c-card-header>
-          <h5 class="mb-0">Liste des Permissions</h5>
-        </c-card-header>
-        <c-card-body>
-          <div *ngIf="permissions.length === 0" class="text-center py-3">
-            <p class="text-muted">Aucune permission disponible</p>
+</div>
+
+<!-- Modal Rôle -->
+<c-modal [visible]="roleModalOpen" (visibleChange)="roleModalOpen = $event" size="lg" backdrop="static">
+  <c-modal-header class="text-white py-4 px-4"
+                  style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)">
+    <h4 cModalTitle class="fw-bold text-white mb-0">
+      {{ editMode ? 'Modifier le Rôle' : 'Nouveau Rôle' }}
+    </h4>
+    <button cButtonClose class="btn-close-white" (click)="closeRoleModal()" [disabled]="loading"></button>
+  </c-modal-header>
+
+  <form [formGroup]="roleForm" (ngSubmit)="onSubmitRole()">
+    <c-modal-body class="px-4 py-4">
+      <div class="row g-3">
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Nom du Rôle <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" formControlName="name"
+                 [class.is-invalid]="submitted && f['name'].errors"
+                 placeholder="Ex: MANAGER" style="border-radius:8px">
+          <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
+            <div *ngIf="f['name'].errors['required']">Le nom du rôle est requis</div>
+            <div *ngIf="f['name'].errors['maxlength']">Maximum 125 caractères</div>
           </div>
-          <div *ngIf="permissions.length > 0" class="row">
-            <div class="col-md-6 col-lg-4 mb-3" *ngFor="let permission of permissions">
-              <div class="card h-100">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="card-title mb-1">{{ getPermissionDisplayName(permission.name) }}</h6>
-                    <small class="text-muted">{{ permission.name }}</small>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Guard <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="guard_name"
+                  [class.is-invalid]="submitted && f['guard_name'].errors" style="border-radius:8px">
+            <option value="web">Web</option>
+            <option value="api">API</option>
+          </select>
+          <div *ngIf="submitted && f['guard_name'].errors" class="invalid-feedback">
+            <div *ngIf="f['guard_name'].errors['required']">Le guard est requis</div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Permissions associées</label>
+          <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #f0f0f0;max-height:280px;overflow-y:auto">
+            <div class="row g-2">
+              <div class="col-md-6" *ngFor="let permission of availablePermissions">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox"
+                         [id]="'permission-' + permission.id"
+                         [checked]="isPermissionSelected(permission.id)"
+                         (change)="togglePermissionSelection(permission.id)">
+                  <label class="form-check-label" [for]="'permission-' + permission.id">
+                    <span class="fw-semibold small">{{ getPermissionDisplayName(permission.name) }}</span>
                     <br>
-                    <c-badge color="secondary" class="mt-1">{{ permission.guard_name }}</c-badge>
-                  </div>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-danger btn-sm"
-                    (click)="deletePermission(permission)"
-                    [disabled]="loading">
-                    ×
-                  </button>
+                    <code class="text-muted" style="font-size:.72rem">{{ permission.name }}</code>
+                  </label>
                 </div>
               </div>
             </div>
+            <div *ngIf="availablePermissions.length === 0" class="text-center text-muted py-3">
+              Aucune permission disponible
+            </div>
           </div>
-        </c-card-body>
-      </c-card>
-    </div>
-  </div>
-</div>
+          <small class="form-text text-muted mt-1 d-block">Sélectionnez les permissions à associer à ce rôle</small>
+        </div>
 
-<!-- Role Modal -->
-<c-modal 
-  [visible]="roleModalOpen" 
-  (visibleChange)="roleModalOpen = $event"
-  size="lg">
-  <c-modal-header>
-    <h4 class="modal-title">
-      {{ editMode ? 'Modifier le Rôle' : 'Nouveau Rôle' }}
-    </h4>
-  </c-modal-header>
-  <form [formGroup]="roleForm" (ngSubmit)="onSubmitRole()">
-    <c-modal-body>
-      <div class="row">
-        <div class="col-md-6">
-          <div class="mb-3">
-            <label class="form-label">Nom du Rôle *</label>
-            <input 
-              type="text" 
-              class="form-control"
-              formControlName="name"
-              [class.is-invalid]="submitted && f['name'].errors"
-              placeholder="Ex: MANAGER">
-            <div *ngIf="submitted && f['name'].errors" class="invalid-feedback">
-              <div *ngIf="f['name'].errors['required']">Le nom du rôle est requis</div>
-              <div *ngIf="f['name'].errors['maxlength']">Le nom ne peut pas dépasser 125 caractères</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="mb-3">
-            <label class="form-label">Guard *</label>
-            <select 
-              class="form-select"
-              formControlName="guard_name"
-              [class.is-invalid]="submitted && f['guard_name'].errors">
-              <option value="web">Web</option>
-              <option value="api">API</option>
-            </select>
-            <div *ngIf="submitted && f['guard_name'].errors" class="invalid-feedback">
-              <div *ngIf="f['guard_name'].errors['required']">Le guard est requis</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Permissions Selection -->
-      <div class="mb-3">
-        <label class="form-label">Permissions</label>
-        <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
-          <div class="row">
-            <div class="col-md-6 mb-2" *ngFor="let permission of availablePermissions">
-              <div class="form-check">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  [id]="'permission-' + permission.id"
-                  [checked]="isPermissionSelected(permission.id)"
-                  (change)="togglePermissionSelection(permission.id)">
-                <label class="form-check-label" [for]="'permission-' + permission.id">
-                  <strong>{{ getPermissionDisplayName(permission.name) }}</strong>
-                  <br>
-                  <small class="text-muted">{{ permission.name }}</small>
-                </label>
-              </div>
-            </div>
-          </div>
-          <div *ngIf="availablePermissions.length === 0" class="text-center text-muted py-3">
-            Aucune permission disponible
-          </div>
-        </div>
-        <small class="form-text text-muted">
-          Sélectionnez les permissions à associer à ce rôle
-        </small>
       </div>
     </c-modal-body>
-    <c-modal-footer>
-      <button 
-        type="button" 
-        class="btn btn-secondary"
-        (click)="closeRoleModal()"
-        [disabled]="loading">
-        Annuler
-      </button>
-      <button 
-        type="submit" 
-        class="btn btn-primary"
-        [disabled]="loading">
+    <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+      <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
+              (click)="closeRoleModal()" [disabled]="loading">Annuler</button>
+      <button type="submit" class="btn btn-primary rounded-pill px-4" [disabled]="loading">
         <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-        {{ editMode ? 'Modifier' : 'Créer' }}
+        {{ editMode ? 'Enregistrer' : 'Créer' }}
       </button>
     </c-modal-footer>
   </form>
 </c-modal>
 
-<!-- Permission Modal -->
-<c-modal 
-  [visible]="permissionModalOpen" 
-  (visibleChange)="permissionModalOpen = $event">
-  <c-modal-header>
-    <h4 class="modal-title">Nouvelle Permission</h4>
+<!-- Modal Permission -->
+<c-modal [visible]="permissionModalOpen" (visibleChange)="permissionModalOpen = $event" backdrop="static">
+  <c-modal-header class="text-white py-4 px-4"
+                  style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)">
+    <h4 cModalTitle class="fw-bold text-white mb-0">Nouvelle Permission</h4>
+    <button cButtonClose class="btn-close-white" (click)="closePermissionModal()" [disabled]="loading"></button>
   </c-modal-header>
+
   <form [formGroup]="permissionForm" (ngSubmit)="onSubmitPermission()">
-    <c-modal-body>
+    <c-modal-body class="px-4 py-4">
+
       <div class="mb-3">
-        <label class="form-label">Nom de la Permission *</label>
-        <input 
-          type="text" 
-          class="form-control"
-          formControlName="name"
-          [class.is-invalid]="submitted && pf['name'].errors"
-          placeholder="Ex: user.create">
+        <label class="form-label fw-semibold">Nom de la Permission <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" formControlName="name"
+               [class.is-invalid]="submitted && pf['name'].errors"
+               placeholder="Ex: user.create" style="border-radius:8px">
         <div *ngIf="submitted && pf['name'].errors" class="invalid-feedback">
           <div *ngIf="pf['name'].errors['required']">Le nom de la permission est requis</div>
-          <div *ngIf="pf['name'].errors['maxlength']">Le nom ne peut pas dépasser 125 caractères</div>
+          <div *ngIf="pf['name'].errors['maxlength']">Maximum 125 caractères</div>
         </div>
-        <small class="form-text text-muted">
-          Format recommandé: module.action (ex: user.create, product.view)
-        </small>
+        <small class="form-text text-muted">Format recommandé : module.action (ex: user.create, product.view)</small>
       </div>
+
       <div class="mb-3">
-        <label class="form-label">Guard *</label>
-        <select 
-          class="form-select"
-          formControlName="guard_name"
-          [class.is-invalid]="submitted && pf['guard_name'].errors">
+        <label class="form-label fw-semibold">Guard <span class="text-danger">*</span></label>
+        <select class="form-select" formControlName="guard_name"
+                [class.is-invalid]="submitted && pf['guard_name'].errors" style="border-radius:8px">
           <option value="web">Web</option>
           <option value="api">API</option>
         </select>
@@ -376,21 +330,14 @@
           <div *ngIf="pf['guard_name'].errors['required']">Le guard est requis</div>
         </div>
       </div>
+
     </c-modal-body>
-    <c-modal-footer>
-      <button 
-        type="button" 
-        class="btn btn-secondary"
-        (click)="closePermissionModal()"
-        [disabled]="loading">
-        Annuler
-      </button>
-      <button 
-        type="submit" 
-        class="btn btn-success"
-        [disabled]="loading">
+    <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+      <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
+              (click)="closePermissionModal()" [disabled]="loading">Annuler</button>
+      <button type="submit" class="btn btn-success rounded-pill px-4" [disabled]="loading">
         <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-        Créer
+        Créer la Permission
       </button>
     </c-modal-footer>
   </form>

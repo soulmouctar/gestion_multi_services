@@ -9,17 +9,19 @@ use Spatie\Permission\Models\Permission;
 
 class RolePermissionController extends BaseController
 {
-    public function getRoles()
+    // ─── Rôles ────────────────────────────────────────────────────────────────
+
+    public function indexRoles()
     {
         $roles = Role::with('permissions')->get();
         return $this->sendResponse($roles, 'Roles retrieved successfully');
     }
 
-    public function createRole(Request $request)
+    public function storeRole(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|unique:roles,name',
-            'guard_name' => 'sometimes|string',
+            'name'           => 'required|string|max:125|unique:roles,name',
+            'guard_name'     => 'sometimes|string',
             'permission_ids' => 'nullable|array',
             'permission_ids.*' => 'exists:permissions,id',
         ]);
@@ -29,11 +31,11 @@ class RolePermissionController extends BaseController
         }
 
         $role = Role::create([
-            'name' => $request->name, 
-            'guard_name' => $request->guard_name ?? 'web'
+            'name'       => $request->name,
+            'guard_name' => $request->guard_name ?? 'web',
         ]);
 
-        if ($request->has('permission_ids')) {
+        if ($request->filled('permission_ids')) {
             $permissions = Permission::whereIn('id', $request->permission_ids)->get();
             $role->syncPermissions($permissions);
         }
@@ -61,8 +63,8 @@ class RolePermissionController extends BaseController
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|unique:roles,name,' . $id,
-            'guard_name' => 'sometimes|string',
+            'name'           => 'sometimes|string|max:125|unique:roles,name,' . $id,
+            'guard_name'     => 'sometimes|string',
             'permission_ids' => 'nullable|array',
             'permission_ids.*' => 'exists:permissions,id',
         ]);
@@ -83,7 +85,7 @@ class RolePermissionController extends BaseController
         return $this->sendResponse($role->load('permissions'), 'Role updated successfully');
     }
 
-    public function deleteRole($id)
+    public function destroyRole($id)
     {
         $role = Role::find($id);
 
@@ -91,21 +93,28 @@ class RolePermissionController extends BaseController
             return $this->sendError('Role not found');
         }
 
+        // Protéger les rôles système
+        if (in_array($role->name, ['SUPER_ADMIN', 'ADMIN', 'USER'])) {
+            return $this->sendError('Ce rôle système ne peut pas être supprimé.', [], 403);
+        }
+
         $role->delete();
 
         return $this->sendResponse([], 'Role deleted successfully');
     }
 
-    public function getPermissions()
+    // ─── Permissions ─────────────────────────────────────────────────────────
+
+    public function indexPermissions()
     {
-        $permissions = Permission::all();
+        $permissions = Permission::orderBy('name')->get();
         return $this->sendResponse($permissions, 'Permissions retrieved successfully');
     }
 
-    public function createPermission(Request $request)
+    public function storePermission(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|unique:permissions,name',
+            'name'       => 'required|string|max:125|unique:permissions,name',
             'guard_name' => 'sometimes|string',
         ]);
 
@@ -114,14 +123,14 @@ class RolePermissionController extends BaseController
         }
 
         $permission = Permission::create([
-            'name' => $request->name, 
-            'guard_name' => $request->guard_name ?? 'web'
+            'name'       => $request->name,
+            'guard_name' => $request->guard_name ?? 'web',
         ]);
 
         return $this->sendResponse($permission, 'Permission created successfully', 201);
     }
 
-    public function deletePermission($id)
+    public function destroyPermission($id)
     {
         $permission = Permission::find($id);
 

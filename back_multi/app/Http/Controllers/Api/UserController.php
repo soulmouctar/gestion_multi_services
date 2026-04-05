@@ -4,22 +4,35 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\User;
 use App\Models\Module;
+use App\Services\UserModulePermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends BaseController
 {
+    public function __construct(
+        private readonly UserModulePermissionService $modulePermissionService
+    ) {}
+
     public function index(Request $request)
     {
+        $currentUser = auth()->user();
+        $perPage = $request->get('per_page', 15);
+
         $query = User::with('tenant', 'roles');
 
-        if ($request->has('tenant_id')) {
+        // ADMIN ne voit que les utilisateurs de son tenant
+        if ($currentUser && $currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
+            $query->where('tenant_id', $currentUser->tenant_id);
+        } elseif ($request->has('tenant_id')) {
             $query->where('tenant_id', $request->tenant_id);
         }
 
-        $users = $query->paginate(15);
+        $users = $query->paginate($perPage);
+
         return $this->sendResponse($users, 'Users retrieved successfully');
     }
 
@@ -51,6 +64,7 @@ class UserController extends BaseController
             'password'  => 'required|min:8',
             'tenant_id' => 'nullable|exists:tenants,id',
             'role'      => 'nullable|string|exists:roles,name',
+            'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -70,14 +84,25 @@ class UserController extends BaseController
             }
         }
 
+        $avatarPath = null;
+        if ($request->hasFile('avatar')) {
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+        }
+
         $user = User::create([
             'name'      => $request->name,
             'email'     => $request->email,
             'password'  => Hash::make($request->password),
             'tenant_id' => $request->tenant_id,
+            'avatar'    => $avatarPath,
         ]);
 
         $user->assignRole($requestedRole);
+
+        // Accorder automatiquement tous les modules du tenant à l'administrateur
+        $user->load('roles');
+        $this->modulePermissionService->grantAllTenantModules($user);
+
 
         return $this->sendResponse($user->load('roles'), 'User created successfully', 201);
     }
@@ -108,6 +133,7 @@ class UserController extends BaseController
             'password'  => 'nullable|min:8',
             'tenant_id' => 'nullable|exists:tenants,id',
             'role'      => 'nullable|string|exists:roles,name',
+            'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -140,10 +166,19 @@ class UserController extends BaseController
             }
         }
 
-        $data = $request->only(['name', 'email', 'tenant_id']);
+        $previousTenantId = $user->tenant_id;
+
+        $data = $request->only(['name', 'email', 'tenant_id', 'is_active']);
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
+        }
+
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
         }
 
         $user->update($data);
@@ -151,6 +186,11 @@ class UserController extends BaseController
         if ($request->has('role')) {
             $user->syncRoles([$request->role]);
         }
+
+        // Resynchroniser les permissions si le tenant ou le rôle a changé
+        $user->load('roles');
+        $this->modulePermissionService->syncAfterUserUpdate($user, $previousTenantId);
+
 
         return $this->sendResponse($user->load('roles'), 'User updated successfully');
     }
@@ -268,16 +308,62 @@ class UserController extends BaseController
         return $this->sendResponse($user->load('roles'), 'Role removed successfully');
     }
 
+    public function toggleStatus($id)
+    {
+        $currentUser = auth()->user();
+        $user = User::find($id);
+
+        if (!$user) {
+            return $this->sendError('User not found');
+        }
+
+        if ($user->id === $currentUser->id) {
+            return $this->sendError('Vous ne pouvez pas désactiver votre propre compte', [], 403);
+        }
+
+        if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
+            if ($user->tenant_id !== $currentUser->tenant_id) {
+                return $this->sendError('Vous ne pouvez gérer que les utilisateurs de votre organisation', [], 403);
+            }
+        }
+
+        $user->update(['is_active' => !$user->is_active]);
+
+        return $this->sendResponse($user->load('roles'), 'User status updated successfully');
+    }
+
     public function getModulePermissions($id)
     {
+        $currentUser = auth()->user();
+        $user = User::find($id);
+
+        if (!$user) {
+            return $this->sendError('User not found', [], 404);
+        }
+
+        // ADMIN can only view permissions of users in their own tenant
+        if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
+            if ($user->tenant_id !== $currentUser->tenant_id) {
+                return $this->sendError('Accès non autorisé', [], 403);
+            }
+        }
+
         return $this->getUserModulePermissions($id);
     }
 
     public function updateModulePermissions(Request $request, $id)
     {
+        $currentUser = auth()->user();
         $user = User::find($id);
         if (!$user) {
             return $this->sendError('User not found', [], 404);
+        }
+
+        // ADMIN can only update permissions of users in their own tenant
+        if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
+            if ($user->tenant_id !== $currentUser->tenant_id) {
+                return $this->sendError('Accès non autorisé', [], 403);
+            }
         }
 
         $validator = Validator::make($request->all(), [

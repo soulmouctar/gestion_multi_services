@@ -38,6 +38,11 @@ export class HousingUnitsComponent implements OnInit {
   selectedFloorId: number | null = null;
   filteredFloors: any[] = [];
 
+  // Inline floor creation
+  showInlineFloor = false;
+  inlineFloorNumber: number | null = null;
+  savingFloor = false;
+
   constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
     this.unitForm = this.fb.group({
       building_id: [null],
@@ -92,11 +97,41 @@ export class HousingUnitsComponent implements OnInit {
   onBuildingChange(buildingId: any): void {
     const id = buildingId?.target?.value || buildingId;
     this.unitForm.patchValue({ floor_id: null });
+    this.showInlineFloor = false;
+    this.inlineFloorNumber = null;
     if (!id) {
       this.filteredFloors = this.floors;
     } else {
       this.filteredFloors = this.floors.filter(f => f.building_id == id);
     }
+  }
+
+  createFloorInline(): void {
+    const buildingId = this.unitForm.get('building_id')?.value;
+    if (!buildingId || !this.inlineFloorNumber) return;
+    this.savingFloor = true;
+    this.apiService.post<any>('floors', {
+      building_id: buildingId,
+      floor_number: this.inlineFloorNumber
+    }).subscribe({
+      next: (r) => {
+        if (r.success && r.data) {
+          this.floors.push(r.data);
+          this.filteredFloors = this.floors.filter(f => f.building_id == buildingId);
+          this.unitForm.patchValue({ floor_id: r.data.id });
+          this.showInlineFloor = false;
+          this.inlineFloorNumber = null;
+          this.successMessage = `Étage ${r.data.floor_number} créé avec succès`;
+        }
+        this.savingFloor = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.error = err?.error?.message || 'Erreur lors de la création de l\'étage';
+        this.savingFloor = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   onConfigurationChange(configId: any): void {
@@ -140,12 +175,14 @@ export class HousingUnitsComponent implements OnInit {
 
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
   
-  openCreateModal(): void { 
-    this.editMode = false; 
-    this.submitted = false; 
+  openCreateModal(): void {
+    this.editMode = false;
+    this.submitted = false;
     this.filteredFloors = this.floors;
-    this.unitForm.reset({ building_id: null, floor_id: null, unit_configuration_id: null, rent_amount: null, status: 'LIBRE' }); 
-    this.showFormModal = true; 
+    this.showInlineFloor = false;
+    this.inlineFloorNumber = null;
+    this.unitForm.reset({ building_id: null, floor_id: null, unit_configuration_id: null, rent_amount: null, status: 'LIBRE' });
+    this.showFormModal = true;
   }
   
   openEditModal(item: any): void { 
