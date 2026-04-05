@@ -206,6 +206,12 @@ export class UserService {
         module_name: 'Dépenses Personnelles',
         permissions: ['view', 'create', 'edit', 'delete'],
         is_active: false
+      },
+      {
+        module_code: 'BANKING',
+        module_name: 'Comptes Bancaires',
+        permissions: ['view', 'create', 'edit', 'delete', 'upload_proof'],
+        is_active: false
       }
     ];
   }

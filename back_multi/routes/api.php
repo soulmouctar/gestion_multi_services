@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\DailyPaymentController;
 use App\Http\Controllers\Api\VehicleExpenseController;
 use App\Http\Controllers\Api\LeaseController;
 use App\Http\Controllers\Api\PersonalExpenseController;
+use App\Http\Controllers\Api\BankingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -251,6 +252,20 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::put('personal-expense-categories/{id}',  [PersonalExpenseController::class, 'updateCategory']);
         Route::delete('personal-expense-categories/{id}', [PersonalExpenseController::class, 'destroyCategory']);
         Route::apiResource('personal-expenses', PersonalExpenseController::class)->except(['create', 'edit']);
+
+        // Module Bancaire
+        Route::get('banking/statistics',                    [BankingController::class, 'statistics']);
+        Route::get('banking/accounts',                      [BankingController::class, 'indexAccounts']);
+        Route::post('banking/accounts',                     [BankingController::class, 'storeAccount']);
+        Route::get('banking/accounts/{id}',                 [BankingController::class, 'showAccount']);
+        Route::put('banking/accounts/{id}',                 [BankingController::class, 'updateAccount']);
+        Route::delete('banking/accounts/{id}',              [BankingController::class, 'destroyAccount']);
+        Route::get('banking/transactions',                  [BankingController::class, 'indexTransactions']);
+        Route::post('banking/transactions',                 [BankingController::class, 'storeTransaction']);
+        Route::get('banking/transactions/{id}',             [BankingController::class, 'showTransaction']);
+        Route::put('banking/transactions/{id}',             [BankingController::class, 'updateTransaction']);
+        Route::delete('banking/transactions/{id}',          [BankingController::class, 'destroyTransaction']);
+        Route::post('banking/transactions/{id}/upload-proof', [BankingController::class, 'uploadProof']);
 
     }); // Fin du groupe auth:sanctum
 

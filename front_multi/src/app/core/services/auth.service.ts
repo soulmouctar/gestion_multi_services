@@ -256,6 +256,7 @@ export class AuthService {
         { code: 'TAXI',              name: 'Gestion Taxi',           is_active: true },
         { code: 'STATISTICS',        name: 'Statistiques',           is_active: true },
         { code: 'EXPENSES',          name: 'Dépenses Personnelles',  is_active: true },
+        { code: 'BANKING',           name: 'Comptes Bancaires',       is_active: true },
       ];
     }
     return user?.tenant_active_modules || [];

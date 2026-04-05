@@ -169,6 +169,19 @@ export class NavigationService {
           });
           break;
 
+        case 'BANKING':
+          moduleNavigation.push({
+            name: 'Comptes Bancaires',
+            url: '/banking',
+            iconComponent: { name: 'cilBank' },
+            children: [
+              { name: 'Mes Comptes',    url: '/banking/accounts',     icon: 'nav-icon-bullet' },
+              { name: 'Transactions',   url: '/banking/transactions',  icon: 'nav-icon-bullet' },
+              { name: 'Statistiques',   url: '/banking/statistics',    icon: 'nav-icon-bullet' },
+            ]
+          });
+          break;
+
         case 'TAXI':
           moduleNavigation.push({
             name: 'Taxi & Transport',

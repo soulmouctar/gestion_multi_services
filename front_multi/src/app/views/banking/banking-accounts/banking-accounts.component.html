@@ -1,0 +1,163 @@
+<div class="container-fluid px-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h2 class="mb-1 fw-bold">Comptes Bancaires</h2>
+      <p class="text-muted mb-0">Gérez vos comptes UBA, ECOBANK et autres banques</p>
+    </div>
+    <button cButton color="primary" (click)="openNew()">
+      <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau Compte
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="!loading && accounts.length === 0" class="text-center py-5">
+    <svg cIcon name="cilBank" size="3xl" class="text-muted mb-3"></svg>
+    <h5 class="text-muted">Aucun compte bancaire</h5>
+    <p class="text-muted">Commencez par ajouter votre premier compte</p>
+    <button cButton color="primary" (click)="openNew()">Ajouter un compte</button>
+  </div>
+
+  <!-- Account Cards -->
+  <div *ngIf="!loading && accounts.length > 0" class="row g-4">
+    <div *ngFor="let account of accounts" class="col-12 col-md-6 col-xl-4">
+      <c-card class="h-100 border-0 shadow-sm">
+        <!-- Bank header bar -->
+        <div class="rounded-top p-3 text-white d-flex align-items-center justify-content-between"
+             [style.background]="bankColor(account.bank_name)">
+          <div>
+            <span class="fw-bold fs-5">{{ account.bank_name }}</span>
+            <div class="small opacity-75">{{ accountTypeLabel(account.account_type) }}</div>
+          </div>
+          <div class="text-end">
+            <span class="badge bg-white bg-opacity-25">{{ account.currency }}</span>
+          </div>
+        </div>
+
+        <c-card-body class="p-3">
+          <!-- Account name & number -->
+          <div class="mb-3">
+            <div class="fw-semibold text-truncate">{{ account.account_name }}</div>
+            <div class="text-muted small font-monospace">{{ account.account_number }}</div>
+          </div>
+
+          <!-- Balance -->
+          <div class="bg-light rounded p-3 mb-3">
+            <div class="text-muted small mb-1">Solde actuel</div>
+            <div class="fw-bold fs-5" [class.text-success]="account.current_balance >= 0" [class.text-danger]="account.current_balance < 0">
+              {{ fmt(account.current_balance, account.currency) }}
+            </div>
+            <div class="text-muted small">Solde initial : {{ fmt(account.opening_balance, account.currency) }}</div>
+          </div>
+
+          <!-- Stats row -->
+          <div class="d-flex justify-content-between text-center mb-3">
+            <div>
+              <div class="fw-semibold">{{ account.transactions_count || 0 }}</div>
+              <div class="text-muted small">Transactions</div>
+            </div>
+            <div>
+              <div class="fw-semibold" [class.text-warning]="account.pending_count > 0">{{ account.pending_count || 0 }}</div>
+              <div class="text-muted small">En attente</div>
+            </div>
+            <div>
+              <span class="badge" [class.bg-success]="account.is_active" [class.bg-secondary]="!account.is_active">
+                {{ account.is_active ? 'Actif' : 'Inactif' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex gap-2">
+            <a [routerLink]="['/banking/transactions']" [queryParams]="{ account_id: account.id }"
+               class="btn btn-sm btn-outline-primary flex-fill">
+              <svg cIcon name="cilList" class="me-1" size="sm"></svg> Transactions
+            </a>
+            <button cButton size="sm" color="light" (click)="openEdit(account)" title="Modifier">
+              <svg cIcon name="cilPencil" size="sm"></svg>
+            </button>
+            <button cButton size="sm" [color]="account.is_active ? 'warning' : 'success'" (click)="toggleStatus(account)" title="Activer/Désactiver">
+              <svg cIcon [name]="account.is_active ? 'cilMinus' : 'cilCheck'" size="sm"></svg>
+            </button>
+            <button cButton size="sm" color="danger" (click)="delete(account)" title="Supprimer">
+              <svg cIcon name="cilTrash" size="sm"></svg>
+            </button>
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal Compte -->
+<c-modal [visible]="showModal" (visibleChange)="showModal = $event" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editMode ? 'Modifier le compte' : 'Nouveau compte bancaire' }}</h5>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="form">
+      <div class="row g-3">
+
+        <div class="col-md-6">
+          <label cLabel>Banque *</label>
+          <select cSelect formControlName="bank_name" [class.is-invalid]="submitted && form.get('bank_name')?.invalid">
+            <option *ngFor="let b of bankNames" [value]="b">{{ b }}</option>
+          </select>
+          <div class="invalid-feedback">Requis</div>
+        </div>
+
+        <div class="col-md-6">
+          <label cLabel>Type de compte *</label>
+          <select cSelect formControlName="account_type" [class.is-invalid]="submitted && form.get('account_type')?.invalid">
+            <option *ngFor="let t of accountTypes" [value]="t.value">{{ t.label }}</option>
+          </select>
+        </div>
+
+        <div class="col-md-8">
+          <label cLabel>Nom du titulaire *</label>
+          <input cFormControl formControlName="account_name" placeholder="Ex: Mat Kolla SARL"
+                 [class.is-invalid]="submitted && form.get('account_name')?.invalid" />
+          <div class="invalid-feedback">Requis (max 200 caractères)</div>
+        </div>
+
+        <div class="col-md-4">
+          <label cLabel>Devise *</label>
+          <select cSelect formControlName="currency">
+            <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label cLabel>Numéro de compte *</label>
+          <input cFormControl formControlName="account_number" placeholder="Ex: GN2610010001234567890123"
+                 [class.is-invalid]="submitted && form.get('account_number')?.invalid" />
+          <div class="invalid-feedback">Requis</div>
+        </div>
+
+        <div class="col-md-6">
+          <label cLabel>Solde initial</label>
+          <input cFormControl type="number" formControlName="opening_balance" min="0" />
+        </div>
+
+        <div class="col-12">
+          <label cLabel>Description</label>
+          <textarea cFormControl formControlName="description" rows="2" placeholder="Notes optionnelles..."></textarea>
+        </div>
+
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showModal = false">Annuler</button>
+    <button cButton color="primary" (click)="save()">
+      {{ editMode ? 'Enregistrer' : 'Créer' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

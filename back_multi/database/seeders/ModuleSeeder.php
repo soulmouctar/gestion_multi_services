@@ -82,6 +82,14 @@ class ModuleSeeder extends Seeder
                 'icon' => 'cil-wallet',
                 'permissions' => ['view', 'create', 'edit', 'delete']
             ],
+            [
+                'code' => 'BANKING',
+                'name' => 'Comptes Bancaires',
+                'description' => 'Gestion des comptes bancaires, dépôts, retraits et remises de chèques',
+                'is_active' => true,
+                'icon' => 'cil-bank',
+                'permissions' => ['view', 'create', 'edit', 'delete', 'upload_proof']
+            ],
         ];
 
         foreach ($modules as $module) {
