@@ -47,6 +47,18 @@ export class NavigationService {
           baseNavigation.push(...tenantModules);
         }
 
+        // Dépenses Personnelles toujours visible dans GESTION MULTI-MODULES
+        baseNavigation.push({
+          name: 'Dépenses Personnelles',
+          url: '/expenses',
+          iconComponent: { name: 'cilWallet' },
+          children: [
+            { name: 'Mes Dépenses',   url: '/expenses/list',       icon: 'nav-icon-bullet' },
+            { name: 'Catégories',     url: '/expenses/categories', icon: 'nav-icon-bullet' },
+            { name: 'Statistiques',   url: '/expenses/statistics', icon: 'nav-icon-bullet' },
+          ]
+        });
+
         if (isSuperAdmin) {
           baseNavigation.push(
             { name: 'ADMINISTRATION', title: true },
@@ -134,10 +146,9 @@ export class NavigationService {
             url: '/containers',
             iconComponent: { name: 'cilLayers' },
             children: [
-              { name: 'Liste des Conteneurs',         url: '/containers/list',           icon: 'nav-icon-bullet' },
-              { name: 'Photos',                       url: '/containers/photos',         icon: 'nav-icon-bullet' },
-              { name: 'Suivi Paiements',              url: '/containers/payments',       icon: 'nav-icon-bullet' },
-              { name: 'Statistiques Avancées',        url: '/containers/statistics',     icon: 'nav-icon-bullet' },
+              { name: 'Liste des Conteneurs',  url: '/containers/list',       icon: 'nav-icon-bullet' },
+              { name: 'Gestion des Ventes',    url: '/containers/ventes',     icon: 'nav-icon-bullet' },
+              { name: 'Statistiques',          url: '/containers/statistics', icon: 'nav-icon-bullet' },
             ]
           });
           break;
@@ -148,12 +159,12 @@ export class NavigationService {
             url: '/rental',
             iconComponent: { name: 'cilHome' },
             children: [
-              { name: 'Emplacements',                 url: '/rental/locations',          icon: 'nav-icon-bullet' },
-              { name: 'Bâtiments',                    url: '/rental/buildings',          icon: 'nav-icon-bullet' },
-              { name: 'Étages',                       url: '/rental/floors',             icon: 'nav-icon-bullet' },
+              { name: 'Contrats de Location',         url: '/rental/leases',             icon: 'nav-icon-bullet' },
               { name: 'Unités de Logement',           url: '/rental/housing-units',      icon: 'nav-icon-bullet' },
+              { name: 'Bâtiments',                    url: '/rental/buildings',          icon: 'nav-icon-bullet' },
+              { name: 'Emplacements',                 url: '/rental/locations',          icon: 'nav-icon-bullet' },
+              { name: 'Étages',                       url: '/rental/floors',             icon: 'nav-icon-bullet' },
               { name: 'Configurations',               url: '/rental/unit-configurations', icon: 'nav-icon-bullet' },
-              { name: 'Gestion Avancée',              url: '/rental/locations-advanced', icon: 'nav-icon-bullet' },
             ]
           });
           break;
@@ -186,6 +197,8 @@ export class NavigationService {
             ]
           });
           break;
+
+        // EXPENSES est toujours visible dans la navigation de base (pas module-dépendant)
       }
     });
 

@@ -15,10 +15,15 @@ class ContainerSalesController extends BaseController
 {
     // ==================== ARRIVAGES ====================
     
+    private function tenantId(Request $request): int
+    {
+        return auth()->user()?->tenant_id ?? (int) $request->get('tenant_id', 1);
+    }
+
     public function getArrivals(Request $request)
     {
         try {
-            $tenantId = $request->get('tenant_id', 1);
+            $tenantId = $this->tenantId($request);
             
             $query = ContainerArrival::with(['container', 'supplier'])
                 ->where('tenant_id', $tenantId);
@@ -60,7 +65,7 @@ class ContainerSalesController extends BaseController
             }
 
             $data = $request->all();
-            $data['tenant_id'] = $request->get('tenant_id', 1);
+            $data['tenant_id'] = $this->tenantId($request);
             $data['remaining_quantity'] = $data['total_quantity'];
             $data['status'] = 'EN_COURS';
 
@@ -114,7 +119,7 @@ class ContainerSalesController extends BaseController
     public function getSales(Request $request)
     {
         try {
-            $tenantId = $request->get('tenant_id', 1);
+            $tenantId = $this->tenantId($request);
             
             $query = ContainerSale::with(['containerArrival.container', 'client', 'payments'])
                 ->where('tenant_id', $tenantId);
@@ -171,7 +176,7 @@ class ContainerSalesController extends BaseController
             DB::beginTransaction();
 
             $data = $request->all();
-            $data['tenant_id'] = $request->get('tenant_id', 1);
+            $data['tenant_id'] = $this->tenantId($request);
             $data['amount_paid'] = 0;
             $data['remaining_amount'] = $data['sale_price'];
             $data['status'] = 'EN_COURS';
@@ -233,7 +238,7 @@ class ContainerSalesController extends BaseController
     public function getPayments(Request $request)
     {
         try {
-            $tenantId = $request->get('tenant_id', 1);
+            $tenantId = $this->tenantId($request);
             
             $query = ContainerSalePayment::with(['containerSale.containerArrival.container', 'client'])
                 ->where('tenant_id', $tenantId);
@@ -261,29 +266,47 @@ class ContainerSalesController extends BaseController
         try {
             $validator = Validator::make($request->all(), [
                 'container_sale_id' => 'required|exists:container_sales,id',
-                'amount' => 'required|numeric|min:0',
-                'currency' => 'required|string|max:10',
-                'payment_method' => 'required|string|max:50',
-                'payment_date' => 'required|date',
-                'reference' => 'nullable|string|max:100',
-                'notes' => 'nullable|string|max:500'
+                'amount'            => 'required|numeric|min:1',
+                'currency'          => 'required|string|max:10',
+                'payment_method'    => 'required|string|max:50',
+                'payment_date'      => 'required|date',
+                'reference'         => 'nullable|string|max:100',
+                'notes'             => 'nullable|string|max:500',
             ]);
 
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
             }
 
-            $sale = ContainerSale::find($request->container_sale_id);
-            
+            $sale = ContainerSale::findOrFail($request->container_sale_id);
+
+            DB::beginTransaction();
+
             $data = $request->all();
-            $data['tenant_id'] = $request->get('tenant_id', 1);
-            $data['client_id'] = $sale->client_id;
+            $data['tenant_id']    = $this->tenantId($request);
+            $data['client_id']    = $sale->client_id;
             $data['payment_type'] = 'VERSEMENT';
 
             $payment = ContainerSalePayment::create($data);
 
-            return $this->sendResponse($payment->load(['containerSale', 'client']), 'Payment recorded successfully', 201);
+            // Recalculate sale totals from all payments (avoids float drift)
+            $totalPaid = ContainerSalePayment::where('container_sale_id', $sale->id)->sum('amount');
+            $sale->amount_paid      = $totalPaid;
+            $sale->remaining_amount = max(0, $sale->sale_price - $totalPaid);
+            $sale->status           = $sale->remaining_amount <= 0
+                ? 'PAYE_TOTAL'
+                : ($totalPaid > 0 ? 'PAYE_PARTIEL' : 'EN_COURS');
+            $sale->save();
+
+            DB::commit();
+
+            return $this->sendResponse(
+                $payment->load(['containerSale.containerArrival.container', 'client']),
+                'Payment recorded successfully',
+                201
+            );
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error('Error recording payment: ' . $e->getMessage());
             return $this->sendError('Error recording payment', ['error' => $e->getMessage()], 500);
         }
@@ -296,7 +319,24 @@ class ContainerSalesController extends BaseController
             return $this->sendError('Payment not found', [], 404);
         }
 
+        DB::beginTransaction();
+
+        $saleId = $payment->container_sale_id;
         $payment->delete();
+
+        $sale = ContainerSale::find($saleId);
+        if ($sale) {
+            $totalPaid = ContainerSalePayment::where('container_sale_id', $saleId)->sum('amount');
+            $sale->amount_paid      = $totalPaid;
+            $sale->remaining_amount = max(0, $sale->sale_price - $totalPaid);
+            $sale->status           = $sale->remaining_amount <= 0
+                ? 'PAYE_TOTAL'
+                : ($totalPaid > 0 ? 'PAYE_PARTIEL' : 'EN_COURS');
+            $sale->save();
+        }
+
+        DB::commit();
+
         return $this->sendResponse([], 'Payment deleted successfully');
     }
 
@@ -305,7 +345,7 @@ class ContainerSalesController extends BaseController
     public function getAdvances(Request $request)
     {
         try {
-            $tenantId = $request->get('tenant_id', 1);
+            $tenantId = $this->tenantId($request);
             
             $query = ClientAdvance::with(['client'])
                 ->where('tenant_id', $tenantId);
@@ -346,7 +386,7 @@ class ContainerSalesController extends BaseController
             }
 
             $data = $request->all();
-            $data['tenant_id'] = $request->get('tenant_id', 1);
+            $data['tenant_id'] = $this->tenantId($request);
             $data['used_amount'] = 0;
             $data['remaining_amount'] = $data['amount'];
             $data['status'] = 'DISPONIBLE';
@@ -365,7 +405,7 @@ class ContainerSalesController extends BaseController
     public function getClientStats(Request $request, $clientId)
     {
         try {
-            $tenantId = $request->get('tenant_id', 1);
+            $tenantId = $this->tenantId($request);
 
             // Taux de change (à stocker en base de données idéalement)
             $exchangeRates = [
@@ -446,7 +486,7 @@ class ContainerSalesController extends BaseController
     public function getGlobalStats(Request $request)
     {
         try {
-            $tenantId = $request->get('tenant_id', 1);
+            $tenantId = $this->tenantId($request);
 
             // Arrivages
             $totalArrivals = ContainerArrival::where('tenant_id', $tenantId)->count();

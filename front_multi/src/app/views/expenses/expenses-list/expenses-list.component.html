@@ -1,0 +1,241 @@
+<!-- ===== KPIs MOIS ===== -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <c-card class="text-center h-100 border-start border-4 border-primary">
+      <c-card-body class="py-2">
+        <div class="fs-3 fw-bold text-primary">{{ monthStats.total_count || 0 }}</div>
+        <div class="text-muted small">Dépenses ce mois</div>
+      </c-card-body>
+    </c-card>
+  </div>
+  <div class="col-6 col-md-3">
+    <c-card class="text-center h-100 border-start border-4 border-danger">
+      <c-card-body class="py-2">
+        <div class="fs-5 fw-bold text-danger">{{ fmt(monthStats.total_amount) }}</div>
+        <div class="text-muted small">Total ce mois</div>
+      </c-card-body>
+    </c-card>
+  </div>
+  <div class="col-6 col-md-3">
+    <c-card class="text-center h-100 border-start border-4 border-success">
+      <c-card-body class="py-2">
+        <div class="fs-5 fw-bold text-success">{{ fmt(monthStats.paid_amount) }}</div>
+        <div class="text-muted small">Payées</div>
+      </c-card-body>
+    </c-card>
+  </div>
+  <div class="col-6 col-md-3">
+    <c-card class="text-center h-100 border-start border-4 border-warning">
+      <c-card-body class="py-2">
+        <div class="fs-5 fw-bold text-warning">{{ fmt(monthStats.pending_amount) }}</div>
+        <div class="text-muted small">En attente</div>
+      </c-card-body>
+    </c-card>
+  </div>
+</div>
+
+<!-- ===== FILTRES ===== -->
+<c-card class="mb-3">
+  <c-card-body>
+    <form [formGroup]="filterForm" class="row g-2 align-items-end">
+      <div class="col-6 col-md-2">
+        <label cLabel class="small">Catégorie</label>
+        <select cSelect formControlName="category_id" class="form-select-sm">
+          <option value="">Toutes catégories</option>
+          <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label cLabel class="small">Statut</label>
+        <select cSelect formControlName="status" class="form-select-sm">
+          <option value="">Tous statuts</option>
+          <option value="PAID">Payée</option>
+          <option value="PENDING">En attente</option>
+          <option value="CANCELLED">Annulée</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label cLabel class="small">Du</label>
+        <input cFormControl type="date" formControlName="date_from" class="form-control-sm">
+      </div>
+      <div class="col-6 col-md-2">
+        <label cLabel class="small">Au</label>
+        <input cFormControl type="date" formControlName="date_to" class="form-control-sm">
+      </div>
+      <div class="col-12 col-md-2">
+        <label cLabel class="small">Recherche</label>
+        <input cFormControl type="text" formControlName="search" placeholder="Titre..." class="form-control-sm">
+      </div>
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button cButton color="primary" size="sm" (click)="applyFilters()">Filtrer</button>
+        <button cButton color="secondary" variant="outline" size="sm" (click)="resetFilters()">Reset</button>
+      </div>
+    </form>
+  </c-card-body>
+</c-card>
+
+<!-- ===== TABLE ===== -->
+<c-card>
+  <c-card-header class="d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      Dépenses <small class="text-muted ms-1">{{ totalItems }} résultat(s)</small>
+    </span>
+    <div class="d-flex gap-2">
+      <a routerLink="/expenses/statistics" cButton color="info" variant="outline" size="sm">
+        <svg cIcon name="cilChartPie" class="me-1"></svg> Statistiques
+      </a>
+      <button cButton color="success" size="sm" (click)="openNew()">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle dépense
+      </button>
+    </div>
+  </c-card-header>
+  <c-card-body class="p-0">
+    <div *ngIf="loading" class="text-center py-4"><c-spinner size="sm"></c-spinner></div>
+
+    <div *ngIf="!loading" class="table-responsive">
+      <table class="table table-hover table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Titre</th>
+            <th>Catégorie</th>
+            <th class="text-end">Montant</th>
+            <th>Méthode</th>
+            <th class="text-center">Statut</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let exp of expenses">
+            <td class="small">{{ exp.expense_date | date:'dd/MM/yyyy' }}</td>
+            <td>
+              <div class="fw-semibold small">{{ exp.title }}</div>
+              <div *ngIf="exp.description" class="text-muted" style="font-size:0.73rem">{{ exp.description | slice:0:50 }}{{ exp.description?.length > 50 ? '...' : '' }}</div>
+              <c-badge *ngIf="exp.is_recurring" color="info" class="small">Récurrent</c-badge>
+            </td>
+            <td>
+              <span *ngIf="exp.category" class="d-flex align-items-center gap-1">
+                <span class="rounded-circle d-inline-block" [style.width]="'10px'" [style.height]="'10px'" [style.background]="exp.category?.color || '#6c757d'"></span>
+                <span class="small">{{ exp.category?.name }}</span>
+              </span>
+              <span *ngIf="!exp.category" class="text-muted small">Sans catégorie</span>
+            </td>
+            <td class="text-end fw-semibold">{{ fmt(exp.amount, exp.currency) }}</td>
+            <td class="small text-muted">{{ getMethodLabel(exp.payment_method) }}</td>
+            <td class="text-center">
+              <c-badge [color]="getStatusColor(exp.status)">{{ getStatusLabel(exp.status) }}</c-badge>
+            </td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <button cButton color="warning" variant="outline" size="sm" (click)="openEdit(exp)">
+                  <svg cIcon name="cilPencil" size="sm"></svg>
+                </button>
+                <button cButton color="danger" variant="outline" size="sm" (click)="delete(exp)">
+                  <svg cIcon name="cilTrash" size="sm"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="expenses.length === 0">
+            <td colspan="7" class="text-center text-muted py-4">Aucune dépense pour cette période</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="d-flex justify-content-center gap-1 py-3">
+      <button cButton color="secondary" variant="outline" size="sm" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">‹</button>
+      <button *ngFor="let p of getPages()" cButton
+        [color]="p === currentPage ? 'primary' : 'secondary'"
+        [variant]="p === currentPage ? undefined : 'outline'"
+        size="sm" (click)="onPageChange(p)">{{ p }}</button>
+      <button cButton color="secondary" variant="outline" size="sm" [disabled]="currentPage === totalPages" (click)="onPageChange(currentPage + 1)">›</button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ===== MODAL DÉPENSE ===== -->
+<c-modal [visible]="showModal" (visibleChange)="showModal = $event" size="lg" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editMode ? 'Modifier la dépense' : 'Nouvelle dépense' }}</h5>
+    <button cButtonClose (click)="showModal = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="form">
+      <div class="row g-3">
+        <div class="col-12">
+          <label cLabel>Titre *</label>
+          <input cFormControl formControlName="title" placeholder="Description courte de la dépense"
+            [class.is-invalid]="submitted && form.get('title')?.invalid">
+          <div class="invalid-feedback">Titre requis</div>
+        </div>
+        <div class="col-md-4">
+          <label cLabel>Montant *</label>
+          <input cFormControl type="number" formControlName="amount" min="0" placeholder="0"
+            [class.is-invalid]="submitted && form.get('amount')?.invalid">
+          <div class="invalid-feedback">Montant requis</div>
+        </div>
+        <div class="col-md-4">
+          <label cLabel>Devise *</label>
+          <select cSelect formControlName="currency">
+            <option *ngFor="let c of currencies" [value]="c.value">{{ c.label }}</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label cLabel>Date *</label>
+          <input cFormControl type="date" formControlName="expense_date"
+            [class.is-invalid]="submitted && form.get('expense_date')?.invalid">
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Catégorie</label>
+          <select cSelect formControlName="category_id">
+            <option [ngValue]="null">Sans catégorie</option>
+            <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Méthode de paiement *</label>
+          <select cSelect formControlName="payment_method">
+            <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Statut</label>
+          <select cSelect formControlName="status">
+            <option value="PAID">Payée</option>
+            <option value="PENDING">En attente</option>
+            <option value="CANCELLED">Annulée</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Référence</label>
+          <input cFormControl formControlName="reference" placeholder="N° reçu, facture...">
+        </div>
+        <div class="col-12">
+          <label cLabel>Description</label>
+          <textarea cFormControl formControlName="description" rows="2" placeholder="Détails..."></textarea>
+        </div>
+        <div class="col-12">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" formControlName="is_recurring" id="isRec">
+            <label class="form-check-label" for="isRec">Dépense récurrente</label>
+          </div>
+        </div>
+        <div class="col-md-6" *ngIf="form.get('is_recurring')?.value">
+          <label cLabel>Périodicité</label>
+          <select cSelect formControlName="recurrence_period">
+            <option value="DAILY">Quotidienne</option>
+            <option value="WEEKLY">Hebdomadaire</option>
+            <option value="MONTHLY">Mensuelle</option>
+            <option value="YEARLY">Annuelle</option>
+          </select>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showModal = false">Annuler</button>
+    <button cButton color="primary" (click)="save()">{{ editMode ? 'Modifier' : 'Enregistrer' }}</button>
+  </c-modal-footer>
+</c-modal>

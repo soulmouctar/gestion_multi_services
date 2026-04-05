@@ -74,6 +74,14 @@ class ModuleSeeder extends Seeder
                 'icon' => 'cil-chart-pie',
                 'permissions' => ['view', 'export']
             ],
+            [
+                'code' => 'EXPENSES',
+                'name' => 'Dépenses Personnelles',
+                'description' => 'Suivi des dépenses personnelles par catégorie',
+                'is_active' => true,
+                'icon' => 'cil-wallet',
+                'permissions' => ['view', 'create', 'edit', 'delete']
+            ],
         ];
 
         foreach ($modules as $module) {

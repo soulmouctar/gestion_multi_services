@@ -1,0 +1,413 @@
+<!-- ===== STATS ===== -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <c-card class="text-center h-100">
+      <c-card-body>
+        <div class="text-muted small mb-1">Contrats actifs</div>
+        <div class="fs-3 fw-bold text-success">{{ stats.active_leases }}</div>
+        <div class="text-muted small">/ {{ stats.total_leases }} total</div>
+      </c-card-body>
+    </c-card>
+  </div>
+  <div class="col-6 col-md-3">
+    <c-card class="text-center h-100">
+      <c-card-body>
+        <div class="text-muted small mb-1">Loyer mensuel total</div>
+        <div class="fs-5 fw-bold text-primary">{{ formatAmount(stats.monthly_rent_total) }}</div>
+      </c-card-body>
+    </c-card>
+  </div>
+  <div class="col-6 col-md-3">
+    <c-card class="text-center h-100">
+      <c-card-body>
+        <div class="text-muted small mb-1">Encaissé ce mois</div>
+        <div class="fs-5 fw-bold text-success">{{ formatAmount(stats.collected_this_month) }}</div>
+        <c-progress class="mt-2" [value]="getCollectionRate()" color="success" height="4"></c-progress>
+        <div class="text-muted small mt-1">{{ getCollectionRate() }}% collecté</div>
+      </c-card-body>
+    </c-card>
+  </div>
+  <div class="col-6 col-md-3">
+    <c-card class="text-center h-100">
+      <c-card-body>
+        <div class="text-muted small mb-1">Loyers en attente</div>
+        <div class="fs-3 fw-bold text-warning">{{ stats.pending_leases }}</div>
+        <div class="text-muted small">Caution: {{ formatAmount(stats.total_deposits) }}</div>
+      </c-card-body>
+    </c-card>
+  </div>
+</div>
+
+<!-- ===== TABS ===== -->
+<c-card>
+  <c-card-header>
+    <c-nav variant="tabs" role="tablist">
+      <c-nav-item>
+        <a cNavLink [active]="activeTab === 'leases'" (click)="activeTab = 'leases'; loadLeases()">
+          Contrats <c-badge color="primary" class="ms-1">{{ leasesTotal }}</c-badge>
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink [active]="activeTab === 'payments'" (click)="activeTab = 'payments'; loadAllPayments()">
+          Paiements <c-badge color="success" class="ms-1">{{ paymentsTotal }}</c-badge>
+        </a>
+      </c-nav-item>
+    </c-nav>
+  </c-card-header>
+
+  <c-card-body>
+
+    <!-- ===== LEASES TAB ===== -->
+    <div *ngIf="activeTab === 'leases'">
+      <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <button cButton color="success" size="sm" (click)="openNewLeaseModal()">
+          <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau contrat
+        </button>
+        <select class="form-select form-select-sm w-auto" [(ngModel)]="leaseStatusFilter" (change)="leasesPage = 1; loadLeases()">
+          <option *ngFor="let s of leaseStatuses" [value]="s.value">{{ s.label }}</option>
+        </select>
+        <span *ngIf="loading" class="ms-auto"><c-spinner size="sm"></c-spinner></span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Locataire</th>
+              <th>Unité</th>
+              <th class="text-end">Loyer/mois</th>
+              <th class="text-center">Statut</th>
+              <th>Durée</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let lease of leases">
+              <td>
+                <div class="fw-semibold">{{ lease.renter_name }}</div>
+                <div class="text-muted small">{{ lease.renter_phone || lease.renter_email || '—' }}</div>
+              </td>
+              <td>
+                <div class="small">
+                  <span *ngIf="lease.housing_unit?.floor?.building?.name">
+                    {{ lease.housing_unit.floor.building.name }} —
+                    Étage {{ lease.housing_unit.floor.floor_number }} —
+                    #{{ lease.housing_unit.id }}
+                  </span>
+                  <span *ngIf="!lease.housing_unit?.floor?.building?.name">Unité #{{ lease.housing_unit_id }}</span>
+                </div>
+              </td>
+              <td class="text-end fw-semibold">{{ formatAmount(lease.monthly_rent, lease.currency) }}</td>
+              <td class="text-center">
+                <c-badge [color]="getStatusColor(lease.status)">{{ getStatusLabel(lease.status) }}</c-badge>
+              </td>
+              <td class="text-muted small">{{ getLeaseDuration(lease) }}</td>
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end flex-wrap">
+                  <button cButton color="success" variant="outline" size="sm" (click)="openPaymentModal(lease)" title="Enregistrer paiement">
+                    <svg cIcon name="cilCash" size="sm"></svg>
+                  </button>
+                  <button cButton color="info" variant="outline" size="sm" (click)="openLeasePaymentsModal(lease)" title="Voir paiements">
+                    <svg cIcon name="cilList" size="sm"></svg>
+                  </button>
+                  <button cButton color="warning" variant="outline" size="sm" (click)="openEditLeaseModal(lease)" title="Modifier">
+                    <svg cIcon name="cilPencil" size="sm"></svg>
+                  </button>
+                  <button cButton color="danger" variant="outline" size="sm" (click)="deleteLease(lease)" title="Supprimer">
+                    <svg cIcon name="cilTrash" size="sm"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="!loading && leases.length === 0">
+              <td colspan="6" class="text-center text-muted py-4">Aucun contrat trouvé</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination leases -->
+      <div *ngIf="leasesTotalPages > 1" class="d-flex justify-content-center gap-1 mt-3">
+        <button cButton color="secondary" variant="outline" size="sm" [disabled]="leasesPage === 1" (click)="onLeasesPageChange(leasesPage - 1)">‹</button>
+        <button *ngFor="let p of getPages(leasesTotalPages)" cButton
+          [color]="p === leasesPage ? 'primary' : 'secondary'"
+          [variant]="p === leasesPage ? undefined : 'outline'"
+          size="sm" (click)="onLeasesPageChange(p)">{{ p }}</button>
+        <button cButton color="secondary" variant="outline" size="sm" [disabled]="leasesPage === leasesTotalPages" (click)="onLeasesPageChange(leasesPage + 1)">›</button>
+      </div>
+    </div>
+
+    <!-- ===== PAYMENTS TAB ===== -->
+    <div *ngIf="activeTab === 'payments'">
+      <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <input type="month" class="form-control form-control-sm w-auto" [(ngModel)]="paymentMonthFilter"
+          (change)="paymentsPage = 1; loadAllPayments()" placeholder="Filtrer par mois">
+        <button cButton color="secondary" variant="outline" size="sm" *ngIf="paymentMonthFilter"
+          (click)="paymentMonthFilter = ''; paymentsPage = 1; loadAllPayments()">
+          Effacer filtre
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Locataire</th>
+              <th>Période</th>
+              <th class="text-end">Montant</th>
+              <th>Méthode</th>
+              <th>Date</th>
+              <th class="text-center">Statut</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of payments">
+              <td class="fw-semibold">{{ p.lease?.renter_name || '—' }}</td>
+              <td>{{ p.period_month }}</td>
+              <td class="text-end fw-semibold">{{ formatAmount(p.amount, p.currency) }}</td>
+              <td class="text-muted small">{{ getPaymentMethodLabel(p.payment_method) }}</td>
+              <td class="text-muted small">{{ p.payment_date | date:'dd/MM/yyyy' }}</td>
+              <td class="text-center">
+                <c-badge [color]="getStatusColor(p.status)">{{ getStatusLabel(p.status) }}</c-badge>
+              </td>
+              <td class="text-end">
+                <button cButton color="danger" variant="outline" size="sm" (click)="deletePayment(p)" title="Supprimer">
+                  <svg cIcon name="cilTrash" size="sm"></svg>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="payments.length === 0">
+              <td colspan="7" class="text-center text-muted py-4">Aucun paiement enregistré</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination payments -->
+      <div *ngIf="paymentsTotalPages > 1" class="d-flex justify-content-center gap-1 mt-3">
+        <button cButton color="secondary" variant="outline" size="sm" [disabled]="paymentsPage === 1" (click)="onPaymentsPageChange(paymentsPage - 1)">‹</button>
+        <button *ngFor="let p of getPages(paymentsTotalPages)" cButton
+          [color]="p === paymentsPage ? 'primary' : 'secondary'"
+          [variant]="p === paymentsPage ? undefined : 'outline'"
+          size="sm" (click)="onPaymentsPageChange(p)">{{ p }}</button>
+        <button cButton color="secondary" variant="outline" size="sm" [disabled]="paymentsPage === paymentsTotalPages" (click)="onPaymentsPageChange(paymentsPage + 1)">›</button>
+      </div>
+    </div>
+
+  </c-card-body>
+</c-card>
+
+<!-- ===== MODAL CONTRAT ===== -->
+<c-modal [visible]="showLeaseModal" (visibleChange)="showLeaseModal = $event" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editMode ? 'Modifier le contrat' : 'Nouveau contrat de location' }}</h5>
+    <button cButtonClose (click)="showLeaseModal = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="leaseForm">
+      <div class="row g-3">
+
+        <div class="col-12">
+          <label cLabel class="fw-semibold">Unité de logement *</label>
+          <select formControlName="housing_unit_id" class="form-select"
+            [class.is-invalid]="submitted && leaseForm.get('housing_unit_id')?.invalid">
+            <option [ngValue]="null">-- Choisir une unité --</option>
+            <option *ngFor="let u of housingUnits" [ngValue]="u.id">
+              {{ getUnitLabel(u) }} — {{ u.type || '' }} ({{ u.status }})
+            </option>
+          </select>
+          <div class="invalid-feedback">Unité requise</div>
+        </div>
+
+        <div class="col-md-6">
+          <label cLabel>Nom du locataire *</label>
+          <input cFormControl formControlName="renter_name" placeholder="Nom complet"
+            [class.is-invalid]="submitted && leaseForm.get('renter_name')?.invalid">
+          <div class="invalid-feedback">Nom requis</div>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Téléphone</label>
+          <input cFormControl formControlName="renter_phone" placeholder="+224 ...">
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Email</label>
+          <input cFormControl type="email" formControlName="renter_email" placeholder="email@exemple.com"
+            [class.is-invalid]="submitted && leaseForm.get('renter_email')?.invalid">
+          <div class="invalid-feedback">Email invalide</div>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Statut *</label>
+          <select formControlName="status" class="form-select">
+            <option *ngFor="let s of leaseStatuses.slice(1)" [value]="s.value">{{ s.label }}</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label cLabel>Date de début *</label>
+          <input cFormControl type="date" formControlName="start_date"
+            [class.is-invalid]="submitted && leaseForm.get('start_date')?.invalid">
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Date de fin</label>
+          <input cFormControl type="date" formControlName="end_date">
+          <div class="form-text">Laisser vide pour un contrat sans fin définie</div>
+        </div>
+
+        <div class="col-md-4">
+          <label cLabel>Loyer mensuel *</label>
+          <input cFormControl type="number" formControlName="monthly_rent" placeholder="0" min="0"
+            [class.is-invalid]="submitted && leaseForm.get('monthly_rent')?.invalid">
+        </div>
+        <div class="col-md-4">
+          <label cLabel>Caution</label>
+          <input cFormControl type="number" formControlName="deposit_amount" placeholder="0" min="0">
+        </div>
+        <div class="col-md-2">
+          <label cLabel>Devise *</label>
+          <select formControlName="currency" class="form-select">
+            <option *ngFor="let c of currencies" [value]="c.value">{{ c.label }}</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label cLabel>Jour de paiement</label>
+          <input cFormControl type="number" formControlName="payment_day" placeholder="1" min="1" max="28">
+        </div>
+
+        <div class="col-12">
+          <label cLabel>Notes</label>
+          <textarea cFormControl formControlName="notes" rows="2" placeholder="Observations..."></textarea>
+        </div>
+
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showLeaseModal = false">Annuler</button>
+    <button cButton color="primary" (click)="saveLease()">
+      {{ editMode ? 'Enregistrer les modifications' : 'Créer le contrat' }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- ===== MODAL PAIEMENT ===== -->
+<c-modal [visible]="showPaymentModal" (visibleChange)="showPaymentModal = $event">
+  <c-modal-header>
+    <h5 cModalTitle>Enregistrer un paiement</h5>
+    <button cButtonClose (click)="showPaymentModal = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <div *ngIf="selectedLease" class="alert alert-info small mb-3">
+      <strong>{{ selectedLease.renter_name }}</strong> —
+      Loyer: <strong>{{ formatAmount(selectedLease.monthly_rent, selectedLease.currency) }}</strong>
+    </div>
+    <form [formGroup]="paymentForm">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label cLabel>Période (mois) *</label>
+          <input cFormControl type="month" formControlName="period_month"
+            [class.is-invalid]="submitted && paymentForm.get('period_month')?.invalid">
+          <div class="invalid-feedback">Période requise</div>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Statut</label>
+          <select formControlName="status" class="form-select">
+            <option *ngFor="let s of paymentStatuses" [value]="s.value">{{ s.label }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Montant *</label>
+          <input cFormControl type="number" formControlName="amount" min="0"
+            [class.is-invalid]="submitted && paymentForm.get('amount')?.invalid">
+          <div class="invalid-feedback">Montant requis</div>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Devise *</label>
+          <select formControlName="currency" class="form-select">
+            <option *ngFor="let c of currencies" [value]="c.value">{{ c.label }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Date de paiement *</label>
+          <input cFormControl type="date" formControlName="payment_date"
+            [class.is-invalid]="submitted && paymentForm.get('payment_date')?.invalid">
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Méthode *</label>
+          <select formControlName="payment_method" class="form-select">
+            <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Référence</label>
+          <input cFormControl formControlName="reference" placeholder="N° reçu, virement...">
+        </div>
+        <div class="col-12">
+          <label cLabel>Notes</label>
+          <textarea cFormControl formControlName="notes" rows="2"></textarea>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showPaymentModal = false">Annuler</button>
+    <button cButton color="success" (click)="savePayment()">Enregistrer le paiement</button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- ===== MODAL HISTORIQUE PAIEMENTS CONTRAT ===== -->
+<c-modal [visible]="showLeasePaymentsModal" (visibleChange)="showLeasePaymentsModal = $event" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>Historique des paiements</h5>
+    <button cButtonClose (click)="showLeasePaymentsModal = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <div *ngIf="selectedLease" class="mb-3">
+      <div class="fw-semibold">{{ selectedLease.renter_name }}</div>
+      <div class="text-muted small">
+        Loyer: {{ formatAmount(selectedLease.monthly_rent, selectedLease.currency) }} —
+        Mois payés: {{ getPaidMonths(selectedLease) }}
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Période</th>
+            <th class="text-end">Montant</th>
+            <th>Méthode</th>
+            <th>Date</th>
+            <th class="text-center">Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of selectedLeasePayments">
+            <td>{{ p.period_month }}</td>
+            <td class="text-end fw-semibold">{{ formatAmount(p.amount, p.currency) }}</td>
+            <td class="text-muted small">{{ getPaymentMethodLabel(p.payment_method) }}</td>
+            <td class="text-muted small">{{ p.payment_date | date:'dd/MM/yyyy' }}</td>
+            <td class="text-center">
+              <c-badge [color]="getStatusColor(p.status)">{{ getStatusLabel(p.status) }}</c-badge>
+            </td>
+            <td class="text-end">
+              <button cButton color="danger" variant="outline" size="sm" (click)="deletePayment(p)">
+                <svg cIcon name="cilTrash" size="sm"></svg>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="selectedLeasePayments.length === 0">
+            <td colspan="6" class="text-center text-muted py-3">Aucun paiement</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showLeasePaymentsModal = false">Fermer</button>
+    <button cButton color="success" (click)="showLeasePaymentsModal = false; openPaymentModal(selectedLease)">
+      + Nouveau paiement
+    </button>
+  </c-modal-footer>
+</c-modal>

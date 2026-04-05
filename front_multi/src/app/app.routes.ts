@@ -115,6 +115,10 @@ export const routes: Routes = [
         loadChildren: () => import('./views/statistics/routes').then(m => m.routes)
       },
       {
+        path: 'expenses',
+        loadChildren: () => import('./views/expenses/routes').then(m => m.routes)
+      },
+      {
         path: 'profile',
         loadComponent: () => import('./views/profile/profile.component').then(m => m.ProfileComponent),
         title: 'Mon Profil'

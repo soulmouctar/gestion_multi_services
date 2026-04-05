@@ -200,6 +200,12 @@ export class UserService {
         module_name: 'Statistiques',
         permissions: ['view', 'export'],
         is_active: false
+      },
+      {
+        module_code: 'EXPENSES',
+        module_name: 'Dépenses Personnelles',
+        permissions: ['view', 'create', 'edit', 'delete'],
+        is_active: false
       }
     ];
   }

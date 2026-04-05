@@ -22,14 +22,19 @@ export const routes: Routes = [
     title: 'Statistiques Avancées'
   },
   {
-    path: 'photos',
-    loadComponent: () => import('./container-photos/container-photos.component').then(m => m.ContainerPhotosComponent),
-    title: 'Photos des Conteneurs'
+    path: 'ventes',
+    loadComponent: () => import('./container-ventes/container-ventes.component').then(m => m.ContainerVentesComponent),
+    title: 'Gestion des Ventes'
   },
   {
     path: 'payments',
-    loadComponent: () => import('./container-payments/container-payments.component').then(m => m.ContainerPaymentsComponent),
-    title: 'Suivi des Paiements'
+    redirectTo: 'ventes',
+    pathMatch: 'full'
+  },
+  {
+    path: 'photos',
+    loadComponent: () => import('./container-photos/container-photos.component').then(m => m.ContainerPhotosComponent),
+    title: 'Photos des Conteneurs'
   },
   {
     path: 'client-account/:id',

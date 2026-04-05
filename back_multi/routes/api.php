@@ -36,6 +36,8 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\InvoiceHeaderController;
 use App\Http\Controllers\Api\DailyPaymentController;
 use App\Http\Controllers\Api\VehicleExpenseController;
+use App\Http\Controllers\Api\LeaseController;
+use App\Http\Controllers\Api\PersonalExpenseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -218,12 +220,20 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::apiResource('invoices', InvoiceController::class);
 
         // Module Immobilier
+        Route::get('locations/statistics', [LocationController::class, 'publicStatistics']); // avant apiResource !
         Route::apiResource('locations', LocationController::class);
-        Route::get('locations/statistics', [LocationController::class, 'publicStatistics']);
         Route::apiResource('buildings', BuildingController::class);
         Route::apiResource('floors', FloorController::class);
         Route::apiResource('unit-configurations', UnitConfigurationController::class);
         Route::apiResource('housing-units', HousingUnitController::class);
+
+        // Contrats de location (leases)
+        Route::get('leases/statistics', [LeaseController::class, 'statistics']);
+        Route::get('leases/payments', [LeaseController::class, 'allPayments']);
+        Route::apiResource('leases', LeaseController::class);
+        Route::get('leases/{lease}/payments',    [LeaseController::class, 'getPayments']);
+        Route::post('leases/{lease}/payments',   [LeaseController::class, 'addPayment']);
+        Route::delete('lease-payments/{id}',     [LeaseController::class, 'deletePayment']);
 
         // Module Taxi
         Route::get('drivers/statistics', [DriverController::class, 'statistics']);
@@ -233,6 +243,14 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::apiResource('drivers', DriverController::class);
         Route::apiResource('taxis', TaxiController::class);
         Route::apiResource('taxi-assignments', TaxiAssignmentController::class);
+
+        // Module Dépenses Personnelles
+        Route::get('personal-expenses/statistics',      [PersonalExpenseController::class, 'statistics']);
+        Route::get('personal-expense-categories',       [PersonalExpenseController::class, 'indexCategories']);
+        Route::post('personal-expense-categories',      [PersonalExpenseController::class, 'storeCategory']);
+        Route::put('personal-expense-categories/{id}',  [PersonalExpenseController::class, 'updateCategory']);
+        Route::delete('personal-expense-categories/{id}', [PersonalExpenseController::class, 'destroyCategory']);
+        Route::apiResource('personal-expenses', PersonalExpenseController::class)->except(['create', 'edit']);
 
     }); // Fin du groupe auth:sanctum
 

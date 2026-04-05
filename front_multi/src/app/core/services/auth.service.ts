@@ -255,6 +255,7 @@ export class AuthService {
         { code: 'RENTAL',            name: 'Location Immobilière',   is_active: true },
         { code: 'TAXI',              name: 'Gestion Taxi',           is_active: true },
         { code: 'STATISTICS',        name: 'Statistiques',           is_active: true },
+        { code: 'EXPENSES',          name: 'Dépenses Personnelles',  is_active: true },
       ];
     }
     return user?.tenant_active_modules || [];

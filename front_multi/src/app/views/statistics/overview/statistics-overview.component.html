@@ -1,0 +1,186 @@
+<div *ngIf="loading" class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+
+<div *ngIf="!loading">
+
+  <!-- ===== KPIs GLOBAUX ===== -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <c-card class="h-100 border-start border-4 border-success text-center">
+        <c-card-body>
+          <div class="fs-4 fw-bold text-success">
+            {{ fmt(paymentStats?.total_amount || paymentStats?.monthly_total || 0) }}
+          </div>
+          <div class="text-muted small">Revenus (paiements)</div>
+          <div class="text-muted" style="font-size:0.75rem">{{ paymentStats?.total_count || 0 }} paiements</div>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-6 col-md-3">
+      <c-card class="h-100 border-start border-4 border-primary text-center">
+        <c-card-body>
+          <div class="fs-3 fw-bold text-primary">{{ clientStats?.total || 0 }}</div>
+          <div class="text-muted small">Clients</div>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-6 col-md-3">
+      <c-card class="h-100 border-start border-4 border-warning text-center">
+        <c-card-body>
+          <div class="fs-3 fw-bold text-warning">{{ productStats?.total_products || productStats?.total || 0 }}</div>
+          <div class="text-muted small">Produits</div>
+          <div *ngIf="productStats?.low_stock_count > 0" class="text-danger small">
+            {{ productStats.low_stock_count }} stock faible
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-6 col-md-3">
+      <c-card class="h-100 border-start border-4 border-info text-center">
+        <c-card-body>
+          <div class="fs-3 fw-bold text-info">{{ containerStats?.total_containers || 0 }}</div>
+          <div class="text-muted small">Conteneurs</div>
+          <div class="text-muted" style="font-size:0.75rem">{{ containerStats?.available || 0 }} disponibles</div>
+        </c-card-body>
+      </c-card>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- ===== MODULE LOCATION ===== -->
+    <div class="col-12 col-md-6 col-lg-4">
+      <c-card class="h-100">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <span class="fw-semibold">Location Immobilière</span>
+          <a routerLink="/rental/leases" cButton color="info" size="sm" variant="outline">Détails</a>
+        </c-card-header>
+        <c-card-body>
+          <div *ngIf="leaseStats; else noData">
+            <div class="row g-2 text-center mb-3">
+              <div class="col-6">
+                <div class="fw-bold text-success fs-4">{{ leaseStats.active_leases || 0 }}</div>
+                <div class="text-muted small">Contrats actifs</div>
+              </div>
+              <div class="col-6">
+                <div class="fw-bold text-warning fs-4">{{ leaseStats.pending_leases || 0 }}</div>
+                <div class="text-muted small">En attente paiement</div>
+              </div>
+            </div>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small mb-1">
+                <span>Collecte ce mois</span>
+                <span class="fw-semibold">{{ getLeaseCollectionRate() }}%</span>
+              </div>
+              <c-progress [value]="getLeaseCollectionRate()" [color]="getLeaseCollectionRate() >= 80 ? 'success' : 'warning'" height="8"></c-progress>
+            </div>
+            <div class="text-muted small">Loyer mensuel: <strong>{{ fmt(leaseStats.monthly_rent_total) }}</strong></div>
+            <div class="text-muted small">Encaissé: <strong class="text-success">{{ fmt(leaseStats.collected_this_month) }}</strong></div>
+          </div>
+          <ng-template #noData><div class="text-muted text-center py-2">Non disponible</div></ng-template>
+        </c-card-body>
+      </c-card>
+    </div>
+
+    <!-- ===== MODULE TAXI ===== -->
+    <div class="col-12 col-md-6 col-lg-4">
+      <c-card class="h-100">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <span class="fw-semibold">Taxi & Transport</span>
+          <a routerLink="/taxi/daily-payments" cButton color="warning" size="sm" variant="outline">Détails</a>
+        </c-card-header>
+        <c-card-body>
+          <div *ngIf="taxiStats?.summary; else noTaxi">
+            <div class="row g-2 text-center mb-3">
+              <div class="col-6">
+                <div class="fw-bold text-success fs-5">{{ fmt(taxiStats.summary.total_paid) }}</div>
+                <div class="text-muted small">Versé</div>
+              </div>
+              <div class="col-6">
+                <div class="fw-bold text-danger fs-5">{{ fmt(taxiStats.summary.total_balance) }}</div>
+                <div class="text-muted small">Solde restant</div>
+              </div>
+            </div>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small mb-1">
+                <span>Taux de collecte</span>
+                <span class="fw-semibold">{{ getTaxiCollectionRate() }}%</span>
+              </div>
+              <c-progress [value]="getTaxiCollectionRate()" [color]="getTaxiCollectionRate() >= 80 ? 'success' : getTaxiCollectionRate() >= 50 ? 'warning' : 'danger'" height="8"></c-progress>
+            </div>
+            <div class="row g-1 text-center mt-2">
+              <div class="col-3"><c-badge color="success">{{ taxiStats.summary.paid_count || 0 }}</c-badge><div class="text-muted" style="font-size:0.7rem">Payé</div></div>
+              <div class="col-3"><c-badge color="warning">{{ taxiStats.summary.partial_count || 0 }}</c-badge><div class="text-muted" style="font-size:0.7rem">Partiel</div></div>
+              <div class="col-3"><c-badge color="danger">{{ taxiStats.summary.unpaid_count || 0 }}</c-badge><div class="text-muted" style="font-size:0.7rem">Impayé</div></div>
+              <div class="col-3"><c-badge color="info">{{ taxiStats.summary.excused_count || 0 }}</c-badge><div class="text-muted" style="font-size:0.7rem">Excusé</div></div>
+            </div>
+          </div>
+          <ng-template #noTaxi><div class="text-muted text-center py-2">Non disponible</div></ng-template>
+        </c-card-body>
+      </c-card>
+    </div>
+
+    <!-- ===== DÉPENSES PERSONNELLES ===== -->
+    <div class="col-12 col-md-6 col-lg-4">
+      <c-card class="h-100">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <span class="fw-semibold">Dépenses Personnelles</span>
+          <a routerLink="/expenses/statistics" cButton color="danger" size="sm" variant="outline">Détails</a>
+        </c-card-header>
+        <c-card-body>
+          <div *ngIf="expenseStats?.summary; else noExpense">
+            <div class="text-center mb-3">
+              <div class="fs-4 fw-bold text-danger">{{ fmt(expenseStats.summary.total_amount) }}</div>
+              <div class="text-muted small">Total sur la période</div>
+            </div>
+            <div class="text-muted small mb-2">{{ expenseStats.summary.total_count || 0 }} dépenses — Moy: {{ fmt(expenseStats.summary.avg_amount) }}</div>
+            <div *ngIf="expenseStats.by_category?.length">
+              <div *ngFor="let cat of expenseStats.by_category.slice(0, 3)" class="mb-1">
+                <div class="d-flex justify-content-between small">
+                  <span class="d-flex align-items-center gap-1">
+                    <span class="rounded-circle" [style.width]="'8px'" [style.height]="'8px'" [style.background]="cat.color" style="display:inline-block"></span>
+                    {{ cat.category_name }}
+                  </span>
+                  <span class="fw-semibold">{{ fmt(cat.total) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ng-template #noExpense><div class="text-muted text-center py-2">Non disponible</div></ng-template>
+        </c-card-body>
+      </c-card>
+    </div>
+
+    <!-- ===== ACCÈS RAPIDES ===== -->
+    <div class="col-12">
+      <c-card>
+        <c-card-header class="fw-semibold">Statistiques détaillées par module</c-card-header>
+        <c-card-body>
+          <div class="d-flex flex-wrap gap-2">
+            <a routerLink="/statistics/sales" cButton color="primary" variant="outline" size="sm">
+              <svg cIcon name="cilCart" class="me-1"></svg> Ventes
+            </a>
+            <a routerLink="/statistics/finance" cButton color="success" variant="outline" size="sm">
+              <svg cIcon name="cilDollar" class="me-1"></svg> Finance
+            </a>
+            <a routerLink="/statistics/inventory" cButton color="warning" variant="outline" size="sm">
+              <svg cIcon name="cilLayers" class="me-1"></svg> Inventaire
+            </a>
+            <a routerLink="/taxi/daily-payments" cButton color="info" variant="outline" size="sm">
+              <svg cIcon name="cilSpeedometer" class="me-1"></svg> Taxi
+            </a>
+            <a routerLink="/rental/leases" cButton color="secondary" variant="outline" size="sm">
+              <svg cIcon name="cilHome" class="me-1"></svg> Location
+            </a>
+            <a routerLink="/expenses/statistics" cButton color="danger" variant="outline" size="sm">
+              <svg cIcon name="cilWallet" class="me-1"></svg> Dépenses
+            </a>
+            <a routerLink="/containers/statistics" cButton color="dark" variant="outline" size="sm">
+              <svg cIcon name="cilLayers" class="me-1"></svg> Conteneurs
+            </a>
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+
+  </div>
+</div>

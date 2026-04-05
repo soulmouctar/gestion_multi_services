@@ -1,0 +1,183 @@
+<!-- ===== SÉLECTEUR DE PÉRIODE ===== -->
+<c-card class="mb-4">
+  <c-card-body class="py-2">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <span class="text-muted small me-2">Période :</span>
+      <button *ngFor="let p of [{v:'week',l:'7 jours'},{v:'month',l:'Ce mois'},{v:'3months',l:'3 mois'},{v:'year',l:'Cette année'}]"
+        cButton [color]="selectedPeriod === p.v ? 'primary' : 'secondary'"
+        [variant]="selectedPeriod === p.v ? undefined : 'outline'"
+        size="sm" (click)="setPeriod(p.v)">{{ p.l }}</button>
+      <div class="ms-auto d-flex gap-2 align-items-center">
+        <input type="date" class="form-control form-control-sm" style="width:140px" [(ngModel)]="dateFrom">
+        <span class="text-muted">—</span>
+        <input type="date" class="form-control form-control-sm" style="width:140px" [(ngModel)]="dateTo">
+        <button cButton color="primary" size="sm" (click)="loadStats()">Appliquer</button>
+      </div>
+    </div>
+  </c-card-body>
+</c-card>
+
+<div *ngIf="loading" class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+
+<div *ngIf="!loading && stats">
+
+  <!-- ===== KPIs ===== -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <c-card class="text-center h-100 border-start border-4 border-primary">
+        <c-card-body>
+          <div class="fs-3 fw-bold text-primary">{{ stats.summary?.total_count || 0 }}</div>
+          <div class="text-muted small">Dépenses</div>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-6 col-md-3">
+      <c-card class="text-center h-100 border-start border-4 border-danger">
+        <c-card-body>
+          <div class="fs-5 fw-bold text-danger">{{ fmt(stats.summary?.total_amount) }}</div>
+          <div class="text-muted small">Total dépensé</div>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-6 col-md-3">
+      <c-card class="text-center h-100 border-start border-4 border-info">
+        <c-card-body>
+          <div class="fs-5 fw-bold text-info">{{ fmt(stats.summary?.avg_amount) }}</div>
+          <div class="text-muted small">Dépense moyenne</div>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-6 col-md-3">
+      <c-card class="text-center h-100 border-start border-4" [class.border-danger]="(stats.evolution_percent || 0) > 0" [class.border-success]="(stats.evolution_percent || 0) <= 0">
+        <c-card-body>
+          <div class="fs-4 fw-bold" [class]="getEvolutionColor()">
+            <svg cIcon [name]="getEvolutionIcon()" size="sm"></svg>
+            {{ stats.evolution_percent | number:'1.1-1' }}%
+          </div>
+          <div class="text-muted small">vs mois précédent</div>
+          <div class="text-muted" style="font-size:0.75rem">{{ fmt(stats.previous_month_total) }}</div>
+        </c-card-body>
+      </c-card>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- ===== PAR CATÉGORIE ===== -->
+    <div class="col-12 col-lg-6">
+      <c-card class="h-100">
+        <c-card-header class="fw-semibold">Répartition par catégorie</c-card-header>
+        <c-card-body>
+          <div *ngIf="stats.by_category?.length; else noData">
+            <div *ngFor="let cat of stats.by_category" class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="rounded-circle d-inline-block" [style.width]="'10px'" [style.height]="'10px'" [style.background]="cat.color"></span>
+                  <span class="small fw-semibold">{{ cat.category_name }}</span>
+                  <c-badge color="secondary" class="small">{{ cat.count }}</c-badge>
+                </div>
+                <div class="small fw-bold">{{ fmt(cat.total) }} <span class="text-muted">({{ getCategoryPct(cat) }}%)</span></div>
+              </div>
+              <c-progress [value]="getCategoryPct(cat)" height="8" [color]="getCategoryPct(cat) > 50 ? 'danger' : getCategoryPct(cat) > 25 ? 'warning' : 'info'"></c-progress>
+            </div>
+          </div>
+          <ng-template #noData>
+            <div class="text-center text-muted py-3">Aucune donnée</div>
+          </ng-template>
+        </c-card-body>
+      </c-card>
+    </div>
+
+    <!-- ===== PAR MÉTHODE DE PAIEMENT ===== -->
+    <div class="col-12 col-lg-6">
+      <c-card class="h-100">
+        <c-card-header class="fw-semibold">Par méthode de paiement</c-card-header>
+        <c-card-body>
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr><th>Méthode</th><th class="text-center">Nb</th><th class="text-end">Montant</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of stats.by_payment_method">
+                  <td class="small fw-semibold">{{ m.payment_method }}</td>
+                  <td class="text-center"><c-badge color="secondary">{{ m.count }}</c-badge></td>
+                  <td class="text-end fw-semibold small">{{ fmt(m.total) }}</td>
+                </tr>
+                <tr *ngIf="!stats.by_payment_method?.length">
+                  <td colspan="3" class="text-center text-muted">Aucune donnée</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+
+    <!-- ===== ÉVOLUTION MENSUELLE ===== -->
+    <div class="col-12">
+      <c-card>
+        <c-card-header class="fw-semibold">Évolution mensuelle (12 derniers mois)</c-card-header>
+        <c-card-body>
+          <div *ngIf="stats.by_month?.length; else noMonthData" class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr><th>Mois</th><th class="text-center">Dépenses</th><th class="text-end">Total</th><th style="width:200px">Barre</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of stats.by_month">
+                  <td class="fw-semibold">{{ m.month }}</td>
+                  <td class="text-center"><c-badge color="secondary">{{ m.count }}</c-badge></td>
+                  <td class="text-end fw-semibold text-danger">{{ fmt(m.total) }}</td>
+                  <td>
+                    <c-progress [value]="stats.by_month[0]?.total > 0 ? (m.total / stats.by_month[0].total * 100) : 0" color="danger" height="8"></c-progress>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noMonthData>
+            <div class="text-center text-muted py-3">Aucune donnée mensuelle</div>
+          </ng-template>
+        </c-card-body>
+      </c-card>
+    </div>
+
+    <!-- ===== TOP 10 DÉPENSES ===== -->
+    <div class="col-12">
+      <c-card>
+        <c-card-header class="fw-semibold">Top 10 dépenses les plus importantes</c-card-header>
+        <c-card-body class="p-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+              <thead class="table-light">
+                <tr><th>Date</th><th>Titre</th><th>Catégorie</th><th class="text-end">Montant</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let e of stats.top_expenses; let i = index">
+                  <td class="text-muted small">{{ e.expense_date | date:'dd/MM/yyyy' }}</td>
+                  <td class="fw-semibold small">{{ e.title }}</td>
+                  <td>
+                    <span class="d-flex align-items-center gap-1">
+                      <span class="rounded-circle" [style.width]="'8px'" [style.height]="'8px'" [style.background]="e.category_color" style="display:inline-block"></span>
+                      <span class="small">{{ e.category_name }}</span>
+                    </span>
+                  </td>
+                  <td class="text-end fw-bold text-danger">{{ fmt(e.amount, e.currency) }}</td>
+                </tr>
+                <tr *ngIf="!stats.top_expenses?.length">
+                  <td colspan="4" class="text-center text-muted py-3">Aucune donnée</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+
+  </div>
+</div>
+
+<div *ngIf="!loading && !stats" class="text-center text-muted py-5">
+  Aucune donnée pour cette période.
+</div>
