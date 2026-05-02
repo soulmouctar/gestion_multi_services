@@ -12,8 +12,17 @@ export interface Product {
   sku?: string;
   product_category_id?: number;
   unit_id?: number;
+  // Prix unité
   purchase_price?: number;
   selling_price?: number;
+  // Prix carton
+  carton_purchase_price?: number;
+  carton_selling_price?: number;
+  units_per_carton?: number;
+  // Calculés par le backend (appends)
+  unit_selling_price?: number;
+  half_carton_price?: number;
+  dozen_price?: number;
   stock_quantity?: number;
   low_stock_threshold?: number;
   status: 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED';
@@ -22,6 +31,8 @@ export interface Product {
   dimensions?: string;
   supplier_info?: string;
   notes?: string;
+  image?: string;
+  image_url?: string;
   category?: ProductCategory;
   unit?: Unit;
   created_at?: string;
@@ -145,6 +156,18 @@ export class ProductService {
         retry(1),
         catchError(this.handleError)
       );
+  }
+
+  uploadImage(id: number, file: File): Observable<ApiResponse<Product>> {
+    const fd = new FormData();
+    fd.append('image', file);
+    return this.http.post<ApiResponse<Product>>(`${this.API_URL}/products/${id}/image`, fd)
+      .pipe(timeout(30000), catchError(this.handleError));
+  }
+
+  removeImage(id: number): Observable<ApiResponse<Product>> {
+    return this.http.delete<ApiResponse<Product>>(`${this.API_URL}/products/${id}/image`)
+      .pipe(timeout(10000), catchError(this.handleError));
   }
 
   /**

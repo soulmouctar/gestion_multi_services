@@ -58,7 +58,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of locations">
+            <tr *ngFor="let item of locations; trackBy: trackById">
               <td style="padding:14px 20px;">
                 <div class="d-flex align-items-center gap-3">
                   <div style="width:36px;height:36px;border-radius:9px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -103,7 +103,7 @@
           <li class="page-item" [class.disabled]="currentPage === 1">
             <a class="page-link" (click)="onPageChange(currentPage - 1)" style="border-radius:6px;cursor:pointer;border-color:#dee2e6;">Precedent</a>
           </li>
-          <li *ngFor="let page of getPages()" class="page-item" [class.active]="page === currentPage">
+          <li *ngFor="let page of getPages(); trackBy: trackById" class="page-item" [class.active]="page === currentPage">
             <a class="page-link" (click)="onPageChange(page)" style="border-radius:6px;cursor:pointer;">{{ page }}</a>
           </li>
           <li class="page-item" [class.disabled]="currentPage === totalPages">

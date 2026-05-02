@@ -111,7 +111,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let module of filteredModules">
+            <tr *ngFor="let module of filteredModules; trackBy: trackById">
               <td class="ps-4">
                 <div class="d-flex align-items-center gap-3">
                   <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
@@ -132,7 +132,7 @@
               </td>
               <td>
                 <div class="d-flex flex-wrap gap-1">
-                  <span *ngFor="let permission of module.permissions"
+                  <span *ngFor="let permission of module.permissions; trackBy: trackById"
                         class="badge rounded-pill text-uppercase"
                         style="background:#EFF6FF;color:#3B82F6;font-size:.68rem">
                     {{ permission }}
@@ -223,7 +223,7 @@
           <label class="form-label fw-semibold">Icône <span class="text-danger">*</span></label>
           <select class="form-select" formControlName="icon"
                   [class.is-invalid]="submitted && f['icon'].errors" style="border-radius:8px">
-            <option *ngFor="let icon of availableIcons" [value]="icon">{{ icon }}</option>
+            <option *ngFor="let icon of availableIcons; trackBy: trackById" [value]="icon">{{ icon }}</option>
           </select>
           <div *ngIf="submitted && f['icon'].errors" class="invalid-feedback">
             <div *ngIf="f['icon'].errors['required']">L'icône est requise</div>
@@ -243,7 +243,7 @@
           <label class="form-label fw-semibold">Permissions <span class="text-danger">*</span></label>
           <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #f0f0f0">
             <div class="row g-2">
-              <div class="col-md-3" *ngFor="let permission of availablePermissions">
+              <div class="col-md-3" *ngFor="let permission of availablePermissions; trackBy: trackById">
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox"
                          [checked]="isPermissionSelected(permission)"

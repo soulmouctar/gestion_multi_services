@@ -1,10 +1,11 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { catchError, of } from 'rxjs';
 import {
   CardModule, BadgeModule, SpinnerModule,
-  RowComponent, ColComponent, ContainerComponent, TableModule
+  RowComponent, ColComponent, TableModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -15,11 +16,13 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, IconDirective,
     CardModule, BadgeModule, SpinnerModule,
-    RowComponent, ColComponent, ContainerComponent, TableModule
+    RowComponent, ColComponent, TableModule
   ],
   templateUrl: './statistics-finance.component.html'
 })
 export class StatisticsFinanceComponent implements OnInit, OnDestroy {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = true;
 
   stats = {
@@ -51,7 +54,7 @@ export class StatisticsFinanceComponent implements OnInit, OnDestroy {
       exchangeRates: this.apiService.get<any>('exchange-rates?per_page=10').pipe(catchError(() => of({ success: false, data: null }))),
       invoices:      this.apiService.get<any>('invoices?per_page=1').pipe(catchError(() => of({ success: false, data: null }))),
       recentPay:     this.apiService.get<any>('payments?per_page=5').pipe(catchError(() => of({ success: false, data: null })))
-    }).pipe(takeUntil(this.destroy$)).subscribe({
+    }).pipe(takeUntil(this.destroy$)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (results) => {
         if (results.payStats.success && results.payStats.data) {
           const p = results.payStats.data;
@@ -85,4 +88,8 @@ export class StatisticsFinanceComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

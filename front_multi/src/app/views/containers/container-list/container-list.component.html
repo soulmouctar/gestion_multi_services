@@ -58,7 +58,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let container of containers"
+          <tr *ngFor="let container of containers; trackBy: trackById"
               style="transition:background .12s;">
             <td class="ps-4 py-3">
               <div class="d-flex align-items-center gap-2">
@@ -145,7 +145,7 @@
             <a class="page-link" style="border-radius:6px 0 0 6px;cursor:pointer"
                (click)="onPageChange(currentPage - 1)">Précédent</a>
           </li>
-          <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+          <li class="page-item" *ngFor="let page of getPages(); trackBy: trackById" [class.active]="page === currentPage">
             <a class="page-link" style="cursor:pointer" (click)="onPageChange(page)">{{ page }}</a>
           </li>
           <li class="page-item" [class.disabled]="currentPage === totalPages">

@@ -112,7 +112,7 @@
                   [class.is-invalid]="isFieldInvalid('product_category_id')"
                   (change)="onCategoryChange()">
                   <option value="">Sélectionner une catégorie</option>
-                  <option *ngFor="let category of categories" [value]="category.id">
+                  <option *ngFor="let category of categories; trackBy: trackById" [value]="category.id">
                     {{ category.name }}
                   </option>
                 </select>
@@ -128,7 +128,7 @@
                   formControlName="unit_id"
                   [class.is-invalid]="isFieldInvalid('unit_id')">
                   <option value="">Sélectionner une unité</option>
-                  <option *ngFor="let unit of units" [value]="unit.id">
+                  <option *ngFor="let unit of units; trackBy: trackById" [value]="unit.id">
                     {{ unit.name }} ({{ unit.symbol }})
                   </option>
                 </select>
@@ -170,68 +170,210 @@
           </c-card-body>
         </c-card>
 
-        <!-- Pricing -->
+        <!-- Pricing unitaire -->
         <c-card class="mb-4">
           <c-card-header>
-            <h5 class="mb-0">Prix et marges</h5>
+            <h5 class="mb-0">Prix à l'unité</h5>
           </c-card-header>
           <c-card-body>
             <div class="row g-3">
               <div class="col-md-4">
-                <label class="form-label">Prix d'achat</label>
+                <label class="form-label">Prix d'achat unitaire</label>
                 <div class="input-group">
-                  <input 
-                    type="number" 
-                    class="form-control"
-                    formControlName="purchase_price"
-                    [class.is-invalid]="isFieldInvalid('purchase_price')"
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0">
+                  <input type="number" class="form-control" formControlName="purchase_price"
+                         [class.is-invalid]="isFieldInvalid('purchase_price')"
+                         placeholder="0" step="1" min="0">
                   <span class="input-group-text">GNF</span>
                 </div>
-                <div class="invalid-feedback" *ngIf="isFieldInvalid('purchase_price')">
-                  {{ getFieldError('purchase_price') }}
-                </div>
               </div>
-
               <div class="col-md-4">
-                <label class="form-label">Prix de vente</label>
+                <label class="form-label">Prix de vente unitaire <small class="text-muted">(manuel)</small></label>
                 <div class="input-group">
-                  <input 
-                    type="number" 
-                    class="form-control"
-                    formControlName="selling_price"
-                    [class.is-invalid]="isFieldInvalid('selling_price')"
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0">
+                  <input type="number" class="form-control" formControlName="selling_price"
+                         [class.is-invalid]="isFieldInvalid('selling_price')"
+                         placeholder="auto" step="1" min="0">
                   <span class="input-group-text">GNF</span>
                 </div>
-                <div class="invalid-feedback" *ngIf="isFieldInvalid('selling_price')">
-                  {{ getFieldError('selling_price') }}
-                </div>
+                <small class="text-muted">Laissez vide pour calculer depuis le carton</small>
               </div>
-
               <div class="col-md-4">
                 <label class="form-label">Marge</label>
                 <div class="input-group">
-                  <input 
-                    type="text" 
-                    class="form-control"
-                    [value]="calculateMargin().toFixed(2)"
-                    readonly>
+                  <input type="text" class="form-control" [value]="calculateMargin().toFixed(1)" readonly>
                   <span class="input-group-text">%</span>
                 </div>
-                <small class="text-muted">Calculée automatiquement</small>
               </div>
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <!-- Section Carton (cosmétiques) -->
+        <c-card class="mb-4" style="border:2px solid #818CF8;">
+          <c-card-header style="background:linear-gradient(135deg,#EEF2FF,#E0E7FF);">
+            <div class="d-flex align-items-center gap-2">
+              <svg cIcon name="cilGrid" style="color:#4F46E5;width:18px;height:18px;"></svg>
+              <h5 class="mb-0" style="color:#4F46E5;">Vente en carton</h5>
+              <span class="badge ms-auto" style="background:#4F46E5;font-size:11px;">Cosmétiques</span>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="row g-3">
+
+              <!-- Unités par carton -->
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Unités par carton</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" formControlName="units_per_carton"
+                         placeholder="12" min="1" step="1">
+                  <span class="input-group-text">pcs</span>
+                </div>
+                <small class="text-muted">Ex : 12 = 1 douzaine</small>
+              </div>
+
+              <!-- Prix achat carton -->
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Prix achat carton complet</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" formControlName="carton_purchase_price"
+                         placeholder="0" step="1" min="0">
+                  <span class="input-group-text">GNF</span>
+                </div>
+              </div>
+
+              <!-- Prix vente carton -->
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Prix vente carton complet</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" formControlName="carton_selling_price"
+                         placeholder="0" step="1" min="0">
+                  <span class="input-group-text">GNF</span>
+                </div>
+              </div>
+
+              <!-- Tableau de calcul automatique -->
+              <div class="col-12" *ngIf="cartonSellingPrice > 0">
+                <div style="background:#F5F3FF;border-radius:10px;padding:16px;border:1px solid #DDD6FE;">
+                  <div class="fw-semibold mb-3" style="color:#4F46E5;font-size:0.85rem;">
+                    <svg cIcon name="cilCalculator" style="width:14px;height:14px;" class="me-1"></svg>
+                    Prix calculés automatiquement
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-6 col-md-3">
+                      <div style="background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid #E0E7FF;">
+                        <div style="font-size:0.7rem;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Carton complet</div>
+                        <div class="fw-bold" style="font-size:1rem;color:#4F46E5;">{{ cartonSellingPrice | number:'1.0-0' }}</div>
+                        <div style="font-size:0.7rem;color:#9CA3AF;">{{ unitsPerCarton }} unités</div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div style="background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid #E0E7FF;">
+                        <div style="font-size:0.7rem;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Demi-carton</div>
+                        <div class="fw-bold" style="font-size:1rem;color:#7C3AED;">{{ calcHalfCartonPrice | number:'1.0-0' }}</div>
+                        <div style="font-size:0.7rem;color:#9CA3AF;">{{ unitsPerCarton / 2 | number:'1.0-0' }} unités</div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div style="background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid #E0E7FF;">
+                        <div style="font-size:0.7rem;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Douzaine</div>
+                        <div class="fw-bold" style="font-size:1rem;color:#2563EB;">{{ calcDozenPrice | number:'1.0-0' }}</div>
+                        <div style="font-size:0.7rem;color:#9CA3AF;">12 unités</div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div style="background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid #E0E7FF;">
+                        <div style="font-size:0.7rem;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">À l'unité</div>
+                        <div class="fw-bold" style="font-size:1rem;color:#059669;">{{ calcUnitPrice | number:'1.0-0' }}</div>
+                        <div style="font-size:0.7rem;color:#9CA3AF;">1 unité</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </c-card-body>
         </c-card>
       </div>
 
-      <!-- Stock Management -->
+      <!-- Colonne droite -->
       <div class="col-lg-4">
+
+        <!-- ── Photo du produit ── -->
+        <c-card class="mb-4">
+          <c-card-header>
+            <h5 class="mb-0">Photo du produit</h5>
+          </c-card-header>
+          <c-card-body>
+
+            <!-- Prévisualisation -->
+            <div class="text-center mb-3">
+              <div *ngIf="displayedImageUrl; else noImage"
+                   class="position-relative d-inline-block">
+                <img [src]="displayedImageUrl" alt="Photo produit"
+                     style="width:100%;max-height:200px;object-fit:contain;
+                            border-radius:8px;border:1px solid #e2e8f0;">
+                <!-- Bouton supprimer la prévisualisation locale -->
+                <button *ngIf="imagePreview" type="button"
+                        class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
+                        style="border-radius:50%;width:26px;height:26px;padding:0;line-height:1"
+                        title="Annuler la sélection"
+                        (click)="clearSelectedImage()">
+                  <svg cIcon name="cilX" size="sm"></svg>
+                </button>
+              </div>
+
+              <ng-template #noImage>
+                <div class="d-flex flex-column align-items-center justify-content-center"
+                     style="height:140px;background:#f8fafc;border-radius:8px;
+                            border:2px dashed #cbd5e1;color:#94a3b8">
+                  <svg cIcon name="cilImage" size="xl" class="mb-2" style="opacity:.4"></svg>
+                  <span style="font-size:.8rem">Aucune photo</span>
+                </div>
+              </ng-template>
+            </div>
+
+            <!-- Erreur image -->
+            <div *ngIf="imageError" class="alert alert-danger py-2 px-3 mb-3"
+                 style="font-size:.8rem">
+              {{ imageError }}
+            </div>
+
+            <!-- Message suppression en attente -->
+            <div *ngIf="pendingRemoveImage" class="alert alert-warning py-2 px-3 mb-3"
+                 style="font-size:.8rem">
+              L'image sera supprimée après enregistrement.
+              <button type="button" class="btn btn-link btn-sm p-0 ms-1"
+                      (click)="cancelRemoval()">Annuler</button>
+            </div>
+
+            <!-- Boutons -->
+            <div class="d-grid gap-2">
+              <!-- Input fichier caché, déclenché par le bouton -->
+              <input #fileInput type="file" accept="image/jpeg,image/png,image/jpg,image/webp"
+                     class="d-none" (change)="onImageSelected($event)">
+
+              <button type="button" class="btn btn-outline-primary btn-sm"
+                      (click)="fileInput.click()">
+                <svg cIcon name="cilCloudUpload" class="me-1"></svg>
+                {{ displayedImageUrl ? 'Changer la photo' : 'Choisir une photo' }}
+              </button>
+
+              <button *ngIf="currentImageUrl && !pendingRemoveImage && !imagePreview"
+                      type="button" class="btn btn-outline-danger btn-sm"
+                      (click)="markImageForRemoval()">
+                <svg cIcon name="cilTrash" class="me-1"></svg>
+                Supprimer la photo
+              </button>
+            </div>
+
+            <small class="text-muted d-block mt-2">
+              JPG, PNG ou WebP · max 2 Mo
+            </small>
+
+          </c-card-body>
+        </c-card>
+
+        <!-- ── Gestion du stock ── -->
         <c-card class="mb-4">
           <c-card-header>
             <h5 class="mb-0">Gestion du stock</h5>

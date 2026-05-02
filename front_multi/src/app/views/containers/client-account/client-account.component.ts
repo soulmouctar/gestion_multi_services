@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   ButtonModule, CardModule, BadgeModule, AlertModule, SpinnerModule,
-  RowComponent, ColComponent, ContainerComponent, TableModule, ProgressModule
+  TableModule, ProgressModule
 } from '@coreui/angular';
 import { ApiService } from '../../../core/services/api.service';
 
@@ -13,11 +14,14 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule,
     ButtonModule, CardModule, BadgeModule, AlertModule, SpinnerModule,
-    RowComponent, ColComponent, ContainerComponent, TableModule, ProgressModule
+    TableModule, ProgressModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './client-account.component.html'
 })
 export class ClientAccountComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   clientId: number | null = null;
   client: any = null;
   clientStats: any = null;
@@ -42,7 +46,7 @@ export class ClientAccountComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       this.clientId = +params['id'];
       if (this.clientId) {
         this.loadClientData();
@@ -55,7 +59,7 @@ export class ClientAccountComponent implements OnInit {
     this.error = null;
 
     // Load client info
-    this.apiService.get<any>(`clients/${this.clientId}`).subscribe({
+    this.apiService.get<any>(`clients/${this.clientId}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.client = r.data;
@@ -70,7 +74,7 @@ export class ClientAccountComponent implements OnInit {
   }
 
   loadClientStats(): void {
-    this.apiService.get<any>(`container-sales/client-stats/${this.clientId}`).subscribe({
+    this.apiService.get<any>(`container-sales/client-stats/${this.clientId}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.clientStats = r.data;
@@ -85,7 +89,7 @@ export class ClientAccountComponent implements OnInit {
   }
 
   loadSales(): void {
-    this.apiService.get<any>(`container-sales?client_id=${this.clientId}&per_page=100`).subscribe({
+    this.apiService.get<any>(`container-sales?client_id=${this.clientId}&per_page=100`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.sales = r.data.data || r.data || [];
@@ -100,7 +104,7 @@ export class ClientAccountComponent implements OnInit {
   }
 
   loadPayments(): void {
-    this.apiService.get<any>(`container-sale-payments?client_id=${this.clientId}&per_page=100`).subscribe({
+    this.apiService.get<any>(`container-sale-payments?client_id=${this.clientId}&per_page=100`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.payments = r.data.data || r.data || [];
@@ -115,7 +119,7 @@ export class ClientAccountComponent implements OnInit {
   }
 
   loadAdvances(): void {
-    this.apiService.get<any>(`client-advances?client_id=${this.clientId}&per_page=100`).subscribe({
+    this.apiService.get<any>(`client-advances?client_id=${this.clientId}&per_page=100`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.advances = r.data.data || r.data || [];
@@ -185,4 +189,8 @@ export class ClientAccountComponent implements OnInit {
     const salePriceGNF = this.convertToGNF(sale.sale_price, sale.currency || 'GNF');
     return Math.round((amountPaidGNF / salePriceGNF) * 100);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
@@ -16,9 +17,12 @@ import Swal from 'sweetalert2';
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, CardModule, FormModule, BadgeModule, ModalModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './expense-categories.component.html'
 })
 export class ExpenseCategoriesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
 
   categories: any[] = [];
   loading = false;
@@ -57,7 +61,7 @@ export class ExpenseCategoriesComponent implements OnInit {
 
   loadCategories(): void {
     this.loading = true;
-    this.apiService.get<any>('personal-expense-categories').subscribe({
+    this.apiService.get<any>('personal-expense-categories').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.categories = r.success ? (Array.isArray(r.data) ? r.data : (r.data?.data || [])) : [];
         this.loading = false;
@@ -91,7 +95,7 @@ export class ExpenseCategoriesComponent implements OnInit {
       ? this.apiService.put<any>(`personal-expense-categories/${this.selectedCategory.id}`, this.form.value)
       : this.apiService.post<any>('personal-expense-categories', this.form.value);
 
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: this.editMode ? 'Catégorie modifiée' : 'Catégorie créée', timer: 1800, showConfirmButton: false });
@@ -112,7 +116,7 @@ export class ExpenseCategoriesComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(r => {
       if (!r.isConfirmed) return;
-      this.apiService.delete<any>(`personal-expense-categories/${cat.id}`).subscribe({
+      this.apiService.delete<any>(`personal-expense-categories/${cat.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', timer: 1500, showConfirmButton: false, title: 'Supprimé' });
           this.loadCategories();
@@ -125,4 +129,8 @@ export class ExpenseCategoriesComponent implements OnInit {
   fmt(v: number): string {
     return new Intl.NumberFormat('fr-GN', { minimumFractionDigits: 0 }).format(v || 0);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

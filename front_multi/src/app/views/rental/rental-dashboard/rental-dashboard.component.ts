@@ -1,14 +1,14 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { BadgeModule, SpinnerModule } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
 
 @Component({
   selector: 'app-rental-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, IconDirective, BadgeModule, SpinnerModule],
+  imports: [CommonModule, RouterModule, BadgeModule, SpinnerModule],
   styles: [`
     .dash-header {
       background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
@@ -358,6 +358,8 @@ import { ApiService } from '../../../core/services/api.service';
   `
 })
 export class RentalDashboardComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = false;
   data: any = null;
   period = '';
@@ -368,7 +370,7 @@ export class RentalDashboardComponent implements OnInit {
 
   load(): void {
     this.loading = true;
-    this.apiService.get<any>('rental/dashboard').subscribe({
+    this.apiService.get<any>('rental/dashboard').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) { this.data = r.data; this.period = r.data.period; }
         this.loading = false;

@@ -58,7 +58,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let rate of exchangeRates" style="border-color:#F3F4F6;">
+          <tr *ngFor="let rate of exchangeRates; trackBy: trackById" style="border-color:#F3F4F6;">
             <td class="px-4 py-3">
               <span class="fw-bold px-2 py-1 rounded-2"
                     style="background:#F5F3FF;color:#7C3AED;font-size:12px;letter-spacing:.5px;">
@@ -109,7 +109,7 @@
           <li class="page-item" [class.disabled]="currentPage === 1">
             <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(currentPage - 1)">‹</a>
           </li>
-          <li class="page-item" *ngFor="let page of getPages()"
+          <li class="page-item" *ngFor="let page of getPages(); trackBy: trackById"
               [class.active]="page === currentPage">
             <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(page)">{{ page }}</a>
           </li>
@@ -141,7 +141,7 @@
                 style="border-radius:8px;"
                 [class.is-invalid]="submitted && rateForm.get('currency_id')?.invalid">
           <option [ngValue]="null">-- Sélectionner une devise --</option>
-          <option *ngFor="let c of currencies" [ngValue]="c.id">{{ c.code }} — {{ c.name }}</option>
+          <option *ngFor="let c of currencies; trackBy: trackById" [ngValue]="c.id">{{ c.code }} — {{ c.name }}</option>
         </select>
         <div class="invalid-feedback" *ngIf="submitted && rateForm.get('currency_id')?.hasError('required')">
           La devise est obligatoire

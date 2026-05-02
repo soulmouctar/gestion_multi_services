@@ -18,6 +18,12 @@ class BankTransaction extends Model
         'transaction_date' => 'date:Y-m-d',
     ];
 
+
+    public function scopeForTenant($query, int $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
     public function bankAccount()
     {
         return $this->belongsTo(BankAccount::class);

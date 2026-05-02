@@ -60,7 +60,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let assignment of assignments" style="border-bottom:1px solid #f1f5f9;">
+          <tr *ngFor="let assignment of assignments; trackBy: trackById" style="border-bottom:1px solid #f1f5f9;">
             <!-- Taxi -->
             <td class="px-4 py-3">
               <div style="display:inline-flex;align-items:center;gap:8px;">
@@ -139,7 +139,7 @@
                 style="border-radius:8px;border:1px solid #e2e8f0;color:#475569;"
                 [disabled]="currentPage === 1"
                 (click)="onPageChange(currentPage - 1)">‹ Préc.</button>
-        <button *ngFor="let page of [].constructor(totalPages); let i = index"
+        <button *ngFor="let page of [].constructor(totalPages); let i = index; trackBy: trackById"
                 class="btn btn-sm"
                 [style]="currentPage === i + 1
                   ? 'border-radius:8px;background:#0f3460;color:#fff;border:1px solid #0f3460;'
@@ -168,7 +168,7 @@
                 style="border-radius:8px;"
                 [class.is-invalid]="submitted && assignmentForm.get('taxi_id')?.invalid">
           <option value="">Sélectionner un taxi</option>
-          <option *ngFor="let taxi of taxis" [value]="taxi.id">{{ taxi.plate_number }}</option>
+          <option *ngFor="let taxi of taxis; trackBy: trackById" [value]="taxi.id">{{ taxi.plate_number }}</option>
         </select>
         <div *ngIf="submitted && assignmentForm.get('taxi_id')?.invalid" class="invalid-feedback">
           Veuillez sélectionner un taxi
@@ -181,7 +181,7 @@
                 style="border-radius:8px;"
                 [class.is-invalid]="submitted && assignmentForm.get('driver_id')?.invalid">
           <option value="">Sélectionner un conducteur</option>
-          <option *ngFor="let driver of drivers" [value]="driver.id">
+          <option *ngFor="let driver of drivers; trackBy: trackById" [value]="driver.id">
             {{ driver.name }}{{ driver.phone ? ' (' + driver.phone + ')' : '' }}
           </option>
         </select>

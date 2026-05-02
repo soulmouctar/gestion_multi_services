@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\ProductCategory;
+use App\Http\Requests\StoreProductCategoryRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class ProductCategoryController extends BaseController
 {
@@ -14,17 +14,9 @@ class ProductCategoryController extends BaseController
         return $this->sendResponse($categories, 'Product categories retrieved successfully');
     }
 
-    public function store(Request $request)
+    public function store(StoreProductCategoryRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:100',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
-        }
-
-        $category = ProductCategory::create($request->all());
+        $category = ProductCategory::create($request->only(['name']));
 
         return $this->sendResponse($category, 'Product category created successfully', 201);
     }
@@ -34,29 +26,21 @@ class ProductCategoryController extends BaseController
         $category = ProductCategory::with('products')->find($id);
 
         if (!$category) {
-            return $this->sendError('Product category not found');
+            return $this->sendError('Product category not found', [], 404);
         }
 
         return $this->sendResponse($category, 'Product category retrieved successfully');
     }
 
-    public function update(Request $request, $id)
+    public function update(StoreProductCategoryRequest $request, $id)
     {
         $category = ProductCategory::find($id);
 
         if (!$category) {
-            return $this->sendError('Product category not found');
+            return $this->sendError('Product category not found', [], 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:100',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
-        }
-
-        $category->update($request->all());
+        $category->update($request->only(['name']));
 
         return $this->sendResponse($category, 'Product category updated successfully');
     }
@@ -66,7 +50,7 @@ class ProductCategoryController extends BaseController
         $category = ProductCategory::find($id);
 
         if (!$category) {
-            return $this->sendError('Product category not found');
+            return $this->sendError('Product category not found', [], 404);
         }
 
         $category->delete();

@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import {
@@ -16,9 +17,12 @@ import { ApiService } from '../../../core/services/api.service';
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './products-advanced.component.html'
 })
 export class ProductsAdvancedComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = false;
   error: string | null = null;
   successMessage: string | null = null;
@@ -62,7 +66,7 @@ export class ProductsAdvancedComponent implements OnInit {
   // Low Stock Products
   loadLowStockProducts(): void {
     this.loadingLowStock = true;
-    this.apiService.get<any>('products/low-stock').subscribe({
+    this.apiService.get<any>('products/low-stock').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.lowStockProducts = r.data;
@@ -85,7 +89,7 @@ export class ProductsAdvancedComponent implements OnInit {
 
     this.searchLoading = true;
     this.searchResult = null;
-    this.apiService.get<any>(`products/search/barcode?barcode=${encodeURIComponent(barcode)}`).subscribe({
+    this.apiService.get<any>(`products/search/barcode?barcode=${encodeURIComponent(barcode)}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.searchResult = r.data;
@@ -111,7 +115,7 @@ export class ProductsAdvancedComponent implements OnInit {
   // Product Statistics
   loadProductStatistics(): void {
     this.statsLoading = true;
-    this.apiService.get<any>('products/statistics').subscribe({
+    this.apiService.get<any>('products/statistics').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.productStats = r.data;
@@ -147,7 +151,7 @@ export class ProductsAdvancedComponent implements OnInit {
       product_id: this.selectedProduct.id
     };
 
-    this.apiService.post<any>(`products/${this.selectedProduct.id}/update-stock`, data).subscribe({
+    this.apiService.post<any>(`products/${this.selectedProduct.id}/update-stock`, data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = 'Stock mis à jour avec succès';
@@ -187,4 +191,8 @@ export class ProductsAdvancedComponent implements OnInit {
       this.cdr.detectChanges();
     }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

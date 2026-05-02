@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { 
@@ -53,10 +54,13 @@ export interface ApiResponse<T> {
     SpinnerModule,
     IconModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './subscription-plans.component.html',
   styleUrls: ['./subscription-plans.component.scss']
 })
 export class SubscriptionPlansComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   plans: SubscriptionPlan[] = [];
   loading = false;
   submitted = false;
@@ -120,7 +124,7 @@ export class SubscriptionPlansComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    this.subscriptionService.getSubscriptionPlans().subscribe({
+    this.subscriptionService.getSubscriptionPlans().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: any) => {
         const rawPlans = response.data?.data || response.data || [];
         // Ensure each plan has required properties with defaults
@@ -135,7 +139,6 @@ export class SubscriptionPlansComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error loading plans:', error);
         this.plans = [];
         this.showErrorMessage('Erreur lors du chargement des plans.');
         this.loading = false;
@@ -195,7 +198,7 @@ export class SubscriptionPlansComponent implements OnInit {
       
       if (this.editMode && this.selectedPlan) {
         // Update existing plan
-        this.subscriptionService.updateSubscriptionPlan(this.selectedPlan.id, formData).subscribe({
+        this.subscriptionService.updateSubscriptionPlan(this.selectedPlan.id, formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response: any) => {
             const updatedPlan = response.data;
             const index = this.plans.findIndex(p => p.id === this.selectedPlan!.id);
@@ -208,7 +211,6 @@ export class SubscriptionPlansComponent implements OnInit {
             this.cdr.detectChanges();
           },
           error: (error) => {
-            console.error('Error updating plan:', error);
             this.showErrorMessage('Erreur lors de la modification du plan.');
             this.loading = false;
             this.cdr.detectChanges();
@@ -216,7 +218,7 @@ export class SubscriptionPlansComponent implements OnInit {
         });
       } else {
         // Create new plan
-        this.subscriptionService.createSubscriptionPlan(formData).subscribe({
+        this.subscriptionService.createSubscriptionPlan(formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response: any) => {
             const newPlan = response.data;
             this.plans.unshift(newPlan);
@@ -226,7 +228,6 @@ export class SubscriptionPlansComponent implements OnInit {
             this.cdr.detectChanges();
           },
           error: (error) => {
-            console.error('Error creating plan:', error);
             this.showErrorMessage('Erreur lors de la création du plan.');
             this.loading = false;
             this.cdr.detectChanges();
@@ -252,7 +253,7 @@ export class SubscriptionPlansComponent implements OnInit {
       this.loading = true;
       this.cdr.detectChanges();
       
-      this.subscriptionService.deleteSubscriptionPlan(this.planToDelete.id).subscribe({
+      this.subscriptionService.deleteSubscriptionPlan(this.planToDelete.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.plans = this.plans.filter(p => p.id !== this.planToDelete!.id);
           this.loading = false;
@@ -261,7 +262,6 @@ export class SubscriptionPlansComponent implements OnInit {
           this.cdr.detectChanges();
         },
         error: (error) => {
-          console.error('Error deleting plan:', error);
           this.showErrorMessage('Erreur lors de la suppression du plan.');
           this.loading = false;
           this.cdr.detectChanges();
@@ -277,7 +277,7 @@ export class SubscriptionPlansComponent implements OnInit {
     
     const updatedData = { is_active: !plan.is_active };
     
-    this.subscriptionService.updateSubscriptionPlan(plan.id, updatedData).subscribe({
+    this.subscriptionService.updateSubscriptionPlan(plan.id, updatedData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: any) => {
         const updatedPlan = response.data;
         const index = this.plans.findIndex(p => p.id === plan.id);
@@ -289,7 +289,6 @@ export class SubscriptionPlansComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error toggling plan status:', error);
         this.showErrorMessage('Erreur lors du changement de statut du plan.');
         this.loading = false;
         this.cdr.detectChanges();
@@ -353,7 +352,6 @@ export class SubscriptionPlansComponent implements OnInit {
     const status = this.filterForm.get('status')?.value || 'ALL';
     
     // Implement filtering logic here
-    console.log('Applying filters:', { search, status });
   }
 
   clearFilters(): void {
@@ -376,4 +374,8 @@ export class SubscriptionPlansComponent implements OnInit {
   showErrorMessage(message: string): void {
     this.alertService.showError('Erreur!', message);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

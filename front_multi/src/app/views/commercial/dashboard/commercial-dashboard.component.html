@@ -198,7 +198,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let a of getAvailableStock().slice(0, 8)">
+                  <tr *ngFor="let a of getAvailableStock().slice(0, 8); trackBy: trackById">
                     <td class="ps-4 py-2">
                       <div class="fw-semibold" style="font-size:0.85rem;color:#1e293b">
                         {{ a.description || a.container?.reference || '—' }}
@@ -258,7 +258,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let s of pendingSales">
+                  <tr *ngFor="let s of pendingSales; trackBy: trackById">
                     <td class="ps-4 py-2">
                       <div class="fw-semibold" style="font-size:0.85rem;color:#1e293b">
                         {{ s.client?.name || s.client_name || '—' }}
@@ -325,7 +325,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let s of recentSales">
+                  <tr *ngFor="let s of recentSales; trackBy: trackById">
                     <td class="ps-4 py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
                       {{ s.client?.name || s.client_name || '—' }}
                     </td>
@@ -398,7 +398,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let a of clientAdvances">
+                  <tr *ngFor="let a of clientAdvances; trackBy: trackById">
                     <td class="ps-4 py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
                       {{ a.client?.name || '—' }}
                     </td>
@@ -406,7 +406,7 @@
                       {{ formatAmount(a.amount, a.currency) }}
                     </td>
                     <td class="pe-4 py-2" style="font-size:0.82rem;color:#94a3b8">
-                      {{ a.advance_date | date:'dd/MM/yyyy' }}
+                      {{ a.payment_date | date:'dd/MM/yyyy' }}
                     </td>
                   </tr>
                 </tbody>

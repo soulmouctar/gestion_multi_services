@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
@@ -16,9 +17,12 @@ import { ApiService } from '../../../core/services/api.service';
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './payments-advanced.component.html'
 })
 export class PaymentsAdvancedComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = false;
   error: string | null = null;
   successMessage: string | null = null;
@@ -82,7 +86,7 @@ export class PaymentsAdvancedComponent implements OnInit {
   // Payment Statistics
   loadPaymentStatistics(): void {
     this.statsLoading = true;
-    this.apiService.get<any>('payments/statistics').subscribe({
+    this.apiService.get<any>('payments/statistics').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.paymentStats = r.data;
@@ -108,7 +112,7 @@ export class PaymentsAdvancedComponent implements OnInit {
       }
     });
     
-    this.apiService.get<any>(`payments?${params.toString()}`).subscribe({
+    this.apiService.get<any>(`payments?${params.toString()}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.dateRangePayments = r.data;
@@ -156,7 +160,7 @@ export class PaymentsAdvancedComponent implements OnInit {
     this.bulkDeleteLoading = true;
     const paymentIds = Array.from(this.selectedPayments);
     
-    this.apiService.post<any>('payments/bulk-delete', { payment_ids: paymentIds }).subscribe({
+    this.apiService.post<any>('payments/bulk-delete', { payment_ids: paymentIds }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = `${paymentIds.length} paiement(s) supprimé(s)`;
@@ -190,7 +194,7 @@ export class PaymentsAdvancedComponent implements OnInit {
       }
     });
     
-    this.apiService.get<any>(`payments?${params.toString()}`).subscribe({
+    this.apiService.get<any>(`payments?${params.toString()}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           // Create download link
@@ -253,4 +257,8 @@ export class PaymentsAdvancedComponent implements OnInit {
       this.cdr.detectChanges();
     }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -23,6 +24,8 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrls: ['./register.component.scss']
 })
 export class RegisterComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   registerForm!: FormGroup;
   isLoading = false;
   submitted = false;
@@ -138,7 +141,7 @@ export class RegisterComponent implements OnInit {
       password: this.registerForm.value.password
     };
     
-    this.authService.register(registerData).subscribe({
+    this.authService.register(registerData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Compte créé avec succès! Vous allez être redirigé vers la page de connexion.';

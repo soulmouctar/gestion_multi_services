@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
@@ -28,10 +29,13 @@ import { AlertService } from '../../../core/services/alert.service';
     RowComponent,
     ColComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './product-detail.component.html',
   styleUrls: ['./product-detail.component.scss']
 })
 export class ProductDetailComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   product: Product | null = null;
   loading = false;
   productId: number | null = null;
@@ -45,7 +49,7 @@ export class ProductDetailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['id']) {
         this.productId = +params['id'];
         this.loadProduct();
@@ -57,7 +61,7 @@ export class ProductDetailComponent implements OnInit {
     if (!this.productId) return;
 
     this.loading = true;
-    this.productService.getProduct(this.productId).subscribe({
+    this.productService.getProduct(this.productId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.product = response.data;
@@ -66,7 +70,6 @@ export class ProductDetailComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error loading product:', error);
         this.alertService.showError('Erreur', 'Impossible de charger les détails du produit');
         this.loading = false;
         this.cdr.detectChanges();
@@ -85,7 +88,7 @@ export class ProductDetailComponent implements OnInit {
 
     this.alertService.showDeleteConfirmation(this.product.name, 'le produit').then((result) => {
       if (result.isConfirmed && this.productId) {
-        this.productService.deleteProduct(this.productId).subscribe({
+        this.productService.deleteProduct(this.productId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               this.alertService.showSuccess('Succès', 'Produit supprimé avec succès');
@@ -93,7 +96,6 @@ export class ProductDetailComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Error deleting product:', error);
             this.alertService.showError('Erreur', 'Impossible de supprimer le produit');
           }
         });

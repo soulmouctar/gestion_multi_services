@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -24,6 +25,8 @@ import { AuthService } from '../../../core/services/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ResetPasswordComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   resetPasswordForm!: FormGroup;
   isLoading = false;
   submitted = false;
@@ -106,7 +109,7 @@ export class ResetPasswordComponent implements OnInit {
       password_confirmation: this.resetPasswordForm.value.password_confirmation
     };
 
-    this.authService.resetPassword(resetData).subscribe({
+    this.authService.resetPassword(resetData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.isLoading = false;
         if (response.success) {

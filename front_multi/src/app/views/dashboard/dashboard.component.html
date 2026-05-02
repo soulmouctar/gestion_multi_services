@@ -103,7 +103,7 @@
             <div *ngIf="activities.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
               Aucune activite recente
             </div>
-            <div *ngFor="let activity of activities" style="border-bottom:1px solid #f8f9fa;padding-bottom:12px;margin-bottom:12px;">
+            <div *ngFor="let activity of activities; trackBy: trackById" style="border-bottom:1px solid #f8f9fa;padding-bottom:12px;margin-bottom:12px;">
               <div class="d-flex justify-content-between align-items-start gap-2">
                 <div>
                   <div style="font-weight:600;font-size:0.875rem;color:#1e293b;">{{ activity.title }}</div>
@@ -129,7 +129,7 @@
             <div *ngIf="moduleUsage.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
               Aucune donnee d'usage disponible
             </div>
-            <div *ngFor="let module of moduleUsage" class="mb-3">
+            <div *ngFor="let module of moduleUsage; trackBy: trackById" class="mb-3">
               <div class="d-flex justify-content-between mb-1">
                 <span style="font-size:0.875rem;font-weight:500;color:#374151;">{{ module.module_name }}</span>
                 <span style="font-size:0.8rem;font-weight:600;color:#6c757d;">{{ module.percentage }}%</span>
@@ -167,7 +167,7 @@
                 <thead style="background:#f8fafc;">
                   <tr>
                     <th style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;"></th>
-                    <th *ngFor="let label of subscriptionLabels" style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;">{{ label }}</th>
+                    <th *ngFor="let label of subscriptionLabels; trackBy: trackById" style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;">{{ label }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,13 +175,13 @@
                     <td style="padding:10px 12px;">
                       <span style="background:#ECFDF5;color:#10B981;padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:600;">Nouveaux</span>
                     </td>
-                    <td *ngFor="let value of subscriptionNewData" style="padding:10px 12px;font-weight:600;color:#10B981;">{{ value }}</td>
+                    <td *ngFor="let value of subscriptionNewData; trackBy: trackById" style="padding:10px 12px;font-weight:600;color:#10B981;">{{ value }}</td>
                   </tr>
                   <tr>
                     <td style="padding:10px 12px;">
                       <span style="background:#FEF2F2;color:#EF4444;padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:600;">Annules</span>
                     </td>
-                    <td *ngFor="let value of subscriptionCancelledData" style="padding:10px 12px;font-weight:600;color:#EF4444;">{{ value }}</td>
+                    <td *ngFor="let value of subscriptionCancelledData; trackBy: trackById" style="padding:10px 12px;font-weight:600;color:#EF4444;">{{ value }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -207,12 +207,12 @@
               <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
                 <thead style="background:#f8fafc;">
                   <tr>
-                    <th *ngFor="let label of revenueLabels" style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;">{{ label }}</th>
+                    <th *ngFor="let label of revenueLabels; trackBy: trackById" style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;">{{ label }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td *ngFor="let value of revenueData" style="padding:10px 12px;font-weight:600;color:#10B981;">
+                    <td *ngFor="let value of revenueData; trackBy: trackById" style="padding:10px 12px;font-weight:600;color:#10B981;">
                       {{ value | number:'1.0-0' }}
                     </td>
                   </tr>

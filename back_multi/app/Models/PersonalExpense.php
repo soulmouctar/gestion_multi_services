@@ -18,6 +18,12 @@ class PersonalExpense extends Model
         'is_recurring' => 'boolean',
     ];
 
+
+    public function scopeForTenant($query, int $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
     public function category()
     {
         return $this->belongsTo(PersonalExpenseCategory::class, 'category_id');

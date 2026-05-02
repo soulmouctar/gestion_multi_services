@@ -46,7 +46,7 @@
                     <div class="mb-3">
                       <label cFormLabel for="timezone">Fuseau horaire *</label>
                       <select cFormSelect id="timezone" formControlName="timezone" [class.is-invalid]="f['timezone'].invalid && f['timezone'].touched">
-                        <option *ngFor="let tz of timezones" [value]="tz.value">
+                        <option *ngFor="let tz of timezones; trackBy: trackById" [value]="tz.value">
                           {{ tz.label }}
                         </option>
                       </select>
@@ -59,7 +59,7 @@
                     <div class="mb-3">
                       <label cFormLabel for="language">Langue *</label>
                       <select cFormSelect id="language" formControlName="language" [class.is-invalid]="f['language'].invalid && f['language'].touched">
-                        <option *ngFor="let lang of languages" [value]="lang.value">
+                        <option *ngFor="let lang of languages; trackBy: trackById" [value]="lang.value">
                           {{ lang.label }}
                         </option>
                       </select>
@@ -72,7 +72,7 @@
                     <div class="mb-3">
                       <label cFormLabel for="date_format">Format de date *</label>
                       <select cFormSelect id="date_format" formControlName="date_format" [class.is-invalid]="f['date_format'].invalid && f['date_format'].touched">
-                        <option *ngFor="let format of dateFormats" [value]="format.value">
+                        <option *ngFor="let format of dateFormats; trackBy: trackById" [value]="format.value">
                           {{ format.label }}
                         </option>
                       </select>
@@ -85,7 +85,7 @@
                     <div class="mb-3">
                       <label cFormLabel for="number_format">Format des nombres *</label>
                       <select cFormSelect id="number_format" formControlName="number_format" [class.is-invalid]="f['number_format'].invalid && f['number_format'].touched">
-                        <option *ngFor="let format of numberFormats" [value]="format.value">
+                        <option *ngFor="let format of numberFormats; trackBy: trackById" [value]="format.value">
                           {{ format.label }}
                         </option>
                       </select>

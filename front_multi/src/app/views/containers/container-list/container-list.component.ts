@@ -1,11 +1,12 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import {
   ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-  ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+  ModalModule, AlertModule, SpinnerModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -17,11 +18,14 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-    ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+    ModalModule, AlertModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './container-list.component.html'
 })
 export class ContainerListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   containers: any[] = [];
   loading = false;
   error: string | null = null;
@@ -59,7 +63,7 @@ export class ContainerListComponent implements OnInit {
   loadContainers(): void {
     this.loading = true;
     this.error = null;
-    this.apiService.get<any>(`containers?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`containers?page=${this.currentPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const p = response.data;
@@ -110,7 +114,7 @@ export class ContainerListComponent implements OnInit {
     const obs = this.editMode && this.selectedContainer
       ? this.apiService.put<any>(`containers/${this.selectedContainer.id}`, data)
       : this.apiService.post<any>('containers', data);
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = this.editMode ? 'Conteneur mis à jour avec succès' : 'Conteneur créé avec succès';
@@ -130,7 +134,7 @@ export class ContainerListComponent implements OnInit {
 
   deleteContainer(): void {
     if (!this.containerToDelete) return;
-    this.apiService.delete<any>(`containers/${this.containerToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`containers/${this.containerToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = 'Conteneur supprimé'; this.deleteModalOpen = false;
@@ -150,4 +154,8 @@ export class ContainerListComponent implements OnInit {
   private clearMessages(): void {
     setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

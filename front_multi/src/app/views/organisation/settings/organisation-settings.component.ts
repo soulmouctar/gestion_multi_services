@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { 
@@ -39,10 +40,13 @@ import Swal from 'sweetalert2';
     TabsListComponent,
     IconDirective
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './organisation-settings.component.html',
   styleUrls: ['./organisation-settings.component.scss']
 })
 export class OrganisationSettingsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   settingsForm: FormGroup;
   loading = false;
   saving = false;
@@ -117,7 +121,7 @@ export class OrganisationSettingsComponent implements OnInit {
 
   loadSettings(): void {
     this.loading = true;
-    this.organisationSettingService.getSettings().subscribe({
+    this.organisationSettingService.getSettings().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           const settings = response.data;
@@ -127,7 +131,6 @@ export class OrganisationSettingsComponent implements OnInit {
         this.loading = false;
       },
       error: (error: any) => {
-        console.error('Error loading settings:', error);
         Swal.fire({
           icon: 'error',
           title: 'Erreur',
@@ -144,7 +147,7 @@ export class OrganisationSettingsComponent implements OnInit {
       this.saving = true;
       const formData = this.settingsForm.value;
       
-      this.organisationSettingService.updateSettings(formData).subscribe({
+      this.organisationSettingService.updateSettings(formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response) => {
           if (response.success) {
             const updatedSettings = response.data;
@@ -153,7 +156,6 @@ export class OrganisationSettingsComponent implements OnInit {
           this.saving = false;
         },
         error: (error: any) => {
-          console.error('Error saving settings:', error);
           this.saving = false;
           Swal.fire({
             icon: 'error',
@@ -180,7 +182,7 @@ export class OrganisationSettingsComponent implements OnInit {
       if (result.isConfirmed) {
         this.saving = true;
         
-        this.organisationSettingService.resetSettings().subscribe({
+        this.organisationSettingService.resetSettings().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               const resetSettings = response.data;
@@ -190,7 +192,6 @@ export class OrganisationSettingsComponent implements OnInit {
             this.saving = false;
           },
           error: (error: any) => {
-            console.error('Error resetting settings:', error);
             this.saving = false;
             Swal.fire({
               icon: 'error',
@@ -207,4 +208,8 @@ export class OrganisationSettingsComponent implements OnInit {
   get f() {
     return this.settingsForm.controls;
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

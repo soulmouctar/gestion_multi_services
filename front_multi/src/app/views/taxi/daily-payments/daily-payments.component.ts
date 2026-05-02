@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
@@ -17,9 +18,12 @@ import Swal from 'sweetalert2';
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, ProgressModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './daily-payments.component.html'
 })
 export class DailyPaymentsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
 
   payments: any[]    = [];
   assignments: any[] = [];
@@ -72,19 +76,19 @@ export class DailyPaymentsComponent implements OnInit {
   // ===== LOAD HELPERS =====
 
   loadAssignments(): void {
-    this.apiService.get<any>('taxi-assignments?per_page=200').subscribe({
+    this.apiService.get<any>('taxi-assignments?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { this.assignments = r.success ? (r.data?.data || r.data || []) : []; }
     });
   }
 
   loadDrivers(): void {
-    this.apiService.get<any>('drivers?per_page=200').subscribe({
+    this.apiService.get<any>('drivers?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { this.drivers = r.success ? (r.data?.data || r.data || []) : []; }
     });
   }
 
   loadTaxis(): void {
-    this.apiService.get<any>('taxis?per_page=200').subscribe({
+    this.apiService.get<any>('taxis?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { this.taxis = r.success ? (r.data?.data || r.data || []) : []; }
     });
   }
@@ -101,7 +105,7 @@ export class DailyPaymentsComponent implements OnInit {
     if (f.date_from) url += `&date_from=${f.date_from}`;
     if (f.date_to)   url += `&date_to=${f.date_to}`;
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.payments   = r.data.data || [];
@@ -123,7 +127,7 @@ export class DailyPaymentsComponent implements OnInit {
     if (f.driver_id) url += `&driver_id=${f.driver_id}`;
     if (f.taxi_id)   url += `&taxi_id=${f.taxi_id}`;
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) this.statistics = r.data;
         this.loadingStats = false;
@@ -192,7 +196,7 @@ export class DailyPaymentsComponent implements OnInit {
       ? this.apiService.put<any>(`daily-payments/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('daily-payments', data);
 
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: this.editMode ? 'Versement modifié' : 'Versement enregistré', timer: 1800, showConfirmButton: false });
@@ -214,7 +218,7 @@ export class DailyPaymentsComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(r => {
       if (!r.isConfirmed) return;
-      this.apiService.delete<any>(`daily-payments/${item.id}`).subscribe({
+      this.apiService.delete<any>(`daily-payments/${item.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', timer: 1500, showConfirmButton: false, title: 'Supprimé' });
           this.loadData();
@@ -260,4 +264,8 @@ export class DailyPaymentsComponent implements OnInit {
 
   private today(): string      { return new Date().toISOString().split('T')[0]; }
   private monthStart(): string { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]; }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

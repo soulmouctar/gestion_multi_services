@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -24,6 +25,8 @@ import { finalize } from 'rxjs/operators';
   styleUrls: ['./login.component.scss']
 })
 export class LoginComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loginForm!: FormGroup;
   isLoading = false;
   submitted = false;
@@ -102,9 +105,8 @@ export class LoginComponent implements OnInit {
       finalize(() => {
         this.isLoading = false; // Always stop the loader
       })
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
-        console.log('Login response:', response);
         clearTimeout(timeoutId); // Clear the timeout
         this.isLoading = false;
         
@@ -126,7 +128,6 @@ export class LoginComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Login error:', error);
         clearTimeout(timeoutId); // Clear the timeout
         
         // Gestion explicite des erreurs avec SweetAlert2

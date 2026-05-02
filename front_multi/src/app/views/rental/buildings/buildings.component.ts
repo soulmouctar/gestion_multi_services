@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
   ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-  ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+  ModalModule, AlertModule, SpinnerModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -14,11 +15,14 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-    ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+    ModalModule, AlertModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './buildings.component.html'
 })
 export class BuildingsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   buildings: any[] = [];
   locations: any[] = [];
   loading = false;
@@ -43,14 +47,14 @@ export class BuildingsComponent implements OnInit {
   ngOnInit(): void { this.loadData(); this.loadLocations(); }
 
   loadLocations(): void {
-    this.apiService.get<any>('locations?per_page=200').subscribe({
+    this.apiService.get<any>('locations?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success && r.data) this.locations = r.data.data || []; }
     });
   }
 
   loadData(): void {
     this.loading = true; this.error = null;
-    this.apiService.get<any>(`buildings?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`buildings?page=${this.currentPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data; this.buildings = p.data || [];
@@ -73,7 +77,7 @@ export class BuildingsComponent implements OnInit {
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`buildings/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('buildings', data);
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Bâtiment mis à jour' : 'Bâtiment créé'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
       error: (err) => { this.error = err?.error?.message || 'Erreur'; }
     });
@@ -82,7 +86,7 @@ export class BuildingsComponent implements OnInit {
   confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
     if (!this.itemToDelete) return;
-    this.apiService.delete<any>(`buildings/${this.itemToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`buildings/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Bâtiment supprimé'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
       error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
     });
@@ -91,4 +95,8 @@ export class BuildingsComponent implements OnInit {
   getLocationName(id: number): string { const l = this.locations.find(loc => loc.id === id); return l ? l.name : `ID: ${id}`; }
   getPages(): number[] { const p: number[] = []; for (let i = 1; i <= this.totalPages; i++) p.push(i); return p; }
   private clearMessages(): void { setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000); }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

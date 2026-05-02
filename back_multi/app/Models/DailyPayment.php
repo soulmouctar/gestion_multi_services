@@ -29,6 +29,12 @@ class DailyPayment extends Model
         'balance' => 'decimal:2',
     ];
 
+
+    public function scopeForTenant($query, int $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);

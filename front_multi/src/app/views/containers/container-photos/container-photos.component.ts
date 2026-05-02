@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
   ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-  ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+  ModalModule, AlertModule, SpinnerModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -15,11 +16,14 @@ import { environment } from '../../../../environments/environment';
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-    ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+    ModalModule, AlertModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './container-photos.component.html'
 })
 export class ContainerPhotosComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   
   containerPhotos: any[] = [];
@@ -53,7 +57,7 @@ export class ContainerPhotosComponent implements OnInit {
   ngOnInit(): void { this.loadData(); this.loadContainers(); this.loadProducts(); }
 
   loadContainers(): void {
-    this.apiService.get<any>('containers?per_page=200').subscribe({
+    this.apiService.get<any>('containers?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.containers = Array.isArray(r.data) ? r.data : (r.data.data || []);
@@ -64,7 +68,7 @@ export class ContainerPhotosComponent implements OnInit {
   }
 
   loadProducts(): void {
-    this.apiService.get<any>('products?per_page=200').subscribe({
+    this.apiService.get<any>('products?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.products = Array.isArray(r.data) ? r.data : (r.data.data || []);
@@ -76,7 +80,7 @@ export class ContainerPhotosComponent implements OnInit {
 
   loadData(): void {
     this.loading = true; this.error = null;
-    this.apiService.get<any>(`container-photos?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`container-photos?page=${this.currentPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const p = response.data;
@@ -149,7 +153,6 @@ export class ContainerPhotosComponent implements OnInit {
       this.error = null;
       this.cdr.detectChanges();
     } else {
-      console.log('No file selected');
       this.selectedFile = null;
       this.photoForm.patchValue({ image_path: '' });
     }
@@ -164,7 +167,6 @@ export class ContainerPhotosComponent implements OnInit {
     
     input.onchange = (event: any) => {
       const file = event.target.files && event.target.files[0];
-      console.log('Dynamic file input - file selected:', file);
       
       if (file) {
         const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
@@ -226,7 +228,7 @@ export class ContainerPhotosComponent implements OnInit {
       ? this.apiService.put<any>(`container-photos/${this.selectedItem.id}`, formData)
       : this.apiService.post<any>('container-photos', formData);
 
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = this.editMode ? 'Photo mise à jour' : 'Photo ajoutée';
@@ -241,7 +243,7 @@ export class ContainerPhotosComponent implements OnInit {
 
   deleteItem(): void {
     if (!this.itemToDelete) return;
-    this.apiService.delete<any>(`container-photos/${this.itemToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`container-photos/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { 
         if (r.success) { 
           this.successMessage = 'Photo supprimée'; this.deleteModalOpen = false; 
@@ -274,4 +276,8 @@ export class ContainerPhotosComponent implements OnInit {
 
   getPages(): number[] { const p: number[] = []; for (let i = 1; i <= this.totalPages; i++) p.push(i); return p; }
   private clearMessages(): void { setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000); }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

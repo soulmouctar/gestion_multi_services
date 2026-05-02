@@ -13,17 +13,27 @@
       </div>
       <p class="mb-0 small" style="color:rgba(255,255,255,0.65);">Vue d'ensemble de vos finances et transactions</p>
     </div>
-    <a routerLink="/payments/list"
-       class="btn fw-semibold"
-       style="background:#10B981;color:#fff;border-radius:10px;border:none;padding:8px 20px;">
-      <svg cIcon name="cilPlus" class="me-1" style="width:16px;height:16px;"></svg> Nouveau Paiement
-    </a>
+    <div class="d-flex gap-2 align-items-center">
+      <button class="btn btn-sm fw-semibold" (click)="load()" [disabled]="loading"
+              style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:10px;padding:7px 16px;">
+        <svg cIcon name="cilReload" style="width:14px;height:14px;"></svg>
+      </button>
+      <a routerLink="/payments/list" class="btn fw-semibold"
+         style="background:#10B981;color:#fff;border-radius:10px;border:none;padding:8px 20px;">
+        <svg cIcon name="cilPlus" class="me-1" style="width:16px;height:16px;"></svg> Nouveau Paiement
+      </a>
+    </div>
   </div>
 
-  <!-- Loading -->
-  <div *ngIf="loading" class="text-center py-5">
-    <c-spinner color="success"></c-spinner>
-    <p class="mt-3 text-body-secondary">Chargement des données financières...</p>
+  <!-- Skeleton KPI Cards -->
+  <div class="row g-3 mb-4" *ngIf="loading">
+    <div class="col-12 col-sm-6 col-xl-3" *ngFor="let _ of [1,2,3,4]">
+      <div style="background:#fff;border-radius:12px;height:110px;box-shadow:0 2px 12px rgba(0,0,0,0.07);padding:20px;">
+        <div style="background:#f0f0f0;border-radius:6px;height:12px;width:60%;margin-bottom:12px;animation:pulse 1.5s infinite;"></div>
+        <div style="background:#f0f0f0;border-radius:6px;height:28px;width:40%;margin-bottom:8px;animation:pulse 1.5s infinite;"></div>
+        <div style="background:#f0f0f0;border-radius:6px;height:10px;width:80%;animation:pulse 1.5s infinite;"></div>
+      </div>
+    </div>
   </div>
 
   <ng-container *ngIf="!loading">
@@ -34,36 +44,30 @@
       <!-- Total Paiements -->
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="h-100 p-4 d-flex flex-column justify-content-between"
-             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .2s,box-shadow .2s;cursor:default;"
-             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
-             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
               <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Total Paiements</div>
-              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ stats.totalPayments }}</div>
-              <div class="small mt-1" style="color:#9CA3AF;">{{ stats.totalAmount | number:'1.0-0' }} GNF au total</div>
+              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ payments.total_payments }}</div>
+              <div class="small mt-1" style="color:#9CA3AF;">{{ payments.total_amount | number:'1.0-0' }} GNF au total</div>
             </div>
             <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
                  style="width:44px;height:44px;background:#ECFDF5;">
               <svg cIcon name="cilCreditCard" style="color:#10B981;width:22px;height:22px;"></svg>
             </div>
           </div>
-          <a routerLink="/payments/list"
-             class="text-decoration-none small fw-semibold mt-2"
-             style="color:#10B981;">Voir les paiements →</a>
+          <a routerLink="/payments/list" class="text-decoration-none small fw-semibold mt-2" style="color:#10B981;">Voir les paiements →</a>
         </div>
       </div>
 
       <!-- Ce mois -->
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="h-100 p-4 d-flex flex-column justify-content-between"
-             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .2s,box-shadow .2s;cursor:default;"
-             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
-             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
               <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Ce mois</div>
-              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ stats.monthlyAmount | number:'1.0-0' }}</div>
+              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ payments.monthly_amount | number:'1.0-0' }}</div>
               <div class="small mt-1" style="color:#9CA3AF;">Encaissements du mois</div>
             </div>
             <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
@@ -71,89 +75,148 @@
               <svg cIcon name="cilChartLine" style="color:#3B82F6;width:22px;height:22px;"></svg>
             </div>
           </div>
-          <a routerLink="/payments/advanced"
-             class="text-decoration-none small fw-semibold mt-2"
-             style="color:#3B82F6;">Voir les détails →</a>
+          <a routerLink="/payments/advanced" class="text-decoration-none small fw-semibold mt-2" style="color:#3B82F6;">Voir les détails →</a>
         </div>
       </div>
 
       <!-- Factures -->
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="h-100 p-4 d-flex flex-column justify-content-between"
-             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .2s,box-shadow .2s;cursor:default;"
-             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
-             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
               <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Factures</div>
-              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ stats.totalInvoices }}</div>
-              <div class="small mt-1" style="color:#9CA3AF;">Total des factures</div>
+              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ invoices.total }}</div>
+              <div class="small mt-1" style="color:#9CA3AF;">
+                <span style="color:#EF4444;">{{ invoices.impaye }} impayée(s)</span>
+                · <span style="color:#F59E0B;">{{ invoices.partiel }} partielle(s)</span>
+              </div>
             </div>
             <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
                  style="width:44px;height:44px;background:#FFFBEB;">
               <svg cIcon name="cilDescription" style="color:#F59E0B;width:22px;height:22px;"></svg>
             </div>
           </div>
-          <a routerLink="/finance/invoices"
-             class="text-decoration-none small fw-semibold mt-2"
-             style="color:#F59E0B;">Voir les factures →</a>
+          <a routerLink="/finance/invoices" class="text-decoration-none small fw-semibold mt-2" style="color:#F59E0B;">Voir les factures →</a>
         </div>
       </div>
 
-      <!-- Devises actives -->
+      <!-- Reste à encaisser -->
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="h-100 p-4 d-flex flex-column justify-content-between"
-             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .2s,box-shadow .2s;cursor:default;"
-             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
-             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
+             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Devises actives</div>
-              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ stats.totalCurrencies }}</div>
-              <div class="small mt-1" style="color:#9CA3AF;">Devises configurées</div>
+              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Reste à encaisser</div>
+              <div class="fw-bold" style="font-size:22px;color:#EF4444;line-height:1;">{{ invoices.total_remaining | number:'1.0-0' }}</div>
+              <div class="small mt-1" style="color:#9CA3AF;">GNF impayés</div>
             </div>
             <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;background:#F0F9FF;">
-              <svg cIcon name="cilGlobeAlt" style="color:#0EA5E9;width:22px;height:22px;"></svg>
+                 style="width:44px;height:44px;background:#FEE2E2;">
+              <svg cIcon name="cilWarning" style="color:#EF4444;width:22px;height:22px;"></svg>
             </div>
           </div>
-          <a routerLink="/finance/currencies"
-             class="text-decoration-none small fw-semibold mt-2"
-             style="color:#0EA5E9;">Gérer les devises →</a>
+          <span class="small fw-semibold mt-2" style="color:#9CA3AF;">{{ currenciesCount }} devise(s) configurée(s)</span>
         </div>
       </div>
 
     </div>
 
-    <!-- Accès rapides -->
-    <div class="mb-4 p-4" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
-      <div class="fw-semibold mb-3" style="color:#374151;font-size:14px;">Accès rapides</div>
-      <div class="d-flex flex-wrap gap-2">
-        <a routerLink="/payments/list"
-           class="btn btn-sm d-flex align-items-center gap-1"
-           style="background:#ECFDF5;color:#10B981;border:1px solid #A7F3D0;border-radius:8px;font-weight:600;">
-          <svg cIcon name="cilCreditCard" style="width:14px;height:14px;"></svg> Paiements
-        </a>
-        <a routerLink="/payments/advanced"
-           class="btn btn-sm d-flex align-items-center gap-1"
-           style="background:#EFF6FF;color:#3B82F6;border:1px solid #BFDBFE;border-radius:8px;font-weight:600;">
-          <svg cIcon name="cilChartLine" style="width:14px;height:14px;"></svg> Paiements avancés
-        </a>
-        <a routerLink="/finance/invoices"
-           class="btn btn-sm d-flex align-items-center gap-1"
-           style="background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;font-weight:600;">
-          <svg cIcon name="cilDescription" style="width:14px;height:14px;"></svg> Factures
-        </a>
-        <a routerLink="/finance/currencies"
-           class="btn btn-sm d-flex align-items-center gap-1"
-           style="background:#F0F9FF;color:#0EA5E9;border:1px solid #BAE6FD;border-radius:8px;font-weight:600;">
-          <svg cIcon name="cilGlobeAlt" style="width:14px;height:14px;"></svg> Devises
-        </a>
-        <a routerLink="/finance/exchange-rates"
-           class="btn btn-sm d-flex align-items-center gap-1"
-           style="background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:8px;font-weight:600;">
-          <svg cIcon name="cilSwapHorizontal" style="width:14px;height:14px;"></svg> Taux de change
-        </a>
+    <!-- Flux financiers -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-4">
+        <div class="h-100 p-4" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+          <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Entrées</div>
+          <div class="fw-bold" style="font-size:26px;color:#10B981;">{{ cashflow.income_total | number:'1.0-0' }}</div>
+          <div class="small" style="color:#9CA3AF;">Ventes, paiements, dépôts</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="h-100 p-4" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+          <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Sorties</div>
+          <div class="fw-bold" style="font-size:26px;color:#EF4444;">{{ cashflow.outgoing_total | number:'1.0-0' }}</div>
+          <div class="small" style="color:#9CA3AF;">Fournisseurs, retraits, dépenses</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="h-100 p-4" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+          <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Solde net</div>
+          <div class="fw-bold" style="font-size:26px;" [style.color]="cashflow.net_cashflow >= 0 ? '#10B981' : '#EF4444'">
+            {{ cashflow.net_cashflow | number:'1.0-0' }}
+          </div>
+          <div class="small" style="color:#9CA3AF;">Entrées - sorties</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Répartition + Accès rapides -->
+    <div class="row g-3 mb-4">
+
+      <!-- Répartition par méthode -->
+      <div class="col-12 col-md-6">
+        <div style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);padding:20px;">
+          <div class="fw-semibold mb-3" style="color:#374151;font-size:14px;">Répartition par méthode</div>
+          <div class="d-flex flex-column gap-2">
+            <ng-container *ngFor="let m of paymentMethodOptions; trackBy: trackById">
+              <div class="d-flex align-items-center gap-2" *ngIf="paymentMethodAmount(m.key) > 0">
+                <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;" [style.background]="m.color"></div>
+                <span class="small flex-grow-1" style="color:#6B7280;">{{ m.label }}</span>
+                <span class="small fw-semibold" style="color:#111827;">{{ paymentMethodAmount(m.key) | number:'1.0-0' }} GNF</span>
+              </div>
+            </ng-container>
+            <div *ngIf="payments.total_amount === 0" class="text-center py-3 small text-muted">Aucun paiement</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accès rapides -->
+      <div class="col-12 col-md-6">
+        <div style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);padding:20px;height:100%;">
+          <div class="fw-semibold mb-3" style="color:#374151;font-size:14px;">Accès rapides</div>
+          <div class="d-flex flex-wrap gap-2">
+            <a routerLink="/payments/list"
+               class="btn btn-sm d-flex align-items-center gap-1"
+               style="background:#ECFDF5;color:#10B981;border:1px solid #A7F3D0;border-radius:8px;font-weight:600;">
+              <svg cIcon name="cilCreditCard" style="width:14px;height:14px;"></svg> Paiements
+            </a>
+            <a routerLink="/payments/advanced"
+               class="btn btn-sm d-flex align-items-center gap-1"
+               style="background:#EFF6FF;color:#3B82F6;border:1px solid #BFDBFE;border-radius:8px;font-weight:600;">
+              <svg cIcon name="cilChartLine" style="width:14px;height:14px;"></svg> Paiements avancés
+            </a>
+            <a routerLink="/finance/invoices"
+               class="btn btn-sm d-flex align-items-center gap-1"
+               style="background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;font-weight:600;">
+              <svg cIcon name="cilDescription" style="width:14px;height:14px;"></svg> Factures
+            </a>
+            <a routerLink="/finance/currencies"
+               class="btn btn-sm d-flex align-items-center gap-1"
+               style="background:#F0F9FF;color:#0EA5E9;border:1px solid #BAE6FD;border-radius:8px;font-weight:600;">
+              <svg cIcon name="cilGlobeAlt" style="width:14px;height:14px;"></svg> Devises
+            </a>
+            <a routerLink="/finance/exchange-rates"
+               class="btn btn-sm d-flex align-items-center gap-1"
+               style="background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:8px;font-weight:600;">
+              <svg cIcon name="cilSwapHorizontal" style="width:14px;height:14px;"></svg> Taux de change
+            </a>
+          </div>
+
+          <!-- Résumé factures -->
+          <div class="mt-4 d-flex gap-3 flex-wrap">
+            <div class="text-center">
+              <div class="fw-bold" style="font-size:20px;color:#10B981;">{{ invoices.paye }}</div>
+              <div class="small" style="color:#6B7280;">Payées</div>
+            </div>
+            <div class="text-center">
+              <div class="fw-bold" style="font-size:20px;color:#F59E0B;">{{ invoices.partiel }}</div>
+              <div class="small" style="color:#6B7280;">Partielles</div>
+            </div>
+            <div class="text-center">
+              <div class="fw-bold" style="font-size:20px;color:#EF4444;">{{ invoices.impaye }}</div>
+              <div class="small" style="color:#6B7280;">Impayées</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -169,8 +232,7 @@
               <svg cIcon name="cilCreditCard" style="color:#10B981;width:18px;height:18px;"></svg>
               <span class="fw-semibold" style="color:#111827;">Paiements récents</span>
             </div>
-            <a routerLink="/payments/list"
-               class="btn btn-sm"
+            <a routerLink="/payments/list" class="btn btn-sm"
                style="background:#ECFDF5;color:#10B981;border:1px solid #A7F3D0;border-radius:8px;font-weight:600;font-size:12px;">
               Voir tout
             </a>
@@ -183,21 +245,22 @@
             <table *ngIf="recentPayments.length > 0" class="table table-hover align-middle mb-0" style="font-size:13px;">
               <thead>
                 <tr style="background:#F9FAFB;">
-                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Référence</th>
+                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Client / Réf.</th>
                   <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Montant</th>
                   <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let pay of recentPayments" style="border-color:#F3F4F6;">
+                <tr *ngFor="let pay of recentPayments; trackBy: trackById" style="border-color:#F3F4F6;">
                   <td class="px-3 py-2">
-                    <span class="fw-semibold" style="color:#111827;">{{ pay.reference || pay.id }}</span>
+                    <div class="fw-semibold" style="color:#111827;">{{ pay.client?.name || (pay.reference || pay.receipt_number || '#' + pay.id) }}</div>
+                    <small *ngIf="pay.client?.name" style="color:#9CA3AF;">{{ pay.receipt_number || pay.reference }}</small>
                   </td>
                   <td class="px-3 py-2">
                     <span class="fw-bold" style="color:#10B981;">{{ pay.amount | number:'1.0-0' }}</span>
                     <span class="ms-1 small" style="color:#9CA3AF;">{{ pay.currency || 'GNF' }}</span>
                   </td>
-                  <td class="px-3 py-2 small" style="color:#6B7280;">{{ pay.payment_date || pay.created_at | date:'dd/MM/yyyy' }}</td>
+                  <td class="px-3 py-2 small" style="color:#6B7280;">{{ pay.payment_date | date:'dd/MM/yyyy' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -214,8 +277,7 @@
               <svg cIcon name="cilDescription" style="color:#F59E0B;width:18px;height:18px;"></svg>
               <span class="fw-semibold" style="color:#111827;">Factures récentes</span>
             </div>
-            <a routerLink="/finance/invoices"
-               class="btn btn-sm"
+            <a routerLink="/finance/invoices" class="btn btn-sm"
                style="background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;font-weight:600;font-size:12px;">
               Voir tout
             </a>
@@ -230,19 +292,27 @@
                 <tr style="background:#F9FAFB;">
                   <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">N° Facture</th>
                   <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Montant</th>
-                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date</th>
+                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Statut</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let inv of recentInvoices" style="border-color:#F3F4F6;">
+                <tr *ngFor="let inv of recentInvoices; trackBy: trackById" style="border-color:#F3F4F6;">
                   <td class="px-3 py-2">
-                    <span class="fw-semibold" style="color:#111827;">{{ inv.invoice_number || inv.number || inv.id }}</span>
+                    <div class="fw-semibold" style="color:#111827;">{{ inv.invoice_number || '#' + inv.id }}</div>
+                    <small style="color:#9CA3AF;">{{ inv.client?.name || '' }}</small>
                   </td>
                   <td class="px-3 py-2">
-                    <span class="fw-bold" style="color:#F59E0B;">{{ inv.total_amount ?? inv.amount ?? 0 | number:'1.0-0' }}</span>
+                    <span class="fw-bold" style="color:#F59E0B;">{{ inv.total_amount | number:'1.0-0' }}</span>
                     <span class="ms-1 small" style="color:#9CA3AF;">GNF</span>
                   </td>
-                  <td class="px-3 py-2 small" style="color:#6B7280;">{{ inv.invoice_date || inv.created_at | date:'dd/MM/yyyy' }}</td>
+                  <td class="px-3 py-2">
+                    <span class="badge rounded-pill"
+                          [style.background]="inv.status === 'PAYE' ? '#ECFDF5' : inv.status === 'PARTIEL' ? '#FFFBEB' : '#FEE2E2'"
+                          [style.color]="inv.status === 'PAYE' ? '#10B981' : inv.status === 'PARTIEL' ? '#F59E0B' : '#EF4444'"
+                          style="font-size:11px;font-weight:600;padding:3px 10px;">
+                      {{ inv.status === 'PAYE' ? 'Payée' : inv.status === 'PARTIEL' ? 'Partielle' : 'Impayée' }}
+                    </span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -252,6 +322,78 @@
 
     </div>
 
+    <!-- Suivi fournisseurs et dépenses -->
+    <div class="row g-4 mt-0">
+      <div class="col-12 col-lg-6">
+        <div class="h-100" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+          <div class="d-flex justify-content-between align-items-center px-4 py-3" style="border-bottom:1px solid #F3F4F6;">
+            <div class="d-flex align-items-center gap-2">
+              <svg cIcon name="cilPeople" style="color:#8B5CF6;width:18px;height:18px;"></svg>
+              <span class="fw-semibold" style="color:#111827;">Transactions fournisseurs</span>
+            </div>
+          </div>
+          <div class="p-3">
+            <div *ngIf="supplierRelations.length === 0" class="text-center py-4 text-muted small">
+              Aucun mouvement fournisseur
+            </div>
+            <table *ngIf="supplierRelations.length > 0" class="table table-sm align-middle mb-0">
+              <thead>
+                <tr style="background:#F9FAFB;">
+                  <th class="small text-muted text-uppercase">Fournisseur</th>
+                  <th class="small text-muted text-uppercase text-end">Total payé</th>
+                  <th class="small text-muted text-uppercase text-end">Paiements</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let rel of supplierRelations; trackBy: trackById">
+                  <td>
+                    <div class="fw-semibold">{{ rel.supplier_name }}</div>
+                    <div class="small text-muted">{{ rel.supplier_phone || '—' }}</div>
+                  </td>
+                  <td class="text-end fw-bold" style="color:#8B5CF6;">{{ rel.total_paid | number:'1.0-0' }} GNF</td>
+                  <td class="text-end small text-muted">{{ rel.payment_count }} paiement(s)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <div class="h-100" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+          <div class="d-flex justify-content-between align-items-center px-4 py-3" style="border-bottom:1px solid #F3F4F6;">
+            <div class="d-flex align-items-center gap-2">
+              <svg cIcon name="cilWallet" style="color:#F59E0B;width:18px;height:18px;"></svg>
+              <span class="fw-semibold" style="color:#111827;">Dépenses récentes</span>
+            </div>
+          </div>
+          <div class="p-3">
+            <div *ngIf="recentExpenses.length === 0" class="text-center py-4 text-muted small">
+              Aucune dépense récente
+            </div>
+            <table *ngIf="recentExpenses.length > 0" class="table table-sm align-middle mb-0">
+              <tbody>
+                <tr *ngFor="let exp of recentExpenses; trackBy: trackById">
+                  <td>
+                    <div class="fw-semibold">{{ exp.title }}</div>
+                    <div class="small text-muted">{{ exp.category?.name || 'Sans catégorie' }}</div>
+                  </td>
+                  <td class="text-end fw-bold" style="color:#F59E0B;">{{ exp.amount | number:'1.0-0' }} {{ exp.currency }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </ng-container>
 
 </div>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+</style>

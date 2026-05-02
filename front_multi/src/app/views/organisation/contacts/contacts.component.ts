@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ContactService, Contact, ContactType } from '../../../core/services/contact.service';
@@ -34,10 +35,13 @@ import Swal from 'sweetalert2';
     GridModule,
     IconModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.scss']
 })
 export class ContactsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   contactForm: FormGroup;
   contacts: Contact[] = [];
   contactTypes: { [key: string]: string } = {};
@@ -74,7 +78,7 @@ export class ContactsComponent implements OnInit {
   }
 
   loadContactTypes(): void {
-    this.contactService.getContactTypes().subscribe({
+    this.contactService.getContactTypes().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         setTimeout(() => {
           if (response.success) {
@@ -85,7 +89,6 @@ export class ContactsComponent implements OnInit {
       },
       error: (error) => {
         setTimeout(() => {
-          console.error('Error loading contact types:', error);
           this.contactService.showErrorMessage('Erreur lors du chargement des types de contact');
           this.cdr.detectChanges();
         }, 0);
@@ -95,7 +98,7 @@ export class ContactsComponent implements OnInit {
 
   loadContacts(): void {
     this.loading = true;
-    this.contactService.getContacts({ active: true }).subscribe({
+    this.contactService.getContacts({ active: true }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         setTimeout(() => {
           if (response.success) {
@@ -107,7 +110,6 @@ export class ContactsComponent implements OnInit {
       },
       error: (error) => {
         setTimeout(() => {
-          console.error('Error loading contacts:', error);
           this.contactService.showErrorMessage('Erreur lors du chargement des contacts');
           this.loading = false;
           this.cdr.detectChanges();
@@ -155,7 +157,7 @@ export class ContactsComponent implements OnInit {
 
       if (this.editingContact) {
         // Update existing contact
-        this.contactService.updateContact(this.editingContact.id!, contactData).subscribe({
+        this.contactService.updateContact(this.editingContact.id!, contactData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               this.loadContacts();
@@ -164,14 +166,13 @@ export class ContactsComponent implements OnInit {
             this.saving = false;
           },
           error: (error) => {
-            console.error('Error updating contact:', error);
             this.contactService.showErrorMessage('Erreur lors de la mise à jour du contact');
             this.saving = false;
           }
         });
       } else {
         // Create new contact
-        this.contactService.createContact(contactData).subscribe({
+        this.contactService.createContact(contactData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               this.loadContacts();
@@ -180,7 +181,6 @@ export class ContactsComponent implements OnInit {
             this.saving = false;
           },
           error: (error) => {
-            console.error('Error creating contact:', error);
             this.contactService.showErrorMessage('Erreur lors de la création du contact');
             this.saving = false;
           }
@@ -190,7 +190,7 @@ export class ContactsComponent implements OnInit {
   }
 
   setAsDefault(contact: Contact): void {
-    this.contactService.setAsDefault(contact.id!).subscribe({
+    this.contactService.setAsDefault(contact.id!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           // Update local contacts array
@@ -206,7 +206,6 @@ export class ContactsComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error setting contact as default:', error);
         Swal.fire({
           icon: 'error',
           title: 'Erreur',
@@ -220,14 +219,13 @@ export class ContactsComponent implements OnInit {
   deleteContact(contact: Contact): void {
     this.contactService.showDeleteConfirmation(contact.name).then((result) => {
       if (result.isConfirmed) {
-        this.contactService.deleteContact(contact.id!).subscribe({
+        this.contactService.deleteContact(contact.id!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               this.loadContacts();
             }
           },
           error: (error) => {
-            console.error('Error deleting contact:', error);
             this.contactService.showErrorMessage('Erreur lors de la suppression du contact');
           }
         });
@@ -255,4 +253,8 @@ export class ContactsComponent implements OnInit {
   get f() {
     return this.contactForm?.controls || {};
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

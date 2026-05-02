@@ -16,6 +16,12 @@ class LeasePayment extends Model
         'amount'       => 'decimal:2',
     ];
 
+
+    public function scopeForTenant($query, int $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
     public function lease()
     {
         return $this->belongsTo(Lease::class);

@@ -24,6 +24,12 @@ class Taxi extends Model
         'notes',
     ];
 
+
+    public function scopeForTenant($query, int $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);

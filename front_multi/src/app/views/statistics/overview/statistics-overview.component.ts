@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { forkJoin, catchError, of } from 'rxjs';
@@ -15,9 +16,12 @@ import { ApiService } from '../../../core/services/api.service';
     CommonModule, RouterModule, IconDirective,
     CardModule, ButtonModule, BadgeModule, ProgressModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './statistics-overview.component.html'
 })
 export class StatisticsOverviewComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = true;
 
   // Real data
@@ -43,7 +47,7 @@ export class StatisticsOverviewComponent implements OnInit {
       leases:     this.apiService.get<any>('leases/statistics').pipe(catchError(() => of({ success: false }))),
       taxi:       this.apiService.get<any>('daily-payments/statistics').pipe(catchError(() => of({ success: false }))),
       expenses:   this.apiService.get<any>('personal-expenses/statistics').pipe(catchError(() => of({ success: false }))),
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r: any) => {
         if (r.payments.success)   this.paymentStats   = r.payments.data;
         if (r.products.success)   this.productStats   = r.products.data;
@@ -73,4 +77,8 @@ export class StatisticsOverviewComponent implements OnInit {
     if (!this.leaseStats?.expected_this_month || this.leaseStats.expected_this_month <= 0) return 0;
     return Math.min(100, Math.round((this.leaseStats.collected_this_month / this.leaseStats.expected_this_month) * 100));
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

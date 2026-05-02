@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -38,10 +39,13 @@ import { ApiService } from '../../../core/services/api.service';
     ColComponent,
     ContainerComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './units-list.component.html',
   styleUrls: ['./units-list.component.scss']
 })
 export class UnitsListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   units: any[] = [];
   loading = false;
   error: string | null = null;
@@ -87,7 +91,7 @@ export class UnitsListComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.apiService.get<any>(`units?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`units?page=${this.currentPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const paginated = response.data;
@@ -139,7 +143,7 @@ export class UnitsListComponent implements OnInit {
     const data = this.unitForm.value;
 
     if (this.editMode && this.selectedUnit) {
-      this.apiService.put<any>(`units/${this.selectedUnit.id}`, data).subscribe({
+      this.apiService.put<any>(`units/${this.selectedUnit.id}`, data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response) => {
           if (response.success) {
             this.successMessage = 'Unité mise à jour avec succès';
@@ -153,7 +157,7 @@ export class UnitsListComponent implements OnInit {
         }
       });
     } else {
-      this.apiService.post<any>('units', data).subscribe({
+      this.apiService.post<any>('units', data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response) => {
           if (response.success) {
             this.successMessage = 'Unité créée avec succès';
@@ -177,7 +181,7 @@ export class UnitsListComponent implements OnInit {
   deleteUnit(): void {
     if (!this.unitToDelete) return;
 
-    this.apiService.delete<any>(`units/${this.unitToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`units/${this.unitToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Unité supprimée avec succès';
@@ -223,7 +227,7 @@ export class UnitsListComponent implements OnInit {
     const ids = Array.from(this.selectedUnits);
     let completed = 0;
     ids.forEach(id => {
-      this.apiService.delete<any>(`units/${id}`).subscribe({
+      this.apiService.delete<any>(`units/${id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           completed++;
           if (completed === ids.length) {
@@ -258,4 +262,8 @@ export class UnitsListComponent implements OnInit {
       this.cdr.detectChanges();
     }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

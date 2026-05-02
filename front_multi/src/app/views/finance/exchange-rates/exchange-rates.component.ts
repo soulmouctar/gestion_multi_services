@@ -1,10 +1,11 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import {
   ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-  ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+  ModalModule, AlertModule, SpinnerModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -15,11 +16,14 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-    ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+    ModalModule, AlertModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './exchange-rates.component.html'
 })
 export class ExchangeRatesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   exchangeRates: any[] = [];
   currencies: any[] = [];
   loading = false;
@@ -52,7 +56,7 @@ export class ExchangeRatesComponent implements OnInit {
   }
 
   loadCurrencies(): void {
-    this.apiService.get<any>('currencies?per_page=100').subscribe({
+    this.apiService.get<any>('currencies?per_page=100').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.currencies = Array.isArray(r.data) ? r.data : (r.data.data || []);
@@ -65,7 +69,7 @@ export class ExchangeRatesComponent implements OnInit {
   loadExchangeRates(): void {
     this.loading = true;
     this.error = null;
-    this.apiService.get<any>(`exchange-rates?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`exchange-rates?page=${this.currentPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const p = response.data;
@@ -115,7 +119,7 @@ export class ExchangeRatesComponent implements OnInit {
     const obs = this.editMode && this.selectedRate
       ? this.apiService.put<any>(`exchange-rates/${this.selectedRate.id}`, data)
       : this.apiService.post<any>('exchange-rates', data);
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = this.editMode ? 'Taux mis à jour' : 'Taux créé';
@@ -130,7 +134,7 @@ export class ExchangeRatesComponent implements OnInit {
 
   deleteRate(): void {
     if (!this.rateToDelete) return;
-    this.apiService.delete<any>(`exchange-rates/${this.rateToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`exchange-rates/${this.rateToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = 'Taux supprimé'; this.deleteModalOpen = false;
@@ -151,4 +155,8 @@ export class ExchangeRatesComponent implements OnInit {
   private clearMessages(): void {
     setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -101,7 +101,6 @@ export class ToastersComponent implements OnInit {
   }
 
   onVisibleChange($event: any) {
-    console.log('onVisibleChange', $event);
 
   }
 }

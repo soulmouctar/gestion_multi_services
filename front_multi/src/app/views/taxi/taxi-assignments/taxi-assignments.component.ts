@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
@@ -17,9 +18,12 @@ import { AuthService } from '../../../core/services/auth.service';
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, TableModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './taxi-assignments.component.html'
 })
 export class TaxiAssignmentsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   assignments: any[] = [];
   taxis: any[] = [];
   drivers: any[] = [];
@@ -64,7 +68,7 @@ export class TaxiAssignmentsComponent implements OnInit {
 
   loadAssignments(page: number = 1): void {
     this.loading = true;
-    this.apiService.get<any>(`taxi-assignments?page=${page}`).subscribe({
+    this.apiService.get<any>(`taxi-assignments?page=${page}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.assignments = r.data.data || r.data;
@@ -84,27 +88,25 @@ export class TaxiAssignmentsComponent implements OnInit {
   }
 
   loadTaxis(): void {
-    this.apiService.get<any>('taxis').subscribe({
+    this.apiService.get<any>('taxis').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.taxis = r.data.data || r.data;
         }
       },
       error: () => {
-        console.error('Erreur lors du chargement des taxis');
       }
     });
   }
 
   loadDrivers(): void {
-    this.apiService.get<any>('drivers').subscribe({
+    this.apiService.get<any>('drivers').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.drivers = r.data.data || r.data;
         }
       },
       error: () => {
-        console.error('Erreur lors du chargement des conducteurs');
       }
     });
   }
@@ -141,7 +143,7 @@ export class TaxiAssignmentsComponent implements OnInit {
       ? this.apiService.put<any>(`taxi-assignments/${this.currentAssignment.id}`, data)
       : this.apiService.post<any>('taxi-assignments', data);
 
-    request.subscribe({
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = this.isEditing 
@@ -160,7 +162,7 @@ export class TaxiAssignmentsComponent implements OnInit {
 
   deleteAssignment(assignment: any): void {
     if (confirm(`Êtes-vous sûr de vouloir supprimer cette affectation ?`)) {
-      this.apiService.delete<any>(`taxi-assignments/${assignment.id}`).subscribe({
+      this.apiService.delete<any>(`taxi-assignments/${assignment.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r) => {
           if (r.success) {
             this.successMessage = 'Affectation supprimée avec succès';
@@ -206,4 +208,8 @@ export class TaxiAssignmentsComponent implements OnInit {
       this.cdr.detectChanges();
     }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

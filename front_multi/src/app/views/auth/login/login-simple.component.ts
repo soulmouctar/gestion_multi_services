@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -95,6 +96,8 @@ import { AuthService } from '../../../core/services/auth.service';
   `
 })
 export class LoginSimpleComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loginForm!: FormGroup;
   isLoading = false;
   submitted = false;
@@ -129,7 +132,7 @@ export class LoginSimpleComponent implements OnInit {
       password: this.loginForm.value.password
     };
     
-    this.authService.login(loginData).subscribe({
+    this.authService.login(loginData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.isLoading = false;
         

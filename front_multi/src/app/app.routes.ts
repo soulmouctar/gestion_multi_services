@@ -71,6 +71,14 @@ export const routes: Routes = [
         loadChildren: () => import('./views/commercial/routes').then(m => m.routes)
       },
       {
+        path: 'module',
+        children: [
+          { path: 'expenses', redirectTo: '/expenses/list', pathMatch: 'full' },
+          { path: 'banking', redirectTo: '/banking/accounts', pathMatch: 'full' },
+          { path: 'clients_suppliers', redirectTo: '/clients/list', pathMatch: 'full' }
+        ]
+      },
+      {
         path: 'finance',
         loadChildren: () => import('./views/finance/routes').then(m => m.routes)
       },

@@ -31,7 +31,7 @@
 
   <!-- Grille de cartes -->
   <div *ngIf="!loading && accounts.length > 0" class="row g-4">
-    <div *ngFor="let account of accounts" class="col-12 col-md-6 col-xl-4">
+    <div *ngFor="let account of accounts; trackBy: trackById" class="col-12 col-md-6 col-xl-4">
       <div class="bg-white h-100 d-flex flex-column"
            style="border-radius:12px; border:1px solid #f0f0f0; transition:box-shadow .2s;"
            onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.10)'"
@@ -136,7 +136,7 @@
           <label cLabel class="fw-semibold small mb-1">Banque *</label>
           <select cSelect formControlName="bank_name" style="border-radius:8px"
                   [class.is-invalid]="submitted && form.get('bank_name')?.invalid">
-            <option *ngFor="let b of bankNames" [value]="b">{{ b }}</option>
+            <option *ngFor="let b of bankNames; trackBy: trackById" [value]="b">{{ b }}</option>
           </select>
           <div class="invalid-feedback">Requis</div>
         </div>
@@ -145,7 +145,7 @@
           <label cLabel class="fw-semibold small mb-1">Type de compte *</label>
           <select cSelect formControlName="account_type" style="border-radius:8px"
                   [class.is-invalid]="submitted && form.get('account_type')?.invalid">
-            <option *ngFor="let t of accountTypes" [value]="t.value">{{ t.label }}</option>
+            <option *ngFor="let t of accountTypes; trackBy: trackById" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
 
@@ -160,7 +160,7 @@
         <div class="col-md-4">
           <label cLabel class="fw-semibold small mb-1">Devise *</label>
           <select cSelect formControlName="currency" style="border-radius:8px">
-            <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c">{{ c }}</option>
           </select>
         </div>
 

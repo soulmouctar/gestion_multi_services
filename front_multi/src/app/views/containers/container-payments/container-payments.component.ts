@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -20,14 +21,18 @@ import Swal from 'sweetalert2';
     ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent,
     NavModule, TabsModule, ProgressModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './container-payments.component.html'
 })
 export class ContainerPaymentsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   // Data
   arrivals: any[] = [];
   sales: any[] = [];
   clientPayments: any[] = [];
   advances: any[] = [];
+  allocationSummaries: any[] = [];
   containers: any[] = [];
   suppliers: any[] = [];
   clients: any[] = [];
@@ -171,13 +176,14 @@ export class ContainerPaymentsComponent implements OnInit {
     this.loadSales();
     this.loadPayments();
     this.loadAdvances();
+    this.loadAllocationSummary();
     this.loadStats();
   }
 
   // ==================== LOAD DATA ====================
 
   loadContainers(): void {
-    this.apiService.get<any>('containers?per_page=200').subscribe({
+    this.apiService.get<any>('containers?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.containers = Array.isArray(r.data) ? r.data : (r.data.data || []);
@@ -188,7 +194,7 @@ export class ContainerPaymentsComponent implements OnInit {
   }
 
   loadSuppliers(): void {
-    this.apiService.get<any>('suppliers?per_page=200').subscribe({
+    this.apiService.get<any>('suppliers?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.suppliers = Array.isArray(r.data) ? r.data : (r.data.data || []);
@@ -199,7 +205,7 @@ export class ContainerPaymentsComponent implements OnInit {
   }
 
   loadClients(): void {
-    this.apiService.get<any>('clients?per_page=200').subscribe({
+    this.apiService.get<any>('clients?per_page=200&client_type=CONTAINER_PAGNE').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.clients = Array.isArray(r.data) ? r.data : (r.data.data || []);
@@ -211,7 +217,7 @@ export class ContainerPaymentsComponent implements OnInit {
 
   loadArrivals(): void {
     this.loading = true;
-    this.apiService.get<any>(`container-arrivals?page=${this.arrivalsPage}`).subscribe({
+    this.apiService.get<any>(`container-arrivals?page=${this.arrivalsPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data;
@@ -232,7 +238,7 @@ export class ContainerPaymentsComponent implements OnInit {
   }
 
   loadSales(): void {
-    this.apiService.get<any>(`container-sales?page=${this.salesPage}`).subscribe({
+    this.apiService.get<any>(`container-sales?page=${this.salesPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data;
@@ -248,7 +254,7 @@ export class ContainerPaymentsComponent implements OnInit {
   }
 
   loadPayments(): void {
-    this.apiService.get<any>(`container-sale-payments?page=${this.paymentsPage}`).subscribe({
+    this.apiService.get<any>(`container-sale-payments?page=${this.paymentsPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data;
@@ -264,7 +270,7 @@ export class ContainerPaymentsComponent implements OnInit {
   }
 
   loadAdvances(): void {
-    this.apiService.get<any>(`client-advances?page=${this.advancesPage}`).subscribe({
+    this.apiService.get<any>(`client-advances?page=${this.advancesPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data;
@@ -280,7 +286,7 @@ export class ContainerPaymentsComponent implements OnInit {
   }
 
   loadStats(): void {
-    this.apiService.get<any>('container-sales/global-stats').subscribe({
+    this.apiService.get<any>('container-sales/global-stats').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.stats = r.data;
@@ -288,6 +294,19 @@ export class ContainerPaymentsComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: () => {}
+    });
+  }
+
+  loadAllocationSummary(): void {
+    this.apiService.get<any>('container-sales/allocation-summary').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        this.allocationSummaries = r.success && Array.isArray(r.data) ? r.data : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.allocationSummaries = [];
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -340,12 +359,13 @@ export class ContainerPaymentsComponent implements OnInit {
       ? this.apiService.put<any>(`container-arrivals/${this.selectedArrival.id}`, data)
       : this.apiService.post<any>('container-arrivals', data);
 
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ title: 'Succès', text: this.editMode ? 'Arrivage modifié' : 'Arrivage enregistré', icon: 'success', timer: 2000, showConfirmButton: false });
           this.showArrivalModal = false;
           this.loadArrivals();
+          this.loadAllocationSummary();
           this.loadStats();
         }
       },
@@ -367,10 +387,11 @@ export class ContainerPaymentsComponent implements OnInit {
       cancelButtonText: 'Annuler'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.apiService.delete<any>(`container-arrivals/${arrival.id}`).subscribe({
+        this.apiService.delete<any>(`container-arrivals/${arrival.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
             Swal.fire({ title: 'Supprimé', icon: 'success', timer: 1500, showConfirmButton: false });
             this.loadArrivals();
+            this.loadAllocationSummary();
             this.loadStats();
           },
           error: () => Swal.fire({ title: 'Erreur', text: 'Impossible de supprimer', icon: 'error' })
@@ -406,13 +427,14 @@ export class ContainerPaymentsComponent implements OnInit {
 
     const data = this.saleForm.value;
 
-    this.apiService.post<any>('container-sales', data).subscribe({
+    this.apiService.post<any>('container-sales', data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ title: 'Succès', text: 'Vente enregistrée', icon: 'success', timer: 2000, showConfirmButton: false });
           this.showSaleModal = false;
           this.loadSales();
           this.loadArrivals();
+          this.loadAllocationSummary();
           this.loadStats();
         }
       },
@@ -445,7 +467,7 @@ export class ContainerPaymentsComponent implements OnInit {
 
     const data = this.paymentForm.value;
 
-    this.apiService.post<any>('container-sale-payments', data).subscribe({
+    this.apiService.post<any>('container-sale-payments', data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ title: 'Succès', text: 'Versement enregistré', icon: 'success', timer: 2000, showConfirmButton: false });
@@ -483,7 +505,7 @@ export class ContainerPaymentsComponent implements OnInit {
 
     const data = this.advanceForm.value;
 
-    this.apiService.post<any>('client-advances', data).subscribe({
+    this.apiService.post<any>('client-advances', data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ title: 'Succès', text: 'Avance enregistrée', icon: 'success', timer: 2000, showConfirmButton: false });
@@ -502,7 +524,7 @@ export class ContainerPaymentsComponent implements OnInit {
 
   viewClientStats(client: any): void {
     this.selectedClient = client;
-    this.apiService.get<any>(`container-sales/client-stats/${client.id}`).subscribe({
+    this.apiService.get<any>(`container-sales/client-stats/${client.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.clientStats = r.data;
@@ -618,6 +640,14 @@ export class ContainerPaymentsComponent implements OnInit {
     return Math.round((sale.amount_paid / sale.sale_price) * 100);
   }
 
+  getAllocatedClientsCount(arrival: any): number {
+    return Array.isArray(arrival?.allocations) ? arrival.allocations.length : 0;
+  }
+
+  getAllocationProgressValue(arrival: any): number {
+    return Number(arrival?.allocation_rate || 0);
+  }
+
   // Pagination
   onArrivalsPageChange(page: number): void {
     if (page < 1 || page > this.arrivalsTotalPages) return;
@@ -648,4 +678,8 @@ export class ContainerPaymentsComponent implements OnInit {
     for (let i = 1; i <= totalPages; i++) pages.push(i);
     return pages;
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

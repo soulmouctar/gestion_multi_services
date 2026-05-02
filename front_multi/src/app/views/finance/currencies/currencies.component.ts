@@ -1,10 +1,11 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import {
   ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-  ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+  ModalModule, AlertModule, SpinnerModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -15,11 +16,14 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-    ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+    ModalModule, AlertModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './currencies.component.html'
 })
 export class FinanceCurrenciesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   currencies: any[] = [];
   loading = false;
   error: string | null = null;
@@ -53,7 +57,7 @@ export class FinanceCurrenciesComponent implements OnInit {
   loadCurrencies(): void {
     this.loading = true;
     this.error = null;
-    this.apiService.get<any>(`currencies?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`currencies?page=${this.currentPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           // Handle both paginated and non-paginated responses
@@ -102,7 +106,7 @@ export class FinanceCurrenciesComponent implements OnInit {
     const obs = this.editMode && this.selectedCurrency
       ? this.apiService.put<any>(`currencies/${this.selectedCurrency.id}`, data)
       : this.apiService.post<any>('currencies', data);
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = this.editMode ? 'Devise mise à jour' : 'Devise créée';
@@ -117,7 +121,7 @@ export class FinanceCurrenciesComponent implements OnInit {
 
   deleteCurrency(): void {
     if (!this.currencyToDelete) return;
-    this.apiService.delete<any>(`currencies/${this.currencyToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`currencies/${this.currencyToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = 'Devise supprimée'; this.deleteModalOpen = false;
@@ -133,4 +137,8 @@ export class FinanceCurrenciesComponent implements OnInit {
   private clearMessages(): void {
     setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

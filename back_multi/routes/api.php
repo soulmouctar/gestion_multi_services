@@ -38,9 +38,11 @@ use App\Http\Controllers\Api\DailyPaymentController;
 use App\Http\Controllers\Api\VehicleExpenseController;
 use App\Http\Controllers\Api\LeaseController;
 use App\Http\Controllers\Api\PersonalExpenseController;
+use App\Http\Controllers\Api\ProductReturnController;
 use App\Http\Controllers\Api\BankingController;
 use App\Http\Controllers\Api\RentalDashboardController;
 use App\Http\Controllers\Api\TaxiDashboardController;
+use App\Http\Controllers\Api\CommercialDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -177,6 +179,8 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::apiResource('products', ProductController::class);
         Route::post('products/{id}/update-stock', [ProductController::class, 'updateStock']);
         Route::post('products/bulk-update-status', [ProductController::class, 'bulkUpdateStatus']);
+        Route::post('products/{id}/image', [ProductController::class, 'uploadImage']);
+        Route::delete('products/{id}/image', [ProductController::class, 'removeImage']);
 
         // Conteneurs
         Route::get('containers/statistics/general', [ContainerController::class, 'statisticsGeneral']);
@@ -190,6 +194,9 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::get('container-payments/statistics', [ContainerPaymentController::class, 'statistics']);
         Route::apiResource('container-payments', ContainerPaymentController::class);
 
+        // Tableau de bord commercial (endpoint unique optimisé)
+        Route::get('commercial/dashboard', [CommercialDashboardController::class, 'index']);
+
         // Ventes conteneurs
         Route::get('container-arrivals', [ContainerSalesController::class, 'getArrivals']);
         Route::post('container-arrivals', [ContainerSalesController::class, 'storeArrival']);
@@ -198,6 +205,7 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
 
         Route::get('container-sales/global-stats', [ContainerSalesController::class, 'getGlobalStats']);
         Route::get('container-sales/client-stats/{clientId}', [ContainerSalesController::class, 'getClientStats']);
+        Route::get('container-sales/allocation-summary', [ContainerSalesController::class, 'getAllocationSummary']);
         Route::get('container-sales', [ContainerSalesController::class, 'getSales']);
         Route::post('container-sales', [ContainerSalesController::class, 'storeSale']);
         Route::put('container-sales/{id}', [ContainerSalesController::class, 'updateSale']);
@@ -214,19 +222,37 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::post('container-photos', [ContainerPhotoController::class, 'publicStore']);
 
         // Clients & Fournisseurs
-        Route::apiResource('clients', ClientController::class);
-        Route::apiResource('suppliers', SupplierController::class);
+        // Clients
         Route::get('clients/statistics', [ClientController::class, 'getStatistics']);
+        Route::get('clients/{id}/transactions', [ClientController::class, 'getTransactionHistory']);
+        Route::post('clients/{id}/photo', [ClientController::class, 'uploadPhoto']);
+        Route::delete('clients/{id}/photo', [ClientController::class, 'deletePhoto']);
+        Route::apiResource('clients', ClientController::class);
+
+        // Fournisseurs
+        Route::get('suppliers/{id}/financial-relations', [SupplierController::class, 'getFinancialRelations']);
+        Route::post('suppliers/{id}/photo', [SupplierController::class, 'uploadPhoto']);
+        Route::delete('suppliers/{id}/photo', [SupplierController::class, 'deletePhoto']);
+        Route::apiResource('suppliers', SupplierController::class);
 
         // Taux de change
         Route::apiResource('exchange-rates', ExchangeRateController::class);
+
+        // Finance dashboard (optimisé : 5 requêtes au lieu de 18+)
+        Route::get('finance/dashboard', [PaymentController::class, 'financeDashboard']);
 
         // Paiements
         Route::get('payments/statistics', [PaymentController::class, 'getStatistics']);
         Route::get('payments/date-range', [PaymentController::class, 'getByDateRange']);
         Route::post('payments/bulk-delete', [PaymentController::class, 'bulkDelete']);
         Route::get('payments/export', [PaymentController::class, 'export']);
+        Route::get('payments/clients-balances', [PaymentController::class, 'getClientsBalances']);
+        Route::get('payments/{id}/receipt', [PaymentController::class, 'getReceipt']);
+        Route::get('clients/{clientId}/balance', [PaymentController::class, 'getClientBalance']);
         Route::apiResource('payments', PaymentController::class);
+
+        // Retours produits
+        Route::apiResource('product-returns', ProductReturnController::class)->only(['index', 'store']);
 
         // Versements journaliers
         Route::get('daily-payments/statistics', [DailyPaymentController::class, 'statistics']);
@@ -243,7 +269,7 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::apiResource('invoices', InvoiceController::class);
 
         // Module Immobilier
-        Route::get('locations/statistics', [LocationController::class, 'publicStatistics']); // avant apiResource !
+        Route::get('locations/statistics', [LocationController::class, 'statistics']);
         Route::apiResource('locations', LocationController::class);
         Route::apiResource('buildings', BuildingController::class);
         Route::apiResource('floors', FloorController::class);

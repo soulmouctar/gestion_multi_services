@@ -148,7 +148,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let sale of sales">
+            <tr *ngFor="let sale of sales; trackBy: trackById">
               <td style="font-size:0.82rem;color:#94a3b8">{{ sale.sale_date | date:'dd/MM/yyyy' }}</td>
               <td><code style="font-size:0.78rem;background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#475569">#{{ sale.container_arrival_id }}</code></td>
               <td>
@@ -213,7 +213,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let payment of payments">
+                <tr *ngFor="let payment of payments; trackBy: trackById">
                   <td style="font-size:0.82rem;color:#94a3b8">{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
                   <td><code style="font-size:0.75rem;background:#f1f5f9;padding:2px 5px;border-radius:4px;color:#475569">#{{ payment.container_sale_id }}</code></td>
                   <td class="text-end fw-semibold" style="font-size:0.85rem;color:#10B981">
@@ -259,7 +259,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let advance of advances">
+                <tr *ngFor="let advance of advances; trackBy: trackById">
                   <td style="font-size:0.82rem;color:#94a3b8">{{ advance.payment_date | date:'dd/MM/yyyy' }}</td>
                   <td class="text-end fw-semibold" style="font-size:0.85rem;color:#6366F1">
                     {{ formatAmountWithConversion(advance.amount, advance.currency || 'GNF') }}

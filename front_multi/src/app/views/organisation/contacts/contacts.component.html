@@ -33,7 +33,7 @@
 
   <!-- Grille de contacts -->
   <div *ngIf="!loading && contacts.length > 0" class="row g-3">
-    <div class="col-12 col-md-6 col-xl-4" *ngFor="let contact of contacts">
+    <div class="col-12 col-md-6 col-xl-4" *ngFor="let contact of contacts; trackBy: trackById">
       <div class="bg-white h-100 d-flex flex-column"
            style="border-radius:12px; border:1px solid #f0f0f0; transition:box-shadow .2s;"
            [style.border-color]="contact.is_default ? '#3B82F6' : '#f0f0f0'"
@@ -124,7 +124,7 @@
           <label cFormLabel for="type" class="fw-semibold small mb-1">Type de contact *</label>
           <select cFormSelect id="type" formControlName="type" style="border-radius:8px"
                   [class.is-invalid]="f['type']?.invalid && f['type']?.touched">
-            <option *ngFor="let type of contactTypes | keyvalue" [value]="type.key">
+            <option *ngFor="let type of contactTypes | keyvalue; trackBy: trackById" [value]="type.key">
               {{ type.value }}
             </option>
           </select>

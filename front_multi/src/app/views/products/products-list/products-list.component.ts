@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -42,10 +43,13 @@ import { ApiService } from '../../../core/services/api.service';
     SpinnerModule,
     DropdownModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './products-list.component.html',
   styleUrls: ['./products-list.component.scss']
 })
 export class ProductsListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   products: Product[] = [];
   categories: ProductCategory[] = [];
   units: Unit[] = [];
@@ -122,7 +126,7 @@ export class ProductsListComponent implements OnInit {
     // Watch for filter changes with debounce
     this.filterForm.valueChanges.pipe(
       debounceTime(500) // Increased debounce to reduce API calls
-    ).subscribe(() => {
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.currentPage = 1;
       this.loadProducts();
     });
@@ -140,7 +144,7 @@ export class ProductsListComponent implements OnInit {
 
   loadStatistics(): void {
     this.loadingStats = true;
-    this.apiService.get<any>('products/statistics').subscribe({
+    this.apiService.get<any>('products/statistics').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.stats = response.data;
@@ -163,7 +167,6 @@ export class ProductsListComponent implements OnInit {
         this.cdr.detectChanges();
       }
     } catch (error) {
-      console.error('Error loading categories:', error);
     }
   }
 
@@ -175,7 +178,6 @@ export class ProductsListComponent implements OnInit {
         this.cdr.detectChanges();
       }
     } catch (error) {
-      console.error('Error loading units:', error);
     }
   }
 
@@ -198,9 +200,8 @@ export class ProductsListComponent implements OnInit {
       }
     });
 
-    this.productService.getProducts(filters).subscribe({
+    this.productService.getProducts(filters).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
-        console.log('Products API response:', response);
         if (response && response.success) {
           // Handle paginated response format
           const responseData = response.data;
@@ -230,7 +231,6 @@ export class ProductsListComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error loading products:', error);
         this.error = error?.message || 'Erreur lors du chargement des produits';
         this.products = [];
         this.loading = false;
@@ -240,7 +240,7 @@ export class ProductsListComponent implements OnInit {
   }
 
   loadCategories(): void {
-    this.productService.getCategories().subscribe({
+    this.productService.getCategories().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: any) => {
         if (response.success) {
           // Handle paginated response - extract data array
@@ -258,7 +258,7 @@ export class ProductsListComponent implements OnInit {
   }
 
   loadUnits(): void {
-    this.productService.getUnits().subscribe({
+    this.productService.getUnits().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: any) => {
         if (response.success) {
           // Handle paginated response - extract data array
@@ -298,7 +298,7 @@ export class ProductsListComponent implements OnInit {
     if (!this.productToDelete) return;
 
     this.loading = true;
-    this.apiService.delete<any>(`products/${this.productToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`products/${this.productToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Produit supprimé avec succès';
@@ -309,7 +309,6 @@ export class ProductsListComponent implements OnInit {
         this.cancelDelete();
       },
       error: (error) => {
-        console.error('Error deleting product:', error);
         this.error = error?.error?.message || 'Erreur lors de la suppression';
         this.loading = false;
         this.cancelDelete();
@@ -355,7 +354,7 @@ export class ProductsListComponent implements OnInit {
     if (this.selectedProducts.length === 0) return;
 
     this.loading = true;
-    this.productService.bulkDelete(this.selectedProducts).subscribe({
+    this.productService.bulkDelete(this.selectedProducts).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.productService.showSuccessMessage(`${this.selectedProducts.length} produits supprimés avec succès`);
@@ -366,7 +365,6 @@ export class ProductsListComponent implements OnInit {
         this.cancelBulkDelete();
       },
       error: (error) => {
-        console.error('Error bulk deleting products:', error);
         this.productService.showErrorMessage(error.message || 'Erreur lors de la suppression');
         this.loading = false;
         this.cancelBulkDelete();
@@ -387,7 +385,7 @@ export class ProductsListComponent implements OnInit {
     };
 
     this.loading = true;
-    this.apiService.post<any>('products/bulk-update-status', data).subscribe({
+    this.apiService.post<any>('products/bulk-update-status', data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = `${this.selectedProducts.length} produit(s) mis à jour avec succès`;
@@ -401,7 +399,6 @@ export class ProductsListComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error updating status:', error);
         this.error = error?.error?.message || 'Erreur lors de la mise à jour';
         this.loading = false;
         this.cdr.detectChanges();
@@ -468,7 +465,7 @@ export class ProductsListComponent implements OnInit {
       ...this.filterForm.value
     };
 
-    this.productService.exportProducts(format, filters).subscribe({
+    this.productService.exportProducts(format, filters).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -481,7 +478,6 @@ export class ProductsListComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error exporting products:', error);
         this.productService.showErrorMessage(error.message || 'Erreur lors de l\'export');
         this.loading = false;
       }
@@ -497,7 +493,7 @@ export class ProductsListComponent implements OnInit {
   toggleProductStatus(product: Product): void {
     const newStatus = product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     
-    this.productService.updateProduct(product.id, { status: newStatus }).subscribe({
+    this.productService.updateProduct(product.id, { status: newStatus }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.productService.showSuccessMessage('Statut mis à jour avec succès');
@@ -505,7 +501,6 @@ export class ProductsListComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error updating status:', error);
         this.productService.showErrorMessage(error.message || 'Erreur lors de la mise à jour');
       }
     });
@@ -566,7 +561,7 @@ export class ProductsListComponent implements OnInit {
       status: 'INACTIVE'
     };
 
-    this.apiService.post<any>('products', duplicateData).subscribe({
+    this.apiService.post<any>('products', duplicateData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Produit dupliqué avec succès';
@@ -588,7 +583,7 @@ export class ProductsListComponent implements OnInit {
     this.apiService.post<any>(`products/${product.id}/update-stock`, {
       stock_quantity: Number(quantity),
       operation: operation
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Stock mis à jour';
@@ -651,7 +646,7 @@ export class ProductsListComponent implements OnInit {
 
   loadSalesHistory(productId: number): void {
     this.loadingSalesHistory = true;
-    this.apiService.get<any>(`products/${productId}/sales-history`).subscribe({
+    this.apiService.get<any>(`products/${productId}/sales-history`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.salesHistory = response.data || [];
@@ -689,4 +684,8 @@ export class ProductsListComponent implements OnInit {
   getTotalSalesAmount(): number {
     return this.salesHistory.reduce((sum, s) => sum + (s.total || 0), 0);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

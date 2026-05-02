@@ -24,21 +24,21 @@
         <label class="small fw-semibold text-muted mb-1">Compte</label>
         <select class="form-select" [(ngModel)]="filters.account_id" style="border-radius:8px; font-size:.875rem;">
           <option value="">Tous les comptes</option>
-          <option *ngFor="let a of accounts" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
+          <option *ngFor="let a of accounts; trackBy: trackById" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
         <label class="small fw-semibold text-muted mb-1">Type</label>
         <select class="form-select" [(ngModel)]="filters.transaction_type" style="border-radius:8px; font-size:.875rem;">
           <option value="">Tous</option>
-          <option *ngFor="let t of txTypes" [value]="t.value">{{ t.label }}</option>
+          <option *ngFor="let t of txTypes; trackBy: trackById" [value]="t.value">{{ t.label }}</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
         <label class="small fw-semibold text-muted mb-1">Statut</label>
         <select class="form-select" [(ngModel)]="filters.status" style="border-radius:8px; font-size:.875rem;">
           <option value="">Tous</option>
-          <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
+          <option *ngFor="let s of statuses; trackBy: trackById" [value]="s.value">{{ s.label }}</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
@@ -90,7 +90,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let tx of transactions">
+          <tr *ngFor="let tx of transactions; trackBy: trackById">
             <td class="px-3 small fw-semibold">{{ tx.transaction_date | date:'dd/MM/yyyy' }}</td>
             <td class="px-3">
               <div class="fw-semibold small">{{ tx.bank_account?.bank_name }}</div>
@@ -180,7 +180,7 @@
           <select cSelect formControlName="bank_account_id" style="border-radius:8px"
                   [class.is-invalid]="submitted && form.get('bank_account_id')?.invalid">
             <option value="">Sélectionner un compte...</option>
-            <option *ngFor="let a of accounts" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
+            <option *ngFor="let a of accounts; trackBy: trackById" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
           </select>
           <div class="invalid-feedback">Requis</div>
         </div>
@@ -189,7 +189,7 @@
           <label cLabel class="fw-semibold small mb-1">Type de transaction *</label>
           <select cSelect formControlName="transaction_type" style="border-radius:8px"
                   [class.is-invalid]="submitted && form.get('transaction_type')?.invalid">
-            <option *ngFor="let t of txTypes" [value]="t.value">{{ t.label }}</option>
+            <option *ngFor="let t of txTypes; trackBy: trackById" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
 
@@ -226,7 +226,7 @@
         <div class="col-md-3">
           <label cLabel class="fw-semibold small mb-1">Statut</label>
           <select cSelect formControlName="status" style="border-radius:8px">
-            <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
+            <option *ngFor="let s of statuses; trackBy: trackById" [value]="s.value">{{ s.label }}</option>
           </select>
         </div>
 
@@ -234,7 +234,7 @@
           <label cLabel class="fw-semibold small mb-1">Type de preuve</label>
           <select cSelect formControlName="proof_type" style="border-radius:8px">
             <option [ngValue]="null">Sans preuve</option>
-            <option *ngFor="let p of proofTypes" [value]="p.value">{{ p.label }}</option>
+            <option *ngFor="let p of proofTypes; trackBy: trackById" [value]="p.value">{{ p.label }}</option>
           </select>
         </div>
 

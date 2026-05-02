@@ -155,7 +155,7 @@
       <div *ngIf="!loading && activeTab === 'stocks'">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <div class="btn-group btn-group-sm">
-            <button *ngFor="let s of arrivalStatuses" type="button" class="btn"
+            <button *ngFor="let s of arrivalStatuses; trackBy: trackById" type="button" class="btn"
               [class.btn-primary]="arrivalStatusFilter === s.value"
               [class.btn-outline-secondary]="arrivalStatusFilter !== s.value"
               style="border-radius:6px;margin-right:2px"
@@ -185,7 +185,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let a of arrivals">
+              <tr *ngFor="let a of arrivals; trackBy: trackById">
                 <td>
                   <span class="fw-bold" style="color:#1e293b">{{ a.container?.container_number || getContainerNumber(a.container_id) }}</span>
                 </td>
@@ -258,7 +258,7 @@
               <li class="page-item" [class.disabled]="arrivalsPage === 1">
                 <a class="page-link" style="cursor:pointer;border-radius:6px 0 0 6px" (click)="onArrivalsPageChange(arrivalsPage - 1)">Précédent</a>
               </li>
-              <li *ngFor="let p of getPages(arrivalsTotalPages)" class="page-item" [class.active]="p === arrivalsPage">
+              <li *ngFor="let p of getPages(arrivalsTotalPages); trackBy: trackById" class="page-item" [class.active]="p === arrivalsPage">
                 <a class="page-link" style="cursor:pointer" (click)="onArrivalsPageChange(p)">{{ p }}</a>
               </li>
               <li class="page-item" [class.disabled]="arrivalsPage === arrivalsTotalPages">
@@ -275,7 +275,7 @@
           <div class="d-flex gap-2 flex-wrap align-items-center">
             <select class="form-select form-select-sm" style="width:auto;border-radius:8px"
               [(ngModel)]="saleStatusFilter" (change)="salesPage = 1; loadSales()">
-              <option *ngFor="let s of saleStatuses" [value]="s.value">{{ s.label }}</option>
+              <option *ngFor="let s of saleStatuses; trackBy: trackById" [value]="s.value">{{ s.label }}</option>
             </select>
             <span *ngIf="saleArrivalFilter" class="px-2 py-1 rounded-pill d-flex align-items-center gap-1"
               style="font-size:0.78rem;background:#EFF6FF;color:#3B82F6;font-weight:600">
@@ -307,7 +307,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let s of sales">
+              <tr *ngFor="let s of sales; trackBy: trackById">
                 <td>
                   <span class="fw-semibold" style="color:#1e293b">{{ s.client?.name || getClientName(s.client_id) }}</span>
                 </td>
@@ -380,7 +380,7 @@
               <li class="page-item" [class.disabled]="salesPage === 1">
                 <a class="page-link" style="cursor:pointer;border-radius:6px 0 0 6px" (click)="onSalesPageChange(salesPage - 1)">Précédent</a>
               </li>
-              <li *ngFor="let p of getPages(salesTotalPages)" class="page-item" [class.active]="p === salesPage">
+              <li *ngFor="let p of getPages(salesTotalPages); trackBy: trackById" class="page-item" [class.active]="p === salesPage">
                 <a class="page-link" style="cursor:pointer" (click)="onSalesPageChange(p)">{{ p }}</a>
               </li>
               <li class="page-item" [class.disabled]="salesPage === salesTotalPages">
@@ -408,7 +408,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let p of payments">
+              <tr *ngFor="let p of payments; trackBy: trackById">
                 <td style="font-size:0.82rem;color:#94a3b8">{{ p.payment_date | date:'dd/MM/yyyy' }}</td>
                 <td><span class="fw-semibold" style="color:#1e293b">{{ p.client?.name || getClientName(p.client_id) }}</span></td>
                 <td>
@@ -451,7 +451,7 @@
               <li class="page-item" [class.disabled]="paymentsPage === 1">
                 <a class="page-link" style="cursor:pointer;border-radius:6px 0 0 6px" (click)="onPaymentsPageChange(paymentsPage - 1)">Précédent</a>
               </li>
-              <li *ngFor="let p of getPages(paymentsTotalPages)" class="page-item" [class.active]="p === paymentsPage">
+              <li *ngFor="let p of getPages(paymentsTotalPages); trackBy: trackById" class="page-item" [class.active]="p === paymentsPage">
                 <a class="page-link" style="cursor:pointer" (click)="onPaymentsPageChange(p)">{{ p }}</a>
               </li>
               <li class="page-item" [class.disabled]="paymentsPage === paymentsTotalPages">
@@ -486,7 +486,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let a of advances">
+              <tr *ngFor="let a of advances; trackBy: trackById">
                 <td style="font-size:0.82rem;color:#94a3b8">{{ a.payment_date | date:'dd/MM/yyyy' }}</td>
                 <td>
                   <span class="fw-semibold" style="color:#1e293b">{{ a.client?.name || getClientName(a.client_id) }}</span>
@@ -532,7 +532,7 @@
               <li class="page-item" [class.disabled]="advancesPage === 1">
                 <a class="page-link" style="cursor:pointer;border-radius:6px 0 0 6px" (click)="onAdvancesPageChange(advancesPage - 1)">Précédent</a>
               </li>
-              <li *ngFor="let p of getPages(advancesTotalPages)" class="page-item" [class.active]="p === advancesPage">
+              <li *ngFor="let p of getPages(advancesTotalPages); trackBy: trackById" class="page-item" [class.active]="p === advancesPage">
                 <a class="page-link" style="cursor:pointer" (click)="onAdvancesPageChange(p)">{{ p }}</a>
               </li>
               <li class="page-item" [class.disabled]="advancesPage === advancesTotalPages">
@@ -568,7 +568,7 @@
           <select class="form-select" formControlName="container_id" style="border-radius:8px"
             [class.is-invalid]="submitted && arrivalForm.get('container_id')?.invalid">
             <option [value]="null">— Sélectionner —</option>
-            <option *ngFor="let c of containers" [value]="c.id">{{ c.container_number }}</option>
+            <option *ngFor="let c of containers; trackBy: trackById" [value]="c.id">{{ c.container_number }}</option>
           </select>
           <div class="invalid-feedback">Conteneur requis</div>
         </div>
@@ -576,7 +576,7 @@
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">Fournisseur</label>
           <select class="form-select" formControlName="supplier_id" style="border-radius:8px">
             <option [value]="null">— Aucun —</option>
-            <option *ngFor="let s of suppliers" [value]="s.id">{{ s.name }}</option>
+            <option *ngFor="let s of suppliers; trackBy: trackById" [value]="s.id">{{ s.name }}</option>
           </select>
         </div>
         <div class="col-md-4">
@@ -593,7 +593,7 @@
           </label>
           <select class="form-select" formControlName="product_type" style="border-radius:8px"
             [class.is-invalid]="submitted && arrivalForm.get('product_type')?.invalid">
-            <option *ngFor="let t of productTypes" [value]="t.value">{{ t.label }}</option>
+            <option *ngFor="let t of productTypes; trackBy: trackById" [value]="t.value">{{ t.label }}</option>
           </select>
           <div class="invalid-feedback">Type requis</div>
         </div>
@@ -618,7 +618,7 @@
             Devise <span class="text-danger">*</span>
           </label>
           <select class="form-select" formControlName="currency" style="border-radius:8px">
-            <option *ngFor="let c of currencies" [value]="c.value">{{ c.label }}</option>
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.value">{{ c.label }}</option>
           </select>
         </div>
         <div class="col-12">
@@ -723,7 +723,7 @@
           <select class="form-select" formControlName="client_id" style="border-radius:8px"
             [class.is-invalid]="submitted && saleForm.get('client_id')?.invalid">
             <option [value]="null">— Sélectionner le client —</option>
-            <option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</option>
+            <option *ngFor="let c of clients; trackBy: trackById" [value]="c.id">{{ c.name }}</option>
           </select>
           <div class="invalid-feedback">Client requis</div>
         </div>
@@ -757,7 +757,7 @@
         <div class="col-md-3">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">Devise <span class="text-danger">*</span></label>
           <select class="form-select" formControlName="currency" style="border-radius:8px">
-            <option *ngFor="let c of currencies" [value]="c.value">{{ c.value }}</option>
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.value">{{ c.value }}</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -847,7 +847,7 @@
         <div class="col-md-3">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">Devise</label>
           <select class="form-select" formControlName="currency" style="border-radius:8px">
-            <option *ngFor="let c of currencies" [value]="c.value">{{ c.value }}</option>
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.value">{{ c.value }}</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -862,7 +862,7 @@
             Mode de Paiement <span class="text-danger">*</span>
           </label>
           <select class="form-select" formControlName="payment_method" style="border-radius:8px">
-            <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+            <option *ngFor="let m of paymentMethods; trackBy: trackById" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div class="col-md-6">
@@ -909,7 +909,7 @@
           <select class="form-select" formControlName="client_id" style="border-radius:8px"
             [class.is-invalid]="submitted && advanceForm.get('client_id')?.invalid">
             <option [value]="null">— Sélectionner —</option>
-            <option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</option>
+            <option *ngFor="let c of clients; trackBy: trackById" [value]="c.id">{{ c.name }}</option>
           </select>
           <div class="invalid-feedback">Client requis</div>
         </div>
@@ -924,7 +924,7 @@
         <div class="col-md-3">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">Devise</label>
           <select class="form-select" formControlName="currency" style="border-radius:8px">
-            <option *ngFor="let c of currencies" [value]="c.value">{{ c.value }}</option>
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.value">{{ c.value }}</option>
           </select>
         </div>
         <div class="col-md-4">
@@ -937,7 +937,7 @@
         <div class="col-md-6">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">Mode de Paiement</label>
           <select class="form-select" formControlName="payment_method" style="border-radius:8px">
-            <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+            <option *ngFor="let m of paymentMethods; trackBy: trackById" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div class="col-md-6">

@@ -3,7 +3,7 @@
   <c-card-body class="py-2">
     <div class="d-flex flex-wrap gap-2 align-items-center">
       <span class="text-muted small me-2">Période :</span>
-      <button *ngFor="let p of [{v:'week',l:'7 jours'},{v:'month',l:'Ce mois'},{v:'3months',l:'3 mois'},{v:'year',l:'Cette année'}]"
+      <button *ngFor="let p of [{v:'week',l:'7 jours'},{v:'month',l:'Ce mois'},{v:'3months',l:'3 mois'},{v:'year',l:'Cette année'}]; trackBy: trackById"
         cButton [color]="selectedPeriod === p.v ? 'primary' : 'secondary'"
         [variant]="selectedPeriod === p.v ? undefined : 'outline'"
         size="sm" (click)="setPeriod(p.v)">{{ p.l }}</button>
@@ -69,7 +69,7 @@
         <c-card-header class="fw-semibold">Répartition par catégorie</c-card-header>
         <c-card-body>
           <div *ngIf="stats.by_category?.length; else noData">
-            <div *ngFor="let cat of stats.by_category" class="mb-3">
+            <div *ngFor="let cat of stats.by_category; trackBy: trackById" class="mb-3">
               <div class="d-flex justify-content-between mb-1">
                 <div class="d-flex align-items-center gap-2">
                   <span class="rounded-circle d-inline-block" [style.width]="'10px'" [style.height]="'10px'" [style.background]="cat.color"></span>
@@ -99,7 +99,7 @@
                 <tr><th>Méthode</th><th class="text-center">Nb</th><th class="text-end">Montant</th></tr>
               </thead>
               <tbody>
-                <tr *ngFor="let m of stats.by_payment_method">
+                <tr *ngFor="let m of stats.by_payment_method; trackBy: trackById">
                   <td class="small fw-semibold">{{ m.payment_method }}</td>
                   <td class="text-center"><c-badge color="secondary">{{ m.count }}</c-badge></td>
                   <td class="text-end fw-semibold small">{{ fmt(m.total) }}</td>
@@ -125,7 +125,7 @@
                 <tr><th>Mois</th><th class="text-center">Dépenses</th><th class="text-end">Total</th><th style="width:200px">Barre</th></tr>
               </thead>
               <tbody>
-                <tr *ngFor="let m of stats.by_month">
+                <tr *ngFor="let m of stats.by_month; trackBy: trackById">
                   <td class="fw-semibold">{{ m.month }}</td>
                   <td class="text-center"><c-badge color="secondary">{{ m.count }}</c-badge></td>
                   <td class="text-end fw-semibold text-danger">{{ fmt(m.total) }}</td>
@@ -154,7 +154,7 @@
                 <tr><th>Date</th><th>Titre</th><th>Catégorie</th><th class="text-end">Montant</th></tr>
               </thead>
               <tbody>
-                <tr *ngFor="let e of stats.top_expenses; let i = index">
+                <tr *ngFor="let e of stats.top_expenses; let i = index; trackBy: trackById">
                   <td class="text-muted small">{{ e.expense_date | date:'dd/MM/yyyy' }}</td>
                   <td class="fw-semibold small">{{ e.title }}</td>
                   <td>

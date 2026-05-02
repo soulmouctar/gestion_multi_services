@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
@@ -18,9 +19,11 @@ import Swal from 'sweetalert2';
     ButtonModule, CardModule, FormModule, BadgeModule,
     ModalModule, SpinnerModule, ProgressModule, NavModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './expenses-list.component.html'
 })
 export class ExpensesListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
 
   expenses: any[]    = [];
   categories: any[]  = [];
@@ -92,7 +95,7 @@ export class ExpensesListComponent implements OnInit {
   }
 
   loadCategories(): void {
-    this.apiService.get<any>('personal-expense-categories').subscribe({
+    this.apiService.get<any>('personal-expense-categories').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.categories = r.success ? (Array.isArray(r.data) ? r.data : (r.data?.data || [])) : [];
       }
@@ -109,7 +112,7 @@ export class ExpensesListComponent implements OnInit {
     if (f.date_to)     url += `&date_to=${f.date_to}`;
     if (f.search)      url += `&search=${encodeURIComponent(f.search)}`;
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.expenses    = r.data.data || [];
@@ -127,7 +130,7 @@ export class ExpensesListComponent implements OnInit {
   loadMonthStats(): void {
     const dateFrom = this.monthStart();
     const dateTo   = this.today();
-    this.apiService.get<any>(`personal-expenses/statistics?date_from=${dateFrom}&date_to=${dateTo}`).subscribe({
+    this.apiService.get<any>(`personal-expenses/statistics?date_from=${dateFrom}&date_to=${dateTo}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data?.summary) {
           this.monthStats = r.data.summary;
@@ -189,7 +192,7 @@ export class ExpensesListComponent implements OnInit {
       ? this.apiService.put<any>(`personal-expenses/${this.selectedExpense.id}`, this.form.value)
       : this.apiService.post<any>('personal-expenses', this.form.value);
 
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: this.editMode ? 'Dépense modifiée' : 'Dépense enregistrée', timer: 1800, showConfirmButton: false });
@@ -211,7 +214,7 @@ export class ExpensesListComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(r => {
       if (!r.isConfirmed) return;
-      this.apiService.delete<any>(`personal-expenses/${exp.id}`).subscribe({
+      this.apiService.delete<any>(`personal-expenses/${exp.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', timer: 1500, showConfirmButton: false, title: 'Supprimé' });
           this.loadExpenses();
@@ -244,4 +247,8 @@ export class ExpensesListComponent implements OnInit {
   getPages(): number[] { return Array.from({ length: this.totalPages }, (_, i) => i + 1); }
   private today(): string      { return new Date().toISOString().split('T')[0]; }
   private monthStart(): string { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]; }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

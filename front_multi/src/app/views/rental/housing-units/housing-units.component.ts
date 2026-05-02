@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
@@ -16,9 +17,12 @@ import { ApiService } from '../../../core/services/api.service';
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './housing-units.component.html'
 })
 export class HousingUnitsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   housingUnits: any[] = [];
   floors: any[] = [];
   configurations: any[] = [];
@@ -61,7 +65,7 @@ export class HousingUnitsComponent implements OnInit {
   }
 
   loadBuildings(): void {
-    this.apiService.get<any>('buildings?per_page=200').subscribe({
+    this.apiService.get<any>('buildings?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { 
         if (r.success && r.data) {
           this.buildings = r.data.data || r.data || [];
@@ -72,7 +76,7 @@ export class HousingUnitsComponent implements OnInit {
   }
 
   loadFloors(): void {
-    this.apiService.get<any>('floors?per_page=200').subscribe({
+    this.apiService.get<any>('floors?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { 
         if (r.success && r.data) {
           this.floors = r.data.data || r.data || [];
@@ -84,7 +88,7 @@ export class HousingUnitsComponent implements OnInit {
   }
 
   loadConfigurations(): void {
-    this.apiService.get<any>('unit-configurations?per_page=200').subscribe({
+    this.apiService.get<any>('unit-configurations?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { 
         if (r.success && r.data) {
           this.configurations = r.data.data || r.data || [];
@@ -113,7 +117,7 @@ export class HousingUnitsComponent implements OnInit {
     this.apiService.post<any>('floors', {
       building_id: buildingId,
       floor_number: this.inlineFloorNumber
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.floors.push(r.data);
@@ -148,7 +152,7 @@ export class HousingUnitsComponent implements OnInit {
     let url = `housing-units?page=${this.currentPage}`;
     if (this.selectedFloorId) url += `&floor_id=${this.selectedFloorId}`;
     
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data; this.housingUnits = p.data || [];
@@ -209,7 +213,7 @@ export class HousingUnitsComponent implements OnInit {
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`housing-units/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('housing-units', data);
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Unité mise à jour' : 'Unité créée'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
       error: (err) => { this.error = err?.error?.message || 'Erreur'; }
     });
@@ -218,7 +222,7 @@ export class HousingUnitsComponent implements OnInit {
   confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
     if (!this.itemToDelete) return;
-    this.apiService.delete<any>(`housing-units/${this.itemToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`housing-units/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Unité supprimée'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
       error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
     });
@@ -260,4 +264,8 @@ export class HousingUnitsComponent implements OnInit {
 
   getPages(): number[] { const p: number[] = []; for (let i = 1; i <= this.totalPages; i++) p.push(i); return p; }
   private clearMessages(): void { setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000); }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

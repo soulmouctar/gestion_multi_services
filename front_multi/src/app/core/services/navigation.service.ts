@@ -106,23 +106,38 @@ export class NavigationService {
     if (!accessibleModules || accessibleModules.length === 0) return [];
 
     accessibleModules.forEach(module => {
-      switch (module.code) {
-        case 'COMMERCE':
-          moduleNavigation.push({
-            name: 'Commercial',
-            url: '/commercial',
-            iconComponent: { name: 'cilBasket' },
-            children: [
-              { name: 'Tableau de Bord',              url: '/commercial/dashboard',      icon: 'nav-icon-bullet' },
-              { name: 'Produits',                     url: '/products/list',             icon: 'nav-icon-bullet' },
-              { name: 'Gestion Avancée Produits',     url: '/products/advanced',         icon: 'nav-icon-bullet' },
-              { name: 'Catégories',                   url: '/product-categories/list',   icon: 'nav-icon-bullet' },
-              { name: 'Unités de Mesure',             url: '/units/list',                icon: 'nav-icon-bullet' },
-              { name: 'Clients',                      url: '/clients/list',              icon: 'nav-icon-bullet' },
-              { name: 'Fournisseurs',                 url: '/suppliers/list',            icon: 'nav-icon-bullet' },
-            ]
-          });
-          break;
+        switch (module.code) {
+          case 'COMMERCE':
+            moduleNavigation.push({
+              name: 'Commercial',
+              url: '/commercial',
+              iconComponent: { name: 'cilBasket' },
+              children: [
+                { name: 'Tableau de Bord',              url: '/commercial/dashboard',      icon: 'nav-icon-bullet' },
+                { name: 'Produits',                     url: '/products/list',             icon: 'nav-icon-bullet' },
+                { name: 'Gestion Avancée Produits',     url: '/products/advanced',         icon: 'nav-icon-bullet' },
+                { name: 'Retours Produits',             url: '/products/returns',          icon: 'nav-icon-bullet' },
+                { name: 'Catégories',                   url: '/product-categories/list',   icon: 'nav-icon-bullet' },
+                { name: 'Unités de Mesure',             url: '/units/list',                icon: 'nav-icon-bullet' },
+              ]
+            });
+            break;
+
+          case 'CLIENTS_SUPPLIERS':
+            moduleNavigation.push({
+              name: 'Clients & Fournisseurs',
+              url: '/clients',
+              iconComponent: { name: 'cilPeople' },
+              children: [
+                { name: 'Clients généraux',         url: '/clients/list',             icon: 'nav-icon-bullet' },
+                { name: 'Clients pneus',            url: '/clients/pneus',            icon: 'nav-icon-bullet' },
+                { name: 'Clients textile',          url: '/clients/textile',          icon: 'nav-icon-bullet' },
+                { name: 'Clients cosmétiques',      url: '/clients/cosmetiques',      icon: 'nav-icon-bullet' },
+                { name: 'Clients conteneurs pagne', url: '/clients/conteneurs-pagne', icon: 'nav-icon-bullet' },
+                { name: 'Fournisseurs',             url: '/suppliers/list',           icon: 'nav-icon-bullet' },
+              ]
+            });
+            break;
 
         case 'FINANCE':
           moduleNavigation.push({

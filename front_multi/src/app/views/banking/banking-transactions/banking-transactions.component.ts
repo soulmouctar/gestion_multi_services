@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -19,9 +20,12 @@ import Swal from 'sweetalert2';
     CommonModule, ReactiveFormsModule, FormsModule, RouterModule, IconDirective,
     ButtonModule, CardModule, FormModule, BadgeModule, ModalModule, SpinnerModule, ProgressModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './banking-transactions.component.html'
 })
 export class BankingTransactionsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
 
   transactions: any[]   = [];
   accounts: any[]       = [];
@@ -94,7 +98,7 @@ export class BankingTransactionsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(p => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(p => {
       if (p['account_id']) this.filters.account_id = p['account_id'];
       this.loadAccounts();
       this.loadTransactions();
@@ -102,7 +106,7 @@ export class BankingTransactionsComponent implements OnInit {
   }
 
   loadAccounts(): void {
-    this.apiService.get<any>('banking/accounts').subscribe({
+    this.apiService.get<any>('banking/accounts').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { this.accounts = r.success ? (r.data || []) : []; }
     });
   }
@@ -112,7 +116,7 @@ export class BankingTransactionsComponent implements OnInit {
     const params: any = { page: this.currentPage, per_page: this.perPage, ...this.filters };
     Object.keys(params).forEach(k => { if (!params[k]) delete params[k]; });
 
-    this.apiService.get<any>('banking/transactions', { params }).subscribe({
+    this.apiService.get<any>('banking/transactions', { params }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           const d         = r.data;
@@ -282,7 +286,7 @@ export class BankingTransactionsComponent implements OnInit {
 
     if (this.editMode && this.selectedTx) {
       // Update text fields via JSON
-      this.apiService.put<any>(`banking/transactions/${this.selectedTx.id}`, this.form.value).subscribe({
+      this.apiService.put<any>(`banking/transactions/${this.selectedTx.id}`, this.form.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r) => {
           if (r.success && this.proofFile) {
             this.doUploadProof(this.selectedTx.id, this.proofFile, () => {
@@ -319,7 +323,7 @@ export class BankingTransactionsComponent implements OnInit {
       }
 
       // Let the interceptor add Authorization; don't set any custom headers here
-      this.http.post<any>(`${environment.apiUrl}/banking/transactions`, fd).subscribe({
+      this.http.post<any>(`${environment.apiUrl}/banking/transactions`, fd).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r) => {
           this.uploading = false;
           if (r.success) {
@@ -343,7 +347,7 @@ export class BankingTransactionsComponent implements OnInit {
     const pt = this.form.get('proof_type')?.value;
     if (pt) fd.append('proof_type', pt);
 
-    this.http.post<any>(`${environment.apiUrl}/banking/transactions/${txId}/upload-proof`, fd).subscribe({
+    this.http.post<any>(`${environment.apiUrl}/banking/transactions/${txId}/upload-proof`, fd).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: callback,
       error: () => callback() // proceed even if proof upload fails
     });
@@ -374,7 +378,7 @@ export class BankingTransactionsComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(res => {
       if (!res.isConfirmed) return;
-      this.apiService.delete<any>(`banking/transactions/${tx.id}`).subscribe({
+      this.apiService.delete<any>(`banking/transactions/${tx.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', title: 'Supprimé', timer: 1400, showConfirmButton: false });
           this.loadTransactions();
@@ -403,4 +407,8 @@ export class BankingTransactionsComponent implements OnInit {
 
   get totalPages(): number { return Math.ceil(this.totalItems / this.perPage); }
   goToPage(p: number): void { if (p < 1 || p > this.totalPages) return; this.currentPage = p; this.loadTransactions(); }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

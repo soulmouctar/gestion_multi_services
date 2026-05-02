@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -38,10 +39,13 @@ import { ApiService } from '../../../core/services/api.service';
     ColComponent,
     ContainerComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './categories-list.component.html',
   styleUrls: ['./categories-list.component.scss']
 })
 export class CategoriesListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   categories: any[] = [];
   loading = false;
   error: string | null = null;
@@ -86,7 +90,7 @@ export class CategoriesListComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.apiService.get<any>(`product-categories?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`product-categories?page=${this.currentPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const paginated = response.data;
@@ -135,7 +139,7 @@ export class CategoriesListComponent implements OnInit {
     const data = this.categoryForm.value;
 
     if (this.editMode && this.selectedCategory) {
-      this.apiService.put<any>(`product-categories/${this.selectedCategory.id}`, data).subscribe({
+      this.apiService.put<any>(`product-categories/${this.selectedCategory.id}`, data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response) => {
           if (response.success) {
             this.successMessage = 'Catégorie mise à jour avec succès';
@@ -149,7 +153,7 @@ export class CategoriesListComponent implements OnInit {
         }
       });
     } else {
-      this.apiService.post<any>('product-categories', data).subscribe({
+      this.apiService.post<any>('product-categories', data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response) => {
           if (response.success) {
             this.successMessage = 'Catégorie créée avec succès';
@@ -173,7 +177,7 @@ export class CategoriesListComponent implements OnInit {
   deleteCategory(): void {
     if (!this.categoryToDelete) return;
 
-    this.apiService.delete<any>(`product-categories/${this.categoryToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`product-categories/${this.categoryToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Catégorie supprimée avec succès';
@@ -219,7 +223,7 @@ export class CategoriesListComponent implements OnInit {
     const ids = Array.from(this.selectedCategories);
     let completed = 0;
     ids.forEach(id => {
-      this.apiService.delete<any>(`product-categories/${id}`).subscribe({
+      this.apiService.delete<any>(`product-categories/${id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           completed++;
           if (completed === ids.length) {
@@ -254,4 +258,8 @@ export class CategoriesListComponent implements OnInit {
       this.cdr.detectChanges();
     }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

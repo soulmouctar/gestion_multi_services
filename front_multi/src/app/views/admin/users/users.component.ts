@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { IconDirective } from '@coreui/icons-angular';
@@ -27,10 +28,13 @@ import { AuthService } from '../../../core/services/auth.service';
     ButtonGroupModule,
     SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
 export class UsersComponent implements OnInit, AfterViewInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   users: UserProfile[] = [];
   filteredUsers: UserProfile[] = [];
   organisations: Tenant[] = [];
@@ -113,21 +117,20 @@ export class UsersComponent implements OnInit, AfterViewInit {
     this.loading = true;
     this.cdr.detectChanges();
 
-    this.userService.getUsers().subscribe({
+    this.userService.getUsers().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<any>) => {
         setTimeout(() => {
           this.users = response.data?.data || [];
           this.filteredUsers = [...this.users];
           this.loading = false;
-          
+
           // Load module permissions for each user après la mise à jour initiale
           this.loadUsersModulePermissions();
-          
+
           this.cdr.detectChanges();
         }, 0);
       },
-      error: (error) => {
-        console.error('Error loading users:', error);
+      error: () => {
         setTimeout(() => {
           this.users = [];
           this.filteredUsers = [];
@@ -141,16 +144,14 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   private loadUsersModulePermissions(): void {
     this.users.forEach(user => {
-      this.userService.getUserModulePermissions(user.id).subscribe({
+      this.userService.getUserModulePermissions(user.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response: ApiResponse<ModulePermission[]>) => {
-          // Utiliser setTimeout pour éviter l'erreur ExpressionChangedAfterItHasBeenCheckedError
           setTimeout(() => {
             user.module_permissions = response.data || [];
             this.cdr.detectChanges();
           }, 0);
         },
-        error: (error) => {
-          console.error(`Error loading module permissions for user ${user.id}:`, error);
+        error: () => {
           setTimeout(() => {
             user.module_permissions = [];
             this.cdr.detectChanges();
@@ -161,7 +162,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   }
 
   loadOrganisations(): void {
-    this.tenantService.getTenants().subscribe({
+    this.tenantService.getTenants().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<any>) => {
         // tenants returns direct array or paginated response.data
         if (response.success && Array.isArray(response.data)) {
@@ -173,14 +174,12 @@ export class UsersComponent implements OnInit, AfterViewInit {
           this.organisations = [];
         }
         this.filteredTenants = [...this.organisations];
-        console.log('Organisations loaded:', this.organisations.length, 'tenants');
         // Force change detection after async operation
         setTimeout(() => {
           this.cdr.detectChanges();
         });
       },
-      error: (error) => {
-        console.error('Error loading organisations:', error);
+      error: () => {
         this.organisations = [];
         this.filteredTenants = [];
         setTimeout(() => {
@@ -318,7 +317,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
         updateData.password = this.userForm.value.password;
       }
 
-      this.userService.updateUser(this.selectedUser.id, updateData, this.selectedPhoto).subscribe({
+      this.userService.updateUser(this.selectedUser.id, updateData, this.selectedPhoto).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response: ApiResponse<UserProfile>) => {
           const index = this.users.findIndex(u => u.id === this.selectedUser!.id);
           if (index !== -1) {
@@ -331,8 +330,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
           this.loading = false;
           this.cdr.detectChanges();
         },
-        error: (error) => {
-          console.error('Error updating user:', error);
+        error: () => {
           this.showErrorMessage('Erreur lors de la modification de l\'utilisateur.');
           this.loading = false;
           this.cdr.detectChanges();
@@ -345,7 +343,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
         password: this.userForm.value.password
       };
 
-      this.userService.createUser(createData, this.selectedPhoto).subscribe({
+      this.userService.createUser(createData, this.selectedPhoto).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response: ApiResponse<UserProfile>) => {
           this.users.push(response.data);
           this.users = [...this.users];
@@ -355,8 +353,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
           this.loading = false;
           this.cdr.detectChanges();
         },
-        error: (error) => {
-          console.error('Error creating user:', error);
+        error: () => {
           this.showErrorMessage('Erreur lors de la création de l\'utilisateur.');
           this.loading = false;
           this.cdr.detectChanges();
@@ -378,7 +375,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
     this.loading = true;
     this.cdr.detectChanges();
 
-    this.userService.deleteUser(user.id).subscribe({
+    this.userService.deleteUser(user.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.users = this.users.filter(u => u.id !== user.id);
         this.applyFilters();
@@ -386,8 +383,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('Error deleting user:', error);
+      error: () => {
         this.alertService.showError('Erreur!', 'Erreur lors de la suppression de l\'utilisateur.');
         this.loading = false;
         this.cdr.detectChanges();
@@ -433,28 +429,25 @@ export class UsersComponent implements OnInit, AfterViewInit {
     this.cdr.detectChanges();
 
     // First, load modules activated for the tenant
-    this.tenantService.getTenantModules(user.tenant_id!).subscribe({
+    this.tenantService.getTenantModules(user.tenant_id!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (tenantResponse: ApiResponse<any>) => {
         const tenantModules = tenantResponse.data || [];
-        console.log('Tenant modules loaded:', tenantModules.length, 'modules');
-        
+
         // Then, load user's module permissions
-        this.userService.getUserModulePermissions(user.id).subscribe({
+        this.userService.getUserModulePermissions(user.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (userResponse: ApiResponse<ModulePermission[]>) => {
             // Start with all available modules
-            let modules = userResponse.data || this.userService.getAvailableModules();
-            
+            const modules = userResponse.data || this.userService.getAvailableModules();
+
             // Filter to show only modules activated for the tenant
-            this.availableModules = modules.filter((module: ModulePermission) => 
+            this.availableModules = modules.filter((module: ModulePermission) =>
               tenantModules.some((tm: any) => tm.code === module.module_code)
             );
-            
-            console.log('Filtered modules for tenant:', this.availableModules.length, 'modules');
+
             this.loading = false;
             this.cdr.detectChanges();
           },
-          error: (error) => {
-            console.error('Error loading user module permissions:', error);
+          error: () => {
             // Fallback: show all tenant modules
             this.availableModules = tenantModules.map((tm: any) => ({
               module_code: tm.code,
@@ -467,8 +460,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
           }
         });
       },
-      error: (error) => {
-        console.error('Error loading tenant modules:', error);
+      error: () => {
         // Fallback: load user permissions without tenant filtering
         this.loadUserModulePermissions(user);
       }
@@ -477,21 +469,19 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   private loadTenantModules(tenantId: number): void {
     // Load modules activated for the tenant
-    this.tenantService.getTenantModules(tenantId).subscribe({
+    this.tenantService.getTenantModules(tenantId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<any>) => {
         // Get tenant modules from response
         const tenantModules = response.data || [];
-        console.log('Tenant modules loaded:', tenantModules.length, 'modules');
-        
+
         // Filter availableModules to show only tenant's activated modules
-        this.availableModules = this.availableModules.filter(module => 
+        this.availableModules = this.availableModules.filter(module =>
           tenantModules.some((tm: any) => tm.code === module.module_code)
         );
-        
+
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('Error loading tenant modules:', error);
+      error: () => {
         // If error, show all modules as fallback
       }
     });
@@ -508,7 +498,6 @@ export class UsersComponent implements OnInit, AfterViewInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error loading user module permissions:', error);
         this.availableModules = this.userService.getAvailableModules();
 
         if (user.module_permissions) {
@@ -548,14 +537,11 @@ export class UsersComponent implements OnInit, AfterViewInit {
         // If the current user's permissions were updated, reload their data to refresh the menu
         const currentUser = this.authService.currentUser;
         if (currentUser && Number(currentUser.id) === this.selectedUserForPermissions!.id) {
-          console.log('Reloading current user data to refresh menu...');
           this.authService.reloadCurrentUser().subscribe({
             next: () => {
-              console.log('Current user data reloaded, menu should refresh');
               this.cdr.detectChanges();
             },
             error: (err: any) => {
-              console.error('Error reloading current user:', err);
             }
           });
         }
@@ -564,7 +550,6 @@ export class UsersComponent implements OnInit, AfterViewInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error updating permissions:', error);
         this.showErrorMessage('Erreur lors de la mise à jour des permissions.');
         this.loading = false;
         this.cdr.detectChanges();
@@ -713,4 +698,8 @@ export class UsersComponent implements OnInit, AfterViewInit {
     }
     return module.permissions.includes(permission);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
@@ -16,9 +17,12 @@ import { ApiService } from '../../../core/services/api.service';
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './assignments.component.html'
 })
 export class TaxiAssignmentsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   assignments: any[] = [];
   taxis: any[] = [];
   drivers: any[] = [];
@@ -44,20 +48,20 @@ export class TaxiAssignmentsComponent implements OnInit {
   ngOnInit(): void { this.loadData(); this.loadTaxis(); this.loadDrivers(); }
 
   loadTaxis(): void {
-    this.apiService.get<any>('taxis?per_page=200').subscribe({
+    this.apiService.get<any>('taxis?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success && r.data) this.taxis = r.data.data || []; }
     });
   }
 
   loadDrivers(): void {
-    this.apiService.get<any>('drivers?per_page=200').subscribe({
+    this.apiService.get<any>('drivers?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success && r.data) this.drivers = r.data.data || []; }
     });
   }
 
   loadData(): void {
     this.loading = true; this.error = null;
-    this.apiService.get<any>(`taxi-assignments?page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`taxi-assignments?page=${this.currentPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data; this.assignments = p.data || [];
@@ -88,7 +92,7 @@ export class TaxiAssignmentsComponent implements OnInit {
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`taxi-assignments/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('taxi-assignments', data);
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Affectation mise à jour' : 'Affectation créée'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
       error: (err) => { this.error = err?.error?.message || 'Erreur'; }
     });
@@ -97,7 +101,7 @@ export class TaxiAssignmentsComponent implements OnInit {
   confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
     if (!this.itemToDelete) return;
-    this.apiService.delete<any>(`taxi-assignments/${this.itemToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`taxi-assignments/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Affectation supprimée'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
       error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
     });
@@ -107,4 +111,8 @@ export class TaxiAssignmentsComponent implements OnInit {
   getDriverName(id: number): string { const d = this.drivers.find(x => x.id === id); return d ? d.name : `ID: ${id}`; }
   getPages(): number[] { const p: number[] = []; for (let i = 1; i <= this.totalPages; i++) p.push(i); return p; }
   private clearMessages(): void { setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000); }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

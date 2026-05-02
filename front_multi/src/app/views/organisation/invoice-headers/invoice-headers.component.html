@@ -31,7 +31,7 @@
 
   <!-- Headers Grid -->
   <div *ngIf="!loading && headers.length > 0" class="row g-3">
-    <div *ngFor="let header of headers" class="col-12 col-md-6 col-xl-4">
+    <div *ngFor="let header of headers; trackBy: trackById" class="col-12 col-md-6 col-xl-4">
       <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;transition:transform .15s,box-shadow .15s;border:2px solid transparent;"
            [style.border-color]="header.is_default ? '#2563EB' : 'transparent'"
            onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.11)'"

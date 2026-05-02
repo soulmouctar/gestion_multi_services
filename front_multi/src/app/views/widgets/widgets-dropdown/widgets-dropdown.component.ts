@@ -1,4 +1,4 @@
-import { AfterContentInit, AfterViewInit, ChangeDetectorRef, Component, inject, OnInit, viewChild } from '@angular/core';
+import { AfterContentInit, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit, viewChild } from '@angular/core';
 import { getStyle } from '@coreui/utils';
 import { ChartjsComponent } from '@coreui/angular-chartjs';
 import { RouterLink } from '@angular/router';
@@ -18,6 +18,7 @@ import {
 
 @Component({
   selector: 'app-widgets-dropdown',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './widgets-dropdown.component.html',
   imports: [RowComponent, ColComponent, WidgetStatAComponent, TemplateIdDirective, IconDirective, DropdownComponent, ButtonDirective, DropdownToggleDirective, DropdownMenuDirective, DropdownItemDirective, RouterLink, DropdownDividerDirective, ChartjsComponent]
 })
@@ -237,7 +238,6 @@ export class ChartSample implements AfterViewInit {
       let { datasets, labels } = { ...this.data };
       // @ts-ignore
       const before = this.chartComponent()?.chart?.data.datasets.length;
-      console.log('before', before);
       // console.log('datasets, labels', datasets, labels)
       // @ts-ignore
       // this.data = data()
@@ -254,7 +254,6 @@ export class ChartSample implements AfterViewInit {
       // @ts-ignore
       setTimeout(() => {
         const after = this.chartComponent()?.chart?.data.datasets.length;
-        console.log('after', after);
       });
     }, 5000);
   }

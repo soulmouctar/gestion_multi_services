@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -15,9 +16,12 @@ import { ApiService } from '../../../core/services/api.service';
     CommonModule, FormsModule, IconDirective, RouterModule,
     ButtonModule, CardModule, FormModule, BadgeModule, SpinnerModule, ProgressModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './expense-statistics.component.html'
 })
 export class ExpenseStatisticsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
 
   loading = false;
   stats: any = null;
@@ -59,7 +63,7 @@ export class ExpenseStatisticsComponent implements OnInit {
 
   loadStats(): void {
     this.loading = true;
-    this.apiService.get<any>(`personal-expenses/statistics?date_from=${this.dateFrom}&date_to=${this.dateTo}`).subscribe({
+    this.apiService.get<any>(`personal-expenses/statistics?date_from=${this.dateFrom}&date_to=${this.dateTo}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) this.stats = r.data;
         this.loading = false;
@@ -93,4 +97,8 @@ export class ExpenseStatisticsComponent implements OnInit {
   fmt(v: number, currency = 'GNF'): string {
     return new Intl.NumberFormat('fr-GN', { minimumFractionDigits: 0 }).format(v || 0) + ' ' + currency;
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

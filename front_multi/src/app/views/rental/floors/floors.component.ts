@@ -1,10 +1,11 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import {
   ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-  ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+  ModalModule, AlertModule, SpinnerModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -15,11 +16,14 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-    ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+    ModalModule, AlertModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './floors.component.html'
 })
 export class FloorsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   floors: any[] = [];
   buildings: any[] = [];
   loading = false;
@@ -52,7 +56,7 @@ export class FloorsComponent implements OnInit {
     this.checkBuildingFilter();
     
     // Add valueChanges listener for building filter
-    this.floorForm.get('building_id')?.valueChanges.subscribe(value => {
+    this.floorForm.get('building_id')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
       this.selectedBuildingId = value;
       this.currentPage = 1;
       this.loadData();
@@ -60,7 +64,7 @@ export class FloorsComponent implements OnInit {
   }
 
   private checkBuildingFilter(): void {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['building_id']) {
         this.selectedBuildingId = +params['building_id'];
         this.floorForm.patchValue({ building_id: this.selectedBuildingId });
@@ -70,7 +74,7 @@ export class FloorsComponent implements OnInit {
   }
 
   loadBuildings(): void {
-    this.apiService.get<any>('buildings?per_page=200').subscribe({
+    this.apiService.get<any>('buildings?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { 
         if (r.success && r.data) {
           this.buildings = r.data.data || [];
@@ -88,7 +92,7 @@ export class FloorsComponent implements OnInit {
       url += `&building_id=${this.selectedBuildingId}`;
     }
     
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data; 
@@ -146,9 +150,9 @@ export class FloorsComponent implements OnInit {
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`floors/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('floors', data);
-    obs.subscribe({
-      next: (r) => { 
-        if (r.success) { 
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        if (r.success) {
           this.successMessage = this.editMode ? 'Étage mis à jour' : 'Étage créé'; 
           this.showFormModal = false; 
           this.loadData(); 
@@ -168,7 +172,7 @@ export class FloorsComponent implements OnInit {
   
   deleteItem(): void {
     if (!this.itemToDelete) return;
-    this.apiService.delete<any>(`floors/${this.itemToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`floors/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { 
         if (r.success) { 
           this.successMessage = 'Étage supprimé'; 
@@ -203,4 +207,8 @@ export class FloorsComponent implements OnInit {
       this.cdr.detectChanges(); 
     }, 3000); 
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

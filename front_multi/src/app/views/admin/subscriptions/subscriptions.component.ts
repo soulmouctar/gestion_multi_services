@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SubscriptionService, Subscription, SubscriptionPlan, ApiResponse } from '../../../core/services/subscription.service';
@@ -34,10 +35,13 @@ import { IconModule } from '@coreui/icons-angular';
     SpinnerModule,
     IconModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './subscriptions.component.html',
   styleUrls: ['./subscriptions.component.scss']
 })
 export class SubscriptionsComponent implements OnInit, AfterViewInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   subscriptions: Subscription[] = [];
   filteredSubscriptions: Subscription[] = [];
   plans: SubscriptionPlan[] = [];
@@ -107,7 +111,7 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    this.subscriptionService.getSubscriptions().subscribe({
+    this.subscriptionService.getSubscriptions().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: any) => {
         // L'API retourne une structure paginée avec data.data
         this.subscriptions = response.data?.data || response.data || [];
@@ -118,7 +122,6 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
         });
       },
       error: (error) => {
-        console.error('Error loading subscriptions:', error);
         this.subscriptions = [];
         this.showErrorMessage('Erreur lors du chargement des abonnements.');
         this.loading = false;
@@ -130,7 +133,7 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
   }
 
   loadPlans(): void {
-    this.subscriptionService.getSubscriptionPlans().subscribe({
+    this.subscriptionService.getSubscriptionPlans().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: any) => {
         this.plans = response.data?.data || response.data || [];
         // Force change detection after async operation
@@ -139,7 +142,6 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
         });
       },
       error: (error) => {
-        console.error('Error loading plans:', error);
         this.plans = [];
         this.showErrorMessage('Erreur lors du chargement des plans.');
         setTimeout(() => {
@@ -215,7 +217,7 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
       
       if (this.editMode && this.selectedSubscription) {
         // Update existing subscription
-        this.subscriptionService.updateSubscription(this.selectedSubscription.id, formData).subscribe({
+        this.subscriptionService.updateSubscription(this.selectedSubscription.id, formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response: ApiResponse<Subscription>) => {
             const index = this.subscriptions.findIndex(s => s.id === this.selectedSubscription!.id);
             if (index !== -1) {
@@ -231,7 +233,6 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
             });
           },
           error: (error) => {
-            console.error('Error updating subscription:', error);
             this.showErrorMessage('Erreur lors de la modification de l\'abonnement.');
             this.loading = false;
             setTimeout(() => {
@@ -241,7 +242,7 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
         });
       } else {
         // Create new subscription
-        this.subscriptionService.createSubscription(formData).subscribe({
+        this.subscriptionService.createSubscription(formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response: ApiResponse<Subscription>) => {
             this.subscriptions.unshift(response.data);
             this.subscriptions = [...this.subscriptions];
@@ -254,7 +255,6 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
             });
           },
           error: (error) => {
-            console.error('Error creating subscription:', error);
             this.showErrorMessage('Erreur lors de la création de l\'abonnement.');
             this.loading = false;
             setTimeout(() => {
@@ -264,7 +264,6 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
         });
       }
     } else {
-      console.log('Form is invalid:', this.subscriptionForm.errors);
       this.showErrorMessage('Veuillez corriger les erreurs dans le formulaire.');
     }
   }
@@ -290,7 +289,7 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    this.subscriptionService.deleteSubscription(subscription.id).subscribe({
+    this.subscriptionService.deleteSubscription(subscription.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<void>) => {
         this.subscriptions = this.subscriptions.filter(s => s.id !== subscription.id);
         this.loading = false;
@@ -301,7 +300,6 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
         });
       },
       error: (error) => {
-        console.error('Error deleting subscription:', error);
         this.showErrorMessage('Erreur lors de la suppression de l\'abonnement.');
         this.loading = false;
         setTimeout(() => {
@@ -469,4 +467,8 @@ export class SubscriptionsComponent implements OnInit, AfterViewInit {
     });
     this.applyFilters();
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

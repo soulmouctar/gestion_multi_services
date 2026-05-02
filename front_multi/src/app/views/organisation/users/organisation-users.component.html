@@ -16,7 +16,7 @@
               (change)="onOrganisationSelectChange($event)"
               style="min-width: 200px;">
               <option value="" disabled>Sélectionner une organisation</option>
-              <option *ngFor="let org of availableOrganisations" [value]="org.id">
+              <option *ngFor="let org of availableOrganisations; trackBy: trackById" [value]="org.id">
                 {{ org.name }}
               </option>
             </select>
@@ -69,7 +69,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let user of users">
+              <tr *ngFor="let user of users; trackBy: trackById">
                 <td>
                   <div class="d-flex align-items-center">
                     <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
@@ -189,7 +189,7 @@
           <div class="mb-3">
             <label cFormLabel for="role">Rôle *</label>
             <select cFormSelect id="role" formControlName="role" [class.is-invalid]="f['role'].invalid && f['role'].touched">
-              <option *ngFor="let role of roles" [value]="role.value">
+              <option *ngFor="let role of roles; trackBy: trackById" [value]="role.value">
                 {{ role.label }}
               </option>
             </select>

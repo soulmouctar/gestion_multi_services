@@ -37,9 +37,10 @@ export class AuthService {
       try {
         const user = JSON.parse(userStr);
         if (user && user.id && user.email) {
+          const normalizedUser = this.normalizeModuleAccess(user);
           this.authState.next({
-            user,
-            tenant: user.tenant || null,
+            user: normalizedUser,
+            tenant: normalizedUser.tenant || null,
             isAuthenticated: true,
             token
           });
@@ -56,13 +57,14 @@ export class AuthService {
     return this.http.post<ApiResponse<any>>(`${this.API_URL}/login`, { email, password }).pipe(
       tap(response => {
         if (response.success && response.data) {
+          const normalizedUser = this.normalizeModuleAccess({
+            ...response.data.user,
+            tenant_active_modules: response.data.tenant_active_modules || [],
+            module_permissions: response.data.user_module_permissions || []
+          });
           const authData: AuthState = {
-            user: {
-              ...response.data.user,
-              tenant_active_modules: response.data.tenant_active_modules || [],
-              module_permissions: response.data.user_module_permissions || []
-            },
-            tenant: response.data.user?.tenant || null,
+            user: normalizedUser,
+            tenant: normalizedUser.tenant || null,
             isAuthenticated: true,
             token: response.data.token
           };
@@ -188,11 +190,11 @@ export class AuthService {
     return this.http.get<ApiResponse<any>>(`${this.API_URL}/users/${currentUser.id}/module-permissions`).pipe(
       tap(response => {
         if (response.success && response.data) {
-          const updatedUser = {
+          const updatedUser = this.normalizeModuleAccess({
             ...currentUser,
             module_permissions: response.data.module_permissions || [],
             tenant_active_modules: response.data.tenant_active_modules || []
-          };
+          });
           this.authState.next({ ...this.authState.value, user: updatedUser });
           localStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));
         }
@@ -297,15 +299,58 @@ export class AuthService {
     );
   }
 
+  private normalizeModuleAccess(user: any): any {
+    if (!user) return user;
+
+    const tenantModules = Array.isArray(user.tenant_active_modules) ? [...user.tenant_active_modules] : [];
+    const modulePermissions = Array.isArray(user.module_permissions) ? [...user.module_permissions] : [];
+
+    const hasCommerceAccess =
+      tenantModules.some((module: { code?: string; is_active?: boolean }) => module?.code === 'COMMERCE' && module?.is_active) ||
+      modulePermissions.some((permission: { module_code?: string; is_active?: boolean }) => permission?.module_code === 'COMMERCE' && permission?.is_active);
+
+    if (hasCommerceAccess) {
+      const clientSuppliersModule = {
+        code: 'CLIENTS_SUPPLIERS',
+        name: 'Clients & Fournisseurs',
+        is_active: true,
+      };
+
+      if (!tenantModules.some((module: { code?: string }) => module?.code === 'CLIENTS_SUPPLIERS')) {
+        tenantModules.push(clientSuppliersModule);
+      }
+
+      if (!modulePermissions.some((permission: { module_code?: string }) => permission?.module_code === 'CLIENTS_SUPPLIERS')) {
+        modulePermissions.push({
+          module_code: 'CLIENTS_SUPPLIERS',
+          module_name: 'Clients & Fournisseurs',
+          is_active: true,
+          permissions: ['create', 'read', 'update', 'delete', 'view']
+        });
+      }
+    }
+
+    return {
+      ...user,
+      tenant_active_modules: tenantModules,
+      module_permissions: modulePermissions,
+    };
+  }
+
   hasPermission(_permission: string): boolean {
     if (this.isSuperAdmin) return true;
     return true;
   }
 
   private setAuthState(authData: AuthState): void {
-    this.authState.next(authData);
+    const normalizedAuthData: AuthState = {
+      ...authData,
+      user: this.normalizeModuleAccess(authData.user)
+    };
+
+    this.authState.next(normalizedAuthData);
     localStorage.setItem(this.TOKEN_KEY, authData.token || '');
-    localStorage.setItem(this.USER_KEY, JSON.stringify(authData.user));
+    localStorage.setItem(this.USER_KEY, JSON.stringify(normalizedAuthData.user));
   }
 
   private clearAuthData(): void {

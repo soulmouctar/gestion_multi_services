@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -331,7 +332,7 @@ import { AlertService } from '../../../core/services/alert.service';
               <div class="perm-pills" *ngIf="module.is_active">
                 <span *ngFor="let perm of availablePerms(module.module_code)"
                   class="perm-pill"
-                  [ngClass]="module.permissions?.includes(perm) ? 'active' : 'inactive'"
+                  [ngClass]="module.permissions.includes(perm) ? 'active' : 'inactive'"
                   (click)="togglePerm(module, perm)">
                   {{ permLabel(perm) }}
                 </span>
@@ -350,6 +351,8 @@ import { AlertService } from '../../../core/services/alert.service';
   `
 })
 export class OrganisationUsersComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   users: UserProfile[] = [];
   filteredUsers: UserProfile[] = [];
   loading = false;
@@ -411,7 +414,7 @@ export class OrganisationUsersComponent implements OnInit {
   loadUsers(): void {
     this.loading = true;
     this.cdr.detectChanges();
-    this.userService.getUsers().subscribe({
+    this.userService.getUsers().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: any) => {
         const data = response?.data;
         this.users = data?.data ?? (Array.isArray(data) ? data : []);
@@ -463,7 +466,7 @@ export class OrganisationUsersComponent implements OnInit {
 
     if (this.editingUser) {
       const data: any = { name: this.userForm.value.name, email: this.userForm.value.email };
-      this.userService.updateUser(this.editingUser.id, data).subscribe({
+      this.userService.updateUser(this.editingUser.id, data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r: any) => {
           const updated = r.data;
           const idx = this.users.findIndex(u => u.id === this.editingUser!.id);
@@ -487,7 +490,7 @@ export class OrganisationUsersComponent implements OnInit {
         password: this.userForm.value.password,
         role: 'USER'
       };
-      this.userService.createUser(data).subscribe({
+      this.userService.createUser(data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r: any) => {
           this.users.push(r.data);
           this.filterUsers();
@@ -523,7 +526,7 @@ export class OrganisationUsersComponent implements OnInit {
     this.passwordForm.markAllAsTouched();
     if (this.passwordForm.invalid || !this.passwordUser || this.saving) return;
     this.saving = true;
-    this.userService.updateUser(this.passwordUser.id, { password: this.passwordForm.value.password }).subscribe({
+    this.userService.updateUser(this.passwordUser.id, { password: this.passwordForm.value.password }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
         this.closePasswordModal();
@@ -543,7 +546,7 @@ export class OrganisationUsersComponent implements OnInit {
     const action = user.is_active !== false ? 'désactiver' : 'activer';
     this.alertService.showConfirmation(`Confirmer`, `Voulez-vous ${action} cet utilisateur ?`).then(r => {
       if (!r.isConfirmed) return;
-      this.userService.toggleUserStatus(user.id).subscribe({
+      this.userService.toggleUserStatus(user.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (res: any) => {
           const idx = this.users.findIndex(u => u.id === user.id);
           if (idx !== -1) this.users[idx] = { ...this.users[idx], is_active: res.data.is_active };
@@ -564,7 +567,7 @@ export class OrganisationUsersComponent implements OnInit {
     this.showPermModal = true;
     this.editableModules = [];
     this.loadingPerms = true;
-    this.userService.getUserModulePermissions(user.id).subscribe({
+    this.userService.getUserModulePermissions(user.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r: any) => {
         this.editableModules = (r.data || this.userService.getAvailableModules()).map((m: any) => ({
           ...m,
@@ -603,7 +606,7 @@ export class OrganisationUsersComponent implements OnInit {
   savePermissions(): void {
     if (!this.permUser || this.saving) return;
     this.saving = true;
-    this.userService.updateUserModulePermissions(this.permUser.id, this.editableModules).subscribe({
+    this.userService.updateUserModulePermissions(this.permUser.id, this.editableModules).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
         this.closePermModal();
@@ -659,4 +662,8 @@ export class OrganisationUsersComponent implements OnInit {
     };
     return labels[perm] ?? perm;
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

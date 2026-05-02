@@ -52,7 +52,7 @@
         <label cLabel class="small fw-semibold text-muted mb-1">Catégorie</label>
         <select cSelect formControlName="category_id" style="border-radius:8px">
           <option value="">Toutes</option>
-          <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+          <option *ngFor="let c of categories; trackBy: trackById" [value]="c.id">{{ c.name }}</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
@@ -117,7 +117,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let exp of expenses">
+          <tr *ngFor="let exp of expenses; trackBy: trackById">
             <td class="px-3 small">{{ exp.expense_date | date:'dd/MM/yyyy' }}</td>
             <td class="px-3">
               <div class="fw-semibold small">{{ exp.title }}</div>
@@ -175,7 +175,7 @@
          style="background:#fafafa; border-radius:0 0 12px 12px;">
       <button cButton color="secondary" variant="outline" size="sm" [disabled]="currentPage === 1"
               (click)="onPageChange(currentPage - 1)" style="border-radius:6px;">‹</button>
-      <button *ngFor="let p of getPages()" cButton size="sm"
+      <button *ngFor="let p of getPages(); trackBy: trackById" cButton size="sm"
               [color]="p === currentPage ? 'primary' : 'secondary'"
               [variant]="p === currentPage ? undefined : 'outline'"
               (click)="onPageChange(p)" style="border-radius:6px;">{{ p }}</button>
@@ -212,7 +212,7 @@
         <div class="col-md-4">
           <label cLabel class="fw-semibold small mb-1">Devise *</label>
           <select cSelect formControlName="currency" style="border-radius:8px">
-            <option *ngFor="let c of currencies" [value]="c.value">{{ c.label }}</option>
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.value">{{ c.label }}</option>
           </select>
         </div>
         <div class="col-md-4">
@@ -225,13 +225,13 @@
           <label cLabel class="fw-semibold small mb-1">Catégorie</label>
           <select cSelect formControlName="category_id" style="border-radius:8px">
             <option [ngValue]="null">Sans catégorie</option>
-            <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+            <option *ngFor="let c of categories; trackBy: trackById" [value]="c.id">{{ c.name }}</option>
           </select>
         </div>
         <div class="col-md-6">
           <label cLabel class="fw-semibold small mb-1">Méthode de paiement *</label>
           <select cSelect formControlName="payment_method" style="border-radius:8px">
-            <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+            <option *ngFor="let m of paymentMethods; trackBy: trackById" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div class="col-md-6">

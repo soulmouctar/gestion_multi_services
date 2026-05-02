@@ -14,6 +14,12 @@ class PersonalExpenseCategory extends Model
         'is_active' => 'boolean',
     ];
 
+
+    public function scopeForTenant($query, int $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
     public function expenses()
     {
         return $this->hasMany(PersonalExpense::class, 'category_id');

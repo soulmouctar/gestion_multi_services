@@ -53,11 +53,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of drivers" style="border-bottom:1px solid #f1f5f9;">
+          <tr *ngFor="let item of drivers; trackBy: trackById" style="border-bottom:1px solid #f1f5f9;">
             <td class="px-4 py-3">
               <div class="d-flex align-items-center gap-2">
                 <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem;flex-shrink:0;">
-                  {{ item.name?.charAt(0)?.toUpperCase() }}
+                  {{ item.name.charAt(0).toUpperCase() }}
                 </div>
                 <span class="fw-semibold" style="color:#1e293b;">{{ item.name }}</span>
               </div>
@@ -133,7 +133,7 @@
                 style="border-radius:8px;border:1px solid #e2e8f0;color:#475569;"
                 [disabled]="currentPage === 1"
                 (click)="onPageChange(currentPage - 1)">‹ Préc.</button>
-        <button *ngFor="let page of getPages()"
+        <button *ngFor="let page of getPages(); trackBy: trackById"
                 class="btn btn-sm"
                 [style]="page === currentPage
                   ? 'border-radius:8px;background:#0f3460;color:#fff;border:1px solid #0f3460;'

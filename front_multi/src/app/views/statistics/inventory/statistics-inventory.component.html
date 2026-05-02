@@ -60,7 +60,7 @@
             <table *ngIf="lowStockItems.length > 0" class="table table-hover mb-0">
               <thead><tr><th>Produit</th><th>Catégorie</th><th>Stock actuel</th><th>Niveau</th></tr></thead>
               <tbody>
-                <tr *ngFor="let item of lowStockItems">
+                <tr *ngFor="let item of lowStockItems; trackBy: trackById">
                   <td>{{ item.name }}</td>
                   <td class="text-body-secondary">{{ item.category?.name || '—' }}</td>
                   <td>
@@ -85,7 +85,7 @@
           <c-card-body>
             <div *ngIf="categories.length === 0" class="text-center py-3 text-body-secondary">Aucune catégorie.</div>
             <ul *ngIf="categories.length > 0" class="list-group list-group-flush">
-              <li *ngFor="let cat of categories" class="list-group-item d-flex justify-content-between px-0">
+              <li *ngFor="let cat of categories; trackBy: trackById" class="list-group-item d-flex justify-content-between px-0">
                 <span>{{ cat.name }}</span>
                 <span class="badge bg-primary rounded-pill">{{ cat.products_count ?? cat.count ?? '—' }}</span>
               </li>

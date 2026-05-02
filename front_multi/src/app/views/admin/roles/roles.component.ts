@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { CardModule, ButtonModule, FormModule, AlertModule, GridModule, ModalModule, TableModule, BadgeModule, ButtonGroupModule } from '@coreui/angular';
@@ -22,10 +23,13 @@ import { AlertService } from '../../../core/services/alert.service';
     BadgeModule,
     ButtonGroupModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './roles.component.html',
   styleUrls: ['./roles.component.scss']
 })
 export class RolesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   roles: Role[] = [];
   permissions: Permission[] = [];
   filteredRoles: Role[] = [];
@@ -86,7 +90,7 @@ export class RolesComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
 
-    this.roleService.getRoles().subscribe({
+    this.roleService.getRoles().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.roles = response.data || [];
         this.filteredRoles = [...this.roles];
@@ -94,7 +98,6 @@ export class RolesComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error loading roles:', error);
         this.roles = [];
         this.filteredRoles = [];
         this.showErrorMessage('Erreur lors du chargement des rôles.');
@@ -105,7 +108,7 @@ export class RolesComponent implements OnInit {
   }
 
   loadPermissions(): void {
-    this.roleService.getPermissions().subscribe({
+    this.roleService.getPermissions().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
         setTimeout(() => {
@@ -115,7 +118,6 @@ export class RolesComponent implements OnInit {
         }, 0);
       },
       error: (error) => {
-        console.error('Error loading permissions:', error);
         setTimeout(() => {
           this.permissions = [];
           this.availablePermissions = [];
@@ -196,7 +198,7 @@ export class RolesComponent implements OnInit {
       permission_ids: this.selectedPermissions
     };
 
-    this.roleService.createRole(roleData).subscribe({
+    this.roleService.createRole(roleData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.roles.push(response.data);
         this.applyFilters();
@@ -206,7 +208,6 @@ export class RolesComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error creating role:', error);
         this.showErrorMessage('Erreur lors de la création du rôle.');
         this.loading = false;
         this.cdr.detectChanges();
@@ -223,7 +224,7 @@ export class RolesComponent implements OnInit {
       permission_ids: this.selectedPermissions
     };
 
-    this.roleService.updateRole(this.selectedRole.id, roleData).subscribe({
+    this.roleService.updateRole(this.selectedRole.id, roleData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         const index = this.roles.findIndex(r => r.id === this.selectedRole!.id);
         if (index !== -1) {
@@ -236,7 +237,6 @@ export class RolesComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error updating role:', error);
         this.showErrorMessage('Erreur lors de la modification du rôle.');
         this.loading = false;
         this.cdr.detectChanges();
@@ -257,7 +257,7 @@ export class RolesComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
 
-    this.roleService.deleteRole(role.id).subscribe({
+    this.roleService.deleteRole(role.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.roles = this.roles.filter(r => r.id !== role.id);
         this.applyFilters();
@@ -266,7 +266,6 @@ export class RolesComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error deleting role:', error);
         this.showErrorMessage('Erreur lors de la suppression du rôle.');
         this.loading = false;
         this.cdr.detectChanges();
@@ -306,7 +305,7 @@ export class RolesComponent implements OnInit {
       guard_name: this.permissionForm.value.guard_name
     };
 
-    this.roleService.createPermission(permissionData).subscribe({
+    this.roleService.createPermission(permissionData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.permissions.push(response.data);
         this.availablePermissions = [...this.permissions];
@@ -316,7 +315,6 @@ export class RolesComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error creating permission:', error);
         this.showErrorMessage('Erreur lors de la création de la permission.');
         this.loading = false;
         this.cdr.detectChanges();
@@ -336,7 +334,7 @@ export class RolesComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
 
-    this.roleService.deletePermission(permission.id).subscribe({
+    this.roleService.deletePermission(permission.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.permissions = this.permissions.filter(p => p.id !== permission.id);
         this.availablePermissions = [...this.permissions];
@@ -345,7 +343,6 @@ export class RolesComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error deleting permission:', error);
         this.showErrorMessage('Erreur lors de la suppression de la permission.');
         this.loading = false;
         this.cdr.detectChanges();
@@ -434,4 +431,8 @@ export class RolesComponent implements OnInit {
   getUserRoleCount(): number {
     return this.roles.filter(r => r.name === 'USER').length;
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -6,6 +6,7 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends BaseController
 {
@@ -147,8 +148,11 @@ class ProductController extends BaseController
                 'sku' => 'nullable|string|max:50|unique:products,sku',
                 'product_category_id' => 'nullable|exists:product_categories,id',
                 'unit_id' => 'nullable|exists:units,id',
-                'purchase_price' => 'nullable|numeric|min:0',
-                'selling_price' => 'nullable|numeric|min:0',
+                'purchase_price'        => 'nullable|numeric|min:0',
+                'carton_purchase_price' => 'nullable|numeric|min:0',
+                'selling_price'         => 'nullable|numeric|min:0',
+                'carton_selling_price'  => 'nullable|numeric|min:0',
+                'units_per_carton'      => 'nullable|integer|min:1',
                 'stock_quantity' => 'nullable|integer|min:0',
                 'low_stock_threshold' => 'nullable|integer|min:0',
                 'status' => 'nullable|in:ACTIVE,INACTIVE,DISCONTINUED',
@@ -202,8 +206,11 @@ class ProductController extends BaseController
             'sku' => 'nullable|string|max:50|unique:products,sku,' . $id,
             'product_category_id' => 'nullable|exists:product_categories,id',
             'unit_id' => 'nullable|exists:units,id',
-            'purchase_price' => 'nullable|numeric|min:0',
-            'selling_price' => 'nullable|numeric|min:0',
+            'purchase_price'        => 'nullable|numeric|min:0',
+            'carton_purchase_price' => 'nullable|numeric|min:0',
+            'selling_price'         => 'nullable|numeric|min:0',
+            'carton_selling_price'  => 'nullable|numeric|min:0',
+            'units_per_carton'      => 'nullable|integer|min:1',
             'stock_quantity' => 'nullable|integer|min:0',
             'low_stock_threshold' => 'nullable|integer|min:0',
             'status' => 'nullable|in:ACTIVE,INACTIVE,DISCONTINUED',
@@ -225,15 +232,77 @@ class ProductController extends BaseController
 
     public function destroy($id)
     {
+        $user    = Auth::user();
         $product = Product::find($id);
 
         if (!$product) {
             return $this->sendError('Product not found');
         }
 
+        if (!$user->hasRole('SUPER_ADMIN') && $product->tenant_id !== $user->tenant_id) {
+            return $this->sendError('Accès refusé', [], 403);
+        }
+
+        if ($product->image) {
+            Storage::disk('public')->delete($product->image);
+        }
+
         $product->delete();
 
         return $this->sendResponse([], 'Product deleted successfully');
+    }
+
+    public function uploadImage(Request $request, $id)
+    {
+        $user    = Auth::user();
+        $product = Product::find($id);
+
+        if (!$product) {
+            return $this->sendError('Product not found', [], 404);
+        }
+
+        if (!$user->hasRole('SUPER_ADMIN') && $product->tenant_id !== $user->tenant_id) {
+            return $this->sendError('Accès refusé', [], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        // Supprimer l'ancienne image si elle existe
+        if ($product->image) {
+            Storage::disk('public')->delete($product->image);
+        }
+
+        $path = $request->file('image')->store('products', 'public');
+        $product->update(['image' => $path]);
+
+        return $this->sendResponse($product->load('category', 'unit'), 'Image uploaded successfully');
+    }
+
+    public function removeImage($id)
+    {
+        $user    = Auth::user();
+        $product = Product::find($id);
+
+        if (!$product) {
+            return $this->sendError('Product not found', [], 404);
+        }
+
+        if (!$user->hasRole('SUPER_ADMIN') && $product->tenant_id !== $user->tenant_id) {
+            return $this->sendError('Accès refusé', [], 403);
+        }
+
+        if ($product->image) {
+            Storage::disk('public')->delete($product->image);
+            $product->update(['image' => null]);
+        }
+
+        return $this->sendResponse($product->load('category', 'unit'), 'Image removed successfully');
     }
 
     /**

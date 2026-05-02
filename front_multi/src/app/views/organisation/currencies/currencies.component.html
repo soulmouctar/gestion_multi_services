@@ -40,7 +40,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let currency of currencies">
+              <tr *ngFor="let currency of currencies; trackBy: trackById">
                 <td>
                   <strong>{{ currency.code }}</strong>
                   <c-badge *ngIf="currency.is_default" color="primary" class="ms-2">Par défaut</c-badge>
@@ -126,7 +126,7 @@
         <label class="form-label">Devises communes</label>
         <div class="d-flex flex-wrap gap-2">
           <button
-            *ngFor="let currency of commonCurrencies"
+            *ngFor="let currency of commonCurrencies; trackBy: trackById"
             type="button"
             cButton
             size="sm"

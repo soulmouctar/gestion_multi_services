@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ModuleService, Module, ApiResponse } from '../../../core/services/module.service';
@@ -34,10 +35,13 @@ import { IconModule } from '@coreui/icons-angular';
     AlertModule,
     IconModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './modules.component.html',
   styleUrls: ['./modules.component.scss']
 })
 export class ModulesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   modules: Module[] = [];
   filteredModules: Module[] = [];
   activeModules: Module[] = [];
@@ -111,7 +115,7 @@ export class ModulesComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    this.moduleService.getModules().subscribe({
+    this.moduleService.getModules().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: any) => {
         // L'API retourne une structure paginée avec data.data
         this.modules = response.data?.data || response.data || [];
@@ -122,7 +126,6 @@ export class ModulesComponent implements OnInit {
         });
       },
       error: (error) => {
-        console.error('Error loading modules:', error);
         this.modules = [];
         this.filteredModules = [];
         this.showErrorMessage('Erreur lors du chargement des modules.');
@@ -178,11 +181,10 @@ export class ModulesComponent implements OnInit {
       this.cdr.detectChanges();
       
       const formData = this.moduleForm.value;
-      console.log('Saving module:', { editMode: this.editMode, selectedModule: this.selectedModule, formData });
       
       if (this.editMode && this.selectedModule) {
         // Update existing module
-        this.moduleService.updateModule(this.selectedModule.id, formData).subscribe({
+        this.moduleService.updateModule(this.selectedModule.id, formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response: ApiResponse<Module>) => {
             const index = this.modules.findIndex(m => m.id === this.selectedModule!.id);
             if (index !== -1) {
@@ -198,7 +200,6 @@ export class ModulesComponent implements OnInit {
             });
           },
           error: (error) => {
-            console.error('Error updating module:', error);
             this.showErrorMessage('Erreur lors de la modification du module.');
             this.loading = false;
             setTimeout(() => {
@@ -208,7 +209,7 @@ export class ModulesComponent implements OnInit {
         });
       } else {
         // Create new module
-        this.moduleService.createModule(formData).subscribe({
+        this.moduleService.createModule(formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response: ApiResponse<Module>) => {
             this.modules.unshift(response.data);
             this.modules = [...this.modules];
@@ -221,7 +222,6 @@ export class ModulesComponent implements OnInit {
             });
           },
           error: (error) => {
-            console.error('Error creating module:', error);
             this.showErrorMessage('Erreur lors de la création du module.');
             this.loading = false;
             setTimeout(() => {
@@ -231,7 +231,6 @@ export class ModulesComponent implements OnInit {
         });
       }
     } else {
-      console.log('Form is invalid:', this.moduleForm.errors);
       this.showErrorMessage('Veuillez corriger les erreurs dans le formulaire.');
     }
   }
@@ -251,7 +250,7 @@ export class ModulesComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    this.moduleService.deleteModule(module.id).subscribe({
+    this.moduleService.deleteModule(module.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<void>) => {
         this.modules = this.modules.filter(m => m.id !== module.id);
         this.loading = false;
@@ -262,7 +261,6 @@ export class ModulesComponent implements OnInit {
         });
       },
       error: (error) => {
-        console.error('Error deleting module:', error);
         this.showErrorMessage('Erreur lors de la suppression du module.');
         this.loading = false;
         setTimeout(() => {
@@ -296,7 +294,7 @@ export class ModulesComponent implements OnInit {
     
     const updatedData = { ...module, is_active: !module.is_active };
     
-    this.moduleService.updateModule(module.id, updatedData).subscribe({
+    this.moduleService.updateModule(module.id, updatedData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Module>) => {
         const index = this.modules.findIndex(m => m.id === module.id);
         if (index !== -1) {
@@ -311,7 +309,6 @@ export class ModulesComponent implements OnInit {
         });
       },
       error: (error) => {
-        console.error('Error toggling module status:', error);
         this.showErrorMessage('Erreur lors du changement de statut du module.');
         this.loading = false;
         setTimeout(() => {
@@ -493,4 +490,8 @@ export class ModulesComponent implements OnInit {
       this.cdr.detectChanges();
     }, 1000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

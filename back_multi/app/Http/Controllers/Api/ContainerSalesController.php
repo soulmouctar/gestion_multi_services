@@ -146,6 +146,54 @@ class ContainerSalesController extends BaseController
         }
     }
 
+    public function getAllocationSummary(Request $request)
+    {
+        try {
+            $tenantId = $this->tenantId($request);
+
+            $arrivals = ContainerArrival::with(['container:id,container_number', 'sales.client:id,name'])
+                ->where('tenant_id', $tenantId)
+                ->orderBy('arrival_date', 'desc')
+                ->get();
+
+            $summary = $arrivals->map(function (ContainerArrival $arrival) {
+                $allocations = $arrival->sales
+                    ->groupBy('client_id')
+                    ->map(function ($clientSales) {
+                        $first = $clientSales->first();
+                        return [
+                            'client_id'        => $first->client_id,
+                            'client_name'      => $first->client?->name,
+                            'allocated_quantity'=> (float) $clientSales->sum('quantity_sold'),
+                            'total_sales'      => (float) $clientSales->sum('sale_price'),
+                            'amount_paid'      => (float) $clientSales->sum('amount_paid'),
+                            'remaining_amount' => (float) $clientSales->sum('remaining_amount'),
+                            'sale_count'       => $clientSales->count(),
+                        ];
+                    })
+                    ->values();
+
+                return [
+                    'arrival_id'          => $arrival->id,
+                    'container_id'        => $arrival->container_id,
+                    'container_number'    => $arrival->container?->container_number,
+                    'arrival_date'        => $arrival->arrival_date,
+                    'total_quantity'      => (float) $arrival->total_quantity,
+                    'remaining_quantity'  => (float) $arrival->remaining_quantity,
+                    'allocated_quantity'  => (float) ($arrival->total_quantity - $arrival->remaining_quantity),
+                    'allocation_rate'     => $arrival->total_quantity > 0
+                        ? round((($arrival->total_quantity - $arrival->remaining_quantity) / $arrival->total_quantity) * 100, 2)
+                        : 0,
+                    'allocations'         => $allocations,
+                ];
+            })->values();
+
+            return $this->sendResponse($summary, 'Allocation summary retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function storeSale(Request $request)
     {
         try {

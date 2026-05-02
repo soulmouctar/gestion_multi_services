@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -12,7 +13,6 @@ import {
   AlertModule,
   GridModule
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
 
 @Component({
   selector: 'app-company-info',
@@ -25,13 +25,15 @@ import { IconDirective } from '@coreui/icons-angular';
     FormModule,
     SpinnerModule,
     AlertModule,
-    GridModule,
-    IconDirective
+    GridModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './company-info.component.html',
   styleUrls: ['./company-info.component.scss']
 })
 export class CompanyInfoComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   companyForm: FormGroup;
   loading = false;
   saving = false;
@@ -63,7 +65,7 @@ export class CompanyInfoComponent implements OnInit {
     this.error = null;
     this.cdr.detectChanges();
 
-    this.tenantService.getMyTenant().subscribe({
+    this.tenantService.getMyTenant().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         this.currentOrganisation = response.data;
         if (this.currentOrganisation) {
@@ -77,7 +79,6 @@ export class CompanyInfoComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Error loading organisation info:', err);
         this.error = 'Impossible de charger les informations de l\'organisation.';
         this.loading = false;
         this.cdr.detectChanges();
@@ -95,7 +96,7 @@ export class CompanyInfoComponent implements OnInit {
 
     const formData = this.companyForm.value;
 
-    this.tenantService.updateMyTenant(formData).subscribe({
+    this.tenantService.updateMyTenant(formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         this.currentOrganisation = response.data;
         this.successMessage = 'Informations mises à jour avec succès.';
@@ -103,7 +104,6 @@ export class CompanyInfoComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Error updating organisation info:', err);
         this.error = err?.error?.message || 'Erreur lors de la mise à jour.';
         this.saving = false;
         this.cdr.detectChanges();

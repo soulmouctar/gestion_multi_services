@@ -54,7 +54,7 @@
             <table *ngIf="currencies.length > 0" class="table table-sm mb-0">
               <thead><tr><th>Code</th><th>Nom</th><th>Statut</th><th>Par défaut</th></tr></thead>
               <tbody>
-                <tr *ngFor="let c of currencies">
+                <tr *ngFor="let c of currencies; trackBy: trackById">
                   <td><strong>{{ c.code }}</strong></td>
                   <td>{{ c.name }}</td>
                   <td>
@@ -80,7 +80,7 @@
             <table *ngIf="exchangeRates.length > 0" class="table table-sm mb-0">
               <thead><tr><th>Depuis</th><th>Vers</th><th class="text-end">Taux</th><th>Date</th></tr></thead>
               <tbody>
-                <tr *ngFor="let er of exchangeRates">
+                <tr *ngFor="let er of exchangeRates; trackBy: trackById">
                   <td>{{ er.from_currency || er.base_currency }}</td>
                   <td>{{ er.to_currency   || er.target_currency }}</td>
                   <td class="text-end fw-bold">{{ er.rate | number:'1.2-4' }}</td>

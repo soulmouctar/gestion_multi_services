@@ -1,11 +1,12 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { catchError, of } from 'rxjs';
 import {
   CardModule, ButtonModule, BadgeModule, SpinnerModule,
-  RowComponent, ColComponent, ContainerComponent, TableModule, FormModule
+  RowComponent, ColComponent, TableModule, FormModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -16,11 +17,13 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, FormsModule, IconDirective,
     CardModule, ButtonModule, BadgeModule, SpinnerModule, FormModule,
-    RowComponent, ColComponent, ContainerComponent, TableModule
+    RowComponent, ColComponent, TableModule
   ],
   templateUrl: './statistics-sales.component.html'
 })
 export class StatisticsSalesComponent implements OnInit, OnDestroy {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = true;
   selectedPeriod = '30days';
 
@@ -58,7 +61,7 @@ export class StatisticsSalesComponent implements OnInit, OnDestroy {
       payStats:  this.apiService.get<any>(`payments/statistics?period=${this.selectedPeriod}`).pipe(catchError(() => of({ success: false, data: null }))),
       payments:  this.apiService.get<any>(`payments?per_page=10`).pipe(catchError(() => of({ success: false, data: null }))),
       clients:   this.apiService.get<any>('clients?per_page=1').pipe(catchError(() => of({ success: false, data: null })))
-    }).pipe(takeUntil(this.destroy$)).subscribe({
+    }).pipe(takeUntil(this.destroy$)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (results) => {
         if (results.payStats.success && results.payStats.data) {
           const p = results.payStats.data;
@@ -92,4 +95,8 @@ export class StatisticsSalesComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

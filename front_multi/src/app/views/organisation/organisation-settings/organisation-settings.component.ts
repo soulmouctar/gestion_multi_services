@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
@@ -16,9 +17,12 @@ import { ApiService } from '../../../core/services/api.service';
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './organisation-settings.component.html'
 })
 export class OrganisationSettingsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   settings: any = null;
   loading = false;
   error: string | null = null;
@@ -61,7 +65,7 @@ export class OrganisationSettingsComponent implements OnInit {
 
   loadSettings(): void {
     this.loading = true; this.error = null;
-    this.apiService.get<any>('organisation-settings').subscribe({
+    this.apiService.get<any>('organisation-settings').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.settings = r.data;
@@ -82,7 +86,7 @@ export class OrganisationSettingsComponent implements OnInit {
       ? this.apiService.put<any>(`organisation-settings/${this.settings.id}`, data)
       : this.apiService.post<any>('organisation-settings', data);
     
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = 'Paramètres sauvegardés avec succès';

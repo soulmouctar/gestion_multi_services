@@ -1,14 +1,15 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { Subject, forkJoin, takeUntil } from 'rxjs';
-import { catchError, of } from 'rxjs';
 import {
   CardModule, ButtonModule, BadgeModule, SpinnerModule,
-  RowComponent, ColComponent, ContainerComponent, TableModule
+  TableModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+
+type PaymentMethodKey = 'ESPECES' | 'ORANGE_MONEY' | 'WAVE' | 'MTN_MONEY' | 'VIREMENT' | 'CHEQUE';
 
 @Component({
   selector: 'app-finance-dashboard',
@@ -16,70 +17,94 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, RouterModule, IconDirective,
     CardModule, ButtonModule, BadgeModule, SpinnerModule,
-    RowComponent, ColComponent, ContainerComponent, TableModule
+    TableModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './finance-dashboard.component.html'
 })
-export class FinanceDashboardComponent implements OnInit, OnDestroy {
+export class FinanceDashboardComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = true;
 
-  stats = {
-    totalPayments:   0,
-    totalAmount:     0,
-    monthlyAmount:   0,
-    pendingInvoices: 0,
-    totalInvoices:   0,
-    totalCurrencies: 0
+  paymentMethodOptions: Array<{ key: PaymentMethodKey; label: string; color: string }> = [
+    { key: 'ESPECES', label: 'Espèces', color: '#10B981' },
+    { key: 'ORANGE_MONEY', label: 'Orange Money', color: '#F97316' },
+    { key: 'WAVE', label: 'Wave', color: '#3B82F6' },
+    { key: 'MTN_MONEY', label: 'MTN Money', color: '#EAB308' },
+    { key: 'VIREMENT', label: 'Virement', color: '#8B5CF6' },
+    { key: 'CHEQUE', label: 'Chèque', color: '#6B7280' }
+  ];
+
+  payments = {
+    total_payments:  0,
+    total_amount:    0,
+    monthly_amount:  0,
+    average_payment: 0,
+    by_type:   { CLIENT: 0, SUPPLIER: 0, DEPOT: 0, RETRAIT: 0 },
+    by_method: { ESPECES: 0, ORANGE_MONEY: 0, WAVE: 0, MTN_MONEY: 0, VIREMENT: 0, CHEQUE: 0 },
   };
 
+  invoices = {
+    total: 0, paye: 0, partiel: 0, impaye: 0, total_remaining: 0
+  };
+
+  cashflow = {
+    income_total: 0,
+    supplier_out_total: 0,
+    bank_withdrawals: 0,
+    expense_total: 0,
+    outgoing_total: 0,
+    net_cashflow: 0,
+  };
+
+  currenciesCount  = 0;
   recentPayments: any[] = [];
-  recentInvoices: any[] = [];
+  recentInvoices:  any[] = [];
+  recentExpenses: any[] = [];
+  supplierRelations: any[] = [];
+  recentSupplierPayments: any[] = [];
 
-  private readonly destroy$ = new Subject<void>();
-
-  constructor(private apiService: ApiService) {}
+  constructor(
+    private apiService: ApiService,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit(): void {
-    this.loadDashboard();
+    this.load();
   }
 
-  loadDashboard(): void {
+  load(): void {
     this.loading = true;
-
-    forkJoin({
-      paymentStats: this.apiService.get<any>('payments/statistics').pipe(catchError(() => of({ success: false, data: null }))),
-      recentPay:    this.apiService.get<any>('payments?per_page=5').pipe(catchError(() => of({ success: false, data: null }))),
-      invoices:     this.apiService.get<any>('invoices?per_page=5').pipe(catchError(() => of({ success: false, data: null }))),
-      currencies:   this.apiService.get<any>('currencies?per_page=100').pipe(catchError(() => of({ success: false, data: null })))
-    }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (results) => {
-        if (results.paymentStats.success && results.paymentStats.data) {
-          const p = results.paymentStats.data;
-          this.stats.totalPayments = p.total_count  ?? p.total         ?? 0;
-          this.stats.totalAmount   = p.total_amount ?? p.total_sum     ?? 0;
-          this.stats.monthlyAmount = p.monthly_total ?? p.this_month   ?? 0;
-        }
-        if (results.recentPay.success && results.recentPay.data) {
-          const rp = results.recentPay.data;
-          this.recentPayments = rp.data ?? (Array.isArray(rp) ? rp.slice(0, 5) : []);
-        }
-        if (results.invoices.success && results.invoices.data) {
-          const inv = results.invoices.data;
-          this.stats.totalInvoices   = inv.total ?? (Array.isArray(inv) ? inv.length : 0);
-          this.recentInvoices = inv.data ?? (Array.isArray(inv) ? inv.slice(0, 5) : []);
-        }
-        if (results.currencies.success && results.currencies.data) {
-          const cur = results.currencies.data;
-          this.stats.totalCurrencies = cur.total ?? (Array.isArray(cur) ? cur.length : (cur.data?.length ?? 0));
-        }
-        this.loading = false;
-      },
-      error: () => { this.loading = false; }
-    });
+    this.apiService.get<any>('finance/dashboard')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          if (r.success && r.data) {
+            const d = r.data;
+            this.payments        = d.payments        ?? this.payments;
+            this.invoices        = d.invoices         ?? this.invoices;
+            this.cashflow        = d.cashflow         ?? this.cashflow;
+            this.currenciesCount = d.currencies_count ?? 0;
+            this.recentPayments  = d.recent_payments  ?? [];
+            this.recentInvoices  = d.recent_invoices  ?? [];
+            this.recentExpenses  = d.recent_expenses  ?? [];
+            this.supplierRelations = d.supplier_relations ?? [];
+            this.recentSupplierPayments = d.recent_supplier_payments ?? [];
+          }
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+      });
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+  paymentMethodAmount(key: PaymentMethodKey): number {
+    return this.payments.by_method[key] || 0;
   }
+
+  trackById(_: number, item: any): any { return item?.id ?? _; }
 }

@@ -18,6 +18,12 @@ class BankAccount extends Model
         'is_active'       => 'boolean',
     ];
 
+
+    public function scopeForTenant($query, int $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
     public function transactions()
     {
         return $this->hasMany(BankTransaction::class);

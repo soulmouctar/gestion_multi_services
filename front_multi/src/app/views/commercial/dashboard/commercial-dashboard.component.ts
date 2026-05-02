@@ -1,10 +1,10 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { Subject, forkJoin, takeUntil, catchError, of } from 'rxjs';
 import {
   CardModule, ButtonModule, BadgeModule, SpinnerModule,
-  RowComponent, ColComponent, ContainerComponent, TableModule, ProgressModule
+  TableModule, ProgressModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -12,45 +12,30 @@ import { ApiService } from '../../../core/services/api.service';
 @Component({
   selector: 'app-commercial-dashboard',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, RouterModule, IconDirective,
     CardModule, ButtonModule, BadgeModule, SpinnerModule,
-    RowComponent, ColComponent, ContainerComponent, TableModule, ProgressModule
+    TableModule, ProgressModule
   ],
   templateUrl: './commercial-dashboard.component.html'
 })
-export class CommercialDashboardComponent implements OnInit, OnDestroy {
+export class CommercialDashboardComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly cdr       = inject(ChangeDetectorRef);
+
   loading = true;
 
-  // KPIs conteneurs
-  containerStats: any = {
-    total: 0, available: 0, in_transit: 0, customs: 0, at_port: 0
-  };
-
-  // Arrivages (stocks)
-  arrivals: any[] = [];
-  arrivalsTotal = 0;
-
-  // Ventes globales
   salesStats: any = {
-    total_sales: 0,
-    total_revenue: 0,
-    total_paid: 0,
-    total_remaining: 0,
-    sales_this_month: 0,
-    revenue_this_month: 0
+    total_sales: 0, total_paid: 0, total_remaining: 0,
+    sales_this_month: 0, revenue_this_month: 0,
   };
 
-  // Ventes récentes
-  recentSales: any[] = [];
-
-  // Paiements en attente (ventes partiellement payées)
-  pendingSales: any[] = [];
-
-  // Avances clients
+  arrivals:      any[] = [];
+  arrivalsTotal  = 0;
+  recentSales:   any[] = [];
+  pendingSales:  any[] = [];
   clientAdvances: any[] = [];
-
-  private readonly destroy$ = new Subject<void>();
 
   constructor(private apiService: ApiService) {}
 
@@ -61,42 +46,27 @@ export class CommercialDashboardComponent implements OnInit, OnDestroy {
   loadDashboard(): void {
     this.loading = true;
 
-    forkJoin({
-      containerStats: this.apiService.get<any>('containers/statistics/general').pipe(catchError(() => of({ success: false, data: null }))),
-      arrivals:       this.apiService.get<any>('container-arrivals?per_page=20').pipe(catchError(() => of({ success: false, data: [] }))),
-      salesStats:     this.apiService.get<any>('container-sales/global-stats').pipe(catchError(() => of({ success: false, data: null }))),
-      recentSales:    this.apiService.get<any>('container-sales?per_page=8&sort=created_at').pipe(catchError(() => of({ success: false, data: null }))),
-      pendingSales:   this.apiService.get<any>('container-sales?per_page=10&status=EN_COURS').pipe(catchError(() => of({ success: false, data: null }))),
-      advances:       this.apiService.get<any>('client-advances?per_page=5').pipe(catchError(() => of({ success: false, data: null })))
-    }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r) => {
-        if (r.containerStats.success && r.containerStats.data) {
-          this.containerStats = { ...this.containerStats, ...r.containerStats.data };
+    this.apiService.get<any>('commercial/dashboard')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          if (response.success && response.data) {
+            const d = response.data;
+            this.salesStats    = d.global_stats    ?? this.salesStats;
+            this.arrivals      = d.arrivals         ?? [];
+            this.arrivalsTotal = d.arrivals_total   ?? 0;
+            this.recentSales   = d.recent_sales     ?? [];
+            this.pendingSales  = d.pending_sales    ?? [];
+            this.clientAdvances = d.client_advances ?? [];
+          }
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.loading = false;
+          this.cdr.markForCheck();
         }
-        if (r.arrivals.success) {
-          const raw = r.arrivals.data;
-          this.arrivals = Array.isArray(raw) ? raw : (raw?.data ?? []);
-          this.arrivalsTotal = Array.isArray(raw) ? raw.length : (raw?.total ?? 0);
-        }
-        if (r.salesStats.success && r.salesStats.data) {
-          this.salesStats = { ...this.salesStats, ...r.salesStats.data };
-        }
-        if (r.recentSales.success && r.recentSales.data) {
-          const raw = r.recentSales.data;
-          this.recentSales = Array.isArray(raw) ? raw.slice(0, 8) : (raw?.data ?? []).slice(0, 8);
-        }
-        if (r.pendingSales.success && r.pendingSales.data) {
-          const raw = r.pendingSales.data;
-          this.pendingSales = Array.isArray(raw) ? raw.slice(0, 10) : (raw?.data ?? []).slice(0, 10);
-        }
-        if (r.advances.success && r.advances.data) {
-          const raw = r.advances.data;
-          this.clientAdvances = Array.isArray(raw) ? raw.slice(0, 5) : (raw?.data ?? []).slice(0, 5);
-        }
-        this.loading = false;
-      },
-      error: () => { this.loading = false; }
-    });
+      });
   }
 
   getPaymentProgress(sale: any): number {
@@ -135,8 +105,7 @@ export class CommercialDashboardComponent implements OnInit, OnDestroy {
     return this.arrivals.filter(a => (a.remaining_quantity ?? 0) > 0);
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
   }
 }

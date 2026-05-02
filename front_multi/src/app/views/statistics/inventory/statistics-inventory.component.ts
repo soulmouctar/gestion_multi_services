@@ -1,10 +1,11 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { catchError, of } from 'rxjs';
 import {
   CardModule, BadgeModule, SpinnerModule,
-  RowComponent, ColComponent, ContainerComponent, TableModule, ProgressModule
+  RowComponent, ColComponent, TableModule, ProgressModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -15,11 +16,13 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, IconDirective,
     CardModule, BadgeModule, SpinnerModule, ProgressModule,
-    RowComponent, ColComponent, ContainerComponent, TableModule
+    RowComponent, ColComponent, TableModule
   ],
   templateUrl: './statistics-inventory.component.html'
 })
 export class StatisticsInventoryComponent implements OnInit, OnDestroy {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = true;
 
   stats = {
@@ -49,7 +52,7 @@ export class StatisticsInventoryComponent implements OnInit, OnDestroy {
       productStats: this.apiService.get<any>('products/statistics').pipe(catchError(() => of({ success: false, data: null }))),
       lowStock:     this.apiService.get<any>('products/low-stock').pipe(catchError(() => of({ success: false, data: [] }))),
       categories:   this.apiService.get<any>('product-categories?per_page=100').pipe(catchError(() => of({ success: false, data: null })))
-    }).pipe(takeUntil(this.destroy$)).subscribe({
+    }).pipe(takeUntil(this.destroy$)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (results) => {
         if (results.productStats.success && results.productStats.data) {
           const ps = results.productStats.data;
@@ -95,4 +98,8 @@ export class StatisticsInventoryComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SpinnerModule } from '@coreui/angular';
@@ -414,6 +415,8 @@ import { ApiService } from '../../../core/services/api.service';
   `
 })
 export class TaxiDashboardComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = false;
   data: any = null;
   period = '';
@@ -425,7 +428,7 @@ export class TaxiDashboardComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.data = null;
-    this.apiService.get<any>('taxi/dashboard').subscribe({
+    this.apiService.get<any>('taxi/dashboard').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) { this.data = r.data; this.period = r.data?.period || ''; }
         this.loading = false;

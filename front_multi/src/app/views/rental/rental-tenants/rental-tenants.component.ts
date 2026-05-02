@@ -1,7 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { CardModule, BadgeModule, SpinnerModule, ButtonModule, FormModule } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -29,6 +30,12 @@ import { ApiService } from '../../../core/services/api.service';
           </span>
         </p>
       </div>
+      <button class="btn fw-semibold"
+        style="background:#10B981;color:#fff;border:none;border-radius:10px;padding:10px 18px"
+        (click)="goToLeaseCreation()">
+        <svg cIcon name="cilPlus" class="me-1"></svg>
+        Enregistrer un locataire
+      </button>
     </div>
   </div>
 
@@ -82,6 +89,7 @@ import { ApiService } from '../../../core/services/api.service';
             <th class="py-3 text-muted fw-semibold text-center" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Actifs</th>
             <th class="py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Loyer/mois</th>
             <th class="py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Dépôts</th>
+            <th class="py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Arriérés</th>
             <th class="py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Depuis</th>
             <th class="py-3 text-muted fw-semibold text-center pe-4" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Statut</th>
           </tr>
@@ -90,10 +98,16 @@ import { ApiService } from '../../../core/services/api.service';
           <tr *ngFor="let t of tenants">
             <td class="ps-4 py-3">
               <div class="d-flex align-items-center gap-2">
-                <div style="width:36px;height:36px;border-radius:50%;background:#EEF2FF;color:#6366F1;
-                  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0">
-                  {{ (t.renter_name || '?').charAt(0).toUpperCase() }}
-                </div>
+                <ng-container *ngIf="t.photo_url; else tenantInitials">
+                  <img [src]="t.photo_url" alt="{{ t.renter_name }}"
+                       style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #E5E7EB;">
+                </ng-container>
+                <ng-template #tenantInitials>
+                  <div style="width:36px;height:36px;border-radius:50%;background:#EEF2FF;color:#6366F1;
+                    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0">
+                    {{ (t.renter_name || '?').charAt(0).toUpperCase() }}
+                  </div>
+                </ng-template>
                 <span class="fw-semibold" style="font-size:.9rem">{{ t.renter_name }}</span>
               </div>
             </td>
@@ -124,6 +138,12 @@ import { ApiService } from '../../../core/services/api.service';
               <span style="color:#0EA5E9;font-size:.88rem">{{ fmt(t.total_deposits) }}</span>
             </td>
             <td class="py-3">
+              <div class="fw-semibold" [style.color]="t.arrears_amount > 0 ? '#EF4444' : '#10B981'">
+                {{ fmt(t.arrears_amount) }}
+              </div>
+              <div class="small text-muted">{{ t.arrears_months || 0 }} mois en retard</div>
+            </td>
+            <td class="py-3">
               <span class="text-muted" style="font-size:.82rem">{{ t.latest_start | date:'dd/MM/yyyy' }}</span>
             </td>
             <td class="py-3 text-center pe-4">
@@ -136,10 +156,13 @@ import { ApiService } from '../../../core/services/api.service';
             </td>
           </tr>
           <tr *ngIf="tenants.length === 0">
-            <td colspan="9" class="text-center py-5">
+              <td colspan="10" class="text-center py-5">
               <div style="font-size:2rem" class="mb-2">👥</div>
               <div class="text-muted fw-semibold">Aucun locataire trouvé</div>
               <div class="text-muted small mt-1">Modifiez vos critères de recherche ou ajoutez des locataires via les baux.</div>
+              <button class="btn btn-primary btn-sm mt-3" style="border-radius:8px" (click)="goToLeaseCreation()">
+                Ajouter un locataire
+              </button>
             </td>
           </tr>
         </tbody>
@@ -151,12 +174,18 @@ import { ApiService } from '../../../core/services/api.service';
   `
 })
 export class RentalTenantsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   tenants: any[] = [];
   loading = false;
   search = '';
   statusFilter = '';
 
-  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private apiService: ApiService,
+    private cdr: ChangeDetectorRef,
+    private router: Router
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -166,7 +195,7 @@ export class RentalTenantsComponent implements OnInit {
     if (this.search)       params.search = this.search;
     if (this.statusFilter) params.status = this.statusFilter;
 
-    this.apiService.get<any>('rental/tenants', { params }).subscribe({
+    this.apiService.get<any>('rental/tenants', { params }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.tenants = r.success ? (r.data || []) : [];
         this.loading = false;
@@ -182,6 +211,10 @@ export class RentalTenantsComponent implements OnInit {
     this.search = '';
     this.statusFilter = '';
     this.load();
+  }
+
+  goToLeaseCreation(): void {
+    this.router.navigate(['/rental/leases'], { queryParams: { action: 'new-tenant' } });
   }
 
   fmt(v: number, currency = 'GNF'): string {

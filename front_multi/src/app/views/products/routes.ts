@@ -30,5 +30,10 @@ export const routes: Routes = [
     path: 'advanced',
     loadComponent: () => import('./products-advanced/products-advanced.component').then(m => m.ProductsAdvancedComponent),
     title: 'Gestion Avancée des Produits'
+  },
+  {
+    path: 'returns',
+    loadComponent: () => import('./product-returns/product-returns.component').then(m => m.ProductReturnsComponent),
+    title: 'Retours de Produits'
   }
 ];

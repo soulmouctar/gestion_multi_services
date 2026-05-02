@@ -1,6 +1,5 @@
 <div class="p-3 p-md-4">
 
-  <!-- Header -->
   <div class="rounded-4 mb-4 px-4 py-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
        style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;">
     <div>
@@ -12,7 +11,7 @@
         <h4 class="mb-0 fw-bold text-white">Gestion des Factures</h4>
       </div>
       <p class="mb-0 small" style="color:rgba(255,255,255,0.65);">
-        {{ totalItems }} facture(s) enregistrée(s)
+        Facturation détaillée avec intégration des arriérés clients
       </p>
     </div>
     <button class="btn fw-semibold"
@@ -22,25 +21,12 @@
     </button>
   </div>
 
-  <!-- Alertes -->
-  <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null"
-           class="mb-3" style="border-radius:10px;">
-    {{ successMessage }}
-  </c-alert>
-  <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null"
-           class="mb-3" style="border-radius:10px;">
-    {{ error }}
-  </c-alert>
-
-  <!-- Chargement -->
   <div *ngIf="loading" class="text-center py-5">
     <c-spinner></c-spinner>
     <p class="mt-3 text-body-secondary small">Chargement des factures...</p>
   </div>
 
-  <!-- Tableau -->
   <div *ngIf="!loading" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
-
     <div *ngIf="invoices.length === 0" class="text-center py-5">
       <svg cIcon name="cilDescription" style="color:#D1D5DB;width:40px;height:40px;" class="mb-3"></svg>
       <p class="text-body-secondary mb-0">Aucune facture trouvée</p>
@@ -52,6 +38,7 @@
           <tr style="background:#F9FAFB;border-bottom:2px solid #F3F4F6;">
             <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">N° Facture</th>
             <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Client</th>
+            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Détail</th>
             <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Montant</th>
             <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Statut</th>
             <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Échéance</th>
@@ -60,8 +47,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let invoice of invoices" style="border-color:#F3F4F6;">
-
+          <tr *ngFor="let invoice of invoices; trackBy: trackById" style="border-color:#F3F4F6;">
             <td class="px-4 py-3">
               <span class="fw-bold" style="color:#111827;">{{ invoice.invoice_number }}</span>
             </td>
@@ -70,40 +56,30 @@
               <span class="fw-semibold" style="color:#374151;">{{ getClientName(invoice.client_id) }}</span>
             </td>
 
-            <td class="px-4 py-3">
-              <span class="fw-bold" style="color:#0f3460;">{{ invoice.total_amount | number:'1.0-0' }}</span>
-              <span class="ms-1 small" style="color:#9CA3AF;">GNF</span>
+            <td class="px-4 py-3 small">
+              <div class="fw-semibold" style="color:#111827;">
+                {{ invoice.items?.length || 0 }} ligne(s)
+              </div>
+              <div style="color:#6B7280;">
+                Articles: {{ invoice.items_subtotal_amount || invoice.total_amount | number:'1.0-0' }} {{ invoice.currency || 'GNF' }}
+              </div>
+              <div *ngIf="invoice.previous_balance_amount" style="color:#F59E0B;">
+                Arriérés inclus: {{ invoice.previous_balance_amount | number:'1.0-0' }} {{ invoice.currency || 'GNF' }}
+              </div>
             </td>
 
             <td class="px-4 py-3">
-              <!-- PENDING -->
-              <span *ngIf="invoice.status === 'PENDING'"
-                    class="px-2 py-1 rounded-2 small fw-semibold"
-                    style="background:#FFFBEB;color:#F59E0B;">
-                En attente
-              </span>
-              <!-- PAID -->
-              <span *ngIf="invoice.status === 'PAID'"
-                    class="px-2 py-1 rounded-2 small fw-semibold"
-                    style="background:#ECFDF5;color:#10B981;">
-                Payée
-              </span>
-              <!-- OVERDUE -->
-              <span *ngIf="invoice.status === 'OVERDUE'"
-                    class="px-2 py-1 rounded-2 small fw-semibold"
-                    style="background:#FEF2F2;color:#EF4444;">
-                En retard
-              </span>
-              <!-- CANCELLED -->
-              <span *ngIf="invoice.status === 'CANCELLED'"
-                    class="px-2 py-1 rounded-2 small fw-semibold"
-                    style="background:#F3F4F6;color:#9CA3AF;">
-                Annulée
-              </span>
-              <!-- Fallback -->
-              <span *ngIf="invoice.status !== 'PENDING' && invoice.status !== 'PAID' && invoice.status !== 'OVERDUE' && invoice.status !== 'CANCELLED'"
-                    class="px-2 py-1 rounded-2 small fw-semibold"
-                    style="background:#F0F9FF;color:#0EA5E9;">
+              <span class="fw-bold" style="color:#0f3460;">{{ invoice.total_amount | number:'1.0-0' }}</span>
+              <span class="ms-1 small" style="color:#9CA3AF;">{{ invoice.currency || 'GNF' }}</span>
+              <ng-container *ngIf="invoice.currency && invoice.currency !== 'GNF' && invoice.total_amount_gnf">
+                <br><span class="small" style="color:#6B7280;">≈ {{ invoice.total_amount_gnf | number:'1.0-0' }} GNF</span>
+              </ng-container>
+            </td>
+
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 rounded-2 small fw-semibold"
+                    [style.background]="getStatusClass(invoice.status) === 'success' ? '#ECFDF5' : getStatusClass(invoice.status) === 'warning' ? '#FFFBEB' : '#FEF2F2'"
+                    [style.color]="getStatusClass(invoice.status) === 'success' ? '#10B981' : getStatusClass(invoice.status) === 'warning' ? '#F59E0B' : '#EF4444'">
                 {{ getStatusLabel(invoice.status) }}
               </span>
             </td>
@@ -126,19 +102,17 @@
                 </button>
                 <button class="btn btn-sm d-flex align-items-center justify-content-center"
                         style="width:32px;height:32px;padding:0;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:8px;"
-                        (click)="confirmDelete(invoice)"
+                        (click)="deleteInvoice(invoice)"
                         title="Supprimer">
                   <svg cIcon name="cilTrash" style="width:14px;height:14px;"></svg>
                 </button>
               </div>
             </td>
-
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Pagination -->
     <div *ngIf="totalPages > 1" class="d-flex justify-content-between align-items-center px-4 py-3"
          style="border-top:1px solid #F3F4F6;">
       <span class="small" style="color:#9CA3AF;">
@@ -149,7 +123,7 @@
           <li class="page-item" [class.disabled]="currentPage === 1">
             <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(currentPage - 1)">‹</a>
           </li>
-          <li class="page-item" *ngFor="let page of getPages()"
+          <li class="page-item" *ngFor="let page of getPages(); trackBy: trackById"
               [class.active]="page === currentPage">
             <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(page)">{{ page }}</a>
           </li>
@@ -159,75 +133,216 @@
         </ul>
       </nav>
     </div>
-
   </div>
 
 </div>
 
-<!-- Modal Formulaire -->
-<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
+<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static" size="xl">
   <c-modal-header style="border-bottom:1px solid #F3F4F6;">
     <h5 cModalTitle class="fw-bold" style="color:#111827;">
       {{ editMode ? 'Modifier la facture' : 'Nouvelle facture' }}
     </h5>
     <button type="button" class="btn-close" (click)="showFormModal = false"></button>
   </c-modal-header>
+
   <c-modal-body class="p-4">
     <form [formGroup]="invoiceForm">
-
-      <div class="mb-3">
-        <label class="form-label fw-semibold small" style="color:#374151;">Client *</label>
-        <select cSelect formControlName="client_id"
-                style="border-radius:8px;"
-                [class.is-invalid]="submitted && invoiceForm.get('client_id')?.invalid">
-          <option [ngValue]="null">-- Sélectionner un client --</option>
-          <option *ngFor="let c of clients" [ngValue]="c.id">{{ c.name }}</option>
-        </select>
-        <div class="invalid-feedback" *ngIf="submitted && invoiceForm.get('client_id')?.invalid">
-          Le client est obligatoire
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label fw-semibold small" style="color:#374151;">N° Facture *</label>
-        <input cFormControl type="text" formControlName="invoice_number"
-               placeholder="Ex: FACT-2026-001"
-               style="border-radius:8px;"
-               [class.is-invalid]="submitted && invoiceForm.get('invoice_number')?.invalid" />
-        <div class="invalid-feedback" *ngIf="submitted && invoiceForm.get('invoice_number')?.invalid">
-          Le numéro de facture est obligatoire
-        </div>
-      </div>
-
-      <div class="row g-3">
-        <div class="col-6">
-          <label class="form-label fw-semibold small" style="color:#374151;">Montant total *</label>
-          <input cFormControl type="number" formControlName="total_amount" step="0.01"
-                 placeholder="0.00"
-                 style="border-radius:8px;"
-                 [class.is-invalid]="submitted && invoiceForm.get('total_amount')?.invalid" />
-          <div class="invalid-feedback" *ngIf="submitted && invoiceForm.get('total_amount')?.invalid">
-            Le montant est obligatoire
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small" style="color:#374151;">Client *</label>
+          <select cSelect formControlName="client_id"
+                  style="border-radius:8px;"
+                  [class.is-invalid]="submitted && invoiceForm.get('client_id')?.invalid">
+            <option [ngValue]="null">-- Sélectionner un client --</option>
+            <option *ngFor="let c of clients; trackBy: trackById" [ngValue]="c.id">{{ c.name }}</option>
+          </select>
+          <div class="invalid-feedback" *ngIf="submitted && invoiceForm.get('client_id')?.invalid">
+            Le client est obligatoire
           </div>
         </div>
-        <div class="col-6">
-          <label class="form-label fw-semibold small" style="color:#374151;">Statut</label>
-          <select cSelect formControlName="status" style="border-radius:8px;">
-            <option value="PENDING">En attente</option>
-            <option value="PAID">Payée</option>
-            <option value="OVERDUE">En retard</option>
-            <option value="CANCELLED">Annulée</option>
-          </select>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small" style="color:#374151;">N° Facture</label>
+          <input cFormControl type="text" formControlName="invoice_number"
+                 placeholder="Laisser vide pour génération automatique"
+                 style="border-radius:8px;" />
+          <small class="text-muted">Le backend génère un numéro si ce champ est vide.</small>
         </div>
       </div>
 
-      <div class="mt-3">
-        <label class="form-label fw-semibold small" style="color:#374151;">Date d'échéance</label>
-        <input cFormControl type="date" formControlName="due_date" style="border-radius:8px;" />
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small" style="color:#374151;">Devise</label>
+          <select cSelect formControlName="currency" style="border-radius:8px;">
+            <option value="GNF">GNF — Franc Guinéen</option>
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.code">
+              {{ c.code }} — {{ c.name }}
+            </option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small" style="color:#374151;">Taux (→ GNF)</label>
+          <input cFormControl type="number" formControlName="exchange_rate" step="0.0001" min="0"
+                 style="border-radius:8px;" placeholder="1" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small" style="color:#374151;">Date d'échéance</label>
+          <input cFormControl type="date" formControlName="due_date" style="border-radius:8px;" />
+        </div>
       </div>
 
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small" style="color:#374151;">Statut</label>
+          <select cSelect formControlName="status" style="border-radius:8px;">
+            <option value="IMPAYE">Impayée</option>
+            <option value="PARTIEL">Partielle</option>
+            <option value="PAYE">Payée</option>
+          </select>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label fw-semibold small" style="color:#374151;">Notes</label>
+          <textarea cFormControl formControlName="notes" rows="2"
+                    placeholder="Observations, conditions de paiement..."
+                    style="border-radius:8px;resize:vertical;"></textarea>
+        </div>
+      </div>
+
+      <div class="rounded-3 p-3 mb-4" style="background:#F9FAFB;border:1px solid #E5E7EB;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+          <div>
+            <div class="fw-semibold" style="color:#111827;">Arriérés client</div>
+            <div class="small text-muted">Les soldes antérieurs impayés peuvent être intégrés automatiquement à la facture.</div>
+          </div>
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" id="includePreviousBalance" formControlName="include_previous_balance">
+            <label class="form-check-label small fw-semibold ms-2" for="includePreviousBalance">
+              Intégrer les arriérés
+            </label>
+          </div>
+        </div>
+
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small" style="color:#374151;">Solde antérieur appliqué</label>
+            <input cFormControl type="number" formControlName="previous_balance_amount" min="0" step="1" style="border-radius:8px;" />
+          </div>
+          <div class="col-md-8">
+            <div class="small text-muted" *ngIf="loadingClientBalance">Chargement du solde client...</div>
+            <div class="small text-muted" *ngIf="!loadingClientBalance && clientBalance">
+              Solde restant: <span class="fw-semibold">{{ clientBalance.total_remaining | number:'1.0-0' }} GNF</span>
+              <span *ngIf="clientBalance.total_return_credits"> • Avoirs retours: {{ clientBalance.total_return_credits | number:'1.0-0' }} GNF</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h6 class="fw-bold mb-1" style="color:#111827;">Lignes de facturation</h6>
+          <p class="small text-muted mb-0">Chaque ligne permet de détailler le produit, la quantité et le prix unitaire.</p>
+        </div>
+        <button type="button" class="btn btn-sm fw-semibold"
+                style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:8px;"
+                (click)="addLineItem()">
+          <svg cIcon name="cilPlus" class="me-1"></svg> Ajouter une ligne
+        </button>
+      </div>
+
+      <div class="table-responsive mb-2">
+        <table class="table align-middle mb-0">
+          <thead style="background:#F9FAFB;">
+            <tr>
+              <th style="min-width:180px;">Produit</th>
+              <th style="min-width:220px;">Description</th>
+              <th style="width:110px;">Qté</th>
+              <th style="width:160px;">Prix unitaire</th>
+              <th style="width:160px;">Total ligne</th>
+              <th style="width:70px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of invoiceLineItems; let i = index; trackBy: trackByIndex">
+              <td>
+                <select cSelect
+                        [(ngModel)]="item.product_id"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="onProductSelected(item)"
+                        style="border-radius:8px;">
+                  <option [ngValue]="null">Produit libre</option>
+                  <option *ngFor="let product of products; trackBy: trackById" [ngValue]="product.id">
+                    {{ product.name }}
+                  </option>
+                </select>
+              </td>
+              <td>
+                <input cFormControl type="text"
+                       [(ngModel)]="item.description"
+                       [ngModelOptions]="{ standalone: true }"
+                       (ngModelChange)="syncComputedTotals()"
+                       placeholder="Description de la ligne"
+                       style="border-radius:8px;" />
+              </td>
+              <td>
+                <input cFormControl type="number"
+                       [(ngModel)]="item.quantity"
+                       [ngModelOptions]="{ standalone: true }"
+                       (ngModelChange)="syncComputedTotals()"
+                       min="0.01" step="1"
+                       style="border-radius:8px;" />
+              </td>
+              <td>
+                <div class="input-group">
+                  <input cFormControl type="number"
+                         [(ngModel)]="item.unit_price"
+                         [ngModelOptions]="{ standalone: true }"
+                         (ngModelChange)="syncComputedTotals()"
+                         min="0" step="1"
+                         style="border-radius:8px 0 0 8px;" />
+                  <span class="input-group-text">{{ selectedCurrencySymbol }}</span>
+                </div>
+              </td>
+              <td class="fw-semibold" style="color:#0f3460;">
+                {{ getLineTotal(item) | number:'1.0-0' }} {{ invoiceForm.get('currency')?.value }}
+              </td>
+              <td class="text-end">
+                <button type="button" class="btn btn-sm"
+                        style="background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:8px;"
+                        (click)="removeLineItem(i)">
+                  <svg cIcon name="cilTrash"></svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="lineItemsError" class="small text-danger mb-3">{{ lineItemsError }}</div>
+
+      <div class="rounded-3 p-3"
+           style="background:#EFF6FF;border:1px solid #BFDBFE;">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="small text-muted">Sous-total articles</div>
+            <div class="fw-bold" style="color:#1D4ED8;">{{ itemsSubtotal | number:'1.0-0' }} {{ invoiceForm.get('currency')?.value }}</div>
+          </div>
+          <div class="col-md-4">
+            <div class="small text-muted">Arriérés intégrés</div>
+            <div class="fw-bold" style="color:#F59E0B;">{{ previousBalanceApplied | number:'1.0-0' }} {{ invoiceForm.get('currency')?.value }}</div>
+          </div>
+          <div class="col-md-4">
+            <div class="small text-muted">Total facture</div>
+            <div class="fw-bold" style="color:#0f3460;">{{ invoiceTotal | number:'1.0-0' }} {{ invoiceForm.get('currency')?.value }}</div>
+          </div>
+        </div>
+
+        <div class="mt-3 small" *ngIf="invoiceForm.get('currency')?.value !== 'GNF'" style="color:#3B82F6;">
+          Équivalent GNF: {{ amountInGnf | number:'1.0-0' }} GNF
+        </div>
+      </div>
     </form>
   </c-modal-body>
+
   <c-modal-footer style="border-top:1px solid #F3F4F6;">
     <button class="btn"
             style="border-radius:8px;background:#F3F4F6;color:#374151;border:none;"
@@ -238,39 +353,6 @@
             style="border-radius:8px;background:#0f3460;color:#fff;border:none;padding:8px 20px;"
             (click)="saveInvoice()">
       {{ editMode ? 'Mettre à jour' : 'Créer la facture' }}
-    </button>
-  </c-modal-footer>
-</c-modal>
-
-<!-- Modal Suppression -->
-<c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #F3F4F6;">
-    <h5 cModalTitle class="fw-bold" style="color:#111827;">Confirmer la suppression</h5>
-    <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
-  </c-modal-header>
-  <c-modal-body class="p-4 text-center">
-    <div class="mb-3 d-flex justify-content-center">
-      <div class="rounded-circle d-flex align-items-center justify-content-center"
-           style="width:56px;height:56px;background:#FEF2F2;">
-        <svg cIcon name="cilTrash" style="color:#EF4444;width:26px;height:26px;"></svg>
-      </div>
-    </div>
-    <h6 class="fw-bold mb-2" style="color:#111827;">Supprimer la facture ?</h6>
-    <p class="mb-1" style="color:#374151;">
-      Vous allez supprimer la facture <strong>{{ invoiceToDelete?.invoice_number }}</strong>.
-    </p>
-    <p class="small mb-0" style="color:#EF4444;">Cette action est irréversible.</p>
-  </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #F3F4F6;justify-content:center;gap:12px;">
-    <button class="btn"
-            style="border-radius:8px;background:#F3F4F6;color:#374151;border:none;min-width:100px;"
-            (click)="deleteModalOpen = false">
-      Annuler
-    </button>
-    <button class="btn fw-semibold"
-            style="border-radius:8px;background:#EF4444;color:#fff;border:none;min-width:100px;"
-            (click)="deleteInvoice()">
-      Supprimer
     </button>
   </c-modal-footer>
 </c-modal>

@@ -92,7 +92,7 @@
         <label class="form-label fw-semibold" style="font-size:0.8rem;color:#495057;">Categorie</label>
         <select class="form-select" formControlName="category_id" style="border-radius:8px;font-size:0.875rem;">
           <option value="">Toutes</option>
-          <option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option>
+          <option *ngFor="let category of categories; trackBy: trackById" [value]="category.id">{{ category.name }}</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -189,9 +189,11 @@
             </td>
             <td class="py-3">
               <div class="d-flex align-items-center gap-2">
-                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                <img *ngIf="product.image_url" [src]="product.image_url" [alt]="product.name"
+                     style="width:34px;height:34px;min-width:34px;border-radius:50%;object-fit:cover;border:1px solid #e9ecef;">
+                <div *ngIf="!product.image_url" class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
                      style="width:34px;height:34px;min-width:34px;background:#FFFBEB;color:#D97706;font-size:.8rem;">
-                  {{ product.name?.charAt(0)?.toUpperCase() }}
+                  {{ product.name.charAt(0).toUpperCase() }}
                 </div>
                 <div>
                   <div class="fw-semibold" style="color:#1a1a2e;">{{ product.name }}</div>
@@ -275,7 +277,7 @@
           <li class="page-item" [class.disabled]="currentPage === 1">
             <a class="page-link" (click)="onPageChange(currentPage - 1)" style="cursor:pointer;">Precedent</a>
           </li>
-          <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+          <li class="page-item" *ngFor="let page of getPages(); trackBy: trackById" [class.active]="page === currentPage">
             <a class="page-link" (click)="onPageChange(page)" style="cursor:pointer;">{{ page }}</a>
           </li>
           <li class="page-item" [class.disabled]="currentPage === totalPages">
@@ -355,6 +357,10 @@
             <strong style="font-size:0.85rem;color:#4F46E5;">Informations Generales</strong>
           </div>
           <table class="table table-sm table-borderless mb-0" style="font-size:0.875rem;">
+            <tr *ngIf="selectedProduct.image_url">
+              <td class="text-muted" style="width:45%;padding:8px 16px;">Photo</td>
+              <td><img [src]="selectedProduct.image_url" [alt]="selectedProduct.name" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #e9ecef;"></td>
+            </tr>
             <tr><td class="text-muted" style="width:45%;padding:8px 16px;">Nom</td><td class="fw-semibold">{{ selectedProduct.name }}</td></tr>
             <tr><td class="text-muted" style="padding:8px 16px;">SKU</td><td><code>{{ selectedProduct.sku || '-' }}</code></td></tr>
             <tr><td class="text-muted" style="padding:8px 16px;">Code-barres</td><td>{{ selectedProduct.barcode || '-' }}</td></tr>
@@ -442,7 +448,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let sale of salesHistory">
+            <tr *ngFor="let sale of salesHistory; trackBy: trackById">
               <td><small class="text-muted">{{ sale.date | date:'dd/MM/yyyy' }}</small></td>
               <td><code>{{ sale.invoice_number || '-' }}</code></td>
               <td>{{ sale.client_name || 'Client anonyme' }}</td>

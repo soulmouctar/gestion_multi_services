@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Lease extends Model
 {
@@ -10,6 +11,7 @@ class Lease extends Model
         'tenant_id', 'housing_unit_id', 'renter_name', 'renter_phone',
         'renter_email', 'start_date', 'end_date', 'monthly_rent',
         'deposit_amount', 'currency', 'payment_day', 'status', 'notes',
+        'renter_photo',
     ];
 
     protected $casts = [
@@ -19,6 +21,23 @@ class Lease extends Model
         'deposit_amount' => 'decimal:2',
         'payment_day'    => 'integer',
     ];
+
+    protected $appends = ['renter_photo_url'];
+
+    public function getRenterPhotoUrlAttribute(): ?string
+    {
+        if (!$this->renter_photo) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->renter_photo);
+    }
+
+
+    public function scopeForTenant($query, int $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
 
     public function housingUnit()
     {

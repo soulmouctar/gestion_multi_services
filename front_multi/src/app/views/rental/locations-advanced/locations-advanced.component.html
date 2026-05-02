@@ -105,7 +105,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let location of locations">
+            <tr *ngFor="let location of locations; trackBy: trackById">
               <td>
                 <strong>{{ location.name }}</strong>
                 <br>
@@ -145,7 +145,7 @@
               Précédent
             </button>
           </li>
-          <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index" 
+          <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index; trackBy: trackById" 
               [class.active]="currentPage === i + 1">
             <button class="page-link" (click)="onPageChange(i + 1)">{{ i + 1 }}</button>
           </li>
@@ -236,7 +236,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let building of selectedLocationBuildings">
+          <tr *ngFor="let building of selectedLocationBuildings; trackBy: trackById">
             <td>{{ building.name }}</td>
             <td>{{ building.floors_count || 0 }}</td>
             <td>{{ building.units_count || 0 }}</td>

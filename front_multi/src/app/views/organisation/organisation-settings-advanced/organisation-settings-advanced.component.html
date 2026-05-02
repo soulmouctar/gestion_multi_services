@@ -24,7 +24,7 @@
           </div>
 
           <div *ngIf="!optionsLoading && settingsOptions">
-            <div *ngFor="let option of settingsOptions | keyvalue" class="border-bottom pb-2 mb-2">
+            <div *ngFor="let option of settingsOptions | keyvalue; trackBy: trackById" class="border-bottom pb-2 mb-2">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
                   <h6 class="mb-1">{{ option.key | titlecase }}</h6>

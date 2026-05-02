@@ -32,7 +32,7 @@
     </div>
 
     <div *ngIf="taxis.length > 0" class="row g-3">
-      <div class="col-md-6 col-lg-4" *ngFor="let item of taxis">
+      <div class="col-md-6 col-lg-4" *ngFor="let item of taxis; trackBy: trackById">
         <div class="rounded-4 p-4 h-100 shadow-sm" style="background:#fff;border:1px solid #f0f0f0;transition:all .2s"
           onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'"
           onmouseleave="this.style.transform='';this.style.boxShadow=''">
@@ -123,7 +123,7 @@
         <li class="page-item" [class.disabled]="currentPage === 1">
           <a class="page-link" (click)="onPageChange(currentPage - 1)">Précédent</a>
         </li>
-        <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+        <li class="page-item" *ngFor="let page of getPages(); trackBy: trackById" [class.active]="page === currentPage">
           <a class="page-link" (click)="onPageChange(page)">{{ page }}</a>
         </li>
         <li class="page-item" [class.disabled]="currentPage === totalPages">
@@ -155,7 +155,7 @@
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Statut</label>
           <select cSelect formControlName="status" style="border-radius:8px">
-            <option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</option>
+            <option *ngFor="let s of statusOptions; trackBy: trackById" [value]="s.value">{{ s.label }}</option>
           </select>
         </div>
         <div class="col-md-6">

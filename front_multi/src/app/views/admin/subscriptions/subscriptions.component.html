@@ -46,7 +46,7 @@
           <label class="form-label fw-semibold text-muted small text-uppercase">Plan</label>
           <select class="form-select" formControlName="plan" (change)="applyFilters()" style="border-radius:8px">
             <option value="ALL">Tous les plans</option>
-            <option *ngFor="let plan of plans" [value]="plan.id">{{ plan.name }}</option>
+            <option *ngFor="let plan of plans; trackBy: trackById" [value]="plan.id">{{ plan.name }}</option>
           </select>
         </div>
         <div class="col-md-2">
@@ -97,7 +97,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let subscription of filteredSubscriptions">
+            <tr *ngFor="let subscription of filteredSubscriptions; trackBy: trackById">
               <td class="ps-4">
                 <div class="d-flex align-items-center gap-3">
                   <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
@@ -209,7 +209,7 @@
           <select class="form-select" formControlName="tenant_id"
                   [class.is-invalid]="submitted && f['tenant_id'].errors" style="border-radius:8px">
             <option value="">Sélectionner un tenant</option>
-            <option *ngFor="let tenant of tenants" [value]="tenant.id">
+            <option *ngFor="let tenant of tenants; trackBy: trackById" [value]="tenant.id">
               {{ tenant.name }} ({{ tenant.domain }})
             </option>
           </select>
@@ -223,7 +223,7 @@
           <select class="form-select" formControlName="plan_id"
                   [class.is-invalid]="submitted && f['plan_id'].errors" style="border-radius:8px">
             <option value="">Sélectionner un plan</option>
-            <option *ngFor="let plan of plans" [value]="plan.id">
+            <option *ngFor="let plan of plans; trackBy: trackById" [value]="plan.id">
               {{ plan.name }} — {{ formatPrice(plan.price) }} / {{ plan.duration_months }} mois
             </option>
           </select>

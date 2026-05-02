@@ -64,7 +64,7 @@
           <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau contrat
         </button>
         <select class="form-select form-select-sm w-auto" [(ngModel)]="leaseStatusFilter" (change)="leasesPage = 1; loadLeases()">
-          <option *ngFor="let s of leaseStatuses" [value]="s.value">{{ s.label }}</option>
+          <option *ngFor="let s of leaseStatuses; trackBy: trackById" [value]="s.value">{{ s.label }}</option>
         </select>
         <span *ngIf="loading" class="ms-auto"><c-spinner size="sm"></c-spinner></span>
       </div>
@@ -82,7 +82,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let lease of leases">
+            <tr *ngFor="let lease of leases; trackBy: trackById">
               <td>
                 <div class="fw-semibold">{{ lease.renter_name }}</div>
                 <div class="text-muted small">{{ lease.renter_phone || lease.renter_email || '—' }}</div>
@@ -129,7 +129,7 @@
       <!-- Pagination leases -->
       <div *ngIf="leasesTotalPages > 1" class="d-flex justify-content-center gap-1 mt-3">
         <button cButton color="secondary" variant="outline" size="sm" [disabled]="leasesPage === 1" (click)="onLeasesPageChange(leasesPage - 1)">‹</button>
-        <button *ngFor="let p of getPages(leasesTotalPages)" cButton
+        <button *ngFor="let p of getPages(leasesTotalPages); trackBy: trackById" cButton
           [color]="p === leasesPage ? 'primary' : 'secondary'"
           [variant]="p === leasesPage ? undefined : 'outline'"
           size="sm" (click)="onLeasesPageChange(p)">{{ p }}</button>
@@ -162,7 +162,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let p of payments">
+            <tr *ngFor="let p of payments; trackBy: trackById">
               <td class="fw-semibold">{{ p.lease?.renter_name || '—' }}</td>
               <td><span class="badge bg-primary-subtle text-primary-emphasis">{{ formatPeriod(p.period_month) }}</span></td>
               <td class="text-end fw-semibold">{{ formatAmount(p.amount, p.currency) }}</td>
@@ -187,7 +187,7 @@
       <!-- Pagination payments -->
       <div *ngIf="paymentsTotalPages > 1" class="d-flex justify-content-center gap-1 mt-3">
         <button cButton color="secondary" variant="outline" size="sm" [disabled]="paymentsPage === 1" (click)="onPaymentsPageChange(paymentsPage - 1)">‹</button>
-        <button *ngFor="let p of getPages(paymentsTotalPages)" cButton
+        <button *ngFor="let p of getPages(paymentsTotalPages); trackBy: trackById" cButton
           [color]="p === paymentsPage ? 'primary' : 'secondary'"
           [variant]="p === paymentsPage ? undefined : 'outline'"
           size="sm" (click)="onPaymentsPageChange(p)">{{ p }}</button>
@@ -208,12 +208,31 @@
     <form [formGroup]="leaseForm">
       <div class="row g-3">
 
+        <div class="col-12 text-center">
+          <div class="d-inline-flex flex-column align-items-center gap-2">
+            <ng-container *ngIf="selectedLeasePhotoPreview; else leasePhotoPlaceholder">
+              <img [src]="selectedLeasePhotoPreview" alt="Photo locataire"
+                   style="width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid #e5e7eb;">
+            </ng-container>
+            <ng-template #leasePhotoPlaceholder>
+              <div style="width:84px;height:84px;border-radius:50%;background:#EEF2FF;color:#4F46E5;
+                          display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.6rem;">
+                👤
+              </div>
+            </ng-template>
+            <label class="btn btn-sm btn-outline-primary">
+              Ajouter photo
+              <input type="file" accept="image/*" class="d-none" (change)="onLeasePhotoSelected($event)">
+            </label>
+          </div>
+        </div>
+
         <div class="col-12">
           <label cLabel class="fw-semibold">Unité de logement *</label>
           <select formControlName="housing_unit_id" class="form-select"
             [class.is-invalid]="submitted && leaseForm.get('housing_unit_id')?.invalid">
             <option [ngValue]="null">-- Choisir une unité --</option>
-            <option *ngFor="let u of housingUnits" [ngValue]="u.id">
+            <option *ngFor="let u of housingUnits; trackBy: trackById" [ngValue]="u.id">
               {{ getUnitLabel(u) }} — {{ u.type || '' }} ({{ u.status }})
             </option>
           </select>
@@ -239,7 +258,7 @@
         <div class="col-md-6">
           <label cLabel>Statut *</label>
           <select formControlName="status" class="form-select">
-            <option *ngFor="let s of leaseStatuses.slice(1)" [value]="s.value">{{ s.label }}</option>
+            <option *ngFor="let s of leaseStatuses.slice(1); trackBy: trackById" [value]="s.value">{{ s.label }}</option>
           </select>
         </div>
 
@@ -266,7 +285,7 @@
         <div class="col-md-2">
           <label cLabel>Devise *</label>
           <select formControlName="currency" class="form-select">
-            <option *ngFor="let c of currencies" [value]="c.value">{{ c.label }}</option>
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.value">{{ c.label }}</option>
           </select>
         </div>
         <div class="col-md-2">
@@ -313,7 +332,7 @@
         ⚠ {{ unpaidMonths.length }} mois impayé(s) — Sélectionnez le mois à régler :
       </div>
       <div class="d-flex flex-wrap gap-1">
-        <button *ngFor="let m of unpaidMonths"
+        <button *ngFor="let m of unpaidMonths; trackBy: trackById"
           type="button"
           class="btn btn-sm"
           [class.btn-danger]="paymentForm.get('period_month')?.value === m"
@@ -351,7 +370,7 @@
         <div class="col-md-6">
           <label cLabel>Statut</label>
           <select formControlName="status" class="form-select">
-            <option *ngFor="let s of paymentStatuses" [value]="s.value">{{ s.label }}</option>
+            <option *ngFor="let s of paymentStatuses; trackBy: trackById" [value]="s.value">{{ s.label }}</option>
           </select>
         </div>
         <div class="col-md-6">
@@ -363,7 +382,7 @@
         <div class="col-md-6">
           <label cLabel>Devise *</label>
           <select formControlName="currency" class="form-select">
-            <option *ngFor="let c of currencies" [value]="c.value">{{ c.label }}</option>
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.value">{{ c.label }}</option>
           </select>
         </div>
         <div class="col-md-6">
@@ -374,7 +393,7 @@
         <div class="col-md-6">
           <label cLabel>Méthode *</label>
           <select formControlName="payment_method" class="form-select">
-            <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+            <option *ngFor="let m of paymentMethods; trackBy: trackById" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div class="col-md-6">
@@ -422,7 +441,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of selectedLeasePayments">
+          <tr *ngFor="let p of selectedLeasePayments; trackBy: trackById">
             <td><span class="badge bg-primary-subtle text-primary-emphasis">{{ formatPeriod(p.period_month) }}</span></td>
             <td class="text-end fw-semibold">{{ formatAmount(p.amount, p.currency) }}</td>
             <td class="text-muted small">{{ getPaymentMethodLabel(p.payment_method) }}</td>

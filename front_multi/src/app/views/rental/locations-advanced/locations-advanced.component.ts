@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
@@ -17,9 +18,12 @@ import { AuthService } from '../../../core/services/auth.service';
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, TableModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './locations-advanced.component.html'
 })
 export class LocationsAdvancedComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   locations: any[] = [];
   buildings: any[] = [];
   loading = false;
@@ -87,7 +91,7 @@ export class LocationsAdvancedComponent implements OnInit {
       url += `&city=${encodeURIComponent(filters.city)}`;
     }
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.locations = r.data.data || r.data;
@@ -108,7 +112,7 @@ export class LocationsAdvancedComponent implements OnInit {
 
   loadLocationStatistics(): void {
     this.statsLoading = true;
-    this.apiService.get<any>('locations/statistics').subscribe({
+    this.apiService.get<any>('locations/statistics').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.locationStats = r.data;
@@ -164,7 +168,7 @@ export class LocationsAdvancedComponent implements OnInit {
       ? this.apiService.put<any>(`locations/${this.currentLocation.id}`, data)
       : this.apiService.post<any>('locations', data);
 
-    request.subscribe({
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = this.isEditing 
@@ -184,7 +188,7 @@ export class LocationsAdvancedComponent implements OnInit {
 
   deleteLocation(location: any): void {
     if (confirm(`Êtes-vous sûr de vouloir supprimer l'emplacement "${location.name}" ?`)) {
-      this.apiService.delete<any>(`locations/${location.id}`).subscribe({
+      this.apiService.delete<any>(`locations/${location.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r) => {
           if (r.success) {
             this.successMessage = 'Emplacement supprimé avec succès';
@@ -207,7 +211,7 @@ export class LocationsAdvancedComponent implements OnInit {
   }
 
   loadLocationBuildings(locationId: number): void {
-    this.apiService.get<any>(`buildings?location_id=${locationId}`).subscribe({
+    this.apiService.get<any>(`buildings?location_id=${locationId}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.selectedLocationBuildings = r.data.data || r.data;
@@ -215,7 +219,6 @@ export class LocationsAdvancedComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: () => {
-        console.error('Erreur lors du chargement des bâtiments');
       }
     });
   }
@@ -242,4 +245,8 @@ export class LocationsAdvancedComponent implements OnInit {
       this.cdr.detectChanges();
     }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

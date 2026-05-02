@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { 
@@ -33,10 +34,13 @@ import Swal from 'sweetalert2';
     GridModule,
     IconDirective
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './currencies.component.html',
   styleUrls: ['./currencies.component.scss']
 })
 export class CurrenciesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   currencyForm: FormGroup;
   currencies: OrganisationCurrency[] = [];
   loading = false;
@@ -76,7 +80,7 @@ export class CurrenciesComponent implements OnInit {
 
   loadCurrencies(): void {
     this.loading = true;
-    this.currencyService.getCurrencies().subscribe({
+    this.currencyService.getCurrencies().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.currencies = response.data;
@@ -84,7 +88,6 @@ export class CurrenciesComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading currencies:', error);
         Swal.fire({
           icon: 'error',
           title: 'Erreur',
@@ -134,7 +137,7 @@ export class CurrenciesComponent implements OnInit {
       
       if (this.editingCurrency) {
         // Update existing currency
-        this.currencyService.updateCurrency(this.editingCurrency.id!, formData).subscribe({
+        this.currencyService.updateCurrency(this.editingCurrency.id!, formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               const index = this.currencies.findIndex(c => c.id === this.editingCurrency!.id);
@@ -152,7 +155,6 @@ export class CurrenciesComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Error updating currency:', error);
             this.saving = false;
             let errorMessage = 'Impossible de mettre à jour la devise.';
             if (error.error?.message?.includes('already exists')) {
@@ -168,7 +170,7 @@ export class CurrenciesComponent implements OnInit {
         });
       } else {
         // Create new currency
-        this.currencyService.createCurrency(formData).subscribe({
+        this.currencyService.createCurrency(formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               this.currencies.push(response.data);
@@ -183,7 +185,6 @@ export class CurrenciesComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Error creating currency:', error);
             this.saving = false;
             let errorMessage = 'Impossible de créer la devise.';
             if (error.error?.message?.includes('already exists')) {
@@ -202,7 +203,7 @@ export class CurrenciesComponent implements OnInit {
   }
 
   setAsDefault(currency: OrganisationCurrency): void {
-    this.currencyService.setAsDefault(currency.id!).subscribe({
+    this.currencyService.setAsDefault(currency.id!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           // Update local currencies array
@@ -218,7 +219,6 @@ export class CurrenciesComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error setting currency as default:', error);
         Swal.fire({
           icon: 'error',
           title: 'Erreur',
@@ -230,7 +230,7 @@ export class CurrenciesComponent implements OnInit {
   }
 
   toggleStatus(currency: OrganisationCurrency): void {
-    this.currencyService.toggleStatus(currency.id!).subscribe({
+    this.currencyService.toggleStatus(currency.id!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           const index = this.currencies.findIndex(c => c.id === currency.id);
@@ -247,7 +247,6 @@ export class CurrenciesComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error toggling currency status:', error);
         let errorMessage = 'Impossible de changer le statut de la devise.';
         if (error.error?.message?.includes('Cannot deactivate')) {
           errorMessage = 'Impossible de désactiver la devise par défaut.';
@@ -274,7 +273,7 @@ export class CurrenciesComponent implements OnInit {
       cancelButtonText: 'Annuler'
     }).then((result: any) => {
       if (result.isConfirmed) {
-        this.currencyService.deleteCurrency(currency.id!).subscribe({
+        this.currencyService.deleteCurrency(currency.id!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               this.currencies = this.currencies.filter(c => c.id !== currency.id);
@@ -287,7 +286,6 @@ export class CurrenciesComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Error deleting currency:', error);
             let errorMessage = 'Impossible de supprimer la devise.';
             if (error.error?.message?.includes('Cannot delete')) {
               errorMessage = 'Impossible de supprimer la seule devise.';
@@ -307,4 +305,8 @@ export class CurrenciesComponent implements OnInit {
   get f() {
     return this.currencyForm.controls;
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -1,11 +1,12 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import {
   ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-  ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+  ModalModule, AlertModule, SpinnerModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -18,11 +19,14 @@ import Swal from 'sweetalert2';
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-    ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+    ModalModule, AlertModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './container-detail.component.html'
 })
 export class ContainerDetailComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   container: any = null;
   containerPhotos: any[] = [];
   products: any[] = [];
@@ -57,7 +61,7 @@ export class ContainerDetailComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['id']) {
         this.containerId = +params['id'];
         this.loadContainerDetails();
@@ -71,7 +75,7 @@ export class ContainerDetailComponent implements OnInit {
     if (!this.containerId) return;
     
     this.loading = true;
-    this.apiService.get<any>(`containers/${this.containerId}`).subscribe({
+    this.apiService.get<any>(`containers/${this.containerId}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.container = response.data;
@@ -90,7 +94,7 @@ export class ContainerDetailComponent implements OnInit {
   loadContainerPhotos(): void {
     if (!this.containerId) return;
     
-    this.apiService.get<any>(`container-photos?container_id=${this.containerId}&page=${this.currentPage}`).subscribe({
+    this.apiService.get<any>(`container-photos?container_id=${this.containerId}&page=${this.currentPage}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const p = response.data;
@@ -110,7 +114,7 @@ export class ContainerDetailComponent implements OnInit {
   }
 
   loadProducts(): void {
-    this.apiService.get<any>('products?per_page=100').subscribe({
+    this.apiService.get<any>('products?per_page=100').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.products = response.data.data || [];
@@ -203,7 +207,7 @@ export class ContainerDetailComponent implements OnInit {
       formData.append('description', description);
     }
 
-    this.apiService.post<any>('container-photos', formData).subscribe({
+    this.apiService.post<any>('container-photos', formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Photo ajoutée avec succès';
@@ -234,7 +238,7 @@ export class ContainerDetailComponent implements OnInit {
       cancelButtonText: 'Annuler'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.apiService.delete<any>(`container-photos/${photo.id}`).subscribe({
+        this.apiService.delete<any>(`container-photos/${photo.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               Swal.fire({ title: 'Supprimé !', text: 'La photo a été supprimée avec succès.', icon: 'success', timer: 2000, showConfirmButton: false });
@@ -288,4 +292,8 @@ export class ContainerDetailComponent implements OnInit {
       this.cdr.detectChanges();
     }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

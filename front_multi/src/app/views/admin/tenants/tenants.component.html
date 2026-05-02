@@ -170,7 +170,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let organisation of organisations">
+            <tr *ngFor="let organisation of organisations; trackBy: trackById">
               <td class="ps-4">
                 <div class="d-flex align-items-center gap-3">
                   <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
@@ -191,7 +191,7 @@
               </td>
               <td>
                 <div class="d-flex flex-wrap gap-1">
-                  <span *ngFor="let module of organisation.modules?.slice(0, 3)"
+                  <span *ngFor="let module of organisation.modules?.slice(0, 3); trackBy: trackById"
                         class="badge rounded-pill"
                         style="background:#EFF6FF;color:#3B82F6;font-size:.72rem"
                         [title]="module.name">
@@ -278,7 +278,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let module of modules">
+              <tr *ngFor="let module of modules; trackBy: trackById">
                 <td class="ps-4 fw-semibold">{{ module.name }}</td>
                 <td>
                   <code class="rounded px-2 py-1" style="background:#F3F4F6;color:#374151;font-size:.8rem">{{ module.code }}</code>

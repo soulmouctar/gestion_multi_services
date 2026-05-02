@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -24,6 +25,8 @@ import { AuthService } from '../../../core/services/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ForgotPasswordComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   forgotPasswordForm!: FormGroup;
   isLoading = false;
   submitted = false;
@@ -69,7 +72,7 @@ export class ForgotPasswordComponent implements OnInit {
     this.isLoading = true;
     this.cdr.detectChanges();
 
-    this.authService.forgotPassword(this.forgotPasswordForm.value.email).subscribe({
+    this.authService.forgotPassword(this.forgotPasswordForm.value.email).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.isLoading = false;
         if (response.success) {

@@ -28,7 +28,7 @@
 
   <!-- Grid de photos -->
   <div *ngIf="!loading && containerPhotos.length > 0" class="row g-3 mb-4">
-    <div class="col-6 col-md-4 col-lg-3" *ngFor="let item of containerPhotos">
+    <div class="col-6 col-md-4 col-lg-3" *ngFor="let item of containerPhotos; trackBy: trackById">
       <div style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);overflow:hidden;transition:all .2s"
            onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'"
            onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.04)'">
@@ -84,7 +84,7 @@
       <li class="page-item" [class.disabled]="currentPage === 1">
         <a class="page-link" (click)="onPageChange(currentPage - 1)" style="cursor:pointer">Précédent</a>
       </li>
-      <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+      <li class="page-item" *ngFor="let page of getPages(); trackBy: trackById" [class.active]="page === currentPage">
         <a class="page-link" (click)="onPageChange(page)" style="cursor:pointer">{{ page }}</a>
       </li>
       <li class="page-item" [class.disabled]="currentPage === totalPages">
@@ -108,7 +108,7 @@
           <select cSelect formControlName="container_id" style="border-radius:8px"
             [class.is-invalid]="submitted && photoForm.get('container_id')?.invalid">
             <option [ngValue]="null">-- Sélectionner un conteneur --</option>
-            <option *ngFor="let c of containers" [ngValue]="c.id">{{ c.container_number }}</option>
+            <option *ngFor="let c of containers; trackBy: trackById" [ngValue]="c.id">{{ c.container_number }}</option>
           </select>
           <div class="invalid-feedback" *ngIf="submitted && photoForm.get('container_id')?.hasError('required')">
             Le conteneur est obligatoire
@@ -118,7 +118,7 @@
           <label class="form-label fw-semibold small">Produit (optionnel)</label>
           <select cSelect formControlName="product_id" style="border-radius:8px">
             <option [ngValue]="null">-- Sélectionner un produit --</option>
-            <option *ngFor="let p of products" [ngValue]="p.id">{{ p.name }}{{ p.sku ? ' (' + p.sku + ')' : '' }}</option>
+            <option *ngFor="let p of products; trackBy: trackById" [ngValue]="p.id">{{ p.name }}{{ p.sku ? ' (' + p.sku + ')' : '' }}</option>
           </select>
         </div>
         <div class="col-12">

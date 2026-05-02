@@ -1,8 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { CardModule, ButtonModule, FormModule, AlertModule, GridModule, BadgeModule, SpinnerModule } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -17,12 +17,14 @@ import { AuthService } from '../../core/services/auth.service';
     AlertModule,
     GridModule,
     BadgeModule,
-    SpinnerModule,
-    IconDirective
+    SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './profile.component.html'
 })
 export class ProfileComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   profileForm!: FormGroup;
   passwordForm!: FormGroup;
 
@@ -120,7 +122,7 @@ export class ProfileComponent implements OnInit {
     this.errorProfile = '';
     this.cdr.detectChanges();
 
-    this.authService.updateAvatar(this.selectedPhoto).subscribe({
+    this.authService.updateAvatar(this.selectedPhoto).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.photoPreview = res.data?.avatar_url || this.photoPreview;
         this.selectedPhoto = null;
@@ -154,7 +156,7 @@ export class ProfileComponent implements OnInit {
     this.savingProfile = true;
     this.cdr.detectChanges();
 
-    this.authService.updateProfile(this.profileForm.value).subscribe({
+    this.authService.updateProfile(this.profileForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.successProfile = 'Profil mis à jour avec succès.';
         this.savingProfile = false;
@@ -187,7 +189,7 @@ export class ProfileComponent implements OnInit {
       current_password,
       new_password,
       new_password_confirmation
-    } as any).subscribe({
+    } as any).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.successPassword = 'Mot de passe modifié avec succès.';
         this.passwordForm.reset();

@@ -7,6 +7,7 @@ use App\Models\LeasePayment;
 use App\Models\HousingUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class LeaseController extends BaseController
@@ -56,6 +57,7 @@ class LeaseController extends BaseController
             'renter_name'     => 'required|string|max:150',
             'renter_phone'    => 'nullable|string|max:50',
             'renter_email'    => 'nullable|email|max:150',
+            'renter_photo'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'start_date'      => 'required|date',
             'end_date'        => 'nullable|date|after:start_date',
             'monthly_rent'    => 'required|numeric|min:0',
@@ -77,6 +79,10 @@ class LeaseController extends BaseController
             $data['deposit_amount'] = $data['deposit_amount'] ?? 0;
             $data['payment_day']    = $data['payment_day'] ?? 1;
             $data['status']         = $data['status'] ?? 'ACTIVE';
+
+            if ($request->hasFile('renter_photo')) {
+                $data['renter_photo'] = $request->file('renter_photo')->store('lease-tenants', 'public');
+            }
 
             $lease = Lease::create($data);
 
@@ -124,6 +130,7 @@ class LeaseController extends BaseController
             'renter_name'   => 'sometimes|string|max:150',
             'renter_phone'  => 'nullable|string|max:50',
             'renter_email'  => 'nullable|email|max:150',
+            'renter_photo'  => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'start_date'    => 'sometimes|date',
             'end_date'      => 'nullable|date',
             'monthly_rent'  => 'sometimes|numeric|min:0',
@@ -140,7 +147,20 @@ class LeaseController extends BaseController
 
         DB::beginTransaction();
         try {
-            $lease->update($request->all());
+            $data = $request->only([
+                'renter_name', 'renter_phone', 'renter_email',
+                'start_date', 'end_date', 'monthly_rent',
+                'deposit_amount', 'currency', 'payment_day', 'status', 'notes',
+            ]);
+
+            if ($request->hasFile('renter_photo')) {
+                if ($lease->renter_photo) {
+                    Storage::disk('public')->delete($lease->renter_photo);
+                }
+                $data['renter_photo'] = $request->file('renter_photo')->store('lease-tenants', 'public');
+            }
+
+            $lease->update($data);
 
             // If terminated/expired, free the housing unit
             if (in_array($lease->status, ['TERMINATED', 'EXPIRED'])) {
@@ -179,6 +199,9 @@ class LeaseController extends BaseController
         DB::beginTransaction();
         try {
             $unitId = $lease->housing_unit_id;
+            if ($lease->renter_photo) {
+                Storage::disk('public')->delete($lease->renter_photo);
+            }
             $lease->delete();
 
             // Free the housing unit if no other active lease

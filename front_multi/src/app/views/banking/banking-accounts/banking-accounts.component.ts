@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -17,9 +18,11 @@ import Swal from 'sweetalert2';
     CommonModule, ReactiveFormsModule, FormsModule, RouterModule, IconDirective,
     ButtonModule, CardModule, FormModule, BadgeModule, ModalModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './banking-accounts.component.html'
 })
 export class BankingAccountsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
 
   accounts: any[]  = [];
   loading          = false;
@@ -57,7 +60,7 @@ export class BankingAccountsComponent implements OnInit {
 
   load(): void {
     this.loading = true;
-    this.apiService.get<any>('banking/accounts').subscribe({
+    this.apiService.get<any>('banking/accounts').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.accounts = r.success ? (r.data || []) : [];
         this.loading  = false;
@@ -99,7 +102,7 @@ export class BankingAccountsComponent implements OnInit {
       ? this.apiService.put<any>(`banking/accounts/${this.selectedAccount.id}`, this.form.value)
       : this.apiService.post<any>('banking/accounts', this.form.value);
 
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: this.editMode ? 'Compte modifié' : 'Compte créé', timer: 1500, showConfirmButton: false });
@@ -113,7 +116,7 @@ export class BankingAccountsComponent implements OnInit {
 
   toggleStatus(account: any): void {
     const newStatus = !account.is_active;
-    this.apiService.put<any>(`banking/accounts/${account.id}`, { is_active: newStatus }).subscribe({
+    this.apiService.put<any>(`banking/accounts/${account.id}`, { is_active: newStatus }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) this.load(); },
       error: () => Swal.fire({ icon: 'error', title: 'Erreur lors de la mise à jour' })
     });
@@ -128,7 +131,7 @@ export class BankingAccountsComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(res => {
       if (!res.isConfirmed) return;
-      this.apiService.delete<any>(`banking/accounts/${account.id}`).subscribe({
+      this.apiService.delete<any>(`banking/accounts/${account.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', title: 'Supprimé', timer: 1400, showConfirmButton: false });
           this.load();
@@ -154,4 +157,8 @@ export class BankingAccountsComponent implements OnInit {
     };
     return colors[name] || '#6c757d';
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

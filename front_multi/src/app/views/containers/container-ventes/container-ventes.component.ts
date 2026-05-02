@@ -1,11 +1,11 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   ButtonModule, CardModule, FormModule, BadgeModule,
   ModalModule, AlertModule, SpinnerModule, ProgressModule, NavModule, TabsModule,
-  RowComponent, ColComponent
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -18,11 +18,13 @@ import Swal from 'sweetalert2';
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, ProgressModule, NavModule, TabsModule,
-    RowComponent, ColComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './container-ventes.component.html'
 })
 export class ContainerVentesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
 
   // ===== DATA =====
   arrivals: any[] = [];
@@ -178,21 +180,21 @@ export class ContainerVentesComponent implements OnInit {
   // ===== LOAD DATA =====
 
   loadContainers(): void {
-    this.apiService.get<any>('containers?per_page=200').subscribe({
+    this.apiService.get<any>('containers?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { this.containers = this.extractList(r); },
       error: () => { this.containers = []; }
     });
   }
 
   loadSuppliers(): void {
-    this.apiService.get<any>('suppliers?per_page=200').subscribe({
+    this.apiService.get<any>('suppliers?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { this.suppliers = this.extractList(r); },
       error: () => { this.suppliers = []; }
     });
   }
 
   loadClients(): void {
-    this.apiService.get<any>('clients?per_page=200').subscribe({
+    this.apiService.get<any>('clients?per_page=200&client_type=CONTAINER_PAGNE').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { this.clients = this.extractList(r); },
       error: () => { this.clients = []; }
     });
@@ -203,7 +205,7 @@ export class ContainerVentesComponent implements OnInit {
     let url = `container-arrivals?page=${this.arrivalsPage}&per_page=15`;
     if (this.arrivalStatusFilter) url += `&status=${this.arrivalStatusFilter}`;
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.arrivals         = r.data.data || [];
@@ -223,7 +225,7 @@ export class ContainerVentesComponent implements OnInit {
     if (this.saleStatusFilter) url += `&status=${this.saleStatusFilter}`;
     if (this.saleArrivalFilter) url += `&container_arrival_id=${this.saleArrivalFilter}`;
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.sales          = r.data.data || [];
@@ -238,7 +240,7 @@ export class ContainerVentesComponent implements OnInit {
   }
 
   loadPayments(): void {
-    this.apiService.get<any>(`container-sale-payments?page=${this.paymentsPage}&per_page=15`).subscribe({
+    this.apiService.get<any>(`container-sale-payments?page=${this.paymentsPage}&per_page=15`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.payments         = r.data.data || [];
@@ -253,7 +255,7 @@ export class ContainerVentesComponent implements OnInit {
   }
 
   loadAdvances(): void {
-    this.apiService.get<any>(`client-advances?page=${this.advancesPage}&per_page=15`).subscribe({
+    this.apiService.get<any>(`client-advances?page=${this.advancesPage}&per_page=15`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.advances         = r.data.data || [];
@@ -268,7 +270,7 @@ export class ContainerVentesComponent implements OnInit {
   }
 
   loadStats(): void {
-    this.apiService.get<any>('container-sales/global-stats').subscribe({
+    this.apiService.get<any>('container-sales/global-stats').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success && r.data) { this.stats = r.data; this.cdr.detectChanges(); } },
       error: () => {}
     });
@@ -313,7 +315,7 @@ export class ContainerVentesComponent implements OnInit {
       ? this.apiService.put<any>(`container-arrivals/${this.selectedArrival.id}`, this.arrivalForm.value)
       : this.apiService.post<any>('container-arrivals', this.arrivalForm.value);
 
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: this.editMode ? 'Arrivage modifié' : 'Arrivage enregistré', timer: 2000, showConfirmButton: false });
@@ -334,7 +336,7 @@ export class ContainerVentesComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(r => {
       if (!r.isConfirmed) return;
-      this.apiService.delete<any>(`container-arrivals/${arrival.id}`).subscribe({
+      this.apiService.delete<any>(`container-arrivals/${arrival.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', timer: 1500, showConfirmButton: false, title: 'Supprimé' });
           this.loadArrivals(); this.loadStats();
@@ -385,7 +387,7 @@ export class ContainerVentesComponent implements OnInit {
       data.quantity_sold = this.selectedArrival.remaining_quantity;
     }
 
-    this.apiService.post<any>('container-sales', data).subscribe({
+    this.apiService.post<any>('container-sales', data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: 'Vente enregistrée', timer: 2000, showConfirmButton: false });
@@ -424,7 +426,7 @@ export class ContainerVentesComponent implements OnInit {
     this.submitted = true;
     if (this.paymentForm.invalid) return;
 
-    this.apiService.post<any>('container-sale-payments', this.paymentForm.value).subscribe({
+    this.apiService.post<any>('container-sale-payments', this.paymentForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: 'Versement enregistré', timer: 2000, showConfirmButton: false });
@@ -443,7 +445,7 @@ export class ContainerVentesComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(r => {
       if (!r.isConfirmed) return;
-      this.apiService.delete<any>(`container-sale-payments/${payment.id}`).subscribe({
+      this.apiService.delete<any>(`container-sale-payments/${payment.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', timer: 1500, showConfirmButton: false, title: 'Supprimé' });
           this.loadPayments(); this.loadSales(); this.loadStats();
@@ -469,7 +471,7 @@ export class ContainerVentesComponent implements OnInit {
     this.submitted = true;
     if (this.advanceForm.invalid) return;
 
-    this.apiService.post<any>('client-advances', this.advanceForm.value).subscribe({
+    this.apiService.post<any>('client-advances', this.advanceForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: 'Avance enregistrée', timer: 2000, showConfirmButton: false });
@@ -571,4 +573,8 @@ export class ContainerVentesComponent implements OnInit {
     if (!r.success) return [];
     return Array.isArray(r.data) ? r.data : (r.data?.data || []);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -35,7 +35,7 @@
 
     <!-- Skeleton si chargement -->
     <ng-container *ngIf="loadingStats">
-      <div class="col-6 col-md-3" *ngFor="let _ of [1,2,3,4]">
+      <div class="col-6 col-md-3" *ngFor="let _ of [1,2,3,4]; trackBy: trackById">
         <div style="background:#fff;border-radius:14px;border:1px solid #f0f0f0;padding:20px;min-height:90px;
                     animation:pulse 1.5s ease-in-out infinite;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
                     background-size:200% 100%"></div>
@@ -129,21 +129,21 @@
         <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em;">Taxi</label>
         <select cSelect formControlName="taxi_id" style="border-radius:8px;font-size:.875rem;">
           <option value="">Tous</option>
-          <option *ngFor="let t of taxis" [value]="t.id">{{ t.plate_number }}</option>
+          <option *ngFor="let t of taxis; trackBy: trackById" [value]="t.id">{{ t.plate_number }}</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
         <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em;">Chauffeur</label>
         <select cSelect formControlName="driver_id" style="border-radius:8px;font-size:.875rem;">
           <option value="">Tous</option>
-          <option *ngFor="let d of drivers" [value]="d.id">{{ d.name }}</option>
+          <option *ngFor="let d of drivers; trackBy: trackById" [value]="d.id">{{ d.name }}</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
         <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em;">Type</label>
         <select cSelect formControlName="expense_type" style="border-radius:8px;font-size:.875rem;">
           <option value="">Tous</option>
-          <option *ngFor="let t of expenseTypes" [value]="t.value">{{ t.label }}</option>
+          <option *ngFor="let t of expenseTypes; trackBy: trackById" [value]="t.value">{{ t.label }}</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
@@ -190,7 +190,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of expenses" style="border-bottom:1px solid #f1f5f9;">
+          <tr *ngFor="let item of expenses; trackBy: trackById" style="border-bottom:1px solid #f1f5f9;">
             <td class="px-4 py-3 fw-semibold" style="color:#1e293b;">
               {{ item.expense_date | date:'dd/MM/yyyy' }}
             </td>
@@ -294,7 +294,7 @@
                 style="border-radius:8px;border:1px solid #e2e8f0;color:#475569;"
                 [disabled]="currentPage === 1"
                 (click)="onPageChange(currentPage - 1)">‹ Préc.</button>
-        <button *ngFor="let p of getPages()"
+        <button *ngFor="let p of getPages(); trackBy: trackById"
                 class="btn btn-sm"
                 [style]="p === currentPage
                   ? 'border-radius:8px;background:#0f3460;color:#fff;border:1px solid #0f3460;'
@@ -326,7 +326,7 @@
                   style="border-radius:8px;"
                   [class.is-invalid]="submitted && expenseForm.get('taxi_id')?.invalid">
             <option [ngValue]="null">-- Sélectionner un taxi --</option>
-            <option *ngFor="let t of taxis" [ngValue]="t.id">{{ t.plate_number }}</option>
+            <option *ngFor="let t of taxis; trackBy: trackById" [ngValue]="t.id">{{ t.plate_number }}</option>
           </select>
           <div class="invalid-feedback" *ngIf="submitted && expenseForm.get('taxi_id')?.hasError('required')">
             Le taxi est obligatoire
@@ -336,7 +336,7 @@
           <label cLabel class="fw-semibold mb-1" style="font-size:.875rem;color:#374151;">Chauffeur (optionnel)</label>
           <select cSelect formControlName="driver_id" style="border-radius:8px;">
             <option [ngValue]="null">-- Aucun --</option>
-            <option *ngFor="let d of drivers" [ngValue]="d.id">{{ d.name }}</option>
+            <option *ngFor="let d of drivers; trackBy: trackById" [ngValue]="d.id">{{ d.name }}</option>
           </select>
         </div>
       </div>
@@ -353,7 +353,7 @@
           <select cSelect formControlName="expense_type"
                   style="border-radius:8px;"
                   [class.is-invalid]="submitted && expenseForm.get('expense_type')?.invalid">
-            <option *ngFor="let t of expenseTypes" [value]="t.value">{{ t.label }}</option>
+            <option *ngFor="let t of expenseTypes; trackBy: trackById" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
       </div>

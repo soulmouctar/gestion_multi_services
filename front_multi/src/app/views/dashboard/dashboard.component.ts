@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CardModule, SpinnerModule, AlertModule, ButtonModule } from '@coreui/angular';
@@ -11,10 +12,13 @@ import { ApiService } from '../../core/services/api.service';
   imports: [
     CommonModule, RouterLink, CardModule, SpinnerModule, AlertModule, ButtonModule, IconDirective
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = true;
   error: string | null = null;
   stats: any = null;
@@ -24,7 +28,7 @@ export class DashboardComponent implements OnInit {
   revenueLabels: string[] = [];
   revenueData: number[] = [];
   moduleUsage: any[] = [];
-  
+
   // Subscription trends data
   subscriptionLabels: string[] = [];
   subscriptionNewData: number[] = [];
@@ -45,7 +49,7 @@ export class DashboardComponent implements OnInit {
   }
 
   loadStats(): void {
-    this.apiService.get<any>('dashboard/stats').subscribe({
+    this.apiService.get<any>('dashboard/stats').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.stats = r.data;
@@ -60,21 +64,19 @@ export class DashboardComponent implements OnInit {
   }
 
   loadActivities(): void {
-    this.apiService.get<any>('dashboard/activities').subscribe({
+    this.apiService.get<any>('dashboard/activities').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.activities = r.data;
         }
         this.cdr.detectChanges();
       },
-      error: () => {
-        console.error('Erreur lors du chargement des activités');
-      }
+      error: () => { }
     });
   }
 
   loadSubscriptionTrends(): void {
-    this.apiService.get<any>('dashboard/subscription-trends').subscribe({
+    this.apiService.get<any>('dashboard/subscription-trends').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           // Handle object with labels/datasets structure
@@ -90,14 +92,12 @@ export class DashboardComponent implements OnInit {
         }
         this.cdr.detectChanges();
       },
-      error: () => {
-        console.error('Erreur lors du chargement des tendances');
-      }
+      error: () => { }
     });
   }
 
   loadRevenueChart(): void {
-    this.apiService.get<any>('dashboard/revenue-chart').subscribe({
+    this.apiService.get<any>('dashboard/revenue-chart').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.revenueChart = r.data;
@@ -113,23 +113,20 @@ export class DashboardComponent implements OnInit {
       },
       error: () => {
         this.loading = false;
-        console.error('Erreur lors du chargement du graphique des revenus');
         this.cdr.detectChanges();
       }
     });
   }
 
   loadModuleUsage(): void {
-    this.apiService.get<any>('dashboard/module-usage').subscribe({
+    this.apiService.get<any>('dashboard/module-usage').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data && Array.isArray(r.data)) {
           this.moduleUsage = r.data;
         }
         this.cdr.detectChanges();
       },
-      error: () => {
-        console.error('Erreur lors du chargement de l\'usage des modules');
-      }
+      error: () => { }
     });
   }
 
@@ -138,4 +135,8 @@ export class DashboardComponent implements OnInit {
     this.error = null;
     this.loadDashboardData();
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

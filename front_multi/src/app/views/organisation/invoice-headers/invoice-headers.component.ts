@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { 
@@ -31,10 +32,13 @@ import Swal from 'sweetalert2';
     GridModule,
     IconDirective
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './invoice-headers.component.html',
   styleUrls: ['./invoice-headers.component.scss']
 })
 export class InvoiceHeadersComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   headerForm: FormGroup;
   headers: InvoiceHeader[] = [];
   loading = false;
@@ -73,7 +77,7 @@ export class InvoiceHeadersComponent implements OnInit {
 
   loadHeaders(): void {
     this.loading = true;
-    this.invoiceHeaderService.getHeaders().subscribe({
+    this.invoiceHeaderService.getHeaders().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.headers = response.data;
@@ -81,7 +85,6 @@ export class InvoiceHeadersComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading headers:', error);
         Swal.fire({
           icon: 'error',
           title: 'Erreur',
@@ -125,7 +128,7 @@ export class InvoiceHeadersComponent implements OnInit {
       
       if (this.editingHeader) {
         // Update existing header
-        this.invoiceHeaderService.updateHeader(this.editingHeader.id!, formData).subscribe({
+        this.invoiceHeaderService.updateHeader(this.editingHeader.id!, formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               const index = this.headers.findIndex(h => h.id === this.editingHeader!.id);
@@ -143,7 +146,6 @@ export class InvoiceHeadersComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Error updating header:', error);
             this.saving = false;
             Swal.fire({
               icon: 'error',
@@ -155,7 +157,7 @@ export class InvoiceHeadersComponent implements OnInit {
         });
       } else {
         // Create new header
-        this.invoiceHeaderService.createHeader(formData).subscribe({
+        this.invoiceHeaderService.createHeader(formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               this.headers.push(response.data);
@@ -170,7 +172,6 @@ export class InvoiceHeadersComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Error creating header:', error);
             this.saving = false;
             Swal.fire({
               icon: 'error',
@@ -185,7 +186,7 @@ export class InvoiceHeadersComponent implements OnInit {
   }
 
   setAsDefault(header: InvoiceHeader): void {
-    this.invoiceHeaderService.setAsDefault(header.id!).subscribe({
+    this.invoiceHeaderService.setAsDefault(header.id!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           // Update local headers array
@@ -201,7 +202,6 @@ export class InvoiceHeadersComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error setting header as default:', error);
         Swal.fire({
           icon: 'error',
           title: 'Erreur',
@@ -224,7 +224,7 @@ export class InvoiceHeadersComponent implements OnInit {
       cancelButtonText: 'Annuler'
     }).then((result: any) => {
       if (result.isConfirmed) {
-        this.invoiceHeaderService.deleteHeader(header.id!).subscribe({
+        this.invoiceHeaderService.deleteHeader(header.id!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (response) => {
             if (response.success) {
               this.headers = this.headers.filter(h => h.id !== header.id);
@@ -237,7 +237,6 @@ export class InvoiceHeadersComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Error deleting header:', error);
             let errorMessage = 'Impossible de supprimer l\'en-tête.';
             if (error.status === 400) {
               errorMessage = 'Impossible de supprimer le seul en-tête de facture.';
@@ -255,7 +254,7 @@ export class InvoiceHeadersComponent implements OnInit {
   }
 
   duplicateHeader(header: InvoiceHeader): void {
-    this.invoiceHeaderService.duplicateHeader(header.id!).subscribe({
+    this.invoiceHeaderService.duplicateHeader(header.id!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.headers.push(response.data);
@@ -268,7 +267,6 @@ export class InvoiceHeadersComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error duplicating header:', error);
         Swal.fire({
           icon: 'error',
           title: 'Erreur',
@@ -286,4 +284,8 @@ export class InvoiceHeadersComponent implements OnInit {
   get previewData() {
     return this.headerForm.value;
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

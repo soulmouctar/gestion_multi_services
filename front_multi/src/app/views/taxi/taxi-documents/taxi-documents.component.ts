@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CardModule, BadgeModule, SpinnerModule, ButtonModule, FormModule, ModalModule } from '@coreui/angular';
@@ -261,6 +262,8 @@ interface DocStatus { label: string; color: string; icon: string; }
   `
 })
 export class TaxiDocumentsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   vehicles: any[] = [];
   loading = false;
   saving = false;
@@ -275,7 +278,7 @@ export class TaxiDocumentsComponent implements OnInit {
 
   load(): void {
     this.loading = true;
-    this.apiService.get<any>('taxi/documents').subscribe({
+    this.apiService.get<any>('taxi/documents').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.vehicles = r.data.vehicles || [];
@@ -303,7 +306,7 @@ export class TaxiDocumentsComponent implements OnInit {
 
   save(): void {
     this.saving = true;
-    this.apiService.put<any>(`taxis/${this.selectedVehicle.id}`, this.form.value).subscribe({
+    this.apiService.put<any>(`taxis/${this.selectedVehicle.id}`, this.form.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.saving = false;
         if (r.success) {

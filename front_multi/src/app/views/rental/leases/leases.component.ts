@@ -1,6 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   ButtonModule, CardModule, FormModule, BadgeModule,
   ModalModule, AlertModule, SpinnerModule, ProgressModule, NavModule
@@ -17,9 +19,12 @@ import Swal from 'sweetalert2';
     ButtonModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, ProgressModule, NavModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './leases.component.html'
 })
 export class LeasesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
 
   // ===== DATA =====
   leases: any[] = [];
@@ -54,6 +59,8 @@ export class LeasesComponent implements OnInit {
 
   // ===== SELECTED =====
   selectedLease: any = null;
+  selectedLeasePhotoFile: File | null = null;
+  selectedLeasePhotoPreview: string | null = null;
 
   // Months already paid for the selected lease (used in payment modal)
   paidPeriods: string[] = [];
@@ -97,7 +104,9 @@ export class LeasesComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     this.leaseForm = this.fb.group({
       housing_unit_id: [null, Validators.required],
@@ -131,12 +140,24 @@ export class LeasesComponent implements OnInit {
     this.loadLeases();
     this.loadAllPayments();
     this.loadStats();
+
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      if (params.get('action') === 'new-tenant') {
+        this.openNewLeaseModal();
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { action: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true
+        });
+      }
+    });
   }
 
   // ===== LOAD DATA =====
 
   loadHousingUnits(): void {
-    this.apiService.get<any>('housing-units?per_page=200').subscribe({
+    this.apiService.get<any>('housing-units?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.housingUnits = r.success
           ? (Array.isArray(r.data) ? r.data : (r.data?.data || []))
@@ -151,7 +172,7 @@ export class LeasesComponent implements OnInit {
     let url = `leases?page=${this.leasesPage}&per_page=15`;
     if (this.leaseStatusFilter) url += `&status=${this.leaseStatusFilter}`;
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.leases          = r.data.data || [];
@@ -170,7 +191,7 @@ export class LeasesComponent implements OnInit {
     let url = `leases/payments?page=${this.paymentsPage}&per_page=15`;
     if (this.paymentMonthFilter) url += `&period_month=${this.paymentMonthFilter}`;
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.payments          = r.data.data || [];
@@ -185,14 +206,14 @@ export class LeasesComponent implements OnInit {
   }
 
   loadStats(): void {
-    this.apiService.get<any>('leases/statistics').subscribe({
+    this.apiService.get<any>('leases/statistics').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success && r.data) { this.stats = r.data; this.cdr.detectChanges(); } },
       error: () => {}
     });
   }
 
   loadLeasePayments(leaseId: number): void {
-    this.apiService.get<any>(`leases/${leaseId}/payments?per_page=50`).subscribe({
+    this.apiService.get<any>(`leases/${leaseId}/payments?per_page=50`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.selectedLeasePayments = r.success ? (r.data?.data || []) : [];
         this.cdr.detectChanges();
@@ -207,6 +228,8 @@ export class LeasesComponent implements OnInit {
     this.editMode  = false;
     this.submitted = false;
     this.selectedLease = null;
+    this.selectedLeasePhotoFile = null;
+    this.selectedLeasePhotoPreview = null;
     this.leaseForm.reset({
       housing_unit_id: null, renter_name: '', renter_phone: '',
       renter_email: '', start_date: this.today(), end_date: null,
@@ -220,6 +243,8 @@ export class LeasesComponent implements OnInit {
     this.editMode  = true;
     this.submitted = false;
     this.selectedLease = lease;
+    this.selectedLeasePhotoFile = null;
+    this.selectedLeasePhotoPreview = lease.renter_photo_url || null;
     this.leaseForm.patchValue({
       housing_unit_id: lease.housing_unit_id,
       renter_name:     lease.renter_name,
@@ -237,15 +262,39 @@ export class LeasesComponent implements OnInit {
     this.showLeaseModal = true;
   }
 
+  onLeasePhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] || null;
+    this.selectedLeasePhotoFile = file;
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.selectedLeasePhotoPreview = String(reader.result || '');
+        this.cdr.detectChanges();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   saveLease(): void {
     this.submitted = true;
     if (this.leaseForm.invalid) return;
 
-    const obs = this.editMode && this.selectedLease
-      ? this.apiService.put<any>(`leases/${this.selectedLease.id}`, this.leaseForm.value)
-      : this.apiService.post<any>('leases', this.leaseForm.value);
+    const formData = new FormData();
+    Object.entries(this.leaseForm.value).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        formData.append(key, String(value));
+      }
+    });
+    if (this.selectedLeasePhotoFile) {
+      formData.append('renter_photo', this.selectedLeasePhotoFile);
+    }
 
-    obs.subscribe({
+    const obs = this.editMode && this.selectedLease
+      ? this.apiService.put<any>(`leases/${this.selectedLease.id}`, formData)
+      : this.apiService.post<any>('leases', formData);
+
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: this.editMode ? 'Contrat modifié' : 'Contrat créé', timer: 2000, showConfirmButton: false });
@@ -266,7 +315,7 @@ export class LeasesComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(r => {
       if (!r.isConfirmed) return;
-      this.apiService.delete<any>(`leases/${lease.id}`).subscribe({
+      this.apiService.delete<any>(`leases/${lease.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', timer: 1500, showConfirmButton: false, title: 'Supprimé' });
           this.loadLeases(); this.loadStats();
@@ -286,7 +335,7 @@ export class LeasesComponent implements OnInit {
     this.loadingPaidMonths = true;
 
     // Load existing payments to determine next unpaid month
-    this.apiService.get<any>(`leases/${lease.id}/payments?per_page=200`).subscribe({
+    this.apiService.get<any>(`leases/${lease.id}/payments?per_page=200`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         const payments = r.success ? (r.data?.data || []) : [];
         this.paidPeriods = payments
@@ -341,7 +390,7 @@ export class LeasesComponent implements OnInit {
     this.submitted = true;
     if (this.paymentForm.invalid) return;
 
-    this.apiService.post<any>(`leases/${this.selectedLease.id}/payments`, this.paymentForm.value).subscribe({
+    this.apiService.post<any>(`leases/${this.selectedLease.id}/payments`, this.paymentForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: 'Paiement enregistré', timer: 2000, showConfirmButton: false });
@@ -360,7 +409,7 @@ export class LeasesComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(r => {
       if (!r.isConfirmed) return;
-      this.apiService.delete<any>(`lease-payments/${payment.id}`).subscribe({
+      this.apiService.delete<any>(`lease-payments/${payment.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', timer: 1500, showConfirmButton: false, title: 'Supprimé' });
           this.loadAllPayments(); this.loadStats();
@@ -451,4 +500,8 @@ export class LeasesComponent implements OnInit {
 
   private today(): string { return new Date().toISOString().split('T')[0]; }
   private currentMonth(): string { return new Date().toISOString().substring(0, 7); }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -77,6 +77,18 @@
         </li>
         <li class="nav-item">
           <a class="nav-link px-3 pb-3"
+             [class.active]="activeTab === 'allocations'"
+             [style.color]="activeTab === 'allocations' ? '#0f3460' : '#6B7280'"
+             [style.border-bottom]="activeTab === 'allocations' ? '2px solid #0f3460' : '2px solid transparent'"
+             [style.font-weight]="activeTab === 'allocations' ? '600' : '400'"
+             style="cursor:pointer;background:none;border:none;"
+             (click)="onTabChange('allocations')">
+            <svg cIcon name="cilPeople" class="me-1"></svg> Répartition
+            <span class="badge rounded-pill ms-1" style="background:#EFF6FF;color:#3B82F6;">{{ allocationSummaries.length }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link px-3 pb-3"
              [class.active]="activeTab === 'payments'"
              [style.color]="activeTab === 'payments' ? '#0f3460' : '#6B7280'"
              [style.border-bottom]="activeTab === 'payments' ? '2px solid #0f3460' : '2px solid transparent'"
@@ -134,7 +146,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let arrival of arrivals">
+              <tr *ngFor="let arrival of arrivals; trackBy: trackById">
                 <td class="py-3">
                   <span class="fw-bold" style="color:#1a1a2e;">
                     {{ arrival.container?.container_number || getContainerNumber(arrival.container_id) }}
@@ -197,7 +209,7 @@
             <li class="page-item" [class.disabled]="arrivalsPage === 1">
               <a class="page-link" style="cursor:pointer;" (click)="onArrivalsPageChange(arrivalsPage - 1)">Précédent</a>
             </li>
-            <li class="page-item" *ngFor="let page of getPages(arrivalsTotalPages)" [class.active]="page === arrivalsPage">
+            <li class="page-item" *ngFor="let page of getPages(arrivalsTotalPages); trackBy: trackById" [class.active]="page === arrivalsPage">
               <a class="page-link" style="cursor:pointer;" (click)="onArrivalsPageChange(page)">{{ page }}</a>
             </li>
             <li class="page-item" [class.disabled]="arrivalsPage === arrivalsTotalPages">
@@ -228,7 +240,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let sale of sales">
+              <tr *ngFor="let sale of sales; trackBy: trackById">
                 <td class="py-3 fw-bold" style="color:#1a1a2e;">
                   {{ sale.container_arrival?.container?.container_number || '-' }}
                 </td>
@@ -286,7 +298,7 @@
             <li class="page-item" [class.disabled]="salesPage === 1">
               <a class="page-link" style="cursor:pointer;" (click)="onSalesPageChange(salesPage - 1)">Précédent</a>
             </li>
-            <li class="page-item" *ngFor="let page of getPages(salesTotalPages)" [class.active]="page === salesPage">
+            <li class="page-item" *ngFor="let page of getPages(salesTotalPages); trackBy: trackById" [class.active]="page === salesPage">
               <a class="page-link" style="cursor:pointer;" (click)="onSalesPageChange(page)">{{ page }}</a>
             </li>
             <li class="page-item" [class.disabled]="salesPage === salesTotalPages">
@@ -294,6 +306,86 @@
             </li>
           </ul>
         </nav>
+      </div>
+
+      <!-- ==================== ALLOCATIONS ==================== -->
+      <div *ngIf="!loading && activeTab === 'allocations'">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h6 class="fw-bold mb-1" style="color:#1a1a2e;">Répartition des conteneurs par client</h6>
+            <p class="text-muted mb-0 small">Suivi des quantités attribuées et des encaissements par arrivage.</p>
+          </div>
+        </div>
+
+        <div class="vstack gap-3" *ngIf="allocationSummaries.length > 0; else noAllocationData">
+          <div *ngFor="let summary of allocationSummaries; trackBy: trackById"
+               class="p-3 p-md-4"
+               style="border:1px solid #e5e7eb;border-radius:12px;background:#fff;">
+            <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start mb-3">
+              <div>
+                <div class="fw-bold" style="color:#0f3460;">
+                  {{ summary.container_number || getContainerNumber(summary.container_id) }}
+                </div>
+                <div class="small text-muted">
+                  Arrivage du {{ summary.arrival_date | date:'dd/MM/yyyy' }}
+                </div>
+              </div>
+              <div class="text-md-end">
+                <div class="fw-semibold" style="color:#111827;">
+                  {{ summary.allocated_quantity }} / {{ summary.total_quantity }} attribué(s)
+                </div>
+                <div class="small text-muted">
+                  {{ getAllocatedClientsCount(summary) }} client(s) servi(s) • {{ summary.remaining_quantity }} restant(s)
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="progress" style="height:10px;border-radius:999px;background:#E5E7EB;">
+                <div class="progress-bar"
+                     style="border-radius:999px;background:linear-gradient(135deg,#0f3460,#3B82F6);"
+                     [style.width.%]="getAllocationProgressValue(summary)">
+                </div>
+              </div>
+              <div class="small text-muted mt-1">{{ getAllocationProgressValue(summary) }}% de la quantité déjà répartie</div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead style="background:#f8fafc;">
+                  <tr>
+                    <th>Client</th>
+                    <th>Qté attribuée</th>
+                    <th>Nb ventes</th>
+                    <th>Montant vendu</th>
+                    <th>Montant encaissé</th>
+                    <th>Reste client</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let allocation of summary.allocations; trackBy: trackById">
+                    <td class="fw-semibold">{{ allocation.client_name || getClientName(allocation.client_id) }}</td>
+                    <td>{{ allocation.allocated_quantity }}</td>
+                    <td>{{ allocation.sale_count }}</td>
+                    <td>{{ formatAmount(allocation.total_sales) }}</td>
+                    <td class="text-success fw-semibold">{{ formatAmount(allocation.amount_paid) }}</td>
+                    <td class="text-warning fw-semibold">{{ formatAmount(allocation.remaining_amount) }}</td>
+                  </tr>
+                  <tr *ngIf="summary.allocations?.length === 0">
+                    <td colspan="6" class="text-center py-3 text-muted">Aucune attribution client pour cet arrivage.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noAllocationData>
+          <div class="text-center py-5 text-muted">
+            <svg cIcon name="cilInbox" size="3xl" class="mb-2 d-block mx-auto" style="opacity:.3;"></svg>
+            Aucune répartition client disponible
+          </div>
+        </ng-template>
       </div>
 
       <!-- ==================== PAYMENTS ==================== -->
@@ -312,7 +404,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let payment of clientPayments">
+              <tr *ngFor="let payment of clientPayments; trackBy: trackById">
                 <td class="py-3"><small class="text-muted">{{ payment.payment_date | date:'dd/MM/yyyy' }}</small></td>
                 <td class="py-3 fw-semibold" style="color:#1a1a2e;">
                   {{ payment.client?.name || getClientName(payment.client_id) }}
@@ -346,7 +438,7 @@
             <li class="page-item" [class.disabled]="paymentsPage === 1">
               <a class="page-link" style="cursor:pointer;" (click)="onPaymentsPageChange(paymentsPage - 1)">Précédent</a>
             </li>
-            <li class="page-item" *ngFor="let page of getPages(paymentsTotalPages)" [class.active]="page === paymentsPage">
+            <li class="page-item" *ngFor="let page of getPages(paymentsTotalPages); trackBy: trackById" [class.active]="page === paymentsPage">
               <a class="page-link" style="cursor:pointer;" (click)="onPaymentsPageChange(page)">{{ page }}</a>
             </li>
             <li class="page-item" [class.disabled]="paymentsPage === paymentsTotalPages">
@@ -379,7 +471,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let advance of advances">
+              <tr *ngFor="let advance of advances; trackBy: trackById">
                 <td class="py-3"><small class="text-muted">{{ advance.payment_date | date:'dd/MM/yyyy' }}</small></td>
                 <td class="py-3">
                   <a href="javascript:void(0)" (click)="viewClientStats(advance.client)"
@@ -415,7 +507,7 @@
             <li class="page-item" [class.disabled]="advancesPage === 1">
               <a class="page-link" style="cursor:pointer;" (click)="onAdvancesPageChange(advancesPage - 1)">Précédent</a>
             </li>
-            <li class="page-item" *ngFor="let page of getPages(advancesTotalPages)" [class.active]="page === advancesPage">
+            <li class="page-item" *ngFor="let page of getPages(advancesTotalPages); trackBy: trackById" [class.active]="page === advancesPage">
               <a class="page-link" style="cursor:pointer;" (click)="onAdvancesPageChange(page)">{{ page }}</a>
             </li>
             <li class="page-item" [class.disabled]="advancesPage === advancesTotalPages">
@@ -443,14 +535,14 @@
           <select cSelect formControlName="container_id" style="border-radius:8px;"
                   [class.is-invalid]="submitted && arrivalForm.get('container_id')?.invalid">
             <option [ngValue]="null">-- Sélectionner --</option>
-            <option *ngFor="let c of containers" [ngValue]="c.id">{{ c.container_number }}</option>
+            <option *ngFor="let c of containers; trackBy: trackById" [ngValue]="c.id">{{ c.container_number }}</option>
           </select>
         </div>
         <div class="col-md-6">
           <label cLabel class="fw-semibold mb-1">Fournisseur</label>
           <select cSelect formControlName="supplier_id" style="border-radius:8px;">
             <option [ngValue]="null">-- Aucun --</option>
-            <option *ngFor="let s of suppliers" [ngValue]="s.id">{{ s.name }}</option>
+            <option *ngFor="let s of suppliers; trackBy: trackById" [ngValue]="s.id">{{ s.name }}</option>
           </select>
         </div>
         <div class="col-md-6">
@@ -460,7 +552,7 @@
         <div class="col-md-6">
           <label cLabel class="fw-semibold mb-1">Type de Produit <span class="text-danger">*</span></label>
           <select cSelect formControlName="product_type" style="border-radius:8px;">
-            <option *ngFor="let t of productTypes" [value]="t.value">{{ t.label }}</option>
+            <option *ngFor="let t of productTypes; trackBy: trackById" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
         <div class="col-md-4">
@@ -525,13 +617,13 @@
           <select cSelect formControlName="client_id" style="border-radius:8px;"
                   [class.is-invalid]="submitted && saleForm.get('client_id')?.invalid">
             <option [ngValue]="null">-- Sélectionner --</option>
-            <option *ngFor="let c of clients" [ngValue]="c.id">{{ c.name }}</option>
+            <option *ngFor="let c of clients; trackBy: trackById" [ngValue]="c.id">{{ c.name }}</option>
           </select>
         </div>
         <div class="col-md-6">
           <label cLabel class="fw-semibold mb-1">Type de Vente <span class="text-danger">*</span></label>
           <select cSelect formControlName="sale_type" style="border-radius:8px;">
-            <option *ngFor="let t of saleTypes" [value]="t.value">{{ t.label }}</option>
+            <option *ngFor="let t of saleTypes; trackBy: trackById" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
         <div class="col-md-4">
@@ -621,7 +713,7 @@
         <div class="col-md-6">
           <label cLabel class="fw-semibold mb-1">Méthode de Paiement <span class="text-danger">*</span></label>
           <select cSelect formControlName="payment_method" style="border-radius:8px;">
-            <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+            <option *ngFor="let m of paymentMethods; trackBy: trackById" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div class="col-md-6">
@@ -667,7 +759,7 @@
           <select cSelect formControlName="client_id" style="border-radius:8px;"
                   [class.is-invalid]="submitted && advanceForm.get('client_id')?.invalid">
             <option [ngValue]="null">-- Sélectionner --</option>
-            <option *ngFor="let c of clients" [ngValue]="c.id">{{ c.name }}</option>
+            <option *ngFor="let c of clients; trackBy: trackById" [ngValue]="c.id">{{ c.name }}</option>
           </select>
         </div>
         <div class="col-md-6">
@@ -686,7 +778,7 @@
         <div class="col-md-6">
           <label cLabel class="fw-semibold mb-1">Méthode de Paiement <span class="text-danger">*</span></label>
           <select cSelect formControlName="payment_method" style="border-radius:8px;">
-            <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+            <option *ngFor="let m of paymentMethods; trackBy: trackById" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
         <div class="col-md-6">

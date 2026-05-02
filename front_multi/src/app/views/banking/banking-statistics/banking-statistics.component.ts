@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -15,9 +16,12 @@ import { ApiService } from '../../../core/services/api.service';
     CommonModule, FormsModule, RouterModule, IconDirective,
     ButtonModule, CardModule, BadgeModule, ProgressModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './banking-statistics.component.html'
 })
 export class BankingStatisticsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
 
   loading     = true;
   stats: any  = null;
@@ -38,7 +42,7 @@ export class BankingStatisticsComponent implements OnInit {
   }
 
   loadAccounts(): void {
-    this.apiService.get<any>('banking/accounts').subscribe({
+    this.apiService.get<any>('banking/accounts').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { this.accounts = r.success ? (r.data || []) : []; }
     });
   }
@@ -71,7 +75,7 @@ export class BankingStatisticsComponent implements OnInit {
     this.loading = true;
     const params: any = { ...this.filters };
     if (!params.account_id) delete params.account_id;
-    this.apiService.get<any>('banking/statistics', { params }).subscribe({
+    this.apiService.get<any>('banking/statistics', { params }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.stats   = r.success ? r.data : null;
         this.loading = false;
@@ -113,4 +117,8 @@ export class BankingStatisticsComponent implements OnInit {
   netFlow(): number {
     return (this.stats?.summary?.total_credits || 0) - (this.stats?.summary?.total_debits || 0);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TenantService } from '../../../core/services/tenant.service';
@@ -31,10 +32,13 @@ import {
     ModalModule,
     AlertModule
     ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tenants.component.html',
   styleUrls: ['./tenants.component.scss']
 })
 export class TenantsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   organisations: Tenant[] = [];
   modules: Module[] = [];
   loading = false;
@@ -77,7 +81,7 @@ export class TenantsComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    this.tenantService.getTenants().subscribe({
+    this.tenantService.getTenants().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<any>) => {
         if (response.success && Array.isArray(response.data)) {
           this.organisations = response.data;
@@ -99,7 +103,7 @@ export class TenantsComponent implements OnInit {
 
   loadModules(): void {
     // Charger les modules depuis la base de données via l'API
-    this.tenantService.getModules().subscribe({
+    this.tenantService.getModules().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<any>) => {
         // Adapter la structure des modules de la base de données
         this.modules = (response.data?.data || []).map((module: any) => ({
@@ -109,14 +113,12 @@ export class TenantsComponent implements OnInit {
           icon: this.getModuleIcon(module.code),
           is_active: module.is_active || true
         }));
-        console.log('Modules chargés depuis la base de données:', this.modules);
         // Force change detection after async operation
         setTimeout(() => {
           this.cdr.detectChanges();
         }, 0);
       },
-      error: (error) => {
-        console.error('Erreur lors du chargement des modules:', error);
+      error: () => {
         // Fallback vers les modules par défaut en cas d'erreur
         this.modules = [
           { id: 1, code: 'COMMERCE', name: 'Module Commerce', icon: 'cil-cart', is_active: true },
@@ -174,21 +176,19 @@ export class TenantsComponent implements OnInit {
 
   private createOrganisation(): void {
     // Utiliser le vrai backend pour créer le tenant dans la base de données
-    this.tenantService.createTenant(this.organisationForm.value).subscribe({
+    this.tenantService.createTenant(this.organisationForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         // S'assurer que this.organisations est un tableau avant d'utiliser push
         if (!Array.isArray(this.organisations)) {
           this.organisations = [];
         }
-        
+
         this.organisations.push(response.data);
-        console.log('Organisation créée dans la base de données MySQL:', response.data);
         this.resetForm();
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('Error creating organisation in database:', error);
+      error: () => {
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -199,20 +199,18 @@ export class TenantsComponent implements OnInit {
     if (!this.selectedOrganisation) return;
 
     // Utiliser le vrai backend pour mettre à jour le tenant dans la base de données
-    this.tenantService.updateTenant(this.selectedOrganisation.id, this.organisationForm.value).subscribe({
+    this.tenantService.updateTenant(this.selectedOrganisation.id, this.organisationForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         const index = this.organisations.findIndex(t => t.id === this.selectedOrganisation!.id);
         if (index !== -1) {
           this.organisations[index] = response.data;
-          console.log('Organisation mise à jour dans la base de données MySQL:', response.data);
         }
-        
+
         this.resetForm();
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('Error updating organisation in database:', error);
+      error: () => {
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -242,21 +240,19 @@ export class TenantsComponent implements OnInit {
     this.cdr.detectChanges();
     
     // Utiliser le vrai backend pour supprimer le tenant de la base de données
-    this.tenantService.deleteTenant(this.organisationToDelete.id).subscribe({
+    this.tenantService.deleteTenant(this.organisationToDelete.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         // S'assurer que this.organisations est un tableau avant d'utiliser filter
         if (!Array.isArray(this.organisations)) {
           this.organisations = [];
         }
-        
+
         this.organisations = this.organisations.filter(t => t.id !== this.organisationToDelete!.id);
-        console.log('Organisation supprimée de la base de données MySQL:', this.organisationToDelete);
         this.cancelDelete();
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('Error deleting organisation from database:', error);
+      error: () => {
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -333,11 +329,6 @@ export class TenantsComponent implements OnInit {
     }
 
     this.organisations[organisationIndex] = updatedOrganisation;
-    console.log('Module géré dans la base de données:', {
-      organisation: organisation.name,
-      module: module.name,
-      action: moduleIndex > -1 ? 'Statut modifié' : 'Module ajouté'
-    });
   }
 
   isModuleAssigned(organisation: Tenant | null, module: Module): boolean {
@@ -362,7 +353,7 @@ export class TenantsComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
     
-    this.tenantService.updateTenant(organisation.id, { subscription_status: newStatus }).subscribe({
+    this.tenantService.updateTenant(organisation.id, { subscription_status: newStatus }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         const index = this.organisations.findIndex(t => t.id === organisation.id);
         if (index !== -1) {
@@ -371,8 +362,7 @@ export class TenantsComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('Error updating organisation status:', error);
+      error: () => {
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -414,7 +404,7 @@ export class TenantsComponent implements OnInit {
     
     if (isCurrentlyActive) {
       // Remove module from organisation
-      this.tenantService.removeModule(organisation.id, module.id).subscribe({
+      this.tenantService.removeModule(organisation.id, module.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           if (organisation.modules) {
             organisation.modules = organisation.modules.filter(m => m.id !== module.id);
@@ -425,7 +415,7 @@ export class TenantsComponent implements OnInit {
         error: () => { this.loading = false; this.cdr.detectChanges(); }
       });
     } else {
-      this.tenantService.assignModule(organisation.id, module.id).subscribe({
+      this.tenantService.assignModule(organisation.id, module.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           if (!organisation.modules) {
             organisation.modules = [];
@@ -452,7 +442,6 @@ export class TenantsComponent implements OnInit {
     const status = this.filterForm.get('status')?.value || 'ALL';
 
     // Logique de filtrage à implémenter
-    console.log('Applying filters:', { search, status });
   }
 
   clearFilters(): void {
@@ -462,4 +451,8 @@ export class TenantsComponent implements OnInit {
     });
     this.loadOrganisations();
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

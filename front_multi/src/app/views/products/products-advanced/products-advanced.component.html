@@ -110,7 +110,7 @@
           </div>
 
           <div *ngIf="!loadingLowStock && lowStockProducts.length > 0">
-            <div *ngFor="let product of lowStockProducts" class="border-bottom pb-2 mb-2">
+            <div *ngFor="let product of lowStockProducts; trackBy: trackById" class="border-bottom pb-2 mb-2">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
                   <h6 class="mb-1">{{ product.name }}</h6>

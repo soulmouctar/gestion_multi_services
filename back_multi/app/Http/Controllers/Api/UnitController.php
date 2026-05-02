@@ -3,29 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Unit;
+use App\Http\Requests\StoreUnitRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class UnitController extends BaseController
 {
     public function index()
     {
-        $units = Unit::paginate(15);
+        $units = Unit::orderBy('name')->paginate(15);
         return $this->sendResponse($units, 'Units retrieved successfully');
     }
 
-    public function store(Request $request)
+    public function store(StoreUnitRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:50',
-            'conversion_value' => 'nullable|numeric|min:0',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
-        }
-
-        $unit = Unit::create($request->all());
+        $unit = Unit::create($request->only(['name', 'conversion_value']));
 
         return $this->sendResponse($unit, 'Unit created successfully', 201);
     }
@@ -35,30 +26,21 @@ class UnitController extends BaseController
         $unit = Unit::find($id);
 
         if (!$unit) {
-            return $this->sendError('Unit not found');
+            return $this->sendError('Unit not found', [], 404);
         }
 
         return $this->sendResponse($unit, 'Unit retrieved successfully');
     }
 
-    public function update(Request $request, $id)
+    public function update(StoreUnitRequest $request, $id)
     {
         $unit = Unit::find($id);
 
         if (!$unit) {
-            return $this->sendError('Unit not found');
+            return $this->sendError('Unit not found', [], 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:50',
-            'conversion_value' => 'nullable|numeric|min:0',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
-        }
-
-        $unit->update($request->all());
+        $unit->update($request->only(['name', 'conversion_value']));
 
         return $this->sendResponse($unit, 'Unit updated successfully');
     }
@@ -68,34 +50,11 @@ class UnitController extends BaseController
         $unit = Unit::find($id);
 
         if (!$unit) {
-            return $this->sendError('Unit not found');
+            return $this->sendError('Unit not found', [], 404);
         }
 
         $unit->delete();
 
         return $this->sendResponse([], 'Unit deleted successfully');
-    }
-
-    public function publicIndex()
-    {
-        $units = Unit::orderBy('name')->get();
-        return $this->sendResponse($units, 'Units retrieved successfully');
-    }
-
-    public function publicStore(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:50',
-            'symbol' => 'required|string|max:10',
-            'conversion_value' => 'nullable|numeric|min:0',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
-        }
-
-        $unit = Unit::create($request->all());
-
-        return $this->sendResponse($unit, 'Unit created successfully', 201);
     }
 }

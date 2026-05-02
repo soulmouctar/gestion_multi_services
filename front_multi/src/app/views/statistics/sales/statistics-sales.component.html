@@ -5,7 +5,7 @@
     </div>
     <div class="col-auto">
       <select class="form-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
-        <option *ngFor="let p of periods" [value]="p.value">{{ p.label }}</option>
+        <option *ngFor="let p of periods; trackBy: trackById" [value]="p.value">{{ p.label }}</option>
       </select>
     </div>
   </div>
@@ -61,7 +61,7 @@
             <table *ngIf="recentPayments.length > 0" class="table table-hover mb-0">
               <thead><tr><th>Référence</th><th>Client</th><th>Méthode</th><th class="text-end">Montant</th><th>Date</th></tr></thead>
               <tbody>
-                <tr *ngFor="let pay of recentPayments">
+                <tr *ngFor="let pay of recentPayments; trackBy: trackById">
                   <td>{{ pay.reference || pay.id }}</td>
                   <td>{{ pay.client?.name || '—' }}</td>
                   <td><span class="badge bg-secondary">{{ pay.payment_method || pay.method || '—' }}</span></td>

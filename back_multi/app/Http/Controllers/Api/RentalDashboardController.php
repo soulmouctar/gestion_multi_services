@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Lease;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -177,35 +178,71 @@ class RentalDashboardController extends BaseController
         $search = $request->get('search');
         $status = $request->get('status');
 
-        $query = DB::table('leases')
-            ->where('leases.tenant_id', $tid)
-            ->groupBy(
-                'leases.renter_name',
-                'leases.renter_phone',
-                'leases.renter_email'
-            )
-            ->selectRaw('
-                leases.renter_name,
-                leases.renter_phone,
-                leases.renter_email,
-                COUNT(*) as total_leases,
-                SUM(CASE WHEN leases.status = "ACTIVE" THEN 1 ELSE 0 END) as active_leases,
-                MAX(leases.start_date) as latest_start,
-                COALESCE(SUM(leases.deposit_amount), 0) as total_deposits,
-                COALESCE(SUM(CASE WHEN leases.status = "ACTIVE" THEN leases.monthly_rent ELSE 0 END), 0) as current_monthly_rent
-            ');
+        $query = Lease::with(['payments', 'housingUnit.floor.building.location'])
+            ->where('tenant_id', $tid);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('leases.renter_name', 'like', "%$search%")
-                  ->orWhere('leases.renter_phone', 'like', "%$search%")
-                  ->orWhere('leases.renter_email', 'like', "%$search%");
+                $q->where('renter_name', 'like', "%$search%")
+                  ->orWhere('renter_phone', 'like', "%$search%")
+                  ->orWhere('renter_email', 'like', "%$search%");
             });
         }
-        if ($status === 'active')   $query->havingRaw('active_leases > 0');
-        if ($status === 'inactive') $query->havingRaw('active_leases = 0');
 
-        $tenants = $query->orderBy('leases.renter_name')->get();
+        if ($status === 'active') {
+            $query->where('status', 'ACTIVE');
+        }
+        if ($status === 'inactive') {
+            $query->where(function ($q) {
+                $q->where('status', '!=', 'ACTIVE');
+            });
+        }
+
+        $tenants = $query->orderBy('renter_name')->get()
+            ->groupBy(function ($lease) {
+                return trim(($lease->renter_name ?? '') . '|' . ($lease->renter_phone ?? '') . '|' . ($lease->renter_email ?? ''));
+            })
+            ->map(function ($leases) {
+                $first = $leases->first();
+                $arrearsAmount = 0;
+                $arrearsMonths = 0;
+
+                foreach ($leases as $lease) {
+                    $start = \Carbon\Carbon::parse($lease->start_date)->startOfMonth();
+                    $end = $lease->end_date
+                        ? \Carbon\Carbon::parse($lease->end_date)->startOfMonth()
+                        : now()->startOfMonth();
+                    $dueMonths = 0;
+                    $cursor = $start->copy();
+                    while ($cursor->lte($end) && $dueMonths < 120) {
+                        $dueMonths++;
+                        $cursor->addMonth();
+                    }
+
+                    $paidMonths = $lease->payments->where('status', 'PAID')->count();
+                    $leaseArrearsMonths = max(0, $dueMonths - $paidMonths);
+                    $arrearsMonths += $leaseArrearsMonths;
+                    $arrearsAmount += $leaseArrearsMonths * (float) $lease->monthly_rent;
+                }
+
+                return [
+                    'renter_name'       => $first->renter_name,
+                    'renter_phone'      => $first->renter_phone,
+                    'renter_email'      => $first->renter_email,
+                    'photo_url'         => $first->renter_photo_url,
+                    'total_leases'      => $leases->count(),
+                    'active_leases'     => $leases->where('status', 'ACTIVE')->count(),
+                    'latest_start'      => $leases->max('start_date'),
+                    'total_deposits'    => (float) $leases->sum('deposit_amount'),
+                    'current_monthly_rent' => (float) $leases->where('status', 'ACTIVE')->sum('monthly_rent'),
+                    'arrears_months'    => $arrearsMonths,
+                    'arrears_amount'    => $arrearsAmount,
+                    'latest_status'     => $leases->sortByDesc('start_date')->first()->status,
+                    'latest_unit_id'    => $first->housing_unit_id,
+                ];
+            })
+            ->sortBy('renter_name')
+            ->values();
 
         return $this->sendResponse($tenants, 'Tenants retrieved');
     }

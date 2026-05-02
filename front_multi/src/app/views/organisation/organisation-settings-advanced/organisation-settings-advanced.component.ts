@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import {
@@ -16,9 +17,12 @@ import { ApiService } from '../../../core/services/api.service';
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './organisation-settings-advanced.component.html'
 })
 export class OrganisationSettingsAdvancedComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   loading = false;
   error: string | null = null;
   successMessage: string | null = null;
@@ -52,7 +56,7 @@ export class OrganisationSettingsAdvancedComponent implements OnInit {
   // Settings Options
   loadSettingsOptions(): void {
     this.optionsLoading = true;
-    this.apiService.get<any>('organisation-settings/options').subscribe({
+    this.apiService.get<any>('organisation-settings/options').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.settingsOptions = r.data;
@@ -62,7 +66,6 @@ export class OrganisationSettingsAdvancedComponent implements OnInit {
       },
       error: () => {
         this.optionsLoading = false;
-        console.error('Erreur lors du chargement des options');
       }
     });
   }
@@ -72,7 +75,7 @@ export class OrganisationSettingsAdvancedComponent implements OnInit {
     this.numbersLoading = true;
     
     // Load next invoice number
-    this.apiService.get<any>('organisation-settings/next-invoice-number').subscribe({
+    this.apiService.get<any>('organisation-settings/next-invoice-number').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.nextInvoiceNumber = r.data.next_number || 'N/A';
@@ -85,7 +88,7 @@ export class OrganisationSettingsAdvancedComponent implements OnInit {
     });
     
     // Load next quote number
-    this.apiService.get<any>('organisation-settings/next-quote-number').subscribe({
+    this.apiService.get<any>('organisation-settings/next-quote-number').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.nextQuoteNumber = r.data.next_number || 'N/A';
@@ -107,7 +110,7 @@ export class OrganisationSettingsAdvancedComponent implements OnInit {
     this.testLoading = true;
     const data = this.testNotificationForm.value;
     
-    this.apiService.post<any>('organisation-settings/test-notifications', data).subscribe({
+    this.apiService.post<any>('organisation-settings/test-notifications', data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = 'Test de notification envoyé avec succès';
@@ -152,4 +155,8 @@ export class OrganisationSettingsAdvancedComponent implements OnInit {
       this.cdr.detectChanges();
     }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

@@ -27,14 +27,14 @@
             <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:#6c757d">Rôle</label>
             <select cFormControl formControlName="role" class="form-select" (change)="applyFilters()" style="border-radius:8px">
               <option value="ALL">Tous les rôles</option>
-              <option *ngFor="let role of availableRoles" [value]="role">{{ getRoleDisplayName(role) }}</option>
+              <option *ngFor="let role of availableRoles; trackBy: trackById" [value]="role">{{ getRoleDisplayName(role) }}</option>
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:#6c757d">Organisation</label>
             <select cFormControl formControlName="tenant_id" class="form-select" (change)="applyFilters()" style="border-radius:8px">
               <option value="ALL">Toutes les organisations</option>
-              <option *ngFor="let tenant of tenants" [value]="tenant.id">{{ tenant.name }}</option>
+              <option *ngFor="let tenant of tenants; trackBy: trackById" [value]="tenant.id">{{ tenant.name }}</option>
             </select>
           </div>
           <div class="col-md-2 d-flex gap-2">
@@ -73,7 +73,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let user of filteredUsers" style="border-bottom:1px solid #f0f0f0">
+            <tr *ngFor="let user of filteredUsers; trackBy: trackById" style="border-bottom:1px solid #f0f0f0">
               <!-- User info -->
               <td style="padding:14px 20px">
                 <div class="d-flex align-items-center gap-3">
@@ -84,7 +84,7 @@
                     <div [style.background]="getUserAvatarBg(user)"
                          [style.display]="user.avatar_url ? 'none' : 'flex'"
                          style="width:40px;height:40px;border-radius:50%;align-items:center;justify-content:center;color:white;font-weight:700;font-size:.9rem">
-                      {{ user.name?.charAt(0)?.toUpperCase() }}
+                      {{ user.name.charAt(0).toUpperCase() }}
                     </div>
                   </div>
                   <div>
@@ -234,14 +234,14 @@
           <select cFormControl formControlName="role" class="form-select"
             [class.is-invalid]="submitted && f['role'].errors"
             (change)="onRoleChange($event)" style="border-radius:8px">
-            <option *ngFor="let role of availableRoles" [value]="role">{{ getRoleDisplayName(role) }}</option>
+            <option *ngFor="let role of availableRoles; trackBy: trackById" [value]="role">{{ getRoleDisplayName(role) }}</option>
           </select>
         </div>
         <div class="col-12">
           <label class="form-label fw-semibold small">Organisation</label>
           <select cFormControl formControlName="tenant_id" class="form-select" style="border-radius:8px">
             <option value="">Aucune organisation spécifique</option>
-            <option *ngFor="let org of filteredTenants" [value]="org.id">{{ org.name }}</option>
+            <option *ngFor="let org of filteredTenants; trackBy: trackById" [value]="org.id">{{ org.name }}</option>
           </select>
           <div class="form-text text-muted" *ngIf="userForm.get('role')?.value === 'SUPER_ADMIN'">
             Les Super Admins n'appartiennent pas à une organisation.
@@ -271,7 +271,7 @@
     <div class="table-responsive" *ngIf="!loading">
       <table class="table table-sm table-borderless">
         <tbody>
-          <tr *ngFor="let module of availableModules" class="border-bottom">
+          <tr *ngFor="let module of availableModules; trackBy: trackById" class="border-bottom">
             <td class="py-3 ps-2">
               <div class="fw-semibold">{{ module.module_name }}</div>
               <small class="text-muted">{{ module.module_code }}</small>
@@ -283,7 +283,7 @@
             </td>
             <td class="py-3">
               <div class="d-flex flex-wrap gap-1" *ngIf="module.is_active">
-                <span *ngFor="let perm of module.permissions"
+                <span *ngFor="let perm of module.permissions; trackBy: trackById"
                   class="badge rounded-pill"
                   style="background:#cfe2ff;color:#0a58ca;font-size:.7rem">
                   {{ getPermissionDisplayName(perm) }}
@@ -329,7 +329,7 @@
   </c-modal-header>
   <c-modal-body>
     <div class="row g-2">
-      <div *ngFor="let permission of getAvailablePermissionsForModule(selectedModuleForRoles?.module_code)" class="col-6">
+      <div *ngFor="let permission of getAvailablePermissionsForModule(selectedModuleForRoles?.module_code); trackBy: trackById" class="col-6">
         <div class="form-check p-3" style="background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef">
           <input class="form-check-input" type="checkbox"
             [checked]="hasPermission(selectedModuleForRoles!, permission)"

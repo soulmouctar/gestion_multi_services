@@ -224,7 +224,7 @@
                 {{ expenseStats.summary.total_count || 0 }} depenses &mdash; Moy: {{ fmt(expenseStats.summary.avg_amount) }}
               </div>
               <div *ngIf="expenseStats.by_category?.length">
-                <div *ngFor="let cat of expenseStats.by_category.slice(0, 3)"
+                <div *ngFor="let cat of expenseStats.by_category.slice(0, 3); trackBy: trackById"
                      class="d-flex justify-content-between align-items-center mb-2">
                   <div class="d-flex align-items-center gap-2">
                     <span style="width:8px;height:8px;border-radius:50%;display:inline-block;" [style.background]="cat.color"></span>

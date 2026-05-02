@@ -1,0 +1,169 @@
+<div class="p-3 p-md-4">
+  <div class="rounded-4 mb-4 px-4 py-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
+       style="background:linear-gradient(135deg,#7c2d12 0%,#c2410c 55%,#fb923c 100%);border-radius:16px;">
+    <div>
+      <h4 class="mb-1 fw-bold text-white">Retours de marchandises</h4>
+      <p class="mb-0 small" style="color:rgba(255,255,255,0.7);">
+        Retour client, réintégration stock et mise à jour du compte client
+      </p>
+    </div>
+    <button class="btn fw-semibold"
+            style="background:#fff;color:#9a3412;border:none;border-radius:10px;padding:8px 20px;"
+            (click)="openCreateModal()">
+      <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau retour
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner></c-spinner>
+    <p class="mt-3 text-body-secondary small">Chargement des retours...</p>
+  </div>
+
+  <div *ngIf="!loading" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+    <div *ngIf="returns.length === 0" class="text-center py-5 text-muted">
+      <svg cIcon name="cilReload" size="3xl" class="mb-3"></svg>
+      Aucun retour enregistré
+    </div>
+
+    <div class="table-responsive" *ngIf="returns.length > 0">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#F9FAFB;">
+          <tr>
+            <th class="px-4 py-3">Date</th>
+            <th class="px-4 py-3">Produit</th>
+            <th class="px-4 py-3">Client</th>
+            <th class="px-4 py-3">Facture</th>
+            <th class="px-4 py-3">Qté</th>
+            <th class="px-4 py-3">Montant</th>
+            <th class="px-4 py-3">Stock</th>
+            <th class="px-4 py-3">Impact compte</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of returns; trackBy: trackById">
+            <td class="px-4 py-3">{{ item.return_date | date:'dd/MM/yyyy' }}</td>
+            <td class="px-4 py-3 fw-semibold">{{ item.product?.name || getProductName(item.product_id) }}</td>
+            <td class="px-4 py-3">{{ item.client?.name || getClientName(item.client_id) }}</td>
+            <td class="px-4 py-3">{{ item.invoice?.invoice_number || getInvoiceNumber(item.invoice_id) }}</td>
+            <td class="px-4 py-3">{{ item.quantity }}</td>
+            <td class="px-4 py-3 fw-semibold">{{ item.total_amount | number:'1.0-0' }}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 rounded-2 small fw-semibold"
+                    [style.background]="item.reintegrate_to_stock ? '#ECFDF5' : '#F3F4F6'"
+                    [style.color]="item.reintegrate_to_stock ? '#10B981' : '#6B7280'">
+                {{ item.reintegrate_to_stock ? 'Réintégré' : 'Non réintégré' }}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="small">{{ item.account_impact }}</div>
+              <div *ngIf="item.client_credit_amount" class="small text-warning">
+                Avoir: {{ item.client_credit_amount | number:'1.0-0' }}
+              </div>
+              <div *ngIf="item.applied_to_invoice_amount" class="small text-success">
+                Déduit facture: {{ item.applied_to_invoice_amount | number:'1.0-0' }}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="totalPages > 1" class="d-flex justify-content-between align-items-center px-4 py-3"
+         style="border-top:1px solid #F3F4F6;">
+      <span class="small text-muted">Page {{ currentPage }} sur {{ totalPages }} — {{ totalItems }} retour(s)</span>
+      <nav>
+        <ul class="pagination pagination-sm mb-0 gap-1">
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(currentPage - 1)">‹</a>
+          </li>
+          <li class="page-item" *ngFor="let page of getPages(); trackBy: trackById" [class.active]="page === currentPage">
+            <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(page)">{{ page }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(currentPage + 1)">›</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle class="fw-bold">Nouveau retour produit</h5>
+    <button type="button" class="btn-close" (click)="showFormModal = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="returnForm">
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">Produit *</label>
+        <select cSelect formControlName="product_id"
+                [class.is-invalid]="submitted && returnForm.get('product_id')?.invalid">
+          <option [ngValue]="null">-- Sélectionner un produit --</option>
+          <option *ngFor="let product of products; trackBy: trackById" [ngValue]="product.id">{{ product.name }}</option>
+        </select>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Client</label>
+          <select cSelect formControlName="client_id">
+            <option [ngValue]="null">-- Aucun client --</option>
+            <option *ngFor="let client of clients; trackBy: trackById" [ngValue]="client.id">{{ client.name }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Facture liée</label>
+          <select cSelect formControlName="invoice_id">
+            <option [ngValue]="null">-- Aucune facture --</option>
+            <option *ngFor="let invoice of invoices; trackBy: trackById" [ngValue]="invoice.id">{{ invoice.invoice_number }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small">Quantité *</label>
+          <input cFormControl type="number" formControlName="quantity" min="0.01" step="1"
+                 [class.is-invalid]="submitted && returnForm.get('quantity')?.invalid" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small">Prix unitaire *</label>
+          <input cFormControl type="number" formControlName="unit_price" min="0" step="1"
+                 [class.is-invalid]="submitted && returnForm.get('unit_price')?.invalid" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small">Date de retour *</label>
+          <input cFormControl type="date" formControlName="return_date"
+                 [class.is-invalid]="submitted && returnForm.get('return_date')?.invalid" />
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Impact compte client</label>
+          <select cSelect formControlName="account_impact">
+            <option value="CREDIT_NOTE">Avoir client</option>
+            <option value="REFUND">Remboursement</option>
+            <option value="NONE">Aucun impact</option>
+          </select>
+        </div>
+        <div class="col-md-6 d-flex align-items-end">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="reintegrateStock" formControlName="reintegrate_to_stock">
+            <label class="form-check-label" for="reintegrateStock">Réintégrer au stock</label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label fw-semibold small">Notes</label>
+        <textarea cFormControl formControlName="notes" rows="3" placeholder="Motif du retour, état de la marchandise..."></textarea>
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button class="btn btn-light" (click)="showFormModal = false">Annuler</button>
+    <button class="btn btn-primary" (click)="saveReturn()">Enregistrer</button>
+  </c-modal-footer>
+</c-modal>

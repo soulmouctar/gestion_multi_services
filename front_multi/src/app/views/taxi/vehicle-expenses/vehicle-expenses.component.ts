@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
   ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-  ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+  ModalModule, AlertModule, SpinnerModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -14,11 +15,14 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-    ModalModule, AlertModule, SpinnerModule, RowComponent, ColComponent, ContainerComponent
+    ModalModule, AlertModule, SpinnerModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehicle-expenses.component.html'
 })
 export class VehicleExpensesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   expenses: any[] = [];
   taxis: any[] = [];
   drivers: any[] = [];
@@ -89,7 +93,7 @@ export class VehicleExpensesComponent implements OnInit {
   }
 
   loadTaxis(): void {
-    this.apiService.get<any>('taxis?per_page=200').subscribe({
+    this.apiService.get<any>('taxis?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.taxis = r.data.data || r.data || [];
@@ -99,7 +103,7 @@ export class VehicleExpensesComponent implements OnInit {
   }
 
   loadDrivers(): void {
-    this.apiService.get<any>('drivers?per_page=200').subscribe({
+    this.apiService.get<any>('drivers?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.drivers = r.data.data || r.data || [];
@@ -119,7 +123,7 @@ export class VehicleExpensesComponent implements OnInit {
     if (filters.date_from) url += `&date_from=${filters.date_from}`;
     if (filters.date_to) url += `&date_to=${filters.date_to}`;
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           const p = r.data;
@@ -148,7 +152,7 @@ export class VehicleExpensesComponent implements OnInit {
     if (filters.date_to)   params.push(`date_to=${filters.date_to}`);
     const url = `vehicle-expenses/statistics${params.length ? '?' + params.join('&') : ''}`;
 
-    this.apiService.get<any>(url).subscribe({
+    this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.statistics = r.data;
@@ -229,7 +233,7 @@ export class VehicleExpensesComponent implements OnInit {
       ? this.apiService.put<any>(`vehicle-expenses/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('vehicle-expenses', data);
 
-    obs.subscribe({
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = this.editMode ? 'Dépense mise à jour' : 'Dépense enregistrée';
@@ -252,7 +256,7 @@ export class VehicleExpensesComponent implements OnInit {
 
   deleteItem(): void {
     if (!this.itemToDelete) return;
-    this.apiService.delete<any>(`vehicle-expenses/${this.itemToDelete.id}`).subscribe({
+    this.apiService.delete<any>(`vehicle-expenses/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.successMessage = 'Dépense supprimée';
@@ -312,4 +316,8 @@ export class VehicleExpensesComponent implements OnInit {
       this.cdr.detectChanges();
     }, 3000);
   }
+  trackById(_index: number, item: any): any {
+    return item?.id ?? _index;
+  }
+
 }

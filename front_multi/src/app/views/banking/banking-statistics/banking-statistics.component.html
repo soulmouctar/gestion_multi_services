@@ -17,7 +17,7 @@
       <div class="row g-3 align-items-end">
         <div class="col-auto">
           <div class="btn-group btn-group-sm">
-            <button *ngFor="let p of [{v:'week',l:'Semaine'},{v:'month',l:'Mois'},{v:'3months',l:'3 mois'},{v:'year',l:'Année'}]"
+            <button *ngFor="let p of [{v:'week',l:'Semaine'},{v:'month',l:'Mois'},{v:'3months',l:'3 mois'},{v:'year',l:'Année'}]; trackBy: trackById"
                     cButton [color]="period === p.v ? 'primary' : 'light'" size="sm" (click)="setPeriod(p.v)">
               {{ p.l }}
             </button>
@@ -32,7 +32,7 @@
         <div class="col-md-3">
           <select class="form-select form-select-sm" [(ngModel)]="filters.account_id" (change)="loadStats()">
             <option value="">Tous les comptes</option>
-            <option *ngFor="let a of accounts" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
+            <option *ngFor="let a of accounts; trackBy: trackById" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
           </select>
         </div>
       </div>
@@ -99,7 +99,7 @@
           <c-card-header class="fw-semibold bg-transparent border-0 pt-3">Solde par compte</c-card-header>
           <c-card-body>
             <div *ngIf="!stats.accounts?.length" class="text-muted text-center py-3">Aucun compte</div>
-            <div *ngFor="let a of stats.accounts" class="mb-3">
+            <div *ngFor="let a of stats.accounts; trackBy: trackById" class="mb-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <div>
                   <span class="fw-semibold small">{{ a.bank_name }}</span>
@@ -124,7 +124,7 @@
           <c-card-header class="fw-semibold bg-transparent border-0 pt-3">Répartition par type</c-card-header>
           <c-card-body>
             <div *ngIf="!stats.by_type?.length" class="text-muted text-center py-3">Aucune transaction</div>
-            <div *ngFor="let t of stats.by_type" class="mb-3">
+            <div *ngFor="let t of stats.by_type; trackBy: trackById" class="mb-3">
               <div class="d-flex justify-content-between mb-1">
                 <span class="small">
                   <span class="badge bg-{{ txTypeColor(t.transaction_type) }} me-2">{{ t.count }}</span>
@@ -159,7 +159,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let m of stats.by_month">
+              <tr *ngFor="let m of stats.by_month; trackBy: trackById">
                 <td class="fw-semibold small">{{ m.month }}</td>
                 <td class="text-end text-success small">+{{ fmt(m.credits) }}</td>
                 <td class="text-end text-danger small">-{{ fmt(m.debits) }}</td>
@@ -197,7 +197,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let t of stats.recent_transactions">
+              <tr *ngFor="let t of stats.recent_transactions; trackBy: trackById">
                 <td class="small">{{ t.transaction_date | date:'dd/MM/yy' }}</td>
                 <td class="small fw-semibold">{{ t.bank_name }}<br/><span class="text-muted font-monospace">{{ t.account_number }}</span></td>
                 <td>

@@ -216,11 +216,14 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
       'COMMERCIAL': '/commercial',
       'FINANCE': '/finance',
       'CLIENTS': '/clients',
+      'CLIENTS_SUPPLIERS': '/clients',
       'PRODUCTS_STOCK': '/products',
       'CONTAINERS': '/containers',
       'RENTAL': '/rental',
       'TAXI': '/taxi',
-      'STATISTICS': '/statistics'
+      'STATISTICS': '/statistics',
+      'EXPENSES': '/expenses',
+      'BANKING': '/banking'
     };
     
     return routeMap[moduleCode] || `/module/${moduleCode.toLowerCase()}`;
