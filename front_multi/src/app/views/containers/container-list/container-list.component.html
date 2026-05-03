@@ -176,6 +176,22 @@
 
   <c-modal-body class="p-4">
     <form [formGroup]="containerForm">
+
+      <!-- Sélecteur organisation (SUPER_ADMIN uniquement) -->
+      <div class="mb-4" *ngIf="isSuperAdmin && !editMode">
+        <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">
+          Organisation <span class="text-danger">*</span>
+        </label>
+        <select cSelect formControlName="tenant_id" style="border-radius:8px"
+                [class.is-invalid]="submitted && containerForm.get('tenant_id')?.invalid">
+          <option [ngValue]="null" disabled>-- Sélectionner une organisation --</option>
+          <option *ngFor="let t of tenants" [ngValue]="t.id">{{ t.name }}</option>
+        </select>
+        <div class="invalid-feedback" *ngIf="submitted && containerForm.get('tenant_id')?.hasError('required')">
+          L'organisation est obligatoire.
+        </div>
+      </div>
+
       <div class="mb-4">
         <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">
           Numéro de conteneur <span class="text-danger">*</span>

@@ -16,6 +16,8 @@ class ContainerArrival extends Model
         'arrival_date',
         'purchase_price',
         'currency',
+        'exchange_rate',
+        'purchase_price_gnf',
         'product_type',
         'total_quantity',
         'remaining_quantity',
@@ -24,8 +26,10 @@ class ContainerArrival extends Model
     ];
 
     protected $casts = [
-        'purchase_price' => 'decimal:2',
-        'arrival_date' => 'date'
+        'purchase_price'     => 'float',
+        'exchange_rate'      => 'float',
+        'purchase_price_gnf' => 'float',
+        'arrival_date'       => 'date',
     ];
 
 

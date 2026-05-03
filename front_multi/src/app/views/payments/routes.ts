@@ -12,6 +12,11 @@ export const routes: Routes = [
     title: 'Liste des Paiements'
   },
   {
+    path: 'detail/:id',
+    loadComponent: () => import('./payment-detail/payment-detail.component').then(m => m.PaymentDetailComponent),
+    title: 'Détail du Reçu'
+  },
+  {
     path: 'advanced',
     loadComponent: () => import('./payments-advanced/payments-advanced.component').then(m => m.PaymentsAdvancedComponent),
     title: 'Gestion Avancée des Paiements'

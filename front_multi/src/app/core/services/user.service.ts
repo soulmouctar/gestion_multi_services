@@ -134,6 +134,15 @@ export class UserService {
     });
   }
 
+  changePassword(id: number, password: string, passwordConfirmation: string): Observable<ApiResponse<UserProfile>> {
+    return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}/password`, {
+      password,
+      password_confirmation: passwordConfirmation
+    }, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
   deleteUser(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${this.API_URL}/users/${id}`, {
       headers: this.getAuthHeaders()
@@ -257,7 +266,7 @@ export class UserService {
 
   // Utility methods
   getAvailableRoles(): string[] {
-    return ['SUPER_ADMIN', 'ADMIN', 'USER', 'VIEWER'];
+    return ['SUPER_ADMIN', 'ADMIN', 'USER'];
   }
 
   getRoleDisplayName(role: string): string {

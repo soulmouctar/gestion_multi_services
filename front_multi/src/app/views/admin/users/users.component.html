@@ -139,6 +139,11 @@
                     title="Modifier l'utilisateur" style="border-radius:8px">
                     <svg cIcon name="cil-pencil" size="sm"></svg>
                   </button>
+                  <button cButton size="sm" color="primary" variant="outline"
+                    (click)="openPasswordModal(user)" [disabled]="loading"
+                    title="Modifier le mot de passe" style="border-radius:8px">
+                    <svg cIcon name="cil-lock-locked" size="sm"></svg>
+                  </button>
                   <button cButton size="sm" color="danger" variant="outline"
                     (click)="deleteUser(user)" [disabled]="loading"
                     title="Supprimer l'utilisateur" style="border-radius:8px">
@@ -256,6 +261,45 @@
       style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       {{ editMode ? 'Enregistrer' : 'Créer' }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- ===== PASSWORD MODAL ===== -->
+<c-modal [visible]="passwordModalOpen" (visibleChange)="passwordModalOpen = $event" size="lg">
+  <c-modal-header style="border-bottom:1px solid #f0f0f0">
+    <h5 cModalTitle class="fw-bold">🔐 Modifier le mot de passe — {{ selectedUserForPassword?.name }}</h5>
+    <button cButtonClose (click)="closePasswordModal()" [disabled]="loading"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="passwordForm">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Nouveau mot de passe *</label>
+          <input cFormControl type="password" formControlName="password" placeholder="••••••••"
+            [class.is-invalid]="submitted && passwordForm.get('password')?.errors" style="border-radius:8px">
+          <div *ngIf="submitted && passwordForm.get('password')?.errors" class="invalid-feedback">
+            <div *ngIf="passwordForm.get('password')?.errors?.['required']">Mot de passe requis</div>
+            <div *ngIf="passwordForm.get('password')?.errors?.['minlength']">Minimum 8 caractères</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Confirmer le mot de passe *</label>
+          <input cFormControl type="password" formControlName="password_confirmation" placeholder="••••••••"
+            [class.is-invalid]="submitted && passwordForm.get('password_confirmation')?.errors" style="border-radius:8px">
+          <div *ngIf="submitted && passwordForm.get('password_confirmation')?.errors" class="invalid-feedback">
+            <div *ngIf="passwordForm.get('password_confirmation')?.errors?.['required']">Confirmation requise</div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer style="border-top:1px solid #f0f0f0">
+    <button cButton color="secondary" (click)="closePasswordModal()" [disabled]="loading">Annuler</button>
+    <button cButton color="primary" (click)="onSubmitPassword()" [disabled]="loading"
+      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      Enregistrer
     </button>
   </c-modal-footer>
 </c-modal>

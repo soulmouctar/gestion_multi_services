@@ -1,23 +1,15 @@
 import { Component, OnDestroy, OnInit, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { Subject, forkJoin, takeUntil } from 'rxjs';
+import { forkJoin } from 'rxjs';
 import { catchError, of } from 'rxjs';
-import {
-  CardModule, BadgeModule, SpinnerModule,
-  RowComponent, ColComponent, TableModule, ProgressModule
-} from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+import { ProgressModule } from '@coreui/angular';
 import { ApiService } from '../../../core/services/api.service';
 
 @Component({
   selector: 'app-statistics-inventory',
   standalone: true,
-  imports: [
-    CommonModule, IconDirective,
-    CardModule, BadgeModule, SpinnerModule, ProgressModule,
-    RowComponent, ColComponent, TableModule
-  ],
+  imports: [CommonModule, ProgressModule],
   templateUrl: './statistics-inventory.component.html'
 })
 export class StatisticsInventoryComponent implements OnInit, OnDestroy {
@@ -31,13 +23,13 @@ export class StatisticsInventoryComponent implements OnInit, OnDestroy {
     totalCategories:    0,
     totalValue:         0,
     activeProducts:     0,
-    inactiveProducts:   0
+    inactiveProducts:   0,
+    discontinuedProducts: 0,
+    outOfStockProducts:  0
   };
 
   lowStockItems: any[] = [];
   categories: any[] = [];
-
-  private readonly destroy$ = new Subject<void>();
 
   constructor(private apiService: ApiService) {}
 
@@ -52,7 +44,7 @@ export class StatisticsInventoryComponent implements OnInit, OnDestroy {
       productStats: this.apiService.get<any>('products/statistics').pipe(catchError(() => of({ success: false, data: null }))),
       lowStock:     this.apiService.get<any>('products/low-stock').pipe(catchError(() => of({ success: false, data: [] }))),
       categories:   this.apiService.get<any>('product-categories?per_page=100').pipe(catchError(() => of({ success: false, data: null })))
-    }).pipe(takeUntil(this.destroy$)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (results) => {
         if (results.productStats.success && results.productStats.data) {
           const ps = results.productStats.data;
@@ -61,6 +53,8 @@ export class StatisticsInventoryComponent implements OnInit, OnDestroy {
           this.stats.totalValue       = ps.total_value     ?? ps.stock_value  ?? 0;
           this.stats.activeProducts   = ps.active_count    ?? ps.active       ?? 0;
           this.stats.inactiveProducts = ps.inactive_count  ?? ps.inactive     ?? 0;
+          this.stats.discontinuedProducts = ps.discontinued_products ?? ps.discontinued ?? 0;
+          this.stats.outOfStockProducts   = ps.out_of_stock_products ?? ps.out_of_stock ?? 0;
         }
         if (results.lowStock.success) {
           const raw = results.lowStock.data;
@@ -94,9 +88,12 @@ export class StatisticsInventoryComponent implements OnInit, OnDestroy {
     return 'success';
   }
 
+  stockHealthPercent(): number {
+    if (!this.stats.totalProducts) return 0;
+    return Math.max(0, Math.min(100, Math.round(((this.stats.totalProducts - this.stats.lowStockProducts) / this.stats.totalProducts) * 100)));
+  }
+
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
   trackById(_index: number, item: any): any {
     return item?.id ?? _index;

@@ -65,6 +65,25 @@ class TaxiDashboardController extends BaseController
 
             $netMonth = (float) $monthCollected - (float) $monthExpenses;
 
+            $monthSummary = DB::table('daily_payments')
+                ->where('tenant_id', $tid)
+                ->where('payment_date', 'like', $currentMonth . '%')
+                ->selectRaw('
+                    COUNT(*) as total_payments,
+                    COALESCE(SUM(expected_amount), 0) as total_expected,
+                    COALESCE(SUM(paid_amount), 0) as total_paid,
+                    COALESCE(SUM(balance), 0) as total_balance,
+                    SUM(CASE WHEN status = "PAID" THEN 1 ELSE 0 END) as paid_count,
+                    SUM(CASE WHEN status = "PARTIAL" THEN 1 ELSE 0 END) as partial_count,
+                    SUM(CASE WHEN status = "UNPAID" THEN 1 ELSE 0 END) as unpaid_count,
+                    SUM(CASE WHEN status = "EXCUSED" THEN 1 ELSE 0 END) as excused_count
+                ')
+                ->first();
+
+            $monthCollectionRate = ((float) ($monthSummary->total_expected ?? 0)) > 0
+                ? round(((float) ($monthSummary->total_paid ?? 0) / (float) ($monthSummary->total_expected ?? 1)) * 100, 1)
+                : 0;
+
             // ── Top conducteurs ce mois ──────────────────────────────────────
             $topDrivers = DB::table('daily_payments')
                 ->join('drivers', 'daily_payments.driver_id', '=', 'drivers.id')
@@ -162,6 +181,20 @@ class TaxiDashboardController extends BaseController
                     'collected'      => (float) $monthCollected,
                     'expenses'       => (float) $monthExpenses,
                     'net'            => $netMonth,
+                    'expected'       => (float) ($monthSummary->total_expected ?? 0),
+                    'balance'        => (float) ($monthSummary->total_balance ?? 0),
+                    'collection_rate'=> $monthCollectionRate,
+                ],
+                'summary' => [
+                    'total_payments' => (int) ($monthSummary->total_payments ?? 0),
+                    'total_expected' => (float) ($monthSummary->total_expected ?? 0),
+                    'total_paid'     => (float) ($monthSummary->total_paid ?? 0),
+                    'total_balance'  => (float) ($monthSummary->total_balance ?? 0),
+                    'paid_count'     => (int) ($monthSummary->paid_count ?? 0),
+                    'partial_count'  => (int) ($monthSummary->partial_count ?? 0),
+                    'unpaid_count'   => (int) ($monthSummary->unpaid_count ?? 0),
+                    'excused_count'  => (int) ($monthSummary->excused_count ?? 0),
+                    'collection_rate'=> $monthCollectionRate,
                 ],
                 'top_drivers'        => $topDrivers,
                 'monthly_revenue'    => $monthlyRevenue,

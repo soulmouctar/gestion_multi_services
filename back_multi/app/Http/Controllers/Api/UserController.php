@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\User;
 use App\Models\Module;
 use App\Services\UserModulePermissionService;
+use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -130,9 +131,8 @@ class UserController extends BaseController
         $validator = Validator::make($request->all(), [
             'name'      => 'sometimes|string|max:150',
             'email'     => 'sometimes|email|unique:users,email,' . $id,
-            'password'  => 'nullable|min:8',
             'tenant_id' => 'nullable|exists:tenants,id',
-            'role'      => 'nullable|string|exists:roles,name',
+            'role'      => 'nullable|string|max:100',
             'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -170,10 +170,6 @@ class UserController extends BaseController
 
         $data = $request->only(['name', 'email', 'tenant_id', 'is_active']);
 
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
-        }
-
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
                 Storage::disk('public')->delete($user->avatar);
@@ -183,7 +179,7 @@ class UserController extends BaseController
 
         $user->update($data);
 
-        if ($request->has('role')) {
+        if ($request->filled('role') && Role::where('name', $request->role)->exists()) {
             $user->syncRoles([$request->role]);
         }
 
@@ -193,6 +189,43 @@ class UserController extends BaseController
 
 
         return $this->sendResponse($user->load('roles'), 'User updated successfully');
+    }
+
+    public function changePassword(Request $request, $id)
+    {
+        $currentUser = auth()->user();
+        $user = User::find($id);
+
+        if (!$user) {
+            return $this->sendError('User not found');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
+            if ($user->tenant_id !== $currentUser->tenant_id) {
+                return $this->sendError('Vous ne pouvez gérer que les utilisateurs de votre organisation', [], 403);
+            }
+            if (!$user->hasRole('USER')) {
+                return $this->sendError('Vous ne pouvez modifier le mot de passe que des utilisateurs USER', [], 403);
+            }
+        }
+
+        if ($user->id === $currentUser->id && !$request->filled('password')) {
+            return $this->sendError('Mot de passe invalide', [], 422);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return $this->sendResponse($user->load('roles'), 'Password updated successfully');
     }
 
     public function destroy($id)

@@ -34,6 +34,10 @@ class ContainerController extends BaseController
             ? $request->get('tenant_id')
             : $user->tenant_id;
 
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID requis. Veuillez sélectionner une organisation.', [], 422);
+        }
+
         $container = Container::create([
             'tenant_id'        => $tenantId,
             'container_number' => $request->container_number,

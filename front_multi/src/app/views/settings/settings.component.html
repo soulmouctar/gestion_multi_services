@@ -1,0 +1,106 @@
+<div class="settings-shell">
+  <section class="settings-hero">
+    <div class="hero-copy">
+      <span class="hero-kicker">CENTRE DE CONFIGURATION</span>
+      <h1>Paramètres & organisation</h1>
+      <p>
+        Regroupe les réglages structurants du tenant pour garder une configuration propre,
+        lisible et cohérente sur tous les modules.
+      </p>
+
+      <div class="hero-counters">
+        <div class="hero-counter" *ngFor="let counter of heroCounters">
+          <div class="counter-value">{{ counter.value }}</div>
+          <div class="counter-label">{{ counter.label }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-panel">
+      <div class="panel-title">Accès directs</div>
+      <div class="shortcut-list">
+        <a *ngFor="let shortcut of shortcuts"
+           [routerLink]="shortcut.link"
+           class="shortcut-card"
+           [ngClass]="getToneClass(shortcut.tone)">
+          <div class="shortcut-icon">
+            <svg cIcon [name]="shortcut.icon" size="lg"></svg>
+          </div>
+          <div class="shortcut-content">
+            <div class="shortcut-title">{{ shortcut.title }}</div>
+            <div class="shortcut-description">{{ shortcut.description }}</div>
+          </div>
+          <svg cIcon name="cilArrowRight" class="shortcut-arrow"></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <c-row class="g-4 mt-1">
+    <c-col lg="8">
+      <c-row class="g-4">
+        <c-col md="6" *ngFor="let section of sections">
+          <c-card class="setting-card h-100">
+            <c-card-body>
+              <div class="section-head">
+                <div class="section-icon" [ngClass]="getToneClass(section.tone)">
+                  <svg cIcon [name]="section.icon" size="lg"></svg>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <h3 class="section-title mb-0">{{ section.title }}</h3>
+                    <c-badge [color]="section.tone" class="rounded-pill">{{ section.badge }}</c-badge>
+                  </div>
+                  <p class="section-subtitle mb-0">{{ section.subtitle }}</p>
+                </div>
+              </div>
+
+              <div class="section-links">
+                <a *ngFor="let item of section.items"
+                   [routerLink]="item.link"
+                   class="setting-link">
+                  <div>
+                    <div class="link-title">{{ item.label }}</div>
+                    <div class="link-note">{{ item.note }}</div>
+                  </div>
+                  <span class="link-action">Ouvrir</span>
+                </a>
+              </div>
+            </c-card-body>
+          </c-card>
+        </c-col>
+      </c-row>
+    </c-col>
+
+    <c-col lg="4">
+      <c-card class="setting-card sticky-card">
+        <c-card-body>
+          <div class="panel-title mb-3">Checklist de mise en route</div>
+          <div class="check-item" *ngFor="let item of checklist">
+            <span class="check-bullet"></span>
+            <span>{{ item }}</span>
+          </div>
+
+          <div class="mt-4 p-3 rounded-4 callout">
+            <div class="callout-title">Recommandation</div>
+            <p class="mb-0">
+              Termine d’abord l’identité de l’organisation, puis l’en-tête de facture et les devises.
+              C’est ce trio qui impacte tous les documents de sortie.
+            </p>
+          </div>
+
+          <div class="mt-4 d-grid gap-2">
+            <a cButton color="primary" [routerLink]="['/organisation/settings']">
+              <svg cIcon name="cilSettings" class="me-1"></svg>
+              Ouvrir les paramètres organisation
+            </a>
+            <a cButton color="light" [routerLink]="['/admin/users']">
+              <svg cIcon name="cilPeople" class="me-1"></svg>
+              Gérer les utilisateurs
+            </a>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</div>

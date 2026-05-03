@@ -88,6 +88,7 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::post('users/{id}/assign-role', [UserController::class, 'assignRole']);
             Route::post('users/{id}/remove-role', [UserController::class, 'removeRole']);
             Route::post('users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+            Route::post('users/{id}/password', [UserController::class, 'changePassword']);
             Route::get('users/{id}/module-permissions', [UserController::class, 'getModulePermissions']);
             Route::post('users/{id}/module-permissions', [UserController::class, 'updateModulePermissions']);
         });
@@ -131,9 +132,16 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::get('contact-types', [ContactController::class, 'getContactTypes']);
         });
 
-        // En-têtes de factures (Admin & Super Admin)
+        // En-têtes de factures
+        // Lecture ouverte à tous les utilisateurs authentifiés pour alimenter les reçus/factures.
+        Route::get('invoice-headers', [InvoiceHeaderController::class, 'index']);
+        Route::get('invoice-headers/{id}', [InvoiceHeaderController::class, 'show']);
+        // Écriture réservée aux admins.
         Route::middleware('role:SUPER_ADMIN|ADMIN')->group(function () {
-            Route::apiResource('invoice-headers', InvoiceHeaderController::class);
+            Route::post('invoice-headers', [InvoiceHeaderController::class, 'store']);
+            Route::put('invoice-headers/{id}', [InvoiceHeaderController::class, 'update']);
+            Route::patch('invoice-headers/{id}', [InvoiceHeaderController::class, 'update']);
+            Route::delete('invoice-headers/{id}', [InvoiceHeaderController::class, 'destroy']);
             Route::post('invoice-headers/{id}/set-default', [InvoiceHeaderController::class, 'setAsDefault']);
             Route::post('invoice-headers/{id}/duplicate', [InvoiceHeaderController::class, 'duplicate']);
         });
@@ -230,7 +238,11 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::apiResource('clients', ClientController::class);
 
         // Fournisseurs
+        Route::get('suppliers/{id}/history', [SupplierController::class, 'getHistory']);
         Route::get('suppliers/{id}/financial-relations', [SupplierController::class, 'getFinancialRelations']);
+        Route::get('suppliers/{id}/payments', [SupplierController::class, 'getPayments']);
+        Route::post('suppliers/{id}/payments', [SupplierController::class, 'storePayment']);
+        Route::delete('suppliers/{supplierId}/payments/{paymentId}', [SupplierController::class, 'deletePayment']);
         Route::post('suppliers/{id}/photo', [SupplierController::class, 'uploadPhoto']);
         Route::delete('suppliers/{id}/photo', [SupplierController::class, 'deletePhoto']);
         Route::apiResource('suppliers', SupplierController::class);

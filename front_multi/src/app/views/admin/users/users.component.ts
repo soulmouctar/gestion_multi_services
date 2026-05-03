@@ -45,12 +45,14 @@ export class UsersComponent implements OnInit, AfterViewInit {
   
   // Modal states
   userModalOpen = false;
+  passwordModalOpen = false;
   permissionModalOpen = false;
   roleModalOpen = false;
   deleteModalOpen = false;
   userToDelete: UserProfile | null = null;
   selectedUserForPermissions: UserProfile | null = null;
   selectedModuleForRoles: ModulePermission | null = null;
+  selectedUserForPassword: UserProfile | null = null;
 
   // Photo upload
   selectedPhoto: File | null = null;
@@ -58,10 +60,11 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   // Forms
   userForm!: FormGroup;
+  passwordForm!: FormGroup;
   filterForm!: FormGroup;
 
   // Available data
-  availableRoles = ['SUPER_ADMIN', 'ADMIN', 'USER', 'VIEWER'];
+  availableRoles = ['SUPER_ADMIN', 'ADMIN', 'USER'];
   availableModules: ModulePermission[] = [];
   filteredTenants: Tenant[] = [];
   tenants: Tenant[] = [];
@@ -103,6 +106,11 @@ export class UsersComponent implements OnInit, AfterViewInit {
       tenant_id: [''],
       role: ['USER', Validators.required],
       module_permissions: this.fb.array([])
+    });
+
+    this.passwordForm = this.fb.group({
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      password_confirmation: ['', [Validators.required]]
     });
 
     this.filterForm = this.fb.group({
@@ -202,7 +210,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
       // Super admin doesn't need a tenant
       this.filteredTenants = [];
       this.userForm.get('tenant_id')?.disable();
-    } else if (role === 'ADMIN' || role === 'USER' || role === 'VIEWER') {
+    } else if (role === 'ADMIN' || role === 'USER') {
       // These roles need a tenant
       this.filteredTenants = [...this.organisations];
       this.userForm.get('tenant_id')?.enable();
@@ -267,6 +275,25 @@ export class UsersComponent implements OnInit, AfterViewInit {
     this.submitted = false;
     this.selectedPhoto = null;
     this.photoPreview = null;
+  }
+
+  openPasswordModal(user: UserProfile): void {
+    this.selectedUserForPassword = user;
+    this.passwordForm.reset({
+      password: '',
+      password_confirmation: ''
+    });
+    this.passwordModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  closePasswordModal(): void {
+    this.passwordModalOpen = false;
+    this.selectedUserForPassword = null;
+    this.passwordForm.reset({
+      password: '',
+      password_confirmation: ''
+    });
   }
 
   triggerPhotoInput(fileInput: HTMLInputElement): void {
@@ -360,6 +387,45 @@ export class UsersComponent implements OnInit, AfterViewInit {
         }
       });
     }
+  }
+
+  onSubmitPassword(): void {
+    if (!this.selectedUserForPassword) {
+      return;
+    }
+
+    this.submitted = true;
+    this.cdr.detectChanges();
+
+    if (this.passwordForm.invalid) {
+      return;
+    }
+
+    if (this.passwordForm.value.password !== this.passwordForm.value.password_confirmation) {
+      this.showErrorMessage('Les deux mots de passe ne correspondent pas.');
+      return;
+    }
+
+    this.loading = true;
+    this.cdr.detectChanges();
+
+    this.userService.changePassword(
+      this.selectedUserForPassword.id,
+      this.passwordForm.value.password,
+      this.passwordForm.value.password_confirmation
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.closePasswordModal();
+        this.showSuccessMessage('Mot de passe mis à jour avec succès!');
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.showErrorMessage('Erreur lors de la modification du mot de passe.');
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   // Delete user
@@ -569,7 +635,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   getUserAvatarBg(user: any): string {
     const role = this.getUserRoleName(user);
     const map: Record<string, string> = {
-      SUPER_ADMIN: '#dc3545', ADMIN: '#f39c12', USER: '#3949ab', VIEWER: '#6c757d'
+      SUPER_ADMIN: '#dc3545', ADMIN: '#f39c12', USER: '#3949ab'
     };
     return map[role] || '#3949ab';
   }
@@ -585,8 +651,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
     const colors: { [key: string]: string } = {
       'SUPER_ADMIN': 'danger',
       'ADMIN': 'warning',
-      'USER': 'primary',
-      'VIEWER': 'secondary'
+      'USER': 'primary'
     };
     return colors[role] || 'secondary';
   }

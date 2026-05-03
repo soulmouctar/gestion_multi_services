@@ -1,8 +1,8 @@
 <div class="p-3 p-md-4">
 
   <!-- Header -->
-  <div class="rounded-3 p-4 mb-4 text-white d-flex align-items-center justify-content-between"
-       style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #533483 100%);">
+  <div class="rounded-3 p-4 mb-4 text-white d-flex align-items-center justify-content-between flex-wrap gap-2"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#533483 100%);">
     <div>
       <h4 class="fw-bold mb-1">Gestion des Fournisseurs</h4>
       <p class="mb-0 opacity-75 small">{{ totalItems }} fournisseur(s) enregistré(s)</p>
@@ -12,22 +12,32 @@
     </button>
   </div>
 
-  <!-- Recherche -->
-  <div class="bg-white rounded-3 p-3 mb-4" style="border:1px solid #f0f0f0;">
+  <!-- Recherche + filtres catégorie -->
+  <div class="bg-white rounded-3 p-3 mb-3" style="border:1px solid #f0f0f0;">
     <div class="d-flex gap-2">
-      <input cFormControl type="text" [(ngModel)]="searchTerm" placeholder="Rechercher par nom, email, téléphone…"
+      <input cFormControl type="text" [(ngModel)]="searchTerm" placeholder="Rechercher par nom, email, catégorie…"
              (keyup.enter)="onSearch()" style="border-radius:8px; flex:1" />
       <button cButton color="primary" size="sm" (click)="onSearch()" style="border-radius:8px">
         <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
       </button>
     </div>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      <button class="btn btn-sm" (click)="onFilterCategory('')"
+              [style.background]="filterCategory==='' ? '#533483':'#f3f4f6'"
+              [style.color]="filterCategory==='' ? '#fff':'#374151'"
+              style="border-radius:20px;border:none;font-size:12px;">Toutes</button>
+      <button *ngFor="let cat of categories" class="btn btn-sm" (click)="onFilterCategory(cat)"
+              [style.background]="filterCategory===cat ? getCategoryColor(cat).color : getCategoryColor(cat).bg"
+              [style.color]="filterCategory===cat ? '#fff' : getCategoryColor(cat).color"
+              style="border-radius:20px;border:none;font-size:12px;">{{ cat }}</button>
+    </div>
   </div>
 
-  <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null" class="mb-3">{{ error }}</c-alert>
+  <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error=null" class="mb-3">{{ error }}</c-alert>
 
-  <!-- Selection groupée -->
+  <!-- Sélection groupée -->
   <div class="mb-3" *ngIf="selectedSuppliers.size > 0">
-    <div class="d-flex gap-2 align-items-center p-2 rounded-3" style="background:#FEE2E2; border:1px solid #FCA5A5;">
+    <div class="d-flex gap-2 align-items-center p-2 rounded-3" style="background:#FEE2E2;border:1px solid #FCA5A5;">
       <span class="small fw-semibold" style="color:#EF4444;">{{ selectedSuppliers.size }} sélectionné(s)</span>
       <button cButton color="danger" size="sm" (click)="deleteSelected()" style="border-radius:8px">
         <svg cIcon name="cilTrash" class="me-1" size="sm"></svg> Supprimer
@@ -43,14 +53,22 @@
 
   <!-- Grille fournisseurs -->
   <div *ngIf="!loading" class="row g-3">
-    <div *ngFor="let supplier of suppliers; trackBy: trackById" class="col-12 col-sm-6 col-lg-4 col-xl-3">
-      <div class="bg-white rounded-3 h-100 d-flex flex-column" style="border:1px solid #f0f0f0;">
+    <div *ngFor="let supplier of suppliers; trackBy:trackById" class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <div class="bg-white rounded-3 h-100 d-flex flex-column"
+           style="border:1px solid #f0f0f0;transition:.2s box-shadow;"
+           onmouseenter="this.style.boxShadow='0 4px 20px rgba(0,0,0,.08)'"
+           onmouseleave="this.style.boxShadow='none'">
 
-        <!-- Checkbox & actions -->
+        <!-- Checkbox + actions -->
         <div class="d-flex align-items-center justify-content-between px-3 pt-3">
-          <input type="checkbox" class="form-check-input" [checked]="isSelected(supplier.id)" (change)="toggleSelection(supplier.id)" />
+          <input type="checkbox" class="form-check-input"
+                 [checked]="isSelected(supplier.id)" (change)="toggleSelection(supplier.id)" />
           <div class="d-flex gap-1">
-            <button class="btn btn-sm p-1" title="Relations financières" (click)="openFinancialRelations(supplier)"
+            <button class="btn btn-sm p-1" title="Verser" (click)="openPaymentModal(supplier)"
+                    style="border-radius:6px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;">
+              <svg cIcon name="cilPlus" style="width:14px;height:14px;"></svg>
+            </button>
+            <button class="btn btn-sm p-1" title="Balance & Historique" (click)="openHistory(supplier)"
                     style="border-radius:6px;background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;">
               <svg cIcon name="cilChart" style="width:14px;height:14px;"></svg>
             </button>
@@ -81,28 +99,37 @@
           </ng-template>
 
           <div class="fw-bold" style="color:#111827;">{{ supplier.name }}</div>
-          <div class="small text-muted" *ngIf="supplier.email">
-            <svg cIcon name="cilEnvelopeLetter" size="sm" class="me-1"></svg>{{ supplier.email }}
+
+          <div class="mt-1 mb-1" *ngIf="supplier.category">
+            <span class="badge small" style="border-radius:20px;font-size:11px;"
+                  [style.background]="getCategoryColor(supplier.category).bg"
+                  [style.color]="getCategoryColor(supplier.category).color">
+              {{ supplier.category }}
+            </span>
           </div>
+
           <div class="small text-muted" *ngIf="supplier.phone1">
             <svg cIcon name="cilPhone" size="sm" class="me-1"></svg>{{ supplier.phone1 }}
           </div>
-          <div *ngIf="supplier.address" class="small text-muted mt-1">
-            <svg cIcon name="cilLocationPin" size="sm" class="me-1"></svg>{{ supplier.address }}
+          <div class="small text-muted" *ngIf="supplier.email">
+            <svg cIcon name="cilEnvelopeLetter" size="sm" class="me-1"></svg>{{ supplier.email }}
           </div>
           <div class="mt-2">
-            <span class="badge" style="background:#F5F3FF;color:#7C3AED;font-size:11px;">{{ supplier.currency || 'GNF' }}</span>
-          </div>
-          <div *ngIf="supplier.notes" class="small text-muted mt-2 fst-italic">
-            {{ supplier.notes | slice:0:60 }}{{ supplier.notes.length > 60 ? '…' : '' }}
+            <span class="badge" style="background:#F5F3FF;color:#7C3AED;font-size:11px;">
+              {{ supplier.currency || 'GNF' }}
+            </span>
           </div>
         </div>
 
-        <!-- Bouton relations -->
-        <div class="px-3 pb-3">
-          <button cButton color="primary" variant="outline" size="sm" class="w-100"
-                  (click)="openFinancialRelations(supplier)" style="border-radius:8px;">
-            <svg cIcon name="cilChart" class="me-1" size="sm"></svg> Relations financières
+        <!-- Actions bas de carte -->
+        <div class="px-3 pb-3 d-flex gap-2">
+          <button cButton color="success" variant="outline" size="sm" class="flex-fill"
+                  (click)="openPaymentModal(supplier)" style="border-radius:8px;font-size:12px;">
+            <svg cIcon name="cilMoney" class="me-1" size="sm"></svg> Verser
+          </button>
+          <button cButton color="primary" variant="outline" size="sm" class="flex-fill"
+                  (click)="openHistory(supplier)" style="border-radius:8px;font-size:12px;">
+            <svg cIcon name="cilChart" class="me-1" size="sm"></svg> Balance
           </button>
         </div>
 
@@ -118,14 +145,14 @@
   <!-- Pagination -->
   <div *ngIf="!loading && totalPages > 1" class="d-flex justify-content-center mt-4">
     <ul class="pagination pagination-sm mb-0">
-      <li class="page-item" [class.disabled]="currentPage === 1">
-        <a class="page-link" (click)="onPageChange(currentPage - 1)" style="cursor:pointer;">‹</a>
+      <li class="page-item" [class.disabled]="currentPage===1">
+        <a class="page-link" (click)="onPageChange(currentPage-1)" style="cursor:pointer;">‹</a>
       </li>
-      <li *ngFor="let p of getPages(); trackBy: trackById" class="page-item" [class.active]="p === currentPage">
+      <li *ngFor="let p of getPages(); trackBy:trackById" class="page-item" [class.active]="p===currentPage">
         <a class="page-link" (click)="onPageChange(p)" style="cursor:pointer;">{{ p }}</a>
       </li>
-      <li class="page-item" [class.disabled]="currentPage === totalPages">
-        <a class="page-link" (click)="onPageChange(currentPage + 1)" style="cursor:pointer;">›</a>
+      <li class="page-item" [class.disabled]="currentPage===totalPages">
+        <a class="page-link" (click)="onPageChange(currentPage+1)" style="cursor:pointer;">›</a>
       </li>
     </ul>
   </div>
@@ -135,12 +162,12 @@
 <!-- ═══════════════════════════════════════════════════════════════════════════
      MODAL — Créer / Modifier un fournisseur
 ════════════════════════════════════════════════════════════════════════════ -->
-<div *ngIf="showFormModal" class="modal d-block" style="background:rgba(0,0,0,.5); z-index:1050;">
+<div *ngIf="showFormModal" class="modal d-block" style="background:rgba(0,0,0,.5);z-index:1050;">
   <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content" style="border-radius:16px; border:none;">
+    <div class="modal-content" style="border-radius:16px;border:none;">
       <div class="modal-header border-0 pb-0">
         <h5 class="modal-title fw-bold">{{ editMode ? 'Modifier le fournisseur' : 'Nouveau fournisseur' }}</h5>
-        <button type="button" class="btn-close" (click)="showFormModal = false"></button>
+        <button type="button" class="btn-close" (click)="showFormModal=false"></button>
       </div>
 
       <form [formGroup]="supplierForm" (ngSubmit)="saveSupplier()">
@@ -166,7 +193,15 @@
                   <input type="file" accept="image/jpeg,image/png,image/webp" class="d-none" (change)="onPhotoSelected($event)" />
                 </label>
               </div>
-              <div class="small text-muted mt-1">Logo / Photo du fournisseur (optionnel)</div>
+            </div>
+
+            <!-- SUPER_ADMIN tenant -->
+            <div class="col-12" *ngIf="isSuperAdmin">
+              <label cLabel class="small fw-semibold mb-1">Organisation <span class="text-danger">*</span></label>
+              <select cSelect formControlName="tenant_id">
+                <option [ngValue]="null">-- Sélectionner --</option>
+                <option *ngFor="let t of tenants" [value]="t.id">{{ t.name }}</option>
+              </select>
             </div>
 
             <div class="col-md-6">
@@ -177,10 +212,25 @@
             </div>
 
             <div class="col-md-6">
+              <label cLabel class="small fw-semibold mb-1">Catégorie</label>
+              <select cSelect formControlName="category">
+                <option value="">-- Sélectionner --</option>
+                <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
               <label cLabel class="small fw-semibold mb-1">Email</label>
-              <input cFormControl type="email" formControlName="email" placeholder="email@fournisseur.com"
-                     [class.is-invalid]="supplierForm.get('email')?.invalid && submitted" />
-              <div class="invalid-feedback">Email invalide</div>
+              <input cFormControl type="email" formControlName="email" placeholder="email@fournisseur.com" />
+            </div>
+
+            <div class="col-md-6">
+              <label cLabel class="small fw-semibold mb-1">Devise principale</label>
+              <select cSelect formControlName="currency">
+                <option value="GNF">GNF</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
             </div>
 
             <div class="col-md-6">
@@ -193,18 +243,9 @@
               <input cFormControl formControlName="phone2" placeholder="+224 XXX XXX XXX" />
             </div>
 
-            <div class="col-md-9">
+            <div class="col-12">
               <label cLabel class="small fw-semibold mb-1">Adresse</label>
-              <input cFormControl formControlName="address" placeholder="Adresse du fournisseur" />
-            </div>
-
-            <div class="col-md-3">
-              <label cLabel class="small fw-semibold mb-1">Devise</label>
-              <select cSelect formControlName="currency">
-                <option value="GNF">GNF</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-              </select>
+              <input cFormControl formControlName="address" placeholder="Adresse" />
             </div>
 
             <div class="col-12">
@@ -215,9 +256,9 @@
         </div>
 
         <div class="modal-footer border-0 pt-0">
-          <button type="button" cButton color="secondary" variant="outline" (click)="showFormModal = false">Annuler</button>
-          <button type="submit" cButton color="primary" [disabled]="savingSupplier || uploadingPhoto">
-            <c-spinner *ngIf="savingSupplier || uploadingPhoto" size="sm" class="me-2"></c-spinner>
+          <button type="button" cButton color="secondary" variant="outline" (click)="showFormModal=false">Annuler</button>
+          <button type="submit" cButton color="primary" [disabled]="savingSupplier||uploadingPhoto">
+            <c-spinner *ngIf="savingSupplier||uploadingPhoto" size="sm" class="me-2"></c-spinner>
             {{ editMode ? 'Enregistrer' : 'Créer le fournisseur' }}
           </button>
         </div>
@@ -228,107 +269,487 @@
 
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
-     MODAL — Relations financières
+     MODAL — Enregistrer un versement
 ════════════════════════════════════════════════════════════════════════════ -->
-<div *ngIf="showFinancialModal" class="modal d-block" style="background:rgba(0,0,0,.5); z-index:1050;">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content" style="border-radius:16px; border:none;">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">Relations financières</h5>
-        <button type="button" class="btn-close" (click)="showFinancialModal = false"></button>
+<div *ngIf="showPaymentModal" class="modal d-block" style="background:rgba(0,0,0,.5);z-index:1055;">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;border:none;">
+
+      <div class="modal-header border-0 pb-3 text-white"
+           style="background:linear-gradient(135deg,#059669,#047857);border-radius:16px 16px 0 0;">
+        <div>
+          <h5 class="modal-title fw-bold mb-0">Enregistrer un versement</h5>
+          <div class="small opacity-75 mt-1" *ngIf="currentSupplierForPayment">
+            Fournisseur : <strong>{{ currentSupplierForPayment.name }}</strong>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" (click)="showPaymentModal=false"></button>
       </div>
 
-      <div class="modal-body">
-        <div *ngIf="financialLoading" class="text-center py-5">
-          <c-spinner color="primary"></c-spinner>
+      <!-- Rappel dette en cours -->
+      <div *ngIf="supplierHistory && outstandingDebt > 0"
+           class="px-4 py-2 d-flex align-items-center gap-2"
+           style="background:#FEF2F2;border-bottom:1px solid #FECACA;">
+        <svg cIcon name="cilWarning" style="color:#DC2626;width:16px;height:16px;flex-shrink:0;"></svg>
+        <span class="small" style="color:#991B1B;">
+          Solde restant dû :
+          <strong>{{ outstandingDebt | number:'1.0-0' }} GNF</strong>
+        </span>
+      </div>
+      <div *ngIf="supplierHistory && outstandingDebt <= 0 && supplierHistory.summary.arrival_count > 0"
+           class="px-4 py-2 d-flex align-items-center gap-2"
+           style="background:#ECFDF5;border-bottom:1px solid #A7F3D0;">
+        <svg cIcon name="cilCheckCircle" style="color:#059669;width:16px;height:16px;flex-shrink:0;"></svg>
+        <span class="small" style="color:#065F46;">Compte soldé — tout versement sera un excédent</span>
+      </div>
+
+      <form [formGroup]="paymentForm" (ngSubmit)="savePayment()">
+        <div class="modal-body pt-4">
+          <div class="row g-3">
+
+            <div class="col-md-6">
+              <label cLabel class="small fw-semibold mb-1">Montant <span class="text-danger">*</span></label>
+              <input cFormControl type="number" step="0.01" min="0.01" formControlName="amount"
+                     placeholder="0.00"
+                     [class.is-invalid]="paymentForm.get('amount')?.invalid && paymentSubmitted" />
+              <div class="invalid-feedback">Montant requis</div>
+            </div>
+
+            <div class="col-md-6">
+              <label cLabel class="small fw-semibold mb-1">Devise <span class="text-danger">*</span></label>
+              <select cSelect formControlName="currency">
+                <option value="GNF">GNF (Franc Guinéen)</option>
+                <option value="USD">USD (Dollar)</option>
+                <option value="EUR">EUR (Euro)</option>
+              </select>
+            </div>
+
+            <!-- Taux de change visible seulement si devise ≠ GNF -->
+            <div class="col-12" *ngIf="showExchangeRate">
+              <div class="p-3 rounded-3" style="background:#FFFBEB;border:1px solid #FDE68A;">
+                <label cLabel class="small fw-semibold mb-1">
+                  Taux de change du jour
+                  <span class="text-muted fw-normal small">(1 {{ paymentForm.get('currency')?.value }} = ? GNF)</span>
+                  <span class="text-danger">*</span>
+                </label>
+                <input cFormControl type="number" step="1" min="1" formControlName="exchange_rate"
+                       placeholder="Ex : 10 500 pour 1 USD = 10 500 GNF" />
+                <div class="mt-2 small fw-semibold" *ngIf="estimatedAmountGnf > 0"
+                     style="color:#92400E;">
+                  ≈ {{ estimatedAmountGnf | number:'1.0-0' }} GNF seront imputés sur la dette
+                </div>
+              </div>
+            </div>
+
+            <!-- Aperçu imputation FIFO si arrivages présents -->
+            <div class="col-12" *ngIf="supplierHistory?.arrivals?.length > 0 && estimatedAmountGnf > 0">
+              <div class="p-3 rounded-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                <div class="small fw-semibold mb-2" style="color:#1e40af;">
+                  <svg cIcon name="cilChart" size="sm" class="me-1"></svg>
+                  Imputation prévisionnelle (FIFO — arrivages les plus anciens en premier)
+                </div>
+                <ng-container *ngFor="let a of supplierHistory.arrivals">
+                  <div *ngIf="a.payment_status !== 'SOLDE'" class="d-flex justify-content-between align-items-center mb-1 small">
+                    <span style="color:#374151;">
+                      {{ a.product_type }} — {{ formatDate(a.arrival_date) }}
+                      <span class="badge ms-1" style="font-size:10px;"
+                            [style.background]="getPaymentStatusStyle(a.payment_status).bg"
+                            [style.color]="getPaymentStatusStyle(a.payment_status).color">
+                        {{ getPaymentStatusStyle(a.payment_status).label }}
+                      </span>
+                    </span>
+                    <span class="fw-semibold" style="color:#DC2626;">
+                      {{ a.remaining_gnf | number:'1.0-0' }} GNF
+                    </span>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label cLabel class="small fw-semibold mb-1">Mode de paiement <span class="text-danger">*</span></label>
+              <select cSelect formControlName="payment_method">
+                <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label cLabel class="small fw-semibold mb-1">Date <span class="text-danger">*</span></label>
+              <input cFormControl type="date" formControlName="payment_date"
+                     [class.is-invalid]="paymentForm.get('payment_date')?.invalid && paymentSubmitted" />
+            </div>
+
+            <div class="col-md-6">
+              <label cLabel class="small fw-semibold mb-1">Référence</label>
+              <input cFormControl formControlName="reference" placeholder="N° reçu, virement…" />
+            </div>
+
+            <div class="col-md-6">
+              <label cLabel class="small fw-semibold mb-1">Description</label>
+              <input cFormControl formControlName="description" placeholder="Objet du versement" />
+            </div>
+          </div>
         </div>
 
-        <ng-container *ngIf="!financialLoading && supplierFinancial">
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" cButton color="secondary" variant="outline" (click)="showPaymentModal=false">Annuler</button>
+          <button type="submit" cButton color="success" [disabled]="savingPayment">
+            <c-spinner *ngIf="savingPayment" size="sm" class="me-2"></c-spinner>
+            Enregistrer le versement
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
-          <!-- Infos fournisseur -->
-          <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3" style="background:#f8fafc;">
-            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-                 style="width:50px;height:50px;font-size:1.2rem;"
-                 [style.background]="getAvatarColor(supplierFinancial.supplier.name)">
-              {{ getInitials(supplierFinancial.supplier.name) }}
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL — Balance & Historique FIFO
+════════════════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showHistoryModal" class="modal d-block" style="background:rgba(0,0,0,.5);z-index:1050;">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius:16px;border:none;max-height:92vh;">
+
+      <!-- Header dégradé avec infos fournisseur -->
+      <div class="modal-header border-0 pb-3 text-white"
+           style="background:linear-gradient(135deg,#1a1a2e,#16213e,#533483);border-radius:16px 16px 0 0;flex-shrink:0;">
+        <div class="d-flex align-items-center gap-3 flex-grow-1">
+          <ng-container *ngIf="supplierHistory?.supplier?.photo_url; else avatarHdr">
+            <img [src]="supplierHistory.supplier.photo_url" class="rounded-circle"
+                 style="width:52px;height:52px;object-fit:cover;border:2px solid rgba(255,255,255,.35);" />
+          </ng-container>
+          <ng-template #avatarHdr>
+            <div *ngIf="supplierHistory?.supplier" class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+                 style="width:52px;height:52px;font-size:1.2rem;border:2px solid rgba(255,255,255,.35);"
+                 [style.background]="getAvatarColor(supplierHistory.supplier.name)">
+              {{ getInitials(supplierHistory.supplier.name) }}
             </div>
-            <div>
-              <div class="fw-bold fs-5">{{ supplierFinancial.supplier.name }}</div>
-              <div class="small text-muted">{{ supplierFinancial.supplier.email || supplierFinancial.supplier.phone1 || '—' }}</div>
+            <div *ngIf="!supplierHistory" class="rounded-circle d-flex align-items-center justify-content-center"
+                 style="width:52px;height:52px;background:rgba(255,255,255,.15);">
+              <svg cIcon name="cilBuilding" size="lg"></svg>
+            </div>
+          </ng-template>
+          <div>
+            <h5 class="mb-0 fw-bold">
+              {{ supplierHistory?.supplier?.name ?? currentSupplierForPayment?.name ?? 'Historique' }}
+            </h5>
+            <div class="small opacity-75 d-flex gap-3 flex-wrap mt-1">
+              <span *ngIf="supplierHistory?.supplier?.category" class="badge"
+                    [style.background]="getCategoryColor(supplierHistory.supplier.category).bg"
+                    [style.color]="getCategoryColor(supplierHistory.supplier.category).color">
+                {{ supplierHistory.supplier.category }}
+              </span>
+              <span *ngIf="supplierHistory?.supplier?.phone1">
+                <svg cIcon name="cilPhone" size="sm" class="me-1"></svg>{{ supplierHistory.supplier.phone1 }}
+              </span>
+            </div>
+          </div>
+          <!-- Badge statut global -->
+          <div class="ms-auto me-2" *ngIf="supplierHistory?.summary">
+            <ng-container *ngIf="supplierHistory.summary.is_fully_settled">
+              <span class="badge px-3 py-2" style="background:#ECFDF5;color:#059669;font-size:12px;">
+                ✓ Compte soldé
+              </span>
+            </ng-container>
+            <ng-container *ngIf="!supplierHistory.summary.is_fully_settled && supplierHistory.summary.arrival_count > 0">
+              <span class="badge px-3 py-2" style="background:#FEF2F2;color:#DC2626;font-size:12px;">
+                {{ supplierHistory.summary.balance_gnf | number:'1.0-0' }} GNF restants
+              </span>
+            </ng-container>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" (click)="showHistoryModal=false"></button>
+      </div>
+
+      <div class="modal-body p-0" style="overflow-y:auto;">
+
+        <!-- Spinner -->
+        <div *ngIf="historyLoading" class="text-center py-5">
+          <c-spinner color="primary"></c-spinner>
+          <p class="text-muted mt-2 small">Calcul de la balance…</p>
+        </div>
+
+        <ng-container *ngIf="!historyLoading && supplierHistory">
+
+          <!-- ── Jauge de règlement globale ── -->
+          <div class="px-4 pt-4 pb-3" style="border-bottom:1px solid #f3f4f6;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="small fw-semibold" style="color:#374151;">Avancement du règlement</span>
+              <span class="fw-bold" [style.color]="supplierHistory.summary.settle_pct >= 100 ? '#059669' : '#D97706'">
+                {{ supplierHistory.summary.settle_pct }}%
+              </span>
+            </div>
+            <div class="rounded-pill" style="height:10px;background:#e5e7eb;overflow:hidden;">
+              <div class="rounded-pill h-100" style="transition:width .5s;"
+                   [style.width]="supplierHistory.summary.settle_pct + '%'"
+                   [style.background]="supplierHistory.summary.settle_pct >= 100 ? '#059669' :
+                                       supplierHistory.summary.settle_pct >= 50  ? '#D97706' : '#DC2626'">
+              </div>
             </div>
           </div>
 
-          <!-- KPIs -->
-          <div class="row g-3 mb-4">
-            <div class="col-md-4">
-              <div class="p-3 rounded-3 text-center" style="background:#FEF2F2; border:1px solid #FECACA;">
-                <div class="small fw-semibold text-muted mb-1">Total versé au fournisseur</div>
-                <div class="fw-bold fs-5" style="color:#DC2626;">
-                  {{ supplierFinancial.summary.total_paid_to_supplier | number:'1.0-0' }} {{ supplierFinancial.summary.currency }}
-                </div>
+          <!-- ── KPIs ── -->
+          <div class="row g-0" style="border-bottom:1px solid #f3f4f6;">
+            <div class="col-6 col-md-3 p-3 text-center" style="border-right:1px solid #f3f4f6;">
+              <div class="small fw-semibold text-muted mb-1">Dette totale</div>
+              <div class="fw-bold" style="color:#1e40af;font-size:.95rem;">
+                {{ supplierHistory.summary.total_debt_gnf | number:'1.0-0' }} GNF
+              </div>
+              <div class="small text-muted">{{ supplierHistory.summary.arrival_count }} arrivage(s)</div>
+            </div>
+            <div class="col-6 col-md-3 p-3 text-center" style="border-right:1px solid #f3f4f6;">
+              <div class="small fw-semibold text-muted mb-1">Total versé</div>
+              <div class="fw-bold" style="color:#059669;font-size:.95rem;">
+                {{ supplierHistory.summary.total_paid_gnf | number:'1.0-0' }} GNF
+              </div>
+              <div class="small text-muted">{{ supplierHistory.summary.payment_count }} versement(s)</div>
+            </div>
+            <div class="col-6 col-md-3 p-3 text-center" style="border-right:1px solid #f3f4f6;">
+              <div class="small fw-semibold text-muted mb-1">Solde restant</div>
+              <div class="fw-bold" style="font-size:.95rem;"
+                   [style.color]="supplierHistory.summary.balance_gnf > 0 ? '#DC2626' : '#059669'">
+                {{ supplierHistory.summary.balance_gnf | number:'1.0-0' }} GNF
+              </div>
+              <div *ngIf="supplierHistory.summary.excess_gnf > 0" class="small" style="color:#7C3AED;">
+                Excédent : {{ supplierHistory.summary.excess_gnf | number:'1.0-0' }} GNF
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="p-3 rounded-3 text-center" style="background:#F5F3FF; border:1px solid #DDD6FE;">
-                <div class="small fw-semibold text-muted mb-1">Nombre de transactions</div>
-                <div class="fw-bold fs-5" style="color:#7C3AED;">{{ supplierFinancial.summary.total_transactions }}</div>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="p-3 rounded-3 text-center" style="background:#ECFDF5; border:1px solid #A7F3D0;">
-                <div class="small fw-semibold text-muted mb-1">Devise</div>
-                <div class="fw-bold fs-5" style="color:#059669;">{{ supplierFinancial.summary.currency }}</div>
+            <div class="col-6 col-md-3 p-3 text-center">
+              <div class="small fw-semibold text-muted mb-1">Statuts arrivages</div>
+              <div class="d-flex justify-content-center gap-2 mt-1 flex-wrap">
+                <span class="badge" style="background:#ECFDF5;color:#059669;font-size:11px;">
+                  ✓ {{ supplierHistory.summary.nb_solde }} soldé(s)
+                </span>
+                <span *ngIf="supplierHistory.summary.nb_partiel > 0" class="badge"
+                      style="background:#FFFBEB;color:#D97706;font-size:11px;">
+                  ⬤ {{ supplierHistory.summary.nb_partiel }} partiel(s)
+                </span>
+                <span *ngIf="supplierHistory.summary.nb_impaye > 0" class="badge"
+                      style="background:#FEF2F2;color:#DC2626;font-size:11px;">
+                  ✗ {{ supplierHistory.summary.nb_impaye }} impayé(s)
+                </span>
               </div>
             </div>
           </div>
 
-          <!-- Historique transactions -->
-          <h6 class="fw-semibold mb-3">Historique des transactions</h6>
-
-          <div *ngIf="supplierFinancial.history?.length === 0" class="text-center text-muted py-4 small">
-            Aucune transaction enregistrée pour ce fournisseur
+          <!-- ── Bouton nouveau versement ── -->
+          <div class="px-4 py-3 d-flex align-items-center gap-3" style="border-bottom:1px solid #f3f4f6;">
+            <button cButton color="success" size="sm" (click)="openPaymentModal(currentSupplierForPayment)"
+                    style="border-radius:8px;">
+              <svg cIcon name="cilPlus" class="me-1" size="sm"></svg> Nouveau versement
+            </button>
+            <span *ngIf="supplierHistory.summary.balance_gnf > 0" class="small text-muted">
+              Il reste <strong style="color:#DC2626;">{{ supplierHistory.summary.balance_gnf | number:'1.0-0' }} GNF</strong>
+              à régler
+            </span>
           </div>
 
-          <div *ngFor="let entry of supplierFinancial.history; trackBy: trackById" class="d-flex gap-3 mb-3">
-            <div class="flex-shrink-0 d-flex flex-column align-items-center">
-              <div class="rounded-circle d-flex align-items-center justify-content-center"
-                   style="width:36px;height:36px;"
-                   [style.background]="entry.direction === 'credit' ? '#ECFDF5' : '#FEF2F2'">
-                <svg cIcon name="cilMoney" size="sm"
-                     [style.color]="entry.direction === 'credit' ? '#059669' : '#DC2626'"></svg>
-              </div>
-              <div style="width:2px;flex:1;background:#e5e7eb;min-height:20px;" class="mt-1"></div>
+          <!-- ── Onglets ── -->
+          <div class="px-4 pt-3">
+            <div class="d-flex gap-2 mb-3">
+              <button class="btn btn-sm fw-semibold"
+                      [style.background]="historyTab==='arrivals' ? '#533483':'#f3f4f6'"
+                      [style.color]="historyTab==='arrivals' ? '#fff':'#374151'"
+                      style="border-radius:20px;border:none;"
+                      (click)="historyTab='arrivals'">
+                <svg cIcon name="cilTruck" size="sm" class="me-1"></svg>
+                Arrivages ({{ supplierHistory.arrivals?.length ?? 0 }})
+              </button>
+              <button class="btn btn-sm fw-semibold"
+                      [style.background]="historyTab==='payments' ? '#533483':'#f3f4f6'"
+                      [style.color]="historyTab==='payments' ? '#fff':'#374151'"
+                      style="border-radius:20px;border:none;"
+                      (click)="historyTab='payments'">
+                <svg cIcon name="cilMoney" size="sm" class="me-1"></svg>
+                Versements ({{ supplierHistory.payments?.length ?? 0 }})
+              </button>
+            </div>
+          </div>
+
+          <!-- ════════════════════ Tab ARRIVAGES ════════════════════ -->
+          <div *ngIf="historyTab==='arrivals'" class="px-4 pb-4">
+
+            <div *ngIf="!supplierHistory.arrivals?.length" class="text-center text-muted py-4">
+              <svg cIcon name="cilTruck" size="xl" class="mb-2 opacity-25 d-block mx-auto"></svg>
+              <p class="small mb-0">Aucun arrivage enregistré pour ce fournisseur</p>
             </div>
 
-            <div class="flex-grow-1 pb-3" style="border-bottom:1px solid #f3f4f6;">
-              <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
-                <div>
-                  <div class="fw-semibold small">{{ entry.label }}</div>
-                  <div class="small text-muted">{{ entry.date | date:'dd/MM/yyyy' }}</div>
-                  <div class="small text-muted">{{ getMethodLabel(entry.method) }}</div>
-                  <div *ngIf="entry.reference" class="small text-muted">Réf : {{ entry.reference }}</div>
-                  <div *ngIf="entry.description" class="small text-muted">{{ entry.description }}</div>
-                </div>
-                <div class="text-end">
-                  <div class="fw-bold"
-                       [style.color]="entry.direction === 'credit' ? '#059669' : '#DC2626'">
-                    {{ entry.direction === 'credit' ? '+' : '−' }}{{ entry.amount | number:'1.0-0' }} {{ entry.currency }}
+            <div *ngFor="let a of supplierHistory.arrivals; trackBy:trackById" class="mb-3">
+              <div class="p-3 rounded-3"
+                   [style.border]="'2px solid ' + (a.payment_status==='SOLDE' ? '#A7F3D0' :
+                                                    a.payment_status==='PARTIEL' ? '#FDE68A' : '#FECACA')"
+                   [style.background]="a.payment_status==='SOLDE' ? '#F0FDF4' :
+                                        a.payment_status==='PARTIEL' ? '#FFFBEB' : '#FFF5F5'">
+
+                <!-- Ligne titre + statut -->
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                  <div>
+                    <div class="fw-bold" style="color:#111827;">
+                      {{ a.product_type }}
+                      <span *ngIf="a.container_number" class="text-muted small fw-normal ms-1">
+                        — Cont. {{ a.container_number }}
+                      </span>
+                    </div>
+                    <div class="small text-muted mt-1">
+                      <svg cIcon name="cilCalendar" size="sm" class="me-1"></svg>
+                      Arrivée : {{ formatDate(a.arrival_date) }}
+                      <span class="ms-2" *ngIf="a.total_quantity > 0">
+                        · {{ a.total_quantity | number:'1.0-0' }} unités
+                        ({{ a.remaining_quantity | number:'1.0-0' }} restantes)
+                      </span>
+                    </div>
                   </div>
-                  <span class="badge small mt-1"
-                        [style.background]="entry.type === 'SUPPLIER' ? '#FEF2F2' : '#ECFDF5'"
-                        [style.color]="entry.type === 'SUPPLIER' ? '#DC2626' : '#059669'">
-                    {{ entry.type === 'SUPPLIER' ? 'Sortie' : 'Entrée' }}
+                  <span class="badge px-2 py-1 fw-semibold"
+                        style="border-radius:20px;font-size:12px;"
+                        [style.background]="getPaymentStatusStyle(a.payment_status).bg"
+                        [style.color]="getPaymentStatusStyle(a.payment_status).color">
+                    {{ getPaymentStatusStyle(a.payment_status).label }}
                   </span>
                 </div>
+
+                <!-- Barre de progression -->
+                <div class="mb-2">
+                  <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Règlement : {{ a.payment_pct }}%</span>
+                    <span *ngIf="a.payment_status !== 'SOLDE'" style="color:#DC2626;">
+                      Reste : {{ a.remaining_gnf | number:'1.0-0' }} GNF
+                    </span>
+                    <span *ngIf="a.payment_status === 'SOLDE'" style="color:#059669;">Soldé ✓</span>
+                  </div>
+                  <div class="rounded-pill" style="height:8px;background:#e5e7eb;overflow:hidden;">
+                    <div class="rounded-pill h-100" style="transition:width .4s;"
+                         [style.width]="a.payment_pct + '%'"
+                         [style.background]="a.payment_status==='SOLDE'   ? '#059669' :
+                                              a.payment_status==='PARTIEL' ? '#D97706' : '#DC2626'">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Montants -->
+                <div class="row g-2 mt-1">
+                  <div class="col-4 text-center">
+                    <div class="small text-muted">Coût d'achat</div>
+                    <div class="fw-bold small" style="color:#1e40af;">
+                      {{ a.purchase_price | number:'1.0-0' }} {{ a.currency }}
+                    </div>
+                    <div *ngIf="a.currency !== 'GNF' && a.purchase_price_gnf" class="small text-muted">
+                      ≈ {{ a.purchase_price_gnf | number:'1.0-0' }} GNF
+                    </div>
+                    <div *ngIf="a.currency !== 'GNF' && !a.purchase_price_gnf" class="small" style="color:#D97706;">
+                      Taux non défini
+                    </div>
+                  </div>
+                  <div class="col-4 text-center">
+                    <div class="small text-muted">Déjà versé</div>
+                    <div class="fw-bold small" style="color:#059669;">
+                      {{ a.paid_gnf | number:'1.0-0' }} GNF
+                    </div>
+                  </div>
+                  <div class="col-4 text-center">
+                    <div class="small text-muted">Reste dû</div>
+                    <div class="fw-bold small"
+                         [style.color]="a.remaining_gnf > 0 ? '#DC2626' : '#059669'">
+                      {{ a.remaining_gnf | number:'1.0-0' }} GNF
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Avertissement devise sans taux -->
+                <div *ngIf="a.currency !== 'GNF' && !a.purchase_price_gnf"
+                     class="mt-2 small p-2 rounded-2"
+                     style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;">
+                  <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+                  Taux de change non défini pour cet arrivage. Modifiez l'arrivage pour renseigner le taux
+                  (1 {{ a.currency }} = ? GNF) afin que le solde soit calculé correctement.
+                </div>
+
               </div>
             </div>
+          </div>
+
+          <!-- ════════════════════ Tab VERSEMENTS ════════════════════ -->
+          <div *ngIf="historyTab==='payments'" class="px-4 pb-4">
+
+            <div *ngIf="!supplierHistory.payments?.length" class="text-center text-muted py-4">
+              <svg cIcon name="cilMoney" size="xl" class="mb-2 opacity-25 d-block mx-auto"></svg>
+              <p class="small mb-0">Aucun versement enregistré</p>
+            </div>
+
+            <div *ngFor="let p of supplierHistory.payments; trackBy:trackById" class="mb-3">
+              <div class="d-flex gap-3 align-items-start">
+
+                <!-- Icône timeline -->
+                <div class="flex-shrink-0 d-flex flex-column align-items-center">
+                  <div class="rounded-circle d-flex align-items-center justify-content-center"
+                       style="width:38px;height:38px;background:#ECFDF5;border:2px solid #A7F3D0;">
+                    <svg cIcon name="cilMoney" size="sm" style="color:#059669;"></svg>
+                  </div>
+                  <div style="width:2px;flex:1;background:#e5e7eb;min-height:16px;" class="mt-1"></div>
+                </div>
+
+                <!-- Contenu du versement -->
+                <div class="flex-grow-1 p-3 rounded-3 mb-1"
+                     style="background:#f8fafc;border:1px solid #e5e7eb;">
+                  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                      <div class="fw-semibold small" style="color:#111827;">
+                        Versement du {{ formatDate(p.date) }}
+                      </div>
+                      <div class="small text-muted mt-1">
+                        <svg cIcon name="cilCreditCard" size="sm" class="me-1"></svg>
+                        {{ getMethodLabel(p.payment_method) }}
+                        <span *ngIf="p.reference" class="ms-2">· Réf : {{ p.reference }}</span>
+                      </div>
+                      <div *ngIf="p.description" class="small text-muted">{{ p.description }}</div>
+                      <div *ngIf="p.exchange_rate && p.currency !== 'GNF'"
+                           class="mt-1 small"
+                           style="background:#FFFBEB;color:#92400E;padding:2px 6px;border-radius:4px;display:inline-block;">
+                        Taux : 1 {{ p.currency }} = {{ p.exchange_rate | number:'1.0-2' }} GNF
+                      </div>
+                    </div>
+
+                    <div class="text-end">
+                      <div class="fw-bold" style="color:#059669;font-size:1rem;">
+                        {{ p.amount | number:'1.0-0' }} {{ p.currency }}
+                      </div>
+                      <div *ngIf="p.currency !== 'GNF' && p.amount_gnf" class="small text-muted">
+                        ≈ {{ p.amount_gnf | number:'1.0-0' }} GNF
+                      </div>
+                      <!-- Solde restant après ce versement -->
+                      <div class="small mt-1">
+                        Solde après :
+                        <span class="fw-semibold"
+                              [style.color]="p.running_debt_gnf > 0 ? '#DC2626' : '#059669'">
+                          {{ p.running_debt_gnf | number:'1.0-0' }} GNF
+                        </span>
+                      </div>
+                      <!-- Bouton supprimer -->
+                      <button class="btn btn-sm p-1 mt-1" title="Supprimer ce versement"
+                              (click)="deletePayment(p)"
+                              style="border-radius:4px;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;font-size:11px;">
+                        <svg cIcon name="cilTrash" style="width:11px;height:11px;"></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
           </div>
 
         </ng-container>
       </div>
 
-      <div class="modal-footer border-0">
-        <button cButton color="secondary" variant="outline" (click)="showFinancialModal = false">Fermer</button>
+      <div class="modal-footer border-0" style="border-top:1px solid #f3f4f6;flex-shrink:0;">
+        <button cButton color="secondary" variant="outline" (click)="showHistoryModal=false">Fermer</button>
+        <button *ngIf="supplierHistory && supplierHistory.summary?.balance_gnf > 0"
+                cButton color="success" (click)="openPaymentModal(currentSupplierForPayment)"
+                style="border-radius:8px;">
+          <svg cIcon name="cilPlus" class="me-1" size="sm"></svg>
+          Verser
+        </button>
       </div>
     </div>
   </div>

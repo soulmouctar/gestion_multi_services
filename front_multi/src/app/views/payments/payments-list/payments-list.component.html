@@ -196,6 +196,10 @@
             <!-- Actions -->
             <td class="px-3 text-center">
               <div class="d-flex gap-1 justify-content-center">
+                <button cButton color="success" variant="outline" size="sm" title="Détail du reçu"
+                        (click)="openReceiptDetail(payment)" style="border-radius:6px">
+                  <svg cIcon name="cilSearch" size="sm"></svg>
+                </button>
                 <button cButton color="primary" variant="outline" size="sm" title="Voir le reçu"
                         (click)="viewReceipt(payment)" style="border-radius:6px">
                   <svg cIcon name="cilPrint" size="sm"></svg>

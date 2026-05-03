@@ -134,7 +134,7 @@
 
         <!-- Ligne 1 : Nom + Logo -->
         <c-row>
-          <c-col md="6">
+          <c-col xs="12">
             <div class="mb-3">
               <label cFormLabel for="name" style="font-size:0.8rem;font-weight:600;color:#495057;">Nom de l'en-tete *</label>
               <input cFormControl type="text" id="name" formControlName="name"
@@ -147,11 +147,29 @@
               </div>
             </div>
           </c-col>
-          <c-col md="6">
+        </c-row>
+        <c-row>
+          <c-col md="4">
             <div class="mb-3">
               <label cFormLabel for="logo_url" style="font-size:0.8rem;font-weight:600;color:#495057;">URL du logo</label>
               <input cFormControl type="url" id="logo_url" formControlName="logo_url"
                 placeholder="https://exemple.com/logo.png"
+                style="border-radius:8px;" />
+            </div>
+          </c-col>
+          <c-col md="4">
+            <div class="mb-3">
+              <label cFormLabel for="signature_url" style="font-size:0.8rem;font-weight:600;color:#495057;">URL de la signature</label>
+              <input cFormControl type="url" id="signature_url" formControlName="signature_url"
+                placeholder="https://exemple.com/signature.png"
+                style="border-radius:8px;" />
+            </div>
+          </c-col>
+          <c-col md="4">
+            <div class="mb-3">
+              <label cFormLabel for="stamp_url" style="font-size:0.8rem;font-weight:600;color:#495057;">URL du cachet</label>
+              <input cFormControl type="url" id="stamp_url" formControlName="stamp_url"
+                placeholder="https://exemple.com/cachet.png"
                 style="border-radius:8px;" />
             </div>
           </c-col>
@@ -344,6 +362,14 @@
         <div class="col-md-4 text-end">
           <div *ngIf="previewData.logo_url" class="mb-3">
             <img [src]="previewData.logo_url" alt="Logo" class="img-fluid" style="max-height:80px;border-radius:6px;" />
+          </div>
+          <div *ngIf="previewData.signature_url" class="mb-3">
+            <div class="small text-muted mb-1">Signature</div>
+            <img [src]="previewData.signature_url" alt="Signature" class="img-fluid" style="max-height:70px;border-radius:6px;" />
+          </div>
+          <div *ngIf="previewData.stamp_url" class="mb-3">
+            <div class="small text-muted mb-1">Cachet</div>
+            <img [src]="previewData.stamp_url" alt="Cachet" class="img-fluid" style="max-height:70px;border-radius:6px;" />
           </div>
           <div style="font-size:0.85rem;color:#6c757d;line-height:1.8;">
             <div>{{ previewData.phone || 'Telephone' }}</div>

@@ -1,4 +1,5 @@
 import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -65,6 +66,7 @@ export class PaymentsListComponent implements OnInit {
     private paymentService: PaymentService,
     private alertService: AlertService,
     private apiService: ApiService,
+    private router: Router,
     private fb: FormBuilder,
   ) {
     this.filterForm = this.fb.group({
@@ -355,6 +357,11 @@ export class PaymentsListComponent implements OnInit {
         this.alertService.showError('Erreur', 'Impossible de charger le reçu');
       },
     });
+  }
+
+  openReceiptDetail(payment: Payment): void {
+    if (!payment?.id) return;
+    this.router.navigate(['/payments/detail', payment.id]);
   }
 
   printReceipt(): void {

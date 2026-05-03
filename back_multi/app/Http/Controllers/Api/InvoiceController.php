@@ -50,10 +50,17 @@ class InvoiceController extends BaseController
     public function store(Request $request)
     {
         $user     = Auth::user();
-        $tenantId = $request->get('tenant_id') ?? $user->tenant_id;
+        $tenantId = $user->hasRole('SUPER_ADMIN')
+            ? ($request->get('tenant_id') ?? null)
+            : $user->tenant_id;
+
+        // Pour le SUPER_ADMIN sans tenant_id explicite, on le déduit du client sélectionné
+        if (!$tenantId && $request->filled('client_id')) {
+            $tenantId = \App\Models\Client::find($request->client_id)?->tenant_id;
+        }
 
         if (!$tenantId) {
-            return $this->sendError('Tenant ID introuvable', [], 400);
+            return $this->sendError('Tenant ID introuvable. Veuillez sélectionner un client valide.', [], 400);
         }
 
         $validator = $this->validator($request, null);

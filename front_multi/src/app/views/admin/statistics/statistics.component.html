@@ -1,8 +1,217 @@
-<c-card>
-  <c-card-header>
-    <strong>Statistiques Admin</strong>
-  </c-card-header>
-  <c-card-body>
-    <p class="text-muted">Module de statistiques admin en cours de développement...</p>
-  </c-card-body>
-</c-card>
+<div class="admin-stats-shell">
+  <section class="admin-stats-hero">
+    <div class="hero-copy">
+      <span class="hero-kicker">PILOTAGE GLOBAL</span>
+      <h1>Statistiques Admin</h1>
+      <p>
+        Vue d’ensemble des tenants, modules, abonnements et activité récente.
+        Cette page remplace l’ancien écran placeholder par un vrai centre de contrôle.
+      </p>
+
+      <div class="hero-actions">
+        <a *ngFor="let action of quickActions"
+           [routerLink]="action.link"
+           class="hero-action">
+          <span class="action-icon" [ngClass]="'tone-' + action.tone">
+            <svg cIcon [name]="action.icon" size="sm"></svg>
+          </span>
+          <span>{{ action.label }}</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-summary">
+      <div class="summary-card">
+        <div class="summary-value">{{ fmt(stats?.totalTenants) }}</div>
+        <div class="summary-label">Tenants</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{{ fmt(stats?.totalUsers) }}</div>
+        <div class="summary-label">Utilisateurs</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{{ fmt(stats?.activeSubscriptions) }}</div>
+        <div class="summary-label">Abonnements actifs</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{{ fmt(stats?.totalModules) }}</div>
+        <div class="summary-label">Modules actifs</div>
+      </div>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="loading-state">
+    <c-spinner color="primary"></c-spinner>
+    <div class="mt-3 text-muted">Chargement des statistiques administratives...</div>
+  </div>
+
+  <div *ngIf="!loading && error" class="empty-state">
+    <div class="empty-icon">⚠️</div>
+    <h2>Impossible de charger les statistiques</h2>
+    <p>Vérifie le backend, puis relance le chargement.</p>
+    <button cButton color="primary" (click)="loadDashboard()">Réessayer</button>
+  </div>
+
+  <div *ngIf="!loading && !error && stats" class="content-grid">
+    <c-row class="g-4">
+      <c-col md="6" lg="3">
+        <c-card class="metric-card metric-primary h-100">
+          <c-card-body>
+            <div class="metric-top">
+              <span class="metric-icon">👥</span>
+              <c-badge color="primary">Tenant</c-badge>
+            </div>
+            <div class="metric-value">{{ fmt(stats.totalTenants) }}</div>
+            <div class="metric-label">Tenants enregistrés</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col md="6" lg="3">
+        <c-card class="metric-card metric-success h-100">
+          <c-card-body>
+            <div class="metric-top">
+              <span class="metric-icon">✅</span>
+              <c-badge color="success">Actif</c-badge>
+            </div>
+            <div class="metric-value">{{ fmt(stats.activeSubscriptions) }}</div>
+            <div class="metric-label">Abonnements actifs</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col md="6" lg="3">
+        <c-card class="metric-card metric-warning h-100">
+          <c-card-body>
+            <div class="metric-top">
+              <span class="metric-icon">⏳</span>
+              <c-badge color="warning">Alerte</c-badge>
+            </div>
+            <div class="metric-value">{{ fmt(stats.expiredSubscriptions) }}</div>
+            <div class="metric-label">Abonnements expirés</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+      <c-col md="6" lg="3">
+        <c-card class="metric-card metric-info h-100">
+          <c-card-body>
+            <div class="metric-top">
+              <span class="metric-icon">💰</span>
+              <c-badge color="info">Mois</c-badge>
+            </div>
+            <div class="metric-value">{{ fmt(stats.totalRevenue) }}</div>
+            <div class="metric-label">Revenu total</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row class="g-4 mt-1">
+      <c-col xl="7">
+        <c-card class="panel-card h-100">
+          <c-card-body>
+            <div class="panel-head">
+              <div>
+                <div class="panel-kicker">Activité récente</div>
+                <h3>Derniers mouvements</h3>
+              </div>
+              <a cButton color="light" size="sm" [routerLink]="['/admin/users']">Gérer les accès</a>
+            </div>
+
+            <div *ngIf="recentActivities.length === 0" class="panel-empty">Aucune activité disponible.</div>
+
+            <div *ngFor="let activity of recentActivities" class="activity-row">
+              <div class="activity-badge" [ngClass]="'tone-' + activityTone(activity.type)">
+                {{ activityLabel(activity.type) }}
+              </div>
+              <div class="activity-content">
+                <div class="activity-title">{{ activity.description }}</div>
+                <div class="activity-meta">
+                  <span>{{ activity.user || 'Système' }}</span>
+                  <span>•</span>
+                  <span>{{ activity.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xl="5">
+        <c-card class="panel-card h-100">
+          <c-card-body>
+            <div class="panel-head">
+              <div>
+                <div class="panel-kicker">Usage modules</div>
+                <h3>Modules les plus sollicités</h3>
+              </div>
+            </div>
+
+            <div *ngIf="moduleUsage.length === 0" class="panel-empty">Aucune donnée d’usage disponible.</div>
+
+            <div *ngFor="let module of moduleUsage" class="usage-row">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                  <div class="usage-name">{{ module.module_name }}</div>
+                  <div class="usage-sub">{{ fmt(module.usage_count) }} interactions</div>
+                </div>
+                <div class="usage-percent">{{ module.percentage | number:'1.0-0' }}%</div>
+              </div>
+              <div class="usage-track">
+                <div class="usage-fill" [style.width.%]="module.percentage"></div>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row class="g-4 mt-1">
+      <c-col xl="6">
+        <c-card class="panel-card h-100">
+          <c-card-body>
+            <div class="panel-head">
+              <div>
+                <div class="panel-kicker">Tendances abonnements</div>
+                <h3>Créations vs annulations</h3>
+              </div>
+            </div>
+
+            <div *ngIf="trendRows.length === 0" class="panel-empty">Aucune tendance à afficher.</div>
+
+            <div *ngFor="let row of trendRows" class="trend-row">
+              <div class="trend-month">{{ row.month }}</div>
+              <div class="trend-values">
+                <span class="trend-pill created">+{{ fmt(row.created) }}</span>
+                <span class="trend-pill canceled">-{{ fmt(row.canceled) }}</span>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xl="6">
+        <c-card class="panel-card h-100">
+          <c-card-body>
+            <div class="panel-head">
+              <div>
+                <div class="panel-kicker">Revenus mensuels</div>
+                <h3>Projection 12 mois</h3>
+              </div>
+            </div>
+
+            <div *ngIf="revenueRows.length === 0" class="panel-empty">Aucune donnée de revenus.</div>
+
+            <div *ngFor="let row of revenueRows" class="revenue-row">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="revenue-month">{{ row.month }}</div>
+                <div class="revenue-value">{{ fmt(row.value) }}</div>
+              </div>
+              <div class="usage-track">
+                <div class="usage-fill revenue-fill" [style.width.%]="maxRevenue() ? (row.value / maxRevenue()) * 100 : 0"></div>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </div>
+</div>

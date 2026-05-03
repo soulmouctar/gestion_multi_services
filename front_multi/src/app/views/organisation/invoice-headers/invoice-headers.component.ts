@@ -55,6 +55,8 @@ export class InvoiceHeadersComponent implements OnInit {
     this.headerForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
       logo_url: [''],
+      signature_url: [''],
+      stamp_url: [''],
       company_name: ['', Validators.required],
       address: ['', Validators.required],
       city: ['', Validators.required],

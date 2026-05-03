@@ -2,10 +2,14 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyR
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ButtonModule, CardModule, FormModule, ModalModule, SpinnerModule } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
 import { AlertService } from '../../../core/services/alert.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { InvoiceHeaderService, InvoiceHeader } from '../../../core/services/invoice-header.service';
+import { PdfService } from '../../../core/services/pdf.service';
 
 interface InvoiceLineItem {
   product_id: number | null;
@@ -40,6 +44,7 @@ export class InvoicesComponent implements OnInit {
   products: any[] = [];
   invoiceLineItems: InvoiceLineItem[] = [];
   clientBalance: any = null;
+  invoiceHeader: InvoiceHeader | null = null;
 
   loading = false;
   lineItemsError = '';
@@ -62,6 +67,10 @@ export class InvoicesComponent implements OnInit {
     private fb: FormBuilder,
     private apiService: ApiService,
     private alertService: AlertService,
+    private router: Router,
+    private invoiceHeaderService: InvoiceHeaderService,
+    private pdfService: PdfService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef,
   ) {
     this.invoiceForm = this.fb.group({
@@ -102,6 +111,23 @@ export class InvoicesComponent implements OnInit {
     this.loadClients();
     this.loadCurrencies();
     this.loadProducts();
+    this.loadDefaultInvoiceHeader();
+  }
+
+  private loadDefaultInvoiceHeader(): void {
+    this.invoiceHeaderService.getHeaders({ is_default: true, per_page: 1 }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          const headers = Array.isArray(response.data) ? response.data : (response.data.data || response.data || []);
+          this.invoiceHeader = headers?.[0] || null;
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.invoiceHeader = null;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   loadCurrencies(): void {
@@ -364,7 +390,7 @@ export class InvoicesComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.alertService.showError('Erreur', err?.error?.message || 'Erreur lors de la sauvegarde');
+        this.alertService.showError('Erreur', err.message || 'Erreur lors de la sauvegarde');
       }
     });
   }
@@ -377,9 +403,118 @@ export class InvoicesComponent implements OnInit {
           this.alertService.showSuccess('Facture supprimée');
           this.loadInvoices();
         },
-        error: (err) => this.alertService.showError('Erreur', err?.error?.message || 'Erreur'),
+        error: (err) => this.alertService.showError('Erreur', err.message || 'Erreur'),
       });
     });
+  }
+
+  printInvoice(invoice: any): void {
+    const items = Array.isArray(invoice.items) && invoice.items.length > 0
+      ? invoice.items.map((item: any) => ({
+          description: item.description || 'Ligne de facture',
+          quantity: Number(item.quantity || 0),
+          unitPrice: Number(item.unit_price || 0),
+          total: Number(item.total || (Number(item.quantity || 0) * Number(item.unit_price || 0))),
+        }))
+      : [{
+          description: invoice.notes || 'Ligne de facture',
+          quantity: 1,
+          unitPrice: Number(invoice.items_subtotal_amount || invoice.total_amount || 0),
+          total: Number(invoice.items_subtotal_amount || invoice.total_amount || 0),
+        }];
+
+    const subtotal = Number(invoice.items_subtotal_amount || invoice.total_amount || 0) - Number(invoice.previous_balance_amount || 0);
+    const total = Number(invoice.total_amount || 0);
+    const totalGnf = invoice.total_amount_gnf || (invoice.currency !== 'GNF' ? Math.round(total * Number(invoice.exchange_rate || 1)) : total);
+    const tenant = this.authService.currentTenant;
+    const header = this.invoiceHeader;
+
+    void this.pdfService.generateProfessionalInvoicePdf({
+      invoiceNumber: invoice.invoice_number || `INV-${invoice.id}`,
+      date: invoice.created_at || new Date(),
+      dueDate: invoice.due_date || new Date(),
+      clientName: this.getClientName(invoice.client_id),
+      clientAddress: invoice.client?.address || invoice.client_address || '',
+      clientPhone: invoice.client?.phone1 || invoice.client?.phone || '',
+      clientEmail: invoice.client?.email || '',
+      organisation: {
+        name: header?.company_name || tenant?.name || 'GESTION MULTI-MODULES',
+        address: [header?.address, header?.city, header?.country].filter(Boolean).join(' - ') || (tenant?.subscription?.plan?.name ? `Plan: ${tenant.subscription.plan.name}` : ''),
+        phone: header?.phone || tenant?.phone || '',
+        email: header?.email || tenant?.email || '',
+        motto: header?.footer_text || 'Facturation détaillée et transparente',
+        logoUrl: header?.logo_url || '',
+        signatureUrl: (header as any)?.signature_url || '',
+        stampUrl: (header as any)?.stamp_url || '',
+        footerText: header?.footer_text || '',
+      },
+      items,
+      subtotal,
+      previousBalance: Number(invoice.previous_balance_amount || 0),
+      total,
+      currency: invoice.currency || 'GNF',
+      exchangeRate: Number(invoice.exchange_rate || 1),
+      totalGnf,
+      status: invoice.status || 'IMPAYE',
+      notes: invoice.notes || '',
+    });
+  }
+
+  downloadInvoice(invoice: any): void {
+    const items = Array.isArray(invoice.items) && invoice.items.length > 0
+      ? invoice.items.map((item: any) => ({
+          description: item.description || 'Ligne de facture',
+          quantity: Number(item.quantity || 0),
+          unitPrice: Number(item.unit_price || 0),
+          total: Number(item.total || (Number(item.quantity || 0) * Number(item.unit_price || 0))),
+        }))
+      : [{
+          description: invoice.notes || 'Ligne de facture',
+          quantity: 1,
+          unitPrice: Number(invoice.items_subtotal_amount || invoice.total_amount || 0),
+          total: Number(invoice.items_subtotal_amount || invoice.total_amount || 0),
+        }];
+
+    const subtotal = Number(invoice.items_subtotal_amount || invoice.total_amount || 0) - Number(invoice.previous_balance_amount || 0);
+    const total = Number(invoice.total_amount || 0);
+    const totalGnf = invoice.total_amount_gnf || (invoice.currency !== 'GNF' ? Math.round(total * Number(invoice.exchange_rate || 1)) : total);
+    const tenant = this.authService.currentTenant;
+    const header = this.invoiceHeader;
+
+    void this.pdfService.downloadProfessionalInvoicePdf({
+      invoiceNumber: invoice.invoice_number || `INV-${invoice.id}`,
+      date: invoice.created_at || new Date(),
+      dueDate: invoice.due_date || new Date(),
+      clientName: this.getClientName(invoice.client_id),
+      clientAddress: invoice.client?.address || invoice.client_address || '',
+      clientPhone: invoice.client?.phone1 || invoice.client?.phone || '',
+      clientEmail: invoice.client?.email || '',
+      organisation: {
+        name: header?.company_name || tenant?.name || 'GESTION MULTI-MODULES',
+        address: [header?.address, header?.city, header?.country].filter(Boolean).join(' - ') || (tenant?.subscription?.plan?.name ? `Plan: ${tenant.subscription.plan.name}` : ''),
+        phone: header?.phone || tenant?.phone || '',
+        email: header?.email || tenant?.email || '',
+        motto: header?.footer_text || 'Facturation détaillée et transparente',
+        logoUrl: header?.logo_url || '',
+        signatureUrl: header?.signature_url || '',
+        stampUrl: header?.stamp_url || '',
+        footerText: header?.footer_text || '',
+      },
+      items,
+      subtotal,
+      previousBalance: Number(invoice.previous_balance_amount || 0),
+      total,
+      currency: invoice.currency || 'GNF',
+      exchangeRate: Number(invoice.exchange_rate || 1),
+      totalGnf,
+      status: invoice.status || 'IMPAYE',
+      notes: invoice.notes || '',
+    }, `facture-${invoice.invoice_number || invoice.id}.pdf`);
+  }
+
+  openInvoiceDetail(invoice: any): void {
+    if (!invoice?.id) return;
+    this.router.navigate(['/finance/invoices', invoice.id]);
   }
 
   addLineItem(): void {

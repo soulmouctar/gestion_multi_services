@@ -13,6 +13,8 @@ class InvoiceHeader extends Model
         'tenant_id',
         'name',
         'logo_url',
+        'signature_url',
+        'stamp_url',
         'company_name',
         'address',
         'city',

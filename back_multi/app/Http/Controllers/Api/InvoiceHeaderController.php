@@ -54,6 +54,8 @@ class InvoiceHeaderController extends BaseController
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'logo_url' => 'nullable|string|max:500',
+            'signature_url' => 'nullable|string|max:500',
+            'stamp_url' => 'nullable|string|max:500',
             'company_name' => 'required|string|max:255',
             'address' => 'required|string',
             'city' => 'required|string|max:100',
@@ -115,6 +117,8 @@ class InvoiceHeaderController extends BaseController
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'logo_url' => 'nullable|string|max:500',
+            'signature_url' => 'nullable|string|max:500',
+            'stamp_url' => 'nullable|string|max:500',
             'company_name' => 'sometimes|string|max:255',
             'address' => 'sometimes|string',
             'city' => 'sometimes|string|max:100',

@@ -13,6 +13,7 @@ class Supplier extends Model
     protected $fillable = [
         'tenant_id',
         'name',
+        'category',
         'email',
         'phone1',
         'phone2',
@@ -43,5 +44,15 @@ class Supplier extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function supplierPayments()
+    {
+        return $this->hasMany(SupplierPayment::class);
+    }
+
+    public function containerArrivals()
+    {
+        return $this->hasMany(ContainerArrival::class);
     }
 }

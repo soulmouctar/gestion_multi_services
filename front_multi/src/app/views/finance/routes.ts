@@ -25,5 +25,10 @@ export const routes: Routes = [
     path: 'invoices',
     loadComponent: () => import('./invoices/invoices.component').then(m => m.InvoicesComponent),
     title: 'Gestion des Factures'
+  },
+  {
+    path: 'invoices/:id',
+    loadComponent: () => import('./invoices/invoice-detail/invoice-detail.component').then(m => m.InvoiceDetailComponent),
+    title: 'Détail de la facture'
   }
 ];

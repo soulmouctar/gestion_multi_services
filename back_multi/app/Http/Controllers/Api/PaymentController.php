@@ -310,16 +310,21 @@ class PaymentController extends BaseController
      */
     public function getClientBalance(Request $request, $clientId)
     {
-        $user     = Auth::user();
-        $tenantId = $user->tenant_id;
+        $user = Auth::user();
 
-        $client = Client::where('id', $clientId)
-            ->where('tenant_id', $tenantId)
-            ->first();
+        if ($user->hasRole('SUPER_ADMIN')) {
+            $client = Client::find($clientId);
+        } else {
+            $client = Client::where('id', $clientId)
+                ->where('tenant_id', $user->tenant_id)
+                ->first();
+        }
 
         if (!$client) {
             return $this->sendError('Client not found', [], 404);
         }
+
+        $tenantId = $client->tenant_id;
 
         $invoices = Invoice::where('client_id', $clientId)
             ->where('tenant_id', $tenantId)

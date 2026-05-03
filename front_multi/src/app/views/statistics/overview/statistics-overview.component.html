@@ -36,7 +36,7 @@
             </div>
             <div style="min-width:0;">
               <div style="font-size:0.95rem;font-weight:700;line-height:1.2;color:#1e293b;word-break:break-all;">
-                {{ fmt(paymentStats?.total_amount || paymentStats?.monthly_total || 0) }}
+                {{ fmt(paymentStats?.monthly_amount || paymentStats?.total_amount || 0) }}
               </div>
               <div style="font-size:0.75rem;color:#6c757d;margin-top:3px;">Revenus</div>
               <div style="font-size:0.72rem;color:#adb5bd;">{{ paymentStats?.total_count || 0 }} paiements</div>

@@ -9,6 +9,8 @@ export interface InvoiceHeader {
   tenant_id?: number;
   name: string;
   logo_url?: string;
+  signature_url?: string;
+  stamp_url?: string;
   company_name: string;
   address: string;
   city: string;

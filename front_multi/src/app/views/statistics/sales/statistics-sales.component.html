@@ -1,13 +1,12 @@
 <div class="container-fluid">
-  <div class="row mb-4 align-items-center">
-    <div class="col">
-      <h2 class="mb-0"><svg cIcon name="cilChart" class="me-2 text-primary"></svg>Statistiques des Ventes</h2>
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+      <h2 class="mb-1"><svg cIcon name="cilChart" class="me-2 text-primary"></svg>Statistiques des Ventes</h2>
+      <div class="text-body-secondary small">Analyse des encaissements, factures et modes de paiement sur la période sélectionnée.</div>
     </div>
-    <div class="col-auto">
-      <select class="form-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
-        <option *ngFor="let p of periods; trackBy: trackById" [value]="p.value">{{ p.label }}</option>
-      </select>
-    </div>
+    <select class="form-select" style="max-width: 220px" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
+      <option *ngFor="let p of periods; trackBy: trackById" [value]="p.value">{{ p.label }}</option>
+    </select>
   </div>
 
   <div *ngIf="loading" class="text-center py-5">
@@ -15,36 +14,143 @@
   </div>
 
   <ng-container *ngIf="!loading">
-    <c-row class="mb-4 g-3">
+    <c-row class="g-3 mb-4">
       <c-col xs="12" sm="6" xl="3">
         <c-card class="h-100 border-start border-primary border-3">
-          <c-card-body class="text-center">
-            <div class="fs-3 fw-bold">{{ stats.totalPayments }}</div>
-            <div class="text-body-secondary">Paiements reçus</div>
+          <c-card-body>
+            <div class="text-body-secondary small text-uppercase fw-semibold">Encaissements</div>
+            <div class="fs-3 fw-bold">{{ stats.totalAmount | number:'1.0-0' }} GNF</div>
+            <div class="text-body-secondary small">{{ stats.totalPayments }} paiements enregistrés</div>
           </c-card-body>
         </c-card>
       </c-col>
       <c-col xs="12" sm="6" xl="3">
         <c-card class="h-100 border-start border-success border-3">
-          <c-card-body class="text-center">
-            <div class="fs-3 fw-bold">{{ stats.totalAmount | number:'1.0-0' }}</div>
-            <div class="text-body-secondary">Montant total</div>
+          <c-card-body>
+            <div class="text-body-secondary small text-uppercase fw-semibold">Factures</div>
+            <div class="fs-3 fw-bold">{{ invoiceSummary?.total ?? stats.totalInvoices }}</div>
+            <div class="text-body-secondary small">{{ invoiceSummary?.paye ?? 0 }} soldées, {{ invoiceSummary?.impaye ?? 0 }} impayées</div>
           </c-card-body>
         </c-card>
       </c-col>
       <c-col xs="12" sm="6" xl="3">
         <c-card class="h-100 border-start border-warning border-3">
-          <c-card-body class="text-center">
-            <div class="fs-3 fw-bold">{{ stats.avgPayment | number:'1.0-0' }}</div>
-            <div class="text-body-secondary">Paiement moyen</div>
+          <c-card-body>
+            <div class="text-body-secondary small text-uppercase fw-semibold">Panier moyen</div>
+            <div class="fs-3 fw-bold">{{ stats.avgPayment | number:'1.0-0' }} GNF</div>
+            <div class="text-body-secondary small">{{ stats.collectionRate | number:'1.0-0' }}% de collecte sur la période</div>
           </c-card-body>
         </c-card>
       </c-col>
       <c-col xs="12" sm="6" xl="3">
         <c-card class="h-100 border-start border-info border-3">
-          <c-card-body class="text-center">
+          <c-card-body>
+            <div class="text-body-secondary small text-uppercase fw-semibold">Clients</div>
             <div class="fs-3 fw-bold">{{ stats.totalClients }}</div>
-            <div class="text-body-secondary">Clients actifs</div>
+            <div class="text-body-secondary small">{{ stats.totalRemaining | number:'1.0-0' }} GNF à recouvrer</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row class="g-4 mb-4">
+      <c-col xs="12" lg="7">
+        <c-card class="h-100">
+          <c-card-header class="d-flex justify-content-between align-items-center">
+            <strong>Évolution des encaissements</strong>
+            <span class="badge bg-primary">{{ selectedPeriod }}</span>
+          </c-card-header>
+          <c-card-body>
+            <div *ngIf="monthlyTrend.length === 0" class="text-center py-4 text-body-secondary">Aucune donnée de tendance sur la période.</div>
+            <div *ngIf="monthlyTrend.length > 0" class="d-flex align-items-end gap-2" style="min-height: 180px">
+              <div *ngFor="let item of monthlyTrend; trackBy: trackById" class="flex-fill text-center">
+                <div class="d-flex align-items-end justify-content-center" style="height: 120px">
+                  <div class="w-100 rounded-top" [style.height.px]="getTrendHeight(item.total ?? item.amount ?? 0)" style="background: linear-gradient(180deg, #3b82f6 0%, #6366f1 100%); min-height: 8px;"></div>
+                </div>
+                <div class="small text-body-secondary mt-2">{{ item.month | slice:5 }}</div>
+                <div class="fw-semibold small">{{ (item.total ?? item.amount ?? 0) | number:'1.0-0' }}</div>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" lg="5">
+        <c-card class="h-100">
+          <c-card-header class="d-flex justify-content-between align-items-center">
+            <strong>Répartition des paiements</strong>
+            <span class="badge bg-success">{{ stats.collectionRate | number:'1.0-0' }}%</span>
+          </c-card-header>
+          <c-card-body>
+            <div *ngIf="paymentsByMethod.length === 0" class="text-center py-4 text-body-secondary">Aucune répartition disponible.</div>
+            <div *ngFor="let method of paymentsByMethod; let i = index; trackBy: trackById" class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <div class="fw-semibold">{{ methodLabel(method.key) }}</div>
+                <div class="text-body-secondary">{{ method.value | number:'1.0-0' }} GNF</div>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar" [class]="'bg-' + methodColor(i)" [style.width.%]="stats.totalAmount > 0 ? (method.value / stats.totalAmount) * 100 : 0"></div>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row class="g-4 mb-4">
+      <c-col xs="12" lg="6">
+        <c-card class="h-100">
+          <c-card-header><strong>Statut des factures</strong></c-card-header>
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="text-body-secondary">Factures soldées</div>
+              <strong>{{ invoiceSummary?.paye ?? 0 }} / {{ invoiceSummary?.total ?? 0 }}</strong>
+            </div>
+            <div class="progress mb-3" style="height: 10px">
+              <div class="progress-bar bg-success" [style.width.%]="collectionPercent()"></div>
+            </div>
+            <div class="row g-2">
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded-3 bg-success-subtle">
+                  <div class="small text-body-secondary">Payées</div>
+                  <div class="fw-bold text-success">{{ invoiceSummary?.paye ?? 0 }}</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded-3 bg-warning-subtle">
+                  <div class="small text-body-secondary">Partielles</div>
+                  <div class="fw-bold text-warning">{{ invoiceSummary?.partiel ?? 0 }}</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded-3 bg-danger-subtle">
+                  <div class="small text-body-secondary">Impayées</div>
+                  <div class="fw-bold text-danger">{{ invoiceSummary?.impaye ?? 0 }}</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded-3 bg-primary-subtle">
+                  <div class="small text-body-secondary">Restant</div>
+                  <div class="fw-bold text-primary">{{ invoiceSummary?.total_remaining | number:'1.0-0' }} GNF</div>
+                </div>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" lg="6">
+        <c-card class="h-100">
+          <c-card-header><strong>Top modes de paiement</strong></c-card-header>
+          <c-card-body>
+            <div *ngIf="paymentsByType.length === 0" class="text-center py-4 text-body-secondary">Aucun type de paiement.</div>
+            <div *ngFor="let item of paymentsByType; let i = index; trackBy: trackById" class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <span class="badge bg-light text-dark me-2">{{ i + 1 }}</span>
+                <strong>{{ methodLabel(item.key) }}</strong>
+              </div>
+              <span class="fw-bold">{{ item.value | number:'1.0-0' }} GNF</span>
+            </div>
           </c-card-body>
         </c-card>
       </c-col>
@@ -58,15 +164,25 @@
             <div *ngIf="recentPayments.length === 0" class="text-center py-4 text-body-secondary">
               Aucun paiement sur la période sélectionnée.
             </div>
-            <table *ngIf="recentPayments.length > 0" class="table table-hover mb-0">
-              <thead><tr><th>Référence</th><th>Client</th><th>Méthode</th><th class="text-end">Montant</th><th>Date</th></tr></thead>
+            <table *ngIf="recentPayments.length > 0" class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Référence</th>
+                  <th>Client</th>
+                  <th>Type</th>
+                  <th>Mode</th>
+                  <th class="text-end">Montant</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
               <tbody>
                 <tr *ngFor="let pay of recentPayments; trackBy: trackById">
-                  <td>{{ pay.reference || pay.id }}</td>
+                  <td class="fw-semibold">{{ pay.receipt_number || pay.reference || pay.id }}</td>
                   <td>{{ pay.client?.name || '—' }}</td>
-                  <td><span class="badge bg-secondary">{{ pay.payment_method || pay.method || '—' }}</span></td>
+                  <td><span class="badge bg-light text-dark">{{ methodLabel(pay.type || 'CLIENT') }}</span></td>
+                  <td><span class="badge bg-secondary">{{ methodLabel(pay.method || '—') }}</span></td>
                   <td class="text-end fw-bold">{{ pay.amount | number:'1.0-0' }} {{ pay.currency || '' }}</td>
-                  <td class="text-body-secondary small">{{ pay.payment_date || pay.created_at | date:'dd/MM/yyyy' }}</td>
+                  <td class="text-body-secondary small">{{ (pay.payment_date || pay.created_at) | date:'dd/MM/yyyy' }}</td>
                 </tr>
               </tbody>
             </table>

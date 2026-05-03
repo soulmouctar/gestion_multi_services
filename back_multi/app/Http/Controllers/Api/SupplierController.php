@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Supplier;
-use App\Models\Payment;
+use App\Models\SupplierPayment;
+use App\Models\ContainerArrival;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Validator;
 
 class SupplierController extends BaseController
 {
+    // ─────────────────────────────────────────────────────── CRUD fournisseurs ──
+
     public function index(Request $request)
     {
         $user     = Auth::user();
@@ -27,8 +30,13 @@ class SupplierController extends BaseController
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                   ->orWhere('email', 'like', "%{$s}%")
-                  ->orWhere('phone1', 'like', "%{$s}%");
+                  ->orWhere('phone1', 'like', "%{$s}%")
+                  ->orWhere('category', 'like', "%{$s}%");
             });
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
         }
 
         $suppliers = $query->orderBy('name')->paginate($request->get('per_page', 15));
@@ -48,6 +56,7 @@ class SupplierController extends BaseController
 
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:150',
+            'category' => 'nullable|string|max:100',
             'email'    => 'nullable|email|max:150',
             'phone1'   => 'nullable|string|max:50',
             'phone2'   => 'nullable|string|max:50',
@@ -63,6 +72,7 @@ class SupplierController extends BaseController
         $supplier = Supplier::create([
             'tenant_id' => $tenantId,
             'name'      => $request->name,
+            'category'  => $request->category,
             'email'     => $request->email,
             'phone1'    => $request->phone1,
             'phone2'    => $request->phone2,
@@ -105,6 +115,7 @@ class SupplierController extends BaseController
 
         $validator = Validator::make($request->all(), [
             'name'     => 'sometimes|string|max:150',
+            'category' => 'nullable|string|max:100',
             'email'    => 'nullable|email|max:150',
             'phone1'   => 'nullable|string|max:50',
             'phone2'   => 'nullable|string|max:50',
@@ -117,7 +128,7 @@ class SupplierController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $supplier->update($request->only(['name', 'email', 'phone1', 'phone2', 'address', 'notes', 'currency']));
+        $supplier->update($request->only(['name', 'category', 'email', 'phone1', 'phone2', 'address', 'notes', 'currency']));
 
         return $this->sendResponse($supplier, 'Supplier updated successfully');
     }
@@ -187,11 +198,9 @@ class SupplierController extends BaseController
         return $this->sendResponse($supplier, 'Photo deleted successfully');
     }
 
-    /**
-     * Relations financières : entrées (paiements reçus du fournisseur) et
-     * sorties (paiements effectués vers le fournisseur) en ordre chronologique.
-     */
-    public function getFinancialRelations(Request $request, $id)
+    // ──────────────────────────────────────────────────── Paiements fournisseur ──
+
+    public function getPayments(Request $request, $id)
     {
         $user     = Auth::user();
         $supplier = Supplier::find($id);
@@ -204,44 +213,299 @@ class SupplierController extends BaseController
             return $this->sendError('Accès refusé', [], 403);
         }
 
-        $payments = Payment::where('supplier_id', $id)
+        $payments = SupplierPayment::where('supplier_id', $id)
             ->where('tenant_id', $supplier->tenant_id)
-            ->where('status', 'COMPLETED')
             ->orderBy('payment_date', 'desc')
             ->get();
 
-        $totalOut = $payments->where('type', 'SUPPLIER')->sum('amount');
-        $totalIn  = $payments->whereIn('type', ['DEPOT', 'RETRAIT'])->sum('amount');
+        return $this->sendResponse([
+            'payments' => $payments,
+            'count'    => $payments->count(),
+            'total_gnf' => $payments->sum(fn ($p) => $p->amount_gnf ?? ($p->currency === 'GNF' ? $p->amount : 0)),
+        ], 'Payments retrieved successfully');
+    }
 
-        $history = $payments->map(fn ($p) => [
-            'id'             => $p->id,
-            'date'           => $p->payment_date->format('Y-m-d'),
-            'type'           => $p->type,
-            'direction'      => in_array($p->type, ['DEPOT']) ? 'credit' : 'debit',
-            'label'          => "Paiement #{$p->receipt_number}",
-            'amount'         => $p->amount,
-            'currency'       => $p->currency,
-            'method'         => $p->method,
-            'reference'      => $p->reference,
-            'description'    => $p->description,
-            'receipt_number' => $p->receipt_number,
+    public function storePayment(Request $request, $id)
+    {
+        $user     = Auth::user();
+        $supplier = Supplier::find($id);
+
+        if (!$supplier) {
+            return $this->sendError('Supplier not found', [], 404);
+        }
+
+        if (!$user->hasRole('SUPER_ADMIN') && $supplier->tenant_id !== $user->tenant_id) {
+            return $this->sendError('Accès refusé', [], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'amount'         => 'required|numeric|min:0.01',
+            'currency'       => 'required|string|max:10',
+            'exchange_rate'  => 'nullable|numeric|min:0',
+            'payment_method' => 'required|string|max:50',
+            'payment_date'   => 'required|date',
+            'reference'      => 'nullable|string|max:100',
+            'description'    => 'nullable|string|max:1000',
         ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $amount       = (float) $request->amount;
+        $currency     = $request->currency;
+        $exchangeRate = $request->exchange_rate ? (float) $request->exchange_rate : null;
+
+        $amountGnf = null;
+        if ($currency === 'GNF') {
+            $amountGnf = $amount;
+        } elseif ($exchangeRate) {
+            $amountGnf = round($amount * $exchangeRate, 2);
+        }
+
+        $payment = SupplierPayment::create([
+            'tenant_id'      => $supplier->tenant_id,
+            'supplier_id'    => $id,
+            'amount'         => $amount,
+            'currency'       => $currency,
+            'exchange_rate'  => $exchangeRate,
+            'amount_gnf'     => $amountGnf,
+            'payment_method' => $request->payment_method,
+            'payment_date'   => $request->payment_date,
+            'reference'      => $request->reference,
+            'description'    => $request->description,
+            'status'         => 'COMPLETED',
+        ]);
+
+        // Recalculer et retourner la balance mise à jour
+        $balance = $this->computeBalance($id, $supplier->tenant_id);
+
+        return $this->sendResponse([
+            'payment' => $payment,
+            'balance' => $balance,
+        ], 'Payment recorded successfully', 201);
+    }
+
+    public function deletePayment($supplierId, $paymentId)
+    {
+        $user    = Auth::user();
+        $payment = SupplierPayment::where('id', $paymentId)
+            ->where('supplier_id', $supplierId)
+            ->first();
+
+        if (!$payment) {
+            return $this->sendError('Payment not found', [], 404);
+        }
+
+        $supplier = Supplier::find($supplierId);
+        if (!$user->hasRole('SUPER_ADMIN') && $supplier && $supplier->tenant_id !== $user->tenant_id) {
+            return $this->sendError('Accès refusé', [], 403);
+        }
+
+        $payment->delete();
+        return $this->sendResponse([], 'Payment deleted successfully');
+    }
+
+    // ────────────────────────────────────────────────── Historique FIFO complet ──
+
+    public function getHistory(Request $request, $id)
+    {
+        $user     = Auth::user();
+        $supplier = Supplier::find($id);
+
+        if (!$supplier) {
+            return $this->sendError('Supplier not found', [], 404);
+        }
+
+        if (!$user->hasRole('SUPER_ADMIN') && $supplier->tenant_id !== $user->tenant_id) {
+            return $this->sendError('Accès refusé', [], 403);
+        }
+
+        $tid = $supplier->tenant_id;
+
+        // ── Arrivages triés du plus ancien au plus récent (FIFO)
+        $arrivals = ContainerArrival::where('supplier_id', $id)
+            ->where('tenant_id', $tid)
+            ->with('container:id,container_number')
+            ->orderBy('arrival_date', 'asc')
+            ->get();
+
+        // ── Versements triés du plus ancien au plus récent
+        $payments = SupplierPayment::where('supplier_id', $id)
+            ->where('tenant_id', $tid)
+            ->orderBy('payment_date', 'asc')
+            ->get();
+
+        // ── Normalisation GNF de chaque arrivage
+        $arrivalsWithCost = $arrivals->map(function ($a) {
+            $costGnf = $this->resolveGnf($a->purchase_price, $a->currency, $a->purchase_price_gnf, $a->exchange_rate);
+            return [
+                'model'    => $a,
+                'cost_gnf' => $costGnf,
+            ];
+        });
+
+        // ── Pool de versements en GNF (cumulé chronologiquement)
+        $totalPaidGnf = $payments->sum(function ($p) {
+            return $this->resolveGnf($p->amount, $p->currency, $p->amount_gnf, $p->exchange_rate);
+        });
+
+        $totalDebtGnf = $arrivalsWithCost->sum('cost_gnf');
+
+        // ── Algorithme FIFO : imputer les versements sur les arrivages les plus anciens
+        $remainingPool = $totalPaidGnf;
+        $arrivalsFormatted = $arrivalsWithCost->map(function ($item) use (&$remainingPool) {
+            $a       = $item['model'];
+            $costGnf = $item['cost_gnf'];
+
+            if ($costGnf <= 0) {
+                $status      = 'SOLDE';
+                $paidGnf     = 0;
+                $remainingGnf = 0;
+                $pct          = 100;
+            } elseif ($remainingPool >= $costGnf) {
+                $paidGnf     = $costGnf;
+                $remainingGnf = 0;
+                $status      = 'SOLDE';
+                $pct          = 100;
+                $remainingPool -= $costGnf;
+            } elseif ($remainingPool > 0) {
+                $paidGnf     = $remainingPool;
+                $remainingGnf = $costGnf - $remainingPool;
+                $status      = 'PARTIEL';
+                $pct          = round($paidGnf / $costGnf * 100);
+                $remainingPool = 0;
+            } else {
+                $paidGnf     = 0;
+                $remainingGnf = $costGnf;
+                $status      = 'IMPAYE';
+                $pct          = 0;
+            }
+
+            return [
+                'id'               => $a->id,
+                'arrival_date'     => $a->arrival_date ? $a->arrival_date->format('Y-m-d') : null,
+                'product_type'     => $a->product_type ?? $a->description ?? "Arrivage #{$a->id}",
+                'description'      => $a->description,
+                'total_quantity'   => $a->total_quantity,
+                'remaining_quantity' => $a->remaining_quantity,
+                'purchase_price'   => $a->purchase_price,
+                'currency'         => $a->currency,
+                'exchange_rate'    => $a->exchange_rate,
+                'purchase_price_gnf' => $costGnf,
+                'paid_gnf'         => round($paidGnf, 2),
+                'remaining_gnf'    => round($remainingGnf, 2),
+                'payment_pct'      => $pct,
+                'payment_status'   => $status,
+                'container_number' => $a->container?->container_number ?? null,
+                'arrival_status'   => $a->status,
+            ];
+        });
+
+        // ── Versements avec solde décroissant
+        $runningDebt = $totalDebtGnf;
+        $paymentsFormatted = $payments->sortByDesc('payment_date')->map(function ($p) use (&$runningDebt) {
+            $paidGnf     = $this->resolveGnf($p->amount, $p->currency, $p->amount_gnf, $p->exchange_rate);
+            $runningDebt -= $paidGnf;
+
+            return [
+                'id'             => $p->id,
+                'date'           => $p->payment_date->format('Y-m-d'),
+                'amount'         => $p->amount,
+                'currency'       => $p->currency,
+                'exchange_rate'  => $p->exchange_rate,
+                'amount_gnf'     => round($paidGnf, 2),
+                'payment_method' => $p->payment_method,
+                'reference'      => $p->reference,
+                'description'    => $p->description,
+                'running_debt_gnf' => round(max(0, $runningDebt), 2),
+            ];
+        })->values();
+
+        $balanceGnf   = max(0, $totalDebtGnf - $totalPaidGnf);
+        $excessGnf    = max(0, $totalPaidGnf - $totalDebtGnf);
+        $settlePct    = $totalDebtGnf > 0 ? min(100, round($totalPaidGnf / $totalDebtGnf * 100)) : 100;
+        $nbSolde      = $arrivalsFormatted->where('payment_status', 'SOLDE')->count();
+        $nbPartiel    = $arrivalsFormatted->where('payment_status', 'PARTIEL')->count();
+        $nbImpaye     = $arrivalsFormatted->where('payment_status', 'IMPAYE')->count();
 
         return $this->sendResponse([
             'supplier' => [
                 'id'        => $supplier->id,
                 'name'      => $supplier->name,
+                'category'  => $supplier->category,
                 'email'     => $supplier->email,
                 'phone1'    => $supplier->phone1,
                 'photo_url' => $supplier->photo_url,
                 'currency'  => $supplier->currency,
             ],
             'summary' => [
-                'total_paid_to_supplier' => $totalOut,
-                'total_transactions'     => $payments->count(),
-                'currency'               => $supplier->currency ?? 'GNF',
+                'total_debt_gnf'    => round($totalDebtGnf, 2),
+                'total_paid_gnf'    => round($totalPaidGnf, 2),
+                'balance_gnf'       => round($balanceGnf, 2),
+                'excess_gnf'        => round($excessGnf, 2),
+                'settle_pct'        => $settlePct,
+                'payment_count'     => $payments->count(),
+                'arrival_count'     => $arrivals->count(),
+                'nb_solde'          => $nbSolde,
+                'nb_partiel'        => $nbPartiel,
+                'nb_impaye'         => $nbImpaye,
+                'is_fully_settled'  => $balanceGnf <= 0 && $arrivals->count() > 0,
+                'currency'          => 'GNF',
             ],
-            'history' => $history,
-        ], 'Financial relations retrieved successfully');
+            'arrivals' => $arrivalsFormatted->sortByDesc('arrival_date')->values(),
+            'payments' => $paymentsFormatted,
+        ], 'History retrieved successfully');
+    }
+
+    // ────────────────────────────────────────────────────── Helpers privés ──────
+
+    /**
+     * Résoudre le montant GNF : utilise la valeur stockée si disponible,
+     * sinon calcule via le taux, sinon retourne le montant brut si déjà en GNF.
+     */
+    private function resolveGnf(float $amount, string $currency, ?float $storedGnf, ?float $rate): float
+    {
+        if ($storedGnf !== null && $storedGnf > 0) {
+            return $storedGnf;
+        }
+        if ($currency === 'GNF') {
+            return $amount;
+        }
+        if ($rate && $rate > 0) {
+            return $amount * $rate;
+        }
+        // Devise étrangère sans taux : on retourne le montant brut (à corriger par l'utilisateur)
+        return $amount;
+    }
+
+    private function computeBalance(int $supplierId, int $tenantId): array
+    {
+        $totalDebt = ContainerArrival::where('supplier_id', $supplierId)
+            ->where('tenant_id', $tenantId)
+            ->get()
+            ->sum(fn ($a) => $this->resolveGnf($a->purchase_price, $a->currency, $a->purchase_price_gnf, $a->exchange_rate));
+
+        $totalPaid = SupplierPayment::where('supplier_id', $supplierId)
+            ->where('tenant_id', $tenantId)
+            ->get()
+            ->sum(fn ($p) => $this->resolveGnf($p->amount, $p->currency, $p->amount_gnf, $p->exchange_rate));
+
+        $balance = max(0, $totalDebt - $totalPaid);
+
+        return [
+            'total_debt_gnf'   => round($totalDebt, 2),
+            'total_paid_gnf'   => round($totalPaid, 2),
+            'balance_gnf'      => round($balance, 2),
+            'settle_pct'       => $totalDebt > 0 ? min(100, round($totalPaid / $totalDebt * 100)) : 100,
+            'is_fully_settled' => $balance <= 0 && $totalDebt > 0,
+        ];
+    }
+
+    // ─────────────────────────────────────────── (legacy) Relations financières ──
+
+    public function getFinancialRelations(Request $request, $id)
+    {
+        return $this->getHistory($request, $id);
     }
 }

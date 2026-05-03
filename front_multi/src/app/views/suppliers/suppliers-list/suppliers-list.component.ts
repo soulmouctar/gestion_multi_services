@@ -2,14 +2,17 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyR
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 
 import {
   ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
-  ModalModule, AlertModule, SpinnerModule
+  ModalModule, AlertModule, SpinnerModule,
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
 import { AlertService } from '../../../core/services/alert.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-suppliers-list',
@@ -30,6 +33,7 @@ export class SuppliersListComponent implements OnInit {
   loading = false;
   error: string | null = null;
   searchTerm = '';
+  filterCategory = '';
 
   currentPage = 1;
   totalPages = 1;
@@ -39,6 +43,7 @@ export class SuppliersListComponent implements OnInit {
   selectedSuppliers: Set<number> = new Set();
   selectAll = false;
 
+  // Formulaire fournisseur
   showFormModal = false;
   editMode = false;
   submitted = false;
@@ -51,40 +56,110 @@ export class SuppliersListComponent implements OnInit {
   photoPreview: string | null = null;
   uploadingPhoto = false;
 
-  // Relations financières
-  showFinancialModal = false;
-  financialLoading = false;
-  supplierFinancial: any = null;
+  // Historique / balance FIFO
+  showHistoryModal = false;
+  historyLoading = false;
+  supplierHistory: any = null;
+  historyTab: 'arrivals' | 'payments' = 'arrivals';
+
+  // Modal versement
+  showPaymentModal = false;
+  paymentForm: FormGroup;
+  savingPayment = false;
+  paymentSubmitted = false;
+  currentSupplierForPayment: any = null;
+
+  // SUPER_ADMIN
+  tenants: any[] = [];
+
+  readonly categories = [
+    'Textile', 'Cosmétiques', 'Pneus & Pièces auto',
+    'Alimentation', 'Électronique', 'Matériaux construction',
+    'Mobilier', 'Médicaments', 'Autres',
+  ];
+
+  readonly paymentMethods = [
+    { value: 'ESPECES',      label: 'Espèces' },
+    { value: 'VIREMENT',     label: 'Virement bancaire' },
+    { value: 'CHEQUE',       label: 'Chèque' },
+    { value: 'ORANGE_MONEY', label: 'Orange Money' },
+    { value: 'WAVE',         label: 'Wave' },
+    { value: 'MTN_MONEY',    label: 'MTN Money' },
+    { value: 'AUTRE',        label: 'Autre' },
+  ];
 
   Math = Math;
+
+  get isSuperAdmin(): boolean {
+    return this.authService.userRole === 'SUPER_ADMIN';
+  }
+
+  get showExchangeRate(): boolean {
+    return this.paymentForm.get('currency')?.value !== 'GNF';
+  }
+
+  get estimatedAmountGnf(): number {
+    const amount = parseFloat(this.paymentForm.get('amount')?.value) || 0;
+    const rate   = parseFloat(this.paymentForm.get('exchange_rate')?.value) || 0;
+    const cur    = this.paymentForm.get('currency')?.value;
+    if (cur === 'GNF') return amount;
+    return rate > 0 ? amount * rate : 0;
+  }
+
+  get outstandingDebt(): number {
+    return this.supplierHistory?.summary?.balance_gnf ?? 0;
+  }
 
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
     private alertService: AlertService,
+    private authService: AuthService,
+    private http: HttpClient,
     private cdr: ChangeDetectorRef,
   ) {
     this.supplierForm = this.fb.group({
-      name:     ['', [Validators.required, Validators.maxLength(150)]],
-      email:    ['', [Validators.email]],
-      phone1:   [''],
-      phone2:   [''],
-      address:  [''],
-      notes:    [''],
-      currency: ['GNF'],
+      name:      ['', [Validators.required, Validators.maxLength(150)]],
+      category:  [''],
+      email:     ['', [Validators.email]],
+      phone1:    [''],
+      phone2:    [''],
+      address:   [''],
+      notes:     [''],
+      currency:  ['GNF'],
+      tenant_id: [null],
+    });
+
+    this.paymentForm = this.fb.group({
+      amount:         ['', [Validators.required, Validators.min(0.01)]],
+      currency:       ['GNF', Validators.required],
+      exchange_rate:  [''],
+      payment_method: ['ESPECES', Validators.required],
+      payment_date:   [new Date().toISOString().split('T')[0], Validators.required],
+      reference:      [''],
+      description:    [''],
     });
   }
 
   ngOnInit(): void {
+    if (this.isSuperAdmin) this.loadTenants();
     this.loadSuppliers();
+  }
+
+  loadTenants(): void {
+    this.apiService.get<any>('tenants?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => { this.tenants = r.data?.data ?? r.data ?? []; this.cdr.detectChanges(); },
+      error: () => {},
+    });
   }
 
   loadSuppliers(): void {
     this.loading = true;
     this.error   = null;
-    const params = this.searchTerm
-      ? `?search=${encodeURIComponent(this.searchTerm)}&page=${this.currentPage}`
-      : `?page=${this.currentPage}`;
+    let params = `?page=${this.currentPage}`;
+    if (this.searchTerm)     params += `&search=${encodeURIComponent(this.searchTerm)}`;
+    if (this.filterCategory) params += `&category=${encodeURIComponent(this.filterCategory)}`;
+
     this.apiService.get<any>(`suppliers${params}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
@@ -102,6 +177,7 @@ export class SuppliersListComponent implements OnInit {
   }
 
   onSearch(): void { this.currentPage = 1; this.loadSuppliers(); }
+  onFilterCategory(cat: string): void { this.filterCategory = cat; this.currentPage = 1; this.loadSuppliers(); }
 
   onPageChange(page: number): void {
     if (page < 1 || page > this.totalPages) return;
@@ -116,7 +192,7 @@ export class SuppliersListComponent implements OnInit {
     this.submitted = false;
     this.selectedPhotoFile = null;
     this.photoPreview = null;
-    this.supplierForm.reset({ name: '', email: '', phone1: '', phone2: '', address: '', notes: '', currency: 'GNF' });
+    this.supplierForm.reset({ name: '', category: '', email: '', phone1: '', phone2: '', address: '', notes: '', currency: 'GNF', tenant_id: null });
     this.showFormModal = true;
   }
 
@@ -127,13 +203,15 @@ export class SuppliersListComponent implements OnInit {
     this.selectedPhotoFile = null;
     this.photoPreview = supplier.photo_url || null;
     this.supplierForm.patchValue({
-      name:     supplier.name     || '',
-      email:    supplier.email    || '',
-      phone1:   supplier.phone1   || '',
-      phone2:   supplier.phone2   || '',
-      address:  supplier.address  || '',
-      notes:    supplier.notes    || '',
-      currency: supplier.currency || 'GNF',
+      name:      supplier.name     || '',
+      category:  supplier.category || '',
+      email:     supplier.email    || '',
+      phone1:    supplier.phone1   || '',
+      phone2:    supplier.phone2   || '',
+      address:   supplier.address  || '',
+      notes:     supplier.notes    || '',
+      currency:  supplier.currency || 'GNF',
+      tenant_id: supplier.tenant_id || null,
     });
     this.showFormModal = true;
   }
@@ -143,8 +221,20 @@ export class SuppliersListComponent implements OnInit {
     if (this.supplierForm.invalid) return;
     this.savingSupplier = true;
 
-    const data = this.supplierForm.value;
-    const obs  = this.editMode && this.selectedSupplier
+    const v    = this.supplierForm.value;
+    const data: any = {
+      name:     v.name     || null,
+      category: v.category || null,
+      email:    v.email    || null,
+      phone1:   v.phone1   || null,
+      phone2:   v.phone2   || null,
+      address:  v.address  || null,
+      notes:    v.notes    || null,
+      currency: v.currency || 'GNF',
+    };
+    if (this.isSuperAdmin && v.tenant_id) data.tenant_id = v.tenant_id;
+
+    const obs = this.editMode && this.selectedSupplier
       ? this.apiService.put<any>(`suppliers/${this.selectedSupplier.id}`, data)
       : this.apiService.post<any>('suppliers', data);
 
@@ -161,7 +251,7 @@ export class SuppliersListComponent implements OnInit {
         this.savingSupplier = false;
       },
       error: (err) => {
-        this.alertService.showError('Erreur', err?.error?.message || 'Erreur lors de la sauvegarde');
+        this.alertService.showError('Erreur', err.message || 'Erreur lors de la sauvegarde');
         this.savingSupplier = false;
         this.cdr.detectChanges();
       },
@@ -181,7 +271,7 @@ export class SuppliersListComponent implements OnInit {
       if (!r.isConfirmed) return;
       this.apiService.delete<any>(`suppliers/${supplier.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => { this.alertService.showSuccess('Fournisseur supprimé'); this.loadSuppliers(); },
-        error: (err) => this.alertService.showError('Erreur', err?.error?.message || 'Erreur'),
+        error: (err) => this.alertService.showError('Erreur', err.message || 'Erreur'),
       });
     });
   }
@@ -202,28 +292,117 @@ export class SuppliersListComponent implements OnInit {
     this.uploadingPhoto = true;
     const formData = new FormData();
     formData.append('photo', this.selectedPhotoFile);
-    this.apiService.post<any>(`suppliers/${supplierId}/photo`, formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => { this.uploadingPhoto = false; callback(); },
-      error: () => { this.uploadingPhoto = false; callback(); },
+    this.http.post<any>(`${environment.apiUrl}/suppliers/${supplierId}/photo`, formData)
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: () => { this.uploadingPhoto = false; callback(); },
+        error: () => { this.uploadingPhoto = false; callback(); },
+      });
+  }
+
+  // ─── Versement fournisseur ───────────────────────────────────────────────────
+
+  openPaymentModal(supplier: any): void {
+    this.currentSupplierForPayment = supplier;
+    this.paymentSubmitted = false;
+
+    // Pré-remplir avec la devise du fournisseur
+    const currency = supplier.currency || 'GNF';
+    this.paymentForm.reset({
+      amount:         '',
+      currency:       currency,
+      exchange_rate:  '',
+      payment_method: 'ESPECES',
+      payment_date:   new Date().toISOString().split('T')[0],
+      reference:      '',
+      description:    '',
+    });
+
+    // Si on a déjà l'historique chargé, fermer le modal historique d'abord
+    this.showHistoryModal = false;
+    this.showPaymentModal = true;
+    this.cdr.detectChanges();
+  }
+
+  savePayment(): void {
+    this.paymentSubmitted = true;
+    if (this.paymentForm.invalid) return;
+    this.savingPayment = true;
+
+    const v    = this.paymentForm.value;
+    const data: any = {
+      amount:         parseFloat(v.amount),
+      currency:       v.currency,
+      payment_method: v.payment_method,
+      payment_date:   v.payment_date,
+      reference:      v.reference || null,
+      description:    v.description || null,
+    };
+    if (this.showExchangeRate && v.exchange_rate) {
+      data.exchange_rate = parseFloat(v.exchange_rate);
+    }
+
+    this.apiService.post<any>(`suppliers/${this.currentSupplierForPayment.id}/payments`, data)
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (r) => {
+          if (r.success) {
+            this.alertService.showSuccess('Versement enregistré avec succès');
+            this.showPaymentModal = false;
+            this.loadSuppliers();
+            // Recharger l'historique avec la nouvelle balance
+            this.openHistory(this.currentSupplierForPayment);
+          }
+          this.savingPayment = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.alertService.showError('Erreur', err.message || 'Erreur lors de l\'enregistrement');
+          this.savingPayment = false;
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  deletePayment(payment: any): void {
+    const supplier = this.currentSupplierForPayment;
+    this.alertService.showConfirmation(
+      'Supprimer ce versement',
+      `Versement de ${payment.amount} ${payment.currency} du ${this.formatDate(payment.date)} ?`,
+      'Oui, supprimer'
+    ).then(r => {
+      if (!r.isConfirmed) return;
+      this.apiService.delete<any>(`suppliers/${supplier.id}/payments/${payment.id}`)
+        .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: () => {
+            this.alertService.showSuccess('Versement supprimé');
+            this.openHistory(supplier);
+          },
+          error: (err) => this.alertService.showError('Erreur', err.message || 'Erreur'),
+        });
     });
   }
 
-  // ─── Relations financières ───────────────────────────────────────────────────
+  // ─── Historique FIFO ─────────────────────────────────────────────────────────
 
-  openFinancialRelations(supplier: any): void {
-    this.financialLoading  = true;
-    this.supplierFinancial = null;
-    this.showFinancialModal = true;
+  openHistory(supplier: any): void {
+    this.historyLoading   = true;
+    this.supplierHistory  = null;
+    this.historyTab       = 'arrivals';
+    this.showHistoryModal = true;
+    this.currentSupplierForPayment = supplier;
     this.cdr.detectChanges();
 
-    this.apiService.get<any>(`suppliers/${supplier.id}/financial-relations`)
+    this.apiService.get<any>(`suppliers/${supplier.id}/history`)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (r) => { this.supplierFinancial = r.data; this.financialLoading = false; this.cdr.detectChanges(); },
+        next: (r) => {
+          this.supplierHistory = r.data;
+          this.historyLoading  = false;
+          this.cdr.detectChanges();
+        },
         error: () => {
-          this.financialLoading  = false;
-          this.showFinancialModal = false;
-          this.alertService.showError('Erreur', 'Impossible de charger les relations financières');
+          this.historyLoading   = false;
+          this.showHistoryModal = false;
+          this.alertService.showError('Erreur', 'Impossible de charger l\'historique');
           this.cdr.detectChanges();
         },
       });
@@ -271,9 +450,37 @@ export class SuppliersListComponent implements OnInit {
     return colors[Math.abs(h) % colors.length];
   }
 
+  getCategoryColor(cat: string): { bg: string; color: string } {
+    const map: Record<string, { bg: string; color: string }> = {
+      'Textile':                { bg: '#EDE9FE', color: '#7C3AED' },
+      'Cosmétiques':            { bg: '#FCE7F3', color: '#DB2777' },
+      'Pneus & Pièces auto':    { bg: '#FEF3C7', color: '#D97706' },
+      'Alimentation':           { bg: '#ECFDF5', color: '#059669' },
+      'Électronique':           { bg: '#EFF6FF', color: '#2563EB' },
+      'Matériaux construction': { bg: '#FEF2F2', color: '#DC2626' },
+      'Mobilier':               { bg: '#F0FDF4', color: '#16A34A' },
+      'Médicaments':            { bg: '#F0F9FF', color: '#0284C7' },
+    };
+    return map[cat] ?? { bg: '#F3F4F6', color: '#6B7280' };
+  }
+
+  getPaymentStatusStyle(status: string): { bg: string; color: string; label: string } {
+    const map: Record<string, { bg: string; color: string; label: string }> = {
+      'SOLDE':  { bg: '#ECFDF5', color: '#059669', label: '✓ Soldé' },
+      'PARTIEL':{ bg: '#FFFBEB', color: '#D97706', label: '⬤ Partiel' },
+      'IMPAYE': { bg: '#FEF2F2', color: '#DC2626', label: '✗ Impayé' },
+    };
+    return map[status] ?? { bg: '#F3F4F6', color: '#6B7280', label: status };
+  }
+
   getMethodLabel(method: string): string {
-    return ({ ORANGE_MONEY: 'Orange Money', WAVE: 'Wave', MTN_MONEY: 'MTN Money',
-              VIREMENT: 'Virement', CHEQUE: 'Chèque', ESPECES: 'Espèces' } as any)[method] ?? method;
+    return this.paymentMethods.find(m => m.value === method)?.label ?? method;
+  }
+
+  formatDate(d: string): string {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
   }
 
   getPages(): number[] {

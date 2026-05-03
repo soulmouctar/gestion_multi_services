@@ -27,6 +27,7 @@ export class ContainerListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   containers: any[] = [];
+  tenants: any[] = [];
   loading = false;
   error: string | null = null;
   successMessage: string | null = null;
@@ -43,9 +44,11 @@ export class ContainerListComponent implements OnInit {
   containerToDelete: any = null;
   Math = Math;
 
+  get isSuperAdmin(): boolean { return this.authService.isSuperAdmin; }
+
   constructor(
-    private fb: FormBuilder, 
-    private apiService: ApiService, 
+    private fb: FormBuilder,
+    private apiService: ApiService,
     private authService: AuthService,
     private router: Router,
     private cdr: ChangeDetectorRef
@@ -54,11 +57,26 @@ export class ContainerListComponent implements OnInit {
       container_number: ['', Validators.required],
       capacity_min: [null],
       capacity_max: [null],
-      interest_rate: [null]
+      interest_rate: [null],
+      tenant_id: [null]
     });
   }
 
-  ngOnInit(): void { this.loadContainers(); }
+  ngOnInit(): void {
+    this.loadContainers();
+    if (this.isSuperAdmin) {
+      this.loadTenants();
+    }
+  }
+
+  loadTenants(): void {
+    this.apiService.get<any>('tenants?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        this.tenants = r.data?.data || r.data || [];
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   loadContainers(): void {
     this.loading = true;
@@ -78,8 +96,8 @@ export class ContainerListComponent implements OnInit {
       },
       error: () => {
         this.error = 'Erreur lors du chargement des conteneurs';
-        this.loading = false; 
-        this.cdr.detectChanges(); 
+        this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -91,13 +109,24 @@ export class ContainerListComponent implements OnInit {
   }
 
   openCreateModal(): void {
-    this.editMode = false; this.submitted = false;
-    this.containerForm.reset({ container_number: '', capacity_min: null, capacity_max: null, interest_rate: null });
+    this.editMode = false;
+    this.submitted = false;
+    this.containerForm.reset({ container_number: '', capacity_min: null, capacity_max: null, interest_rate: null, tenant_id: null });
+    if (this.isSuperAdmin) {
+      this.containerForm.get('tenant_id')?.setValidators(Validators.required);
+    } else {
+      this.containerForm.get('tenant_id')?.clearValidators();
+    }
+    this.containerForm.get('tenant_id')?.updateValueAndValidity();
     this.showFormModal = true;
   }
 
   openEditModal(container: any): void {
-    this.editMode = true; this.submitted = false; this.selectedContainer = container;
+    this.editMode = true;
+    this.submitted = false;
+    this.selectedContainer = container;
+    this.containerForm.get('tenant_id')?.clearValidators();
+    this.containerForm.get('tenant_id')?.updateValueAndValidity();
     this.containerForm.patchValue(container);
     this.showFormModal = true;
   }
@@ -106,14 +135,22 @@ export class ContainerListComponent implements OnInit {
     this.submitted = true;
     if (this.containerForm.invalid) {
       this.error = 'Veuillez remplir tous les champs obligatoires';
+      this.cdr.detectChanges();
       return;
     }
-    
+
     const data = this.containerForm.value;
+
+    if (this.isSuperAdmin && !data.tenant_id) {
+      this.error = 'Veuillez sélectionner une organisation.';
+      this.cdr.detectChanges();
+      return;
+    }
 
     const obs = this.editMode && this.selectedContainer
       ? this.apiService.put<any>(`containers/${this.selectedContainer.id}`, data)
       : this.apiService.post<any>('containers', data);
+
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
@@ -125,7 +162,8 @@ export class ContainerListComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de la sauvegarde du conteneur';
+        this.error = err.message || 'Erreur lors de la sauvegarde du conteneur';
+        this.cdr.detectChanges();
       }
     });
   }
@@ -137,11 +175,18 @@ export class ContainerListComponent implements OnInit {
     this.apiService.delete<any>(`containers/${this.containerToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
-          this.successMessage = 'Conteneur supprimé'; this.deleteModalOpen = false;
-          this.containerToDelete = null; this.loadContainers(); this.clearMessages();
+          this.successMessage = 'Conteneur supprimé';
+          this.deleteModalOpen = false;
+          this.containerToDelete = null;
+          this.loadContainers();
+          this.clearMessages();
         }
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => {
+        this.error = err.message || 'Erreur lors de la suppression';
+        this.deleteModalOpen = false;
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -149,13 +194,17 @@ export class ContainerListComponent implements OnInit {
     this.router.navigate(['/containers/detail', container.id]);
   }
 
-  getPages(): number[] { const p: number[] = []; for (let i = 1; i <= this.totalPages; i++) p.push(i); return p; }
+  getPages(): number[] {
+    const p: number[] = [];
+    for (let i = 1; i <= this.totalPages; i++) p.push(i);
+    return p;
+  }
 
   private clearMessages(): void {
     setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000);
   }
+
   trackById(_index: number, item: any): any {
     return item?.id ?? _index;
   }
-
 }
