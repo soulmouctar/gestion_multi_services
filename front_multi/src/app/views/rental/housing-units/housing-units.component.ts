@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-housing-units',
@@ -47,7 +48,7 @@ export class HousingUnitsComponent implements OnInit {
   inlineFloorNumber: number | null = null;
   savingFloor = false;
 
-  constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
+  constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.unitForm = this.fb.group({
       building_id: [null],
       floor_id: [null, Validators.required],
@@ -63,6 +64,10 @@ export class HousingUnitsComponent implements OnInit {
     this.loadFloors(); 
     this.loadConfigurations(); 
   }
+
+  get canCreateUnits(): boolean { return this.authService.hasModulePermission('RENTAL', 'create'); }
+  get canEditUnits(): boolean { return this.authService.hasModulePermission('RENTAL', 'edit'); }
+  get canDeleteUnits(): boolean { return this.authService.hasModulePermission('RENTAL', 'delete'); }
 
   loadBuildings(): void {
     this.apiService.get<any>('buildings?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -131,7 +136,7 @@ export class HousingUnitsComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de la création de l\'étage';
+        this.error = err.message || 'Erreur lors de la création de l\'étage';
         this.savingFloor = false;
         this.cdr.detectChanges();
       }
@@ -180,6 +185,7 @@ export class HousingUnitsComponent implements OnInit {
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
   
   openCreateModal(): void {
+    if (!this.canCreateUnits) return;
     this.editMode = false;
     this.submitted = false;
     this.filteredFloors = this.floors;
@@ -190,6 +196,7 @@ export class HousingUnitsComponent implements OnInit {
   }
   
   openEditModal(item: any): void { 
+    if (!this.canEditUnits) return;
     this.editMode = true; 
     this.submitted = false; 
     this.selectedItem = item;
@@ -209,22 +216,23 @@ export class HousingUnitsComponent implements OnInit {
 
   save(): void {
     this.submitted = true; if (this.unitForm.invalid) return;
+    if (this.editMode ? !this.canEditUnits : !this.canCreateUnits) return;
     const { building_id, ...data } = this.unitForm.value;
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`housing-units/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('housing-units', data);
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Unité mise à jour' : 'Unité créée'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; }
+      error: (err) => { this.error = err.message || 'Erreur'; }
     });
   }
 
-  confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
+  confirmDelete(item: any): void { if (!this.canDeleteUnits) return; this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
-    if (!this.itemToDelete) return;
+    if (!this.itemToDelete || !this.canDeleteUnits) return;
     this.apiService.delete<any>(`housing-units/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Unité supprimée'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => { this.error = err.message || 'Erreur'; this.deleteModalOpen = false; }
     });
   }
 

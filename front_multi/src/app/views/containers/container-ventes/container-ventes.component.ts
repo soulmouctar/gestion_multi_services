@@ -10,6 +10,8 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
 import Swal from 'sweetalert2';
+import { environment } from '../../../../environments/environment';
+import { startWith } from 'rxjs/operators';
 
 @Component({
   selector: 'app-container-ventes',
@@ -31,9 +33,16 @@ export class ContainerVentesComponent implements OnInit {
   sales: any[] = [];
   payments: any[] = [];
   advances: any[] = [];
+  clientBalances: any[] = [];
   containers: any[] = [];
   suppliers: any[] = [];
   clients: any[] = [];
+  productCategories: any[] = [];
+  currencyRates: Record<string, number> = {
+    GNF: 1,
+    USD: 8600,
+    EUR: 9300
+  };
 
   // ===== UI =====
   loading = false;
@@ -60,30 +69,30 @@ export class ContainerVentesComponent implements OnInit {
 
   // ===== MODALS =====
   showArrivalModal = false;
+  showArrivalDetailsModal = false;
   showSaleModal = false;
   showPaymentModal = false;
+  showGlobalPaymentModal = false;
   showAdvanceModal = false;
 
   // ===== SELECTED =====
   selectedArrival: any = null;
+  selectedArrivalDetails: any = null;
   selectedSale: any = null;
+  selectedClientBalance: any = null;
   selectedSaleType: 'TOTAL' | 'PARTIEL' | 'DETAIL' = 'TOTAL';
+  selectedArrivalPhotos: File[] = [];
+  existingArrivalPhotos: any[] = [];
+  uploadingArrivalPhotos = false;
 
   // ===== FORMS =====
   arrivalForm: FormGroup;
   saleForm: FormGroup;
   paymentForm: FormGroup;
+  globalPaymentForm: FormGroup;
   advanceForm: FormGroup;
 
   // ===== CONSTANTS =====
-  productTypes = [
-    { value: 'HABITS',      label: 'Habits / Vêtements' },
-    { value: 'PNEUS',       label: 'Pneus' },
-    { value: 'ELECTRONIQUE',label: 'Électronique' },
-    { value: 'DIVERS',      label: 'Divers' },
-    { value: 'MIXTE',       label: 'Mixte' }
-  ];
-
   paymentMethods = [
     { value: 'ESPECES',      label: 'Espèces' },
     { value: 'VIREMENT',     label: 'Virement bancaire' },
@@ -126,8 +135,11 @@ export class ContainerVentesComponent implements OnInit {
       arrival_date:   [this.today(), Validators.required],
       purchase_price: [null, [Validators.required, Validators.min(0)]],
       currency:       ['GNF', Validators.required],
-      product_type:   ['DIVERS', Validators.required],
+      exchange_rate:  [1, [Validators.min(0.0001)]],
+      product_category_id: [null, Validators.required],
+      product_type:   ['DIVERS'],
       total_quantity: [null, [Validators.required, Validators.min(1)]],
+      bale_quantity:  [null, [Validators.required, Validators.min(1)]],
       description:    ['']
     });
 
@@ -138,6 +150,7 @@ export class ContainerVentesComponent implements OnInit {
       quantity_sold:        [null, [Validators.required, Validators.min(1)]],
       sale_price:           [null, [Validators.required, Validators.min(0)]],
       currency:             ['GNF', Validators.required],
+      exchange_rate:        [1, [Validators.min(0.0001)]],
       is_installment:       [false],
       installment_count:    [null],
       sale_date:            [this.today(), Validators.required],
@@ -155,6 +168,17 @@ export class ContainerVentesComponent implements OnInit {
       notes:             ['']
     });
 
+    this.globalPaymentForm = this.fb.group({
+      client_id:       [null, Validators.required],
+      amount:          [null, [Validators.required, Validators.min(1)]],
+      currency:        ['GNF', Validators.required],
+      exchange_rate:   [1, [Validators.min(0.0001)]],
+      payment_method:  ['ESPECES', Validators.required],
+      payment_date:    [this.today(), Validators.required],
+      reference:       [''],
+      notes:           ['']
+    });
+
     this.advanceForm = this.fb.group({
       client_id:      [null, Validators.required],
       amount:         [null, [Validators.required, Validators.min(1)]],
@@ -169,11 +193,17 @@ export class ContainerVentesComponent implements OnInit {
   ngOnInit(): void {
     this.loadContainers();
     this.loadSuppliers();
+    this.loadProductCategories();
     this.loadClients();
+    this.loadCurrencyRates();
+    this.setupArrivalRateWatcher();
+    this.setupSaleRateWatcher();
+    this.setupGlobalPaymentRateWatcher();
     this.loadArrivals();
     this.loadSales();
     this.loadPayments();
     this.loadAdvances();
+    this.loadClientBalances();
     this.loadStats();
   }
 
@@ -194,9 +224,34 @@ export class ContainerVentesComponent implements OnInit {
   }
 
   loadClients(): void {
-    this.apiService.get<any>('clients?per_page=200&client_type=CONTAINER_PAGNE').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.get<any>('clients?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { this.clients = this.extractList(r); },
       error: () => { this.clients = []; }
+    });
+  }
+
+  loadProductCategories(): void {
+    this.apiService.get<any>('product-categories?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => { this.productCategories = this.extractList(r); },
+      error: () => { this.productCategories = []; }
+    });
+  }
+
+  loadCurrencyRates(): void {
+    this.apiService.get<any>('currencies?is_active=1').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        const rows = this.extractList(r);
+        const nextRates: Record<string, number> = { ...this.currencyRates, GNF: 1 };
+        rows.forEach((currency: any) => {
+          if (currency?.code && Number(currency?.exchange_rate) > 0) {
+            nextRates[String(currency.code).toUpperCase()] = Number(currency.exchange_rate);
+          }
+        });
+        this.currencyRates = nextRates;
+        this.patchSaleExchangeRate();
+        this.cdr.detectChanges();
+      },
+      error: () => {}
     });
   }
 
@@ -276,6 +331,19 @@ export class ContainerVentesComponent implements OnInit {
     });
   }
 
+  loadClientBalances(): void {
+    this.apiService.get<any>('container-sales/client-balances').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        this.clientBalances = r?.success ? (r.data?.clients || []) : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.clientBalances = [];
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   // ===== ARRIVALS =====
 
   openNewArrivalModal(): void {
@@ -284,9 +352,11 @@ export class ContainerVentesComponent implements OnInit {
     this.selectedArrival = null;
     this.arrivalForm.reset({
       container_id: null, supplier_id: null, arrival_date: this.today(),
-      purchase_price: null, currency: 'GNF', product_type: 'DIVERS',
-      total_quantity: null, description: ''
+      purchase_price: null, currency: 'GNF', exchange_rate: 1, product_category_id: null, product_type: 'DIVERS',
+      total_quantity: null, bale_quantity: null, description: ''
     });
+    this.selectedArrivalPhotos = [];
+    this.existingArrivalPhotos = [];
     this.showArrivalModal = true;
   }
 
@@ -300,11 +370,40 @@ export class ContainerVentesComponent implements OnInit {
       arrival_date:   arrival.arrival_date?.split('T')[0],
       purchase_price: arrival.purchase_price,
       currency:       arrival.currency,
+      exchange_rate:  arrival.exchange_rate ?? this.getExchangeRateForCurrency(arrival.currency),
+      product_category_id: arrival.product_category_id ?? null,
       product_type:   arrival.product_type,
       total_quantity: arrival.total_quantity,
+      bale_quantity:  arrival.bale_quantity ?? arrival.total_quantity,
       description:    arrival.description || ''
     });
+    this.selectedArrivalPhotos = [];
+    this.loadArrivalPhotos(arrival.id);
     this.showArrivalModal = true;
+  }
+
+  openArrivalDetailsModal(arrival: any): void {
+    this.selectedArrivalDetails = arrival;
+    this.selectedArrivalPhotos = [];
+    this.existingArrivalPhotos = [];
+    this.loadArrivalPhotos(arrival.id);
+    this.showArrivalDetailsModal = true;
+  }
+
+  closeArrivalDetailsModal(): void {
+    this.showArrivalDetailsModal = false;
+    this.selectedArrivalDetails = null;
+    this.selectedArrivalPhotos = [];
+    this.existingArrivalPhotos = [];
+  }
+
+  onArrivalDetailsVisibleChange(visible: boolean): void {
+    if (visible) {
+      this.showArrivalDetailsModal = true;
+      return;
+    }
+
+    this.closeArrivalDetailsModal();
   }
 
   saveArrival(): void {
@@ -318,13 +417,12 @@ export class ContainerVentesComponent implements OnInit {
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
-          Swal.fire({ icon: 'success', title: this.editMode ? 'Arrivage modifié' : 'Arrivage enregistré', timer: 2000, showConfirmButton: false });
-          this.showArrivalModal = false;
-          this.loadArrivals();
-          this.loadStats();
+          const arrivalId = r.data?.id ?? this.selectedArrival?.id;
+          const containerId = r.data?.container_id ?? this.arrivalForm.get('container_id')?.value;
+          this.uploadArrivalPhotos(arrivalId, containerId);
         }
       },
-      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err?.error?.message || 'Erreur lors de la sauvegarde' })
+      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err.message || 'Erreur lors de la sauvegarde' })
     });
   }
 
@@ -363,6 +461,7 @@ export class ContainerVentesComponent implements OnInit {
       client_id: null, sale_type: type,
       quantity_sold: null, sale_price: null,
       currency: arrival.currency || 'GNF',
+      exchange_rate: this.getExchangeRateForCurrency(arrival.currency || 'GNF'),
       is_installment: false, installment_count: null,
       sale_date: this.today(), due_date: null, notes: ''
     });
@@ -395,7 +494,7 @@ export class ContainerVentesComponent implements OnInit {
           this.loadSales(); this.loadArrivals(); this.loadStats();
         }
       },
-      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err?.error?.message || 'Erreur lors de la vente' })
+      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err.message || 'Erreur lors de la vente' })
     });
   }
 
@@ -431,10 +530,10 @@ export class ContainerVentesComponent implements OnInit {
         if (r.success) {
           Swal.fire({ icon: 'success', title: 'Versement enregistré', timer: 2000, showConfirmButton: false });
           this.showPaymentModal = false;
-          this.loadPayments(); this.loadSales(); this.loadStats();
+          this.loadPayments(); this.loadSales(); this.loadStats(); this.loadClientBalances();
         }
       },
-      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err?.error?.message || 'Erreur lors du versement' })
+      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err.message || 'Erreur lors du versement' })
     });
   }
 
@@ -448,7 +547,7 @@ export class ContainerVentesComponent implements OnInit {
       this.apiService.delete<any>(`container-sale-payments/${payment.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', timer: 1500, showConfirmButton: false, title: 'Supprimé' });
-          this.loadPayments(); this.loadSales(); this.loadStats();
+          this.loadPayments(); this.loadSales(); this.loadStats(); this.loadClientBalances();
         },
         error: () => Swal.fire({ icon: 'error', title: 'Impossible de supprimer' })
       });
@@ -476,17 +575,171 @@ export class ContainerVentesComponent implements OnInit {
         if (r.success) {
           Swal.fire({ icon: 'success', title: 'Avance enregistrée', timer: 2000, showConfirmButton: false });
           this.showAdvanceModal = false;
-          this.loadAdvances(); this.loadStats();
+          this.loadAdvances(); this.loadStats(); this.loadClientBalances();
         }
       },
-      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err?.error?.message || 'Erreur' })
+      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err.message || 'Erreur' })
+    });
+  }
+
+  openGlobalPaymentModal(clientBalance?: any): void {
+    this.submitted = false;
+    this.selectedClientBalance = clientBalance || null;
+    this.globalPaymentForm.reset({
+      client_id: clientBalance?.client_id || null,
+      amount: clientBalance?.total_remaining_gnf || null,
+      currency: 'GNF',
+      exchange_rate: 1,
+      payment_method: 'ESPECES',
+      payment_date: this.today(),
+      reference: '',
+      notes: ''
+    });
+    this.showGlobalPaymentModal = true;
+  }
+
+  saveGlobalPayment(): void {
+    this.submitted = true;
+    if (this.globalPaymentForm.invalid) return;
+
+    this.apiService.post<any>('container-sales/global-payment', this.globalPaymentForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        if (r.success) {
+          Swal.fire({ icon: 'success', title: 'Versement global enregistré', timer: 2200, showConfirmButton: false });
+          this.showGlobalPaymentModal = false;
+          this.loadPayments();
+          this.loadSales();
+          this.loadAdvances();
+          this.loadStats();
+          this.loadClientBalances();
+        }
+      },
+      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err.message || 'Erreur lors du versement global' })
     });
   }
 
   // ===== NAVIGATION =====
 
   viewClientAccount(clientId: number): void {
+    this.showSaleModal = false;
+    this.selectedArrival = null;
+    this.selectedSale = null;
+    this.submitted = false;
+    this.cdr.detectChanges();
     this.router.navigate(['/containers/client-account', clientId]);
+  }
+
+  onArrivalPhotosSelected(event: Event): void {
+    const files = Array.from((event.target as HTMLInputElement).files || []);
+    this.selectedArrivalPhotos = files;
+  }
+
+  loadArrivalPhotos(arrivalId: number): void {
+    this.apiService.get<any>(`container-photos?arrival_id=${arrivalId}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        const payload = r.success ? r.data : [];
+        this.existingArrivalPhotos = Array.isArray(payload) ? payload : (payload?.data || []);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.existingArrivalPhotos = [];
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  removeArrivalPhoto(photo: any): void {
+    this.apiService.delete<any>(`container-photos/${photo.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.existingArrivalPhotos = this.existingArrivalPhotos.filter(item => item.id !== photo.id);
+        this.loadArrivals();
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  uploadArrivalPhotos(arrivalId: number | null, containerId: number | null): void {
+    if (!arrivalId || !containerId || this.selectedArrivalPhotos.length === 0) {
+      this.finishArrivalSave();
+      return;
+    }
+
+    let done = 0;
+    const total = this.selectedArrivalPhotos.length;
+
+    this.selectedArrivalPhotos.forEach((file) => {
+      const formData = new FormData();
+      formData.append('container_id', String(containerId));
+      formData.append('container_arrival_id', String(arrivalId));
+      formData.append('image', file);
+
+      this.apiService.post<any>('container-photos', formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: () => {
+          done++;
+          if (done === total) this.finishArrivalSave();
+        },
+        error: () => {
+          done++;
+          if (done === total) this.finishArrivalSave();
+        }
+      });
+    });
+  }
+
+  uploadPhotosForSelectedArrival(): void {
+    const arrival = this.selectedArrivalDetails;
+    if (!arrival?.id || !arrival?.container_id || this.selectedArrivalPhotos.length === 0) {
+      Swal.fire({ icon: 'info', title: 'Ajoutez au moins une photo' });
+      return;
+    }
+
+    this.uploadingArrivalPhotos = true;
+    let done = 0;
+    const total = this.selectedArrivalPhotos.length;
+
+    this.selectedArrivalPhotos.forEach((file) => {
+      const formData = new FormData();
+      formData.append('container_id', String(arrival.container_id));
+      formData.append('container_arrival_id', String(arrival.id));
+      formData.append('image', file);
+
+      this.apiService.post<any>('container-photos', formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: () => {
+          done++;
+          if (done === total) {
+            this.afterArrivalDetailsUpload();
+          }
+        },
+        error: () => {
+          done++;
+          if (done === total) {
+            this.afterArrivalDetailsUpload();
+          }
+        }
+      });
+    });
+  }
+
+  private afterArrivalDetailsUpload(): void {
+    this.uploadingArrivalPhotos = false;
+    this.selectedArrivalPhotos = [];
+    if (this.selectedArrivalDetails?.id) {
+      this.loadArrivalPhotos(this.selectedArrivalDetails.id);
+    }
+    this.loadArrivals();
+    Swal.fire({ icon: 'success', title: 'Photos ajoutées', timer: 1800, showConfirmButton: false });
+    this.cdr.detectChanges();
+  }
+
+  finishArrivalSave(): void {
+    this.selectedArrivalPhotos = [];
+    this.existingArrivalPhotos = [];
+    Swal.fire({ icon: 'success', title: this.editMode ? 'Arrivage modifié' : 'Arrivage enregistré', timer: 2000, showConfirmButton: false });
+    this.showArrivalModal = false;
+    this.loadArrivals();
+    this.loadStats();
+    this.cdr.detectChanges();
   }
 
   // ===== HELPERS =====
@@ -504,11 +757,19 @@ export class ContainerVentesComponent implements OnInit {
   }
 
   getProductTypeLabel(type: string): string {
-    return this.productTypes.find(t => t.value === type)?.label || type;
+    return this.productCategories.find(category => category.id === type || category.name === type)?.name || type;
   }
 
   getPaymentMethodLabel(m: string): string {
     return this.paymentMethods.find(x => x.value === m)?.label || m;
+  }
+
+  getClientBalanceStatusLabel(status: string): string {
+    return {
+      DEBITEUR: 'Débiteur',
+      AVANCE: 'En avance',
+      SOLDE: 'Soldé'
+    }[status] || status;
   }
 
   getPaymentProgress(sale: any): number {
@@ -556,6 +817,74 @@ export class ContainerVentesComponent implements OnInit {
     return new Intl.NumberFormat('fr-GN', { minimumFractionDigits: 0 }).format(amount || 0) + ' ' + currency;
   }
 
+  getExchangeRateForCurrency(currency: string | null | undefined): number {
+    const code = String(currency || 'GNF').toUpperCase();
+    return code === 'GNF' ? 1 : (this.currencyRates[code] || 1);
+  }
+
+  get saleEquivalentGnf(): number {
+    const amount = Number(this.saleForm.get('sale_price')?.value || 0);
+    const currency = String(this.saleForm.get('currency')?.value || 'GNF').toUpperCase();
+    const rate = Number(this.saleForm.get('exchange_rate')?.value || 1);
+    return currency === 'GNF' ? amount : Math.round(amount * rate);
+  }
+
+  get saleRemainingPreview(): number {
+    return Number(this.saleForm.get('sale_price')?.value || 0);
+  }
+
+  get showSaleExchangeRate(): boolean {
+    return String(this.saleForm.get('currency')?.value || 'GNF').toUpperCase() !== 'GNF';
+  }
+
+  get arrivalEquivalentGnf(): number {
+    const amount = Number(this.arrivalForm.get('purchase_price')?.value || 0);
+    const currency = String(this.arrivalForm.get('currency')?.value || 'GNF').toUpperCase();
+    const rate = Number(this.arrivalForm.get('exchange_rate')?.value || 1);
+    return currency === 'GNF' ? amount : Math.round(amount * rate);
+  }
+
+  get showArrivalExchangeRate(): boolean {
+    return String(this.arrivalForm.get('currency')?.value || 'GNF').toUpperCase() !== 'GNF';
+  }
+
+  get showGlobalPaymentExchangeRate(): boolean {
+    return String(this.globalPaymentForm.get('currency')?.value || 'GNF').toUpperCase() !== 'GNF';
+  }
+
+  get globalPaymentEquivalentGnf(): number {
+    const amount = Number(this.globalPaymentForm.get('amount')?.value || 0);
+    const currency = String(this.globalPaymentForm.get('currency')?.value || 'GNF').toUpperCase();
+    const rate = Number(this.globalPaymentForm.get('exchange_rate')?.value || 1);
+    return currency === 'GNF' ? amount : Math.round(amount * rate);
+  }
+
+  getArrivalProductLabel(arrival: any): string {
+    return arrival?.product_category?.name || this.getProductTypeLabel(arrival?.product_type);
+  }
+
+  getClientTypeLabel(type: string | null | undefined): string {
+    const map: Record<string, string> = {
+      GENERAL: 'Général',
+      PNEUS: 'Pneus',
+      TEXTILE: 'Textile',
+      COSMETIQUES: 'Cosmétiques',
+      CONTAINER_PAGNE: 'Conteneur / Pagne',
+    };
+    return map[type || ''] || (type || 'Client');
+  }
+
+  get selectedClient(): any | null {
+    const clientId = this.saleForm.get('client_id')?.value;
+    return this.clients.find(client => String(client.id) === String(clientId)) || null;
+  }
+
+  getArrivalPhotoUrl(photo: any): string {
+    if (!photo?.image_path) return '';
+    if (String(photo.image_path).startsWith('http')) return photo.image_path;
+    return `${environment.apiUrl.replace(/\/api$/, '')}/storage/${String(photo.image_path).replace(/^\/+/, '')}`;
+  }
+
   canAddSale(arrival: any): boolean {
     return arrival.remaining_quantity > 0 && !['VENDU_TOTAL', 'CLOTURE'].includes(arrival.status);
   }
@@ -568,6 +897,40 @@ export class ContainerVentesComponent implements OnInit {
   getPages(total: number): number[] { return Array.from({ length: total }, (_, i) => i + 1); }
 
   private today(): string { return new Date().toISOString().split('T')[0]; }
+
+  private setupSaleRateWatcher(): void {
+    this.saleForm.get('currency')?.valueChanges
+      .pipe(startWith(this.saleForm.get('currency')?.value), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.patchSaleExchangeRate();
+      });
+  }
+
+  private patchSaleExchangeRate(): void {
+    const currency = String(this.saleForm.get('currency')?.value || 'GNF').toUpperCase();
+    const rate = this.getExchangeRateForCurrency(currency);
+    this.saleForm.get('exchange_rate')?.setValue(rate, { emitEvent: false });
+  }
+
+  private setupArrivalRateWatcher(): void {
+    this.arrivalForm.get('currency')?.valueChanges
+      .pipe(startWith(this.arrivalForm.get('currency')?.value), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const currency = String(this.arrivalForm.get('currency')?.value || 'GNF').toUpperCase();
+        const rate = this.getExchangeRateForCurrency(currency);
+        this.arrivalForm.get('exchange_rate')?.setValue(rate, { emitEvent: false });
+      });
+  }
+
+  private setupGlobalPaymentRateWatcher(): void {
+    this.globalPaymentForm.get('currency')?.valueChanges
+      .pipe(startWith(this.globalPaymentForm.get('currency')?.value), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const currency = String(this.globalPaymentForm.get('currency')?.value || 'GNF').toUpperCase();
+        const rate = this.getExchangeRateForCurrency(currency);
+        this.globalPaymentForm.get('exchange_rate')?.setValue(rate, { emitEvent: false });
+      });
+  }
 
   private extractList(r: any): any[] {
     if (!r.success) return [];

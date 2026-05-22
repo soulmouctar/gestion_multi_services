@@ -8,9 +8,12 @@ use Illuminate\Http\Request;
 
 class ProductCategoryController extends BaseController
 {
-    public function index()
+    public function index(Request $request)
     {
-        $categories = ProductCategory::paginate(15);
+        $perPage = (int) $request->get('per_page', 15);
+        $perPage = $perPage > 0 ? min($perPage, 500) : 15;
+
+        $categories = ProductCategory::orderBy('name')->paginate($perPage);
         return $this->sendResponse($categories, 'Product categories retrieved successfully');
     }
 

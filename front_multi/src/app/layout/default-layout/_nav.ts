@@ -291,21 +291,6 @@ export const navItems: INavData[] = [
         icon: 'nav-icon-bullet'
       },
       {
-        name: 'Devises',
-        url: '/organisation/currencies',
-        icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'En-têtes Factures',
-        url: '/organisation/invoice-headers',
-        icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'Paramètres',
-        url: '/organisation/settings',
-        icon: 'nav-icon-bullet'
-      },
-      {
         name: 'Paramètres Avancés',
         url: '/organisation/settings-advanced',
         icon: 'nav-icon-bullet',

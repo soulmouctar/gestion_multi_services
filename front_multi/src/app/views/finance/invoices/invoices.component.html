@@ -271,58 +271,78 @@
         <table class="table align-middle mb-0">
           <thead style="background:#F9FAFB;">
             <tr>
-              <th style="min-width:180px;">Produit</th>
-              <th style="min-width:220px;">Description</th>
-              <th style="width:110px;">Qté</th>
-              <th style="width:160px;">Prix unitaire</th>
-              <th style="width:160px;">Total ligne</th>
-              <th style="width:70px;"></th>
+              <th style="min-width:170px;">Produit</th>
+              <th style="min-width:140px;">Conditionnement</th>
+              <th style="min-width:200px;">Description</th>
+              <th style="width:90px;">Qté</th>
+              <th style="width:155px;">Prix unitaire</th>
+              <th style="width:150px;">Total ligne</th>
+              <th style="width:50px;"></th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of invoiceLineItems; let i = index; trackBy: trackByIndex">
+              <!-- Produit -->
               <td>
                 <select cSelect
                         [(ngModel)]="item.product_id"
                         [ngModelOptions]="{ standalone: true }"
                         (ngModelChange)="onProductSelected(item)"
-                        style="border-radius:8px;">
-                  <option [ngValue]="null">Produit libre</option>
-                  <option *ngFor="let product of products; trackBy: trackById" [ngValue]="product.id">
-                    {{ product.name }}
+                        style="border-radius:8px;font-size:.82rem;">
+                  <option [ngValue]="null">— Produit libre —</option>
+                  <option *ngFor="let p of products; trackBy: trackById" [ngValue]="p.id">
+                    {{ p.name }}
                   </option>
                 </select>
+                <div *ngIf="item.product_id" class="mt-1" style="font-size:.7rem;color:#6B7280;line-height:1.3;">
+                  {{ getProductPriceSummary(item.product_id) }}
+                </div>
               </td>
+              <!-- Type de vente -->
+              <td>
+                <select cSelect
+                        [(ngModel)]="item.sale_type"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="onSaleTypeChanged(item)"
+                        style="border-radius:8px;font-size:.82rem;">
+                  <option *ngFor="let opt of saleTypeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+                </select>
+              </td>
+              <!-- Description -->
               <td>
                 <input cFormControl type="text"
                        [(ngModel)]="item.description"
                        [ngModelOptions]="{ standalone: true }"
                        (ngModelChange)="syncComputedTotals()"
-                       placeholder="Description de la ligne"
-                       style="border-radius:8px;" />
+                       placeholder="Description"
+                       style="border-radius:8px;font-size:.82rem;" />
               </td>
+              <!-- Quantité -->
               <td>
                 <input cFormControl type="number"
                        [(ngModel)]="item.quantity"
                        [ngModelOptions]="{ standalone: true }"
                        (ngModelChange)="syncComputedTotals()"
                        min="0.01" step="1"
-                       style="border-radius:8px;" />
+                       style="border-radius:8px;font-size:.82rem;" />
               </td>
+              <!-- Prix unitaire -->
               <td>
-                <div class="input-group">
+                <div class="input-group input-group-sm">
                   <input cFormControl type="number"
                          [(ngModel)]="item.unit_price"
                          [ngModelOptions]="{ standalone: true }"
                          (ngModelChange)="syncComputedTotals()"
                          min="0" step="1"
-                         style="border-radius:8px 0 0 8px;" />
-                  <span class="input-group-text">{{ selectedCurrencySymbol }}</span>
+                         style="border-radius:8px 0 0 8px;font-size:.82rem;" />
+                  <span class="input-group-text" style="font-size:.75rem;">{{ selectedCurrencySymbol }}</span>
                 </div>
               </td>
-              <td class="fw-semibold" style="color:#0f3460;">
+              <!-- Total ligne -->
+              <td class="fw-semibold" style="color:#0f3460;font-size:.85rem;">
                 {{ getLineTotal(item) | number:'1.0-0' }} {{ invoiceForm.get('currency')?.value }}
               </td>
+              <!-- Supprimer -->
               <td class="text-end">
                 <button type="button" class="btn btn-sm"
                         style="background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:8px;"

@@ -149,7 +149,7 @@ export class CategoriesListComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.error = err?.error?.message || 'Erreur lors de la mise à jour';
+          this.error = err.message || 'Erreur lors de la mise à jour';
         }
       });
     } else {
@@ -163,7 +163,7 @@ export class CategoriesListComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.error = err?.error?.message || 'Erreur lors de la création';
+          this.error = err.message || 'Erreur lors de la création';
         }
       });
     }
@@ -188,7 +188,7 @@ export class CategoriesListComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de la suppression';
+        this.error = err.message || 'Erreur lors de la suppression';
         this.deleteModalOpen = false;
       }
     });

@@ -12,8 +12,11 @@ class CurrencyController extends BaseController
     public function index(Request $request)
     {
         try {
-            $user = Auth::user();
-            $tenantId = $user->tenant_id;
+            $tenantId = $this->resolveTenantId($request);
+
+            if (!$tenantId) {
+                return $this->sendError('Tenant ID is required', [], 400);
+            }
 
             $query = Currency::where('tenant_id', $tenantId);
 
@@ -49,8 +52,11 @@ class CurrencyController extends BaseController
 
     public function store(Request $request)
     {
-        $user = Auth::user();
-        $tenantId = $user->tenant_id;
+        $tenantId = $this->resolveTenantId($request);
+
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID is required', [], 400);
+        }
 
         $validator = Validator::make($request->all(), [
             'code' => 'required|string|max:3|min:3',
@@ -91,8 +97,11 @@ class CurrencyController extends BaseController
 
     public function show($id)
     {
-        $user = Auth::user();
-        $tenantId = $user->tenant_id;
+        $tenantId = $this->resolveTenantId(request());
+
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID is required', [], 400);
+        }
 
         $currency = Currency::where('tenant_id', $tenantId)->find($id);
 
@@ -105,8 +114,11 @@ class CurrencyController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $user = Auth::user();
-        $tenantId = $user->tenant_id;
+        $tenantId = $this->resolveTenantId($request);
+
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID is required', [], 400);
+        }
 
         $currency = Currency::where('tenant_id', $tenantId)->find($id);
 
@@ -156,8 +168,11 @@ class CurrencyController extends BaseController
 
     public function destroy($id)
     {
-        $user = Auth::user();
-        $tenantId = $user->tenant_id;
+        $tenantId = $this->resolveTenantId(request());
+
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID is required', [], 400);
+        }
 
         $currency = Currency::where('tenant_id', $tenantId)->find($id);
 
@@ -180,8 +195,11 @@ class CurrencyController extends BaseController
 
     public function setAsDefault($id)
     {
-        $user = Auth::user();
-        $tenantId = $user->tenant_id;
+        $tenantId = $this->resolveTenantId(request());
+
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID is required', [], 400);
+        }
 
         $currency = Currency::where('tenant_id', $tenantId)->find($id);
 
@@ -201,8 +219,11 @@ class CurrencyController extends BaseController
 
     public function toggleStatus($id)
     {
-        $user = Auth::user();
-        $tenantId = $user->tenant_id;
+        $tenantId = $this->resolveTenantId(request());
+
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID is required', [], 400);
+        }
 
         $currency = Currency::where('tenant_id', $tenantId)->find($id);
 
@@ -398,5 +419,20 @@ class CurrencyController extends BaseController
         $currency->delete();
 
         return $this->sendResponse([], 'Currency deleted successfully');
+    }
+
+    private function resolveTenantId(Request $request): ?int
+    {
+        $requestedTenantId = $request->input('tenant_id');
+        if ($requestedTenantId) {
+            return (int) $requestedTenantId;
+        }
+
+        $user = Auth::user();
+        if (!$user) {
+            return null;
+        }
+
+        return $user->tenant_id ? (int) $user->tenant_id : null;
     }
 }

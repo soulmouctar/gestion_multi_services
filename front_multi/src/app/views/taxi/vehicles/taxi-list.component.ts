@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-taxi-list',
@@ -40,7 +41,7 @@ export class TaxiListComponent implements OnInit {
     { value: 'INACTIVE',    label: 'Inactif',         color: 'secondary' },
   ];
 
-  constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
+  constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.taxiForm = this.fb.group({
       plate_number:                 ['', Validators.required],
       brand:                        [''],
@@ -55,6 +56,10 @@ export class TaxiListComponent implements OnInit {
       notes:                        [''],
     });
   }
+
+  get canCreateVehicles(): boolean { return this.authService.hasModulePermission('TAXI', 'create'); }
+  get canEditVehicles(): boolean { return this.authService.hasModulePermission('TAXI', 'edit'); }
+  get canDeleteVehicles(): boolean { return this.authService.hasModulePermission('TAXI', 'delete'); }
 
   ngOnInit(): void { this.loadData(); }
 
@@ -75,16 +80,18 @@ export class TaxiListComponent implements OnInit {
 
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
   openCreateModal(): void {
+    if (!this.canCreateVehicles) return;
     this.editMode = false; this.submitted = false;
     this.taxiForm.reset({ plate_number: '', brand: '', vehicle_model: '', year: null, color: '', mileage: null, status: 'ACTIVE', insurance_expiry: '', technical_inspection_expiry: '', circulation_permit_expiry: '', notes: '' });
     this.showFormModal = true;
   }
-  openEditModal(item: any): void { this.editMode = true; this.submitted = false; this.selectedItem = item; this.taxiForm.patchValue(item); this.showFormModal = true; }
+  openEditModal(item: any): void { if (!this.canEditVehicles) return; this.editMode = true; this.submitted = false; this.selectedItem = item; this.taxiForm.patchValue(item); this.showFormModal = true; }
 
   statusInfo(status: string) { return this.statusOptions.find(s => s.value === status) || { label: status, color: 'secondary' }; }
 
   save(): void {
     this.submitted = true; if (this.taxiForm.invalid) return;
+    if (this.editMode ? !this.canEditVehicles : !this.canCreateVehicles) return;
     
     const data = this.taxiForm.value;
     const obs = this.editMode && this.selectedItem
@@ -99,16 +106,17 @@ export class TaxiListComponent implements OnInit {
           this.clearMessages();
         }
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur lors de la sauvegarde'; }
+      error: (err) => { this.error = err.message || 'Erreur lors de la sauvegarde'; }
     });
   }
 
-  confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
+  confirmDelete(item: any): void { if (!this.canDeleteVehicles) return; this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
     if (!this.itemToDelete) return;
+    if (!this.canDeleteVehicles) return;
     this.apiService.delete<any>(`taxis/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Véhicule supprimé'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => { this.error = err.message || 'Erreur'; this.deleteModalOpen = false; }
     });
   }
 

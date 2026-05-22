@@ -129,7 +129,7 @@ import { AlertService } from '../../../core/services/alert.service';
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             <span style="background:rgba(255,255,255,0.15);border-radius:50px;padding:5px 16px;font-size:0.85rem;">Total: <strong>{{ users.length }}</strong></span>
             <span style="background:rgba(16,185,129,0.25);border-radius:50px;padding:5px 16px;font-size:0.85rem;">Actifs: <strong>{{ activeCount }}</strong></span>
-            <button class="btn-create" (click)="openModal()">+ Nouvel Utilisateur</button>
+            <button *ngIf="canCreateUsers" class="btn-create" (click)="openModal()">+ Nouvel Utilisateur</button>
           </div>
         </div>
       </div>
@@ -160,7 +160,7 @@ import { AlertService } from '../../../core/services/alert.service';
             </span>
             <input type="text" placeholder="Rechercher..." [(ngModel)]="searchQuery" [ngModelOptions]="{standalone:true}" (input)="filterUsers()" />
           </div>
-          <button class="btn-create" (click)="openModal()">+ Nouvel Utilisateur</button>
+          <button *ngIf="canCreateUsers" class="btn-create" (click)="openModal()">+ Nouvel Utilisateur</button>
         </div>
 
         <div *ngIf="loading" class="loading-state">
@@ -188,7 +188,11 @@ import { AlertService } from '../../../core/services/alert.service';
             <tr *ngFor="let user of filteredUsers">
               <td>
                 <div class="user-info">
-                  <div class="avatar" [style.background]="avatarBg(user)">{{ initials(user.name) }}</div>
+                  <div class="avatar" [style.background]="avatarBg(user)" style="overflow:hidden;">
+                    <img *ngIf="user.avatar_url" [src]="user.avatar_url" alt="Avatar"
+                         style="width:100%;height:100%;object-fit:cover;" />
+                    <span *ngIf="!user.avatar_url">{{ initials(user.name) }}</span>
+                  </div>
                   <div>
                     <div class="user-name">{{ user.name }}</div>
                     <div class="user-email">{{ user.email }}</div>
@@ -217,16 +221,16 @@ import { AlertService } from '../../../core/services/alert.service';
               <td style="color:#6c757d;font-size:0.8rem;">{{ formatDate(user.created_at) }}</td>
               <td>
                 <div class="actions">
-                  <button class="btn-icon btn-edit" (click)="openModal(user)" title="Modifier">
+                  <button *ngIf="canEditUsers" class="btn-icon btn-edit" (click)="openModal(user)" title="Modifier">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
-                  <button class="btn-icon btn-pwd" (click)="openPasswordModal(user)" title="Mot de passe">
+                  <button *ngIf="canChangePasswords" class="btn-icon btn-pwd" (click)="openPasswordModal(user)" title="Mot de passe">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   </button>
-                  <button class="btn-icon btn-perm" (click)="openPermModal(user)" title="Permissions">
+                  <button *ngIf="canManagePermissions" class="btn-icon btn-perm" (click)="openPermModal(user)" title="Permissions">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   </button>
-                  <button class="btn-icon btn-toggle" [class.active]="user.is_active !== false"
+                  <button *ngIf="canToggleStatus" class="btn-icon btn-toggle" [class.active]="user.is_active !== false"
                     (click)="toggleStatus(user)"
                     [title]="user.is_active !== false ? 'Desactiver' : 'Activer'">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
@@ -248,6 +252,28 @@ import { AlertService } from '../../../core/services/alert.service';
         </div>
         <div class="modal-body">
           <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+            <div class="form-group">
+              <label class="form-label">Photo de profil</label>
+              <input #photoInput type="file" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+                     (change)="onPhotoSelected($event)" style="display:none" />
+              <div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid #e9ecef;border-radius:10px;background:#f8f9fa;">
+                <div (click)="triggerPhotoInput(photoInput)"
+                     style="width:64px;height:64px;border-radius:50%;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;border:2px dashed #c7d2fe;background:#eef2ff;flex-shrink:0;">
+                  <img *ngIf="photoPreview" [src]="photoPreview" alt="Aperçu" style="width:100%;height:100%;object-fit:cover;" />
+                  <span *ngIf="!photoPreview" style="font-size:1.2rem;">📷</span>
+                </div>
+                <div>
+                  <div style="font-size:.85rem;font-weight:600;color:#1e293b;margin-bottom:4px;">
+                    {{ selectedPhoto ? selectedPhoto.name : (photoPreview ? 'Photo actuelle' : 'Aucune photo sélectionnée') }}
+                  </div>
+                  <div style="font-size:.75rem;color:#6c757d;margin-bottom:8px;">Formats : JPG, PNG, GIF, WebP — max 4 MB</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="btn-icon" (click)="triggerPhotoInput(photoInput)">Choisir</button>
+                    <button *ngIf="photoPreview" type="button" class="btn-icon" (click)="removePhoto()" style="color:#dc3545;border-color:#fecaca;">Retirer</button>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="form-group">
               <label class="form-label">Nom complet *</label>
               <input type="text" class="form-control" formControlName="name" placeholder="Prenom Nom" />
@@ -364,6 +390,8 @@ export class OrganisationUsersComponent implements OnInit {
   showModal = false;
   editingUser: UserProfile | null = null;
   userForm: FormGroup;
+  selectedPhoto: File | null = null;
+  photoPreview: string | null = null;
 
   // Password modal
   showPasswordModal = false;
@@ -381,6 +409,14 @@ export class OrganisationUsersComponent implements OnInit {
   get activeCount(): number {
     return this.users.filter(u => u.is_active !== false).length;
   }
+
+  get canViewUsers(): boolean { return this.authService.hasModuleAccess('USERS'); }
+  get canCreateUsers(): boolean { return this.authService.hasModulePermission('USERS', 'create'); }
+  get canEditUsers(): boolean { return this.authService.hasModulePermission('USERS', 'edit'); }
+  get canDeleteUsers(): boolean { return this.authService.hasModulePermission('USERS', 'delete'); }
+  get canChangePasswords(): boolean { return this.authService.hasModulePermission('USERS', 'change_password'); }
+  get canManagePermissions(): boolean { return this.authService.hasModulePermission('USERS', 'manage_permissions'); }
+  get canToggleStatus(): boolean { return this.authService.hasModulePermission('USERS', 'toggle_status'); }
 
   constructor(
     private fb: FormBuilder,
@@ -441,8 +477,11 @@ export class OrganisationUsersComponent implements OnInit {
   }
 
   openModal(user?: UserProfile): void {
+    if (user ? !this.canEditUsers : !this.canCreateUsers) return;
     this.editingUser = user || null;
     this.showModal = true;
+    this.selectedPhoto = null;
+    this.photoPreview = user?.avatar_url || null;
     if (user) {
       this.userForm.patchValue({ name: user.name, email: user.email, password: '' });
       this.userForm.get('password')?.clearValidators();
@@ -456,7 +495,43 @@ export class OrganisationUsersComponent implements OnInit {
   closeModal(): void {
     this.showModal = false;
     this.editingUser = null;
+    this.selectedPhoto = null;
+    this.photoPreview = null;
     this.userForm.reset();
+  }
+
+  triggerPhotoInput(input: HTMLInputElement): void {
+    input.click();
+  }
+
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+
+    const file = input.files[0];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      this.alertService.showError('Erreur', 'Format non accepté. Utilisez JPEG, PNG, GIF ou WebP.');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      this.alertService.showError('Erreur', 'La photo ne doit pas dépasser 4 MB.');
+      return;
+    }
+
+    this.selectedPhoto = file;
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.photoPreview = reader.result as string;
+      this.cdr.detectChanges();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removePhoto(): void {
+    this.selectedPhoto = null;
+    this.photoPreview = this.editingUser?.avatar_url || null;
+    this.cdr.detectChanges();
   }
 
   onSubmit(): void {
@@ -466,11 +541,14 @@ export class OrganisationUsersComponent implements OnInit {
 
     if (this.editingUser) {
       const data: any = { name: this.userForm.value.name, email: this.userForm.value.email };
-      this.userService.updateUser(this.editingUser.id, data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      this.userService.updateUser(this.editingUser.id, data, this.selectedPhoto).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r: any) => {
           const updated = r.data;
           const idx = this.users.findIndex(u => u.id === this.editingUser!.id);
           if (idx !== -1) this.users[idx] = { ...this.users[idx], ...updated };
+          if (String(updated.id) === String(this.authService.currentUser?.id)) {
+            this.authService.updateCurrentUser(updated as any);
+          }
           this.filterUsers();
           this.saving = false;
           this.closeModal();
@@ -479,7 +557,7 @@ export class OrganisationUsersComponent implements OnInit {
         },
         error: (e: any) => {
           this.saving = false;
-          this.alertService.showError('Erreur', e?.error?.message || 'Erreur lors de la modification');
+          this.alertService.showError('Erreur', e?.message || 'Erreur lors de la modification');
           this.cdr.detectChanges();
         }
       });
@@ -490,7 +568,7 @@ export class OrganisationUsersComponent implements OnInit {
         password: this.userForm.value.password,
         role: 'USER'
       };
-      this.userService.createUser(data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      this.userService.createUser(data, this.selectedPhoto).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r: any) => {
           this.users.push(r.data);
           this.filterUsers();
@@ -501,7 +579,7 @@ export class OrganisationUsersComponent implements OnInit {
         },
         error: (e: any) => {
           this.saving = false;
-          const msg = e?.error?.errors?.email?.[0] || e?.error?.message || 'Erreur lors de la création';
+          const msg = e?.message || 'Erreur lors de la création';
           this.alertService.showError('Erreur', msg);
           this.cdr.detectChanges();
         }
@@ -511,6 +589,7 @@ export class OrganisationUsersComponent implements OnInit {
 
   // Password modal
   openPasswordModal(user: UserProfile): void {
+    if (!this.canChangePasswords) return;
     this.passwordUser = user;
     this.showPasswordModal = true;
     this.passwordForm.reset();
@@ -525,8 +604,13 @@ export class OrganisationUsersComponent implements OnInit {
   changePassword(): void {
     this.passwordForm.markAllAsTouched();
     if (this.passwordForm.invalid || !this.passwordUser || this.saving) return;
+    if (!this.canChangePasswords) return;
     this.saving = true;
-    this.userService.updateUser(this.passwordUser.id, { password: this.passwordForm.value.password }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.userService.changePassword(
+      this.passwordUser.id,
+      this.passwordForm.value.password,
+      this.passwordForm.value.password_confirmation
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
         this.closePasswordModal();
@@ -535,7 +619,7 @@ export class OrganisationUsersComponent implements OnInit {
       },
       error: (e: any) => {
         this.saving = false;
-        this.alertService.showError('Erreur', e?.error?.message || 'Erreur lors du changement de mot de passe');
+        this.alertService.showError('Erreur', e?.message || 'Erreur lors du changement de mot de passe');
         this.cdr.detectChanges();
       }
     });
@@ -543,6 +627,7 @@ export class OrganisationUsersComponent implements OnInit {
 
   // Toggle active status
   toggleStatus(user: UserProfile): void {
+    if (!this.canToggleStatus) return;
     const action = user.is_active !== false ? 'désactiver' : 'activer';
     this.alertService.showConfirmation(`Confirmer`, `Voulez-vous ${action} cet utilisateur ?`).then(r => {
       if (!r.isConfirmed) return;
@@ -555,7 +640,7 @@ export class OrganisationUsersComponent implements OnInit {
           this.cdr.detectChanges();
         },
         error: (e: any) => {
-          this.alertService.showError('Erreur', e?.error?.message || 'Erreur lors du changement de statut');
+          this.alertService.showError('Erreur', e?.message || 'Erreur lors du changement de statut');
         }
       });
     });
@@ -563,6 +648,7 @@ export class OrganisationUsersComponent implements OnInit {
 
   // Permissions modal
   openPermModal(user: UserProfile): void {
+    if (!this.canManagePermissions) return;
     this.permUser = user;
     this.showPermModal = true;
     this.editableModules = [];
@@ -605,6 +691,7 @@ export class OrganisationUsersComponent implements OnInit {
 
   savePermissions(): void {
     if (!this.permUser || this.saving) return;
+    if (!this.canManagePermissions) return;
     this.saving = true;
     this.userService.updateUserModulePermissions(this.permUser.id, this.editableModules).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
@@ -615,7 +702,7 @@ export class OrganisationUsersComponent implements OnInit {
       },
       error: (e: any) => {
         this.saving = false;
-        this.alertService.showError('Erreur', e?.error?.message || 'Erreur lors de la mise à jour des permissions');
+        this.alertService.showError('Erreur', e?.message || 'Erreur lors de la mise à jour des permissions');
         this.cdr.detectChanges();
       }
     });
@@ -644,6 +731,15 @@ export class OrganisationUsersComponent implements OnInit {
   availablePerms(moduleCode: string): string[] {
     const base = ['view', 'create', 'edit', 'delete'];
     const extra: Record<string, string[]> = {
+      CLIENTS_SUPPLIERS: [
+        'view_clients_general',
+        'view_clients_pneus',
+        'view_clients_textile',
+        'view_clients_cosmetiques',
+        'view_clients_conteneurs_pagne',
+        'view_suppliers'
+      ],
+      USERS: ['view_users', 'manage_permissions', 'change_password', 'toggle_status'],
       FINANCE: ['approve'],
       PRODUCTS_STOCK: ['manage_stock'],
       CONTAINERS: ['track'],
@@ -658,7 +754,17 @@ export class OrganisationUsersComponent implements OnInit {
     const labels: Record<string, string> = {
       view: 'Voir', create: 'Créer', edit: 'Modifier', delete: 'Supprimer',
       approve: 'Approuver', manage_stock: 'Stock', track: 'Suivre',
-      manage_contracts: 'Contrats', assign_drivers: 'Chauffeurs', export: 'Exporter'
+      manage_contracts: 'Contrats', assign_drivers: 'Chauffeurs', export: 'Exporter',
+      view_clients_general: 'Clients généraux',
+      view_clients_pneus: 'Clients pneus',
+      view_clients_textile: 'Clients textile',
+      view_clients_cosmetiques: 'Clients cosmétiques',
+      view_clients_conteneurs_pagne: 'Clients pagne',
+      view_suppliers: 'Fournisseurs',
+      view_users: 'Voir utilisateurs',
+      manage_permissions: 'Permissions',
+      change_password: 'Mot de passe',
+      toggle_status: 'Statut'
     };
     return labels[perm] ?? perm;
   }

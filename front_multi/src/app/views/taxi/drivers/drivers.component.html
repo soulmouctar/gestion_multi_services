@@ -13,7 +13,7 @@
           <span style="color:#93c5fd;">{{ totalItems }} conducteur(s) enregistré(s)</span>
         </p>
       </div>
-      <button class="btn btn-light fw-semibold d-flex align-items-center gap-2"
+      <button *ngIf="canCreateDrivers" class="btn btn-light fw-semibold d-flex align-items-center gap-2"
               style="border-radius:10px;font-size:.875rem;"
               (click)="openCreateModal()">
         <svg cIcon name="cilPlus" style="width:16px;height:16px;"></svg>
@@ -89,7 +89,7 @@
             </td>
             <td class="py-3 pe-4">
               <div class="d-flex gap-2 justify-content-end">
-                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                <button *ngIf="canToggleDrivers" class="btn btn-sm d-flex align-items-center justify-content-center"
                         [style]="item.status === 'ACTIVE'
                           ? 'width:32px;height:32px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;'
                           : 'width:32px;height:32px;border-radius:8px;border:1px solid #D1FAE5;background:#ECFDF5;color:#10B981;'"
@@ -97,12 +97,12 @@
                         [title]="item.status === 'ACTIVE' ? 'Désactiver' : 'Activer'">
                   <svg cIcon [name]="item.status === 'ACTIVE' ? 'cilBan' : 'cilCheckCircle'" style="width:14px;height:14px;"></svg>
                 </button>
-                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                <button *ngIf="canEditDrivers" class="btn btn-sm d-flex align-items-center justify-content-center"
                         style="width:32px;height:32px;border-radius:8px;border:1px solid #DBEAFE;background:#EFF6FF;color:#3B82F6;"
                         (click)="openEditModal(item)" title="Modifier">
                   <svg cIcon name="cilPencil" style="width:14px;height:14px;"></svg>
                 </button>
-                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                <button *ngIf="canDeleteDrivers" class="btn btn-sm d-flex align-items-center justify-content-center"
                         style="width:32px;height:32px;border-radius:8px;border:1px solid #FEE2E2;background:#FEF2F2;color:#EF4444;"
                         (click)="confirmDelete(item)" title="Supprimer">
                   <svg cIcon name="cilTrash" style="width:14px;height:14px;"></svg>
@@ -199,7 +199,7 @@
   </c-modal-body>
   <c-modal-footer style="border-top:1px solid #f0f0f0;">
     <button class="btn btn-outline-secondary" style="border-radius:8px;" (click)="showFormModal = false">Annuler</button>
-    <button class="btn btn-primary fw-semibold" style="border-radius:8px;background:#0f3460;border-color:#0f3460;" (click)="save()">
+    <button *ngIf="editMode ? canEditDrivers : canCreateDrivers" class="btn btn-primary fw-semibold" style="border-radius:8px;background:#0f3460;border-color:#0f3460;" (click)="save()">
       {{ editMode ? 'Mettre à jour' : 'Créer le conducteur' }}
     </button>
   </c-modal-footer>
@@ -224,6 +224,6 @@
   </c-modal-body>
   <c-modal-footer style="border-top:1px solid #f0f0f0;">
     <button class="btn btn-outline-secondary" style="border-radius:8px;" (click)="deleteModalOpen = false">Annuler</button>
-    <button class="btn btn-danger fw-semibold" style="border-radius:8px;" (click)="deleteItem()">Supprimer</button>
+    <button *ngIf="canDeleteDrivers" class="btn btn-danger fw-semibold" style="border-radius:8px;" (click)="deleteItem()">Supprimer</button>
   </c-modal-footer>
 </c-modal>

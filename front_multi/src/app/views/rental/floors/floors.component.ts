@@ -9,6 +9,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-floors',
@@ -42,6 +43,7 @@ export class FloorsComponent implements OnInit {
   constructor(
     private fb: FormBuilder, 
     private apiService: ApiService, 
+    private authService: AuthService,
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute
   ) {
@@ -62,6 +64,10 @@ export class FloorsComponent implements OnInit {
       this.loadData();
     });
   }
+
+  get canCreateFloors(): boolean { return this.authService.hasModulePermission('RENTAL', 'create'); }
+  get canEditFloors(): boolean { return this.authService.hasModulePermission('RENTAL', 'edit'); }
+  get canDeleteFloors(): boolean { return this.authService.hasModulePermission('RENTAL', 'delete'); }
 
   private checkBuildingFilter(): void {
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
@@ -126,6 +132,7 @@ export class FloorsComponent implements OnInit {
   }
   
   openCreateModal(): void { 
+    if (!this.canCreateFloors) return;
     this.editMode = false; 
     this.submitted = false; 
     this.floorForm.reset({ 
@@ -136,6 +143,7 @@ export class FloorsComponent implements OnInit {
   }
   
   openEditModal(item: any): void { 
+    if (!this.canEditFloors) return;
     this.editMode = true; 
     this.submitted = false; 
     this.selectedItem = item; 
@@ -146,6 +154,7 @@ export class FloorsComponent implements OnInit {
   save(): void {
     this.submitted = true; 
     if (this.floorForm.invalid) return;
+    if (this.editMode ? !this.canEditFloors : !this.canCreateFloors) return;
     const data = this.floorForm.value;
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`floors/${this.selectedItem.id}`, data)
@@ -160,18 +169,19 @@ export class FloorsComponent implements OnInit {
         } 
       },
       error: (err) => { 
-        this.error = err?.error?.message || 'Erreur'; 
+        this.error = err.message || 'Erreur'; 
       }
     });
   }
 
   confirmDelete(item: any): void { 
+    if (!this.canDeleteFloors) return;
     this.itemToDelete = item; 
     this.deleteModalOpen = true; 
   }
   
   deleteItem(): void {
-    if (!this.itemToDelete) return;
+    if (!this.itemToDelete || !this.canDeleteFloors) return;
     this.apiService.delete<any>(`floors/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { 
         if (r.success) { 
@@ -183,7 +193,7 @@ export class FloorsComponent implements OnInit {
         } 
       },
       error: (err) => { 
-        this.error = err?.error?.message || 'Erreur'; 
+        this.error = err.message || 'Erreur'; 
         this.deleteModalOpen = false; 
       }
     });

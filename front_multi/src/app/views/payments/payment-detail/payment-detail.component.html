@@ -73,9 +73,9 @@
           <c-card-header><strong>Facture associée</strong></c-card-header>
           <c-card-body>
             <div class="row g-3">
-              <div class="col-md-4"><div class="text-body-secondary small">N° facture</div><div class="fw-semibold">{{ receipt.invoice?.invoice_number }}</div></div>
-              <div class="col-md-4"><div class="text-body-secondary small">Total facture</div><div class="fw-semibold">{{ receipt.invoice?.total_amount | number:'1.0-0' }} {{ receipt.currency }}</div></div>
-              <div class="col-md-4"><div class="text-body-secondary small">Reste dû</div><div class="fw-semibold">{{ receipt.invoice?.remaining_balance | number:'1.0-0' }} {{ receipt.currency }}</div></div>
+              <div class="col-md-4"><div class="text-body-secondary small">N° facture</div><div class="fw-semibold">{{ receipt.invoice.invoice_number }}</div></div>
+              <div class="col-md-4"><div class="text-body-secondary small">Total facture</div><div class="fw-semibold">{{ receipt.invoice.total_amount | number:'1.0-0' }} {{ receipt.currency }}</div></div>
+              <div class="col-md-4"><div class="text-body-secondary small">Reste dû</div><div class="fw-semibold">{{ receipt.invoice.remaining_balance | number:'1.0-0' }} {{ receipt.currency }}</div></div>
             </div>
           </c-card-body>
         </c-card>

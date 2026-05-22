@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { CardModule, BadgeModule, SpinnerModule, ButtonModule, FormModule, ModalModule } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import Swal from 'sweetalert2';
 
 interface DocStatus { label: string; color: string; icon: string; }
@@ -137,7 +138,7 @@ interface DocStatus { label: string; color: string; icon: string; }
               style="font-size:.7rem;font-weight:700">
               {{ fleetLabel(v.status) }}
             </span>
-            <button class="btn btn-sm rounded-3 d-flex align-items-center gap-1"
+            <button *ngIf="canEditDocuments" class="btn btn-sm rounded-3 d-flex align-items-center gap-1"
               style="background:#EEF2FF;color:#6366F1;border:none;font-size:.75rem;font-weight:600;padding:6px 12px"
               (click)="openEdit(v)">
               <svg cIcon name="cilPencil" size="sm"></svg> Modifier
@@ -252,7 +253,7 @@ interface DocStatus { label: string; color: string; icon: string; }
   </c-modal-body>
   <c-modal-footer>
     <button class="btn btn-secondary" variant="outline" (click)="showModal = false">Annuler</button>
-    <button class="btn btn-primary" (click)="save()" [disabled]="saving"
+    <button *ngIf="canEditDocuments" class="btn btn-primary" (click)="save()" [disabled]="saving"
       style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;border-radius:8px;font-weight:600">
       <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
       Enregistrer
@@ -272,9 +273,11 @@ export class TaxiDocumentsComponent implements OnInit {
   form!: FormGroup;
   summary = { expired: 0, danger: 0, warning: 0, info: 0, ok: 0, missing: 0 };
 
-  constructor(private apiService: ApiService, private fb: FormBuilder, private cdr: ChangeDetectorRef) {}
+  constructor(private apiService: ApiService, private authService: AuthService, private fb: FormBuilder, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void { this.load(); }
+
+  get canEditDocuments(): boolean { return this.authService.hasModulePermission('TAXI', 'edit'); }
 
   load(): void {
     this.loading = true;
@@ -292,6 +295,7 @@ export class TaxiDocumentsComponent implements OnInit {
   }
 
   openEdit(v: any): void {
+    if (!this.canEditDocuments) return;
     this.selectedVehicle = v;
     this.form = this.fb.group({
       insurance_expiry:             [v.insurance_expiry || ''],
@@ -305,6 +309,7 @@ export class TaxiDocumentsComponent implements OnInit {
   }
 
   save(): void {
+    if (!this.canEditDocuments) return;
     this.saving = true;
     this.apiService.put<any>(`taxis/${this.selectedVehicle.id}`, this.form.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
@@ -320,7 +325,7 @@ export class TaxiDocumentsComponent implements OnInit {
       },
       error: (e) => {
         this.saving = false;
-        Swal.fire({ icon: 'error', title: 'Erreur', text: e?.error?.message || 'Erreur serveur' });
+        Swal.fire({ icon: 'error', title: 'Erreur', text: e?.message || 'Erreur serveur' });
         this.cdr.detectChanges();
       }
     });

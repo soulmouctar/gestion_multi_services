@@ -173,7 +173,7 @@ export class PaymentsAdvancedComponent implements OnInit {
         this.bulkDeleteLoading = false;
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de la suppression';
+        this.error = err.message || 'Erreur lors de la suppression';
         this.bulkDeleteLoading = false;
         this.showBulkDeleteModal = false;
       }

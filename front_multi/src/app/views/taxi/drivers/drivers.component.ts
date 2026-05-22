@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-drivers',
@@ -34,7 +35,7 @@ export class DriversComponent implements OnInit {
   deleteModalOpen = false; itemToDelete: any = null;
   Math = Math;
 
-  constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
+  constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.driverForm = this.fb.group({
       name: ['', Validators.required],
       phone: [''],
@@ -43,6 +44,11 @@ export class DriversComponent implements OnInit {
       daily_rate: [0, [Validators.min(0)]]
     });
   }
+
+  get canCreateDrivers(): boolean { return this.authService.hasModulePermission('TAXI', 'create'); }
+  get canEditDrivers(): boolean { return this.authService.hasModulePermission('TAXI', 'edit'); }
+  get canDeleteDrivers(): boolean { return this.authService.hasModulePermission('TAXI', 'delete'); }
+  get canToggleDrivers(): boolean { return this.authService.hasModulePermission('TAXI', 'edit'); }
 
   ngOnInit(): void { this.loadData(); }
 
@@ -64,6 +70,7 @@ export class DriversComponent implements OnInit {
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
   
   openCreateModal(): void {
+    if (!this.canCreateDrivers) return;
     this.editMode = false;
     this.submitted = false;
     this.driverForm.reset({ name: '', phone: '', contract_end: '', status: 'ACTIVE', daily_rate: 0 });
@@ -71,6 +78,7 @@ export class DriversComponent implements OnInit {
   }
   
   openEditModal(item: any): void {
+    if (!this.canEditDrivers) return;
     this.editMode = true;
     this.submitted = false;
     this.selectedItem = item;
@@ -85,6 +93,7 @@ export class DriversComponent implements OnInit {
   }
 
   toggleStatus(item: any): void {
+    if (!this.canToggleDrivers) return;
     this.apiService.post<any>(`drivers/${item.id}/toggle-status`, {}).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
@@ -93,7 +102,7 @@ export class DriversComponent implements OnInit {
           this.clearMessages();
         }
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; }
+      error: (err) => { this.error = err.message || 'Erreur'; }
     });
   }
 
@@ -109,22 +118,24 @@ export class DriversComponent implements OnInit {
 
   save(): void {
     this.submitted = true; if (this.driverForm.invalid) return;
-    const data = { ...this.driverForm.value, tenant_id: 1 };
+    if (this.editMode ? !this.canEditDrivers : !this.canCreateDrivers) return;
+    const data = this.driverForm.value;
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`drivers/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('drivers', data);
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Conducteur mis à jour' : 'Conducteur créé'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; }
+      error: (err) => { this.error = err.message || 'Erreur'; }
     });
   }
 
   confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
     if (!this.itemToDelete) return;
+    if (!this.canDeleteDrivers) return;
     this.apiService.delete<any>(`drivers/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Conducteur supprimé'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => { this.error = err.message || 'Erreur'; this.deleteModalOpen = false; }
     });
   }
 

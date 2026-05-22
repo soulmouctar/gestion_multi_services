@@ -38,10 +38,10 @@ const routes: Routes = [
       {
         path: 'users',
         loadComponent: () => import('./users/organisation-users.component').then(m => m.OrganisationUsersComponent),
-        canActivate: [RoleGuard],
         data: {
           title: 'Utilisateurs',
-          roles: ['SUPER_ADMIN', 'ADMIN']
+          module: 'USERS',
+          roles: ['SUPER_ADMIN', 'ADMIN', 'USER']
         }
       },
       {

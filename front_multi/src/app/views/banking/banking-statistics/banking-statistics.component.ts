@@ -6,7 +6,9 @@ import { RouterModule } from '@angular/router';
 import {
   ButtonModule, CardModule, BadgeModule, ProgressModule, SpinnerModule
 } from '@coreui/angular';
+import { ChartjsComponent } from '@coreui/angular-chartjs';
 import { IconDirective } from '@coreui/icons-angular';
+import { ChartData, ChartOptions } from 'chart.js';
 import { ApiService } from '../../../core/services/api.service';
 
 @Component({
@@ -14,7 +16,7 @@ import { ApiService } from '../../../core/services/api.service';
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterModule, IconDirective,
-    ButtonModule, CardModule, BadgeModule, ProgressModule, SpinnerModule
+    ButtonModule, CardModule, BadgeModule, ProgressModule, SpinnerModule, ChartjsComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './banking-statistics.component.html'
@@ -35,6 +37,27 @@ export class BankingStatisticsComponent implements OnInit {
   };
 
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
+
+  readonly chartOptions: ChartOptions<'line' | 'bar' | 'doughnut'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#64748b' },
+        grid: { display: false }
+      },
+      y: {
+        ticks: { color: '#64748b' },
+        grid: { color: '#eef2f7' }
+      }
+    }
+  };
 
   ngOnInit(): void {
     this.loadAccounts();
@@ -116,6 +139,57 @@ export class BankingStatisticsComponent implements OnInit {
 
   netFlow(): number {
     return (this.stats?.summary?.total_credits || 0) - (this.stats?.summary?.total_debits || 0);
+  }
+
+  get monthlyFlowChartData(): ChartData<'line'> {
+    const rows = this.stats?.by_month || [];
+    return {
+      labels: rows.map((m: any) => m.month),
+      datasets: [
+        {
+          label: 'Crédits',
+          data: rows.map((m: any) => Number(m.credits || 0)),
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16,185,129,0.15)',
+          tension: 0.35,
+          fill: true,
+        },
+        {
+          label: 'Débits',
+          data: rows.map((m: any) => Number(m.debits || 0)),
+          borderColor: '#EF4444',
+          backgroundColor: 'rgba(239,68,68,0.12)',
+          tension: 0.35,
+          fill: true,
+        }
+      ]
+    };
+  }
+
+  get accountBalanceChartData(): ChartData<'bar'> {
+    const rows = this.stats?.accounts || [];
+    return {
+      labels: rows.map((a: any) => `${a.bank_name} - ${a.account_name}`),
+      datasets: [{
+        label: 'Solde actuel',
+        data: rows.map((a: any) => Number(a.current_balance || 0)),
+        backgroundColor: rows.map((a: any) => a.brand_color || '#0f3460'),
+        borderRadius: 10,
+        maxBarThickness: 42,
+      }]
+    };
+  }
+
+  get transactionTypeChartData(): ChartData<'doughnut'> {
+    const rows = this.stats?.by_type || [];
+    return {
+      labels: rows.map((t: any) => this.txTypeLabel(t.transaction_type)),
+      datasets: [{
+        data: rows.map((t: any) => Number(t.total || 0)),
+        backgroundColor: ['#10B981', '#EF4444', '#3B82F6', '#8B5CF6', '#F59E0B'],
+        borderWidth: 0,
+      }]
+    };
   }
   trackById(_index: number, item: any): any {
     return item?.id ?? _index;

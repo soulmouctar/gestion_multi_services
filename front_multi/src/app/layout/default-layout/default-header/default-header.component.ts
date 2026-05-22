@@ -1,6 +1,9 @@
 import { NgTemplateOutlet, CommonModule } from '@angular/common';
-import { Component, computed, inject, input, NgZone, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, computed, inject, input, NgZone, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { environment } from '../../../../environments/environment';
 
 import {
   AvatarComponent,
@@ -24,19 +27,22 @@ import {
 
 import { IconDirective } from '@coreui/icons-angular';
 import { AuthService } from '../../../core/services/auth.service';
+import { ApiService } from '../../../core/services/api.service';
 import { ModuleService, Module } from '../../../core/services/module.service';
 import { PermissionService, UserModulePermission } from '../../../core/services/permission.service';
 
 @Component({
   selector: 'app-default-header',
   templateUrl: './default-header.component.html',
-  imports: [CommonModule, ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
+  styleUrls: ['./default-header.component.scss'],
+  imports: [CommonModule, FormsModule, ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
 })
-export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
+export class DefaultHeaderComponent extends HeaderComponent implements OnInit, OnDestroy {
 
   readonly #colorModeService = inject(ColorModeService);
   readonly colorMode = this.#colorModeService.colorMode;
   readonly #authService = inject(AuthService);
+  readonly #apiService = inject(ApiService);
   readonly #moduleService = inject(ModuleService);
   readonly #permissionService = inject(PermissionService);
   readonly #ngZone = inject(NgZone);
@@ -45,6 +51,14 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
   // Modules navigation
   activeModules: Module[] = [];
   loadingModules = false;
+  loadingTenants = false;
+  managedTenants: any[] = [];
+  selectedManagedTenantId: number | null = null;
+  avatarLoadFailed = false;
+
+  currentUser = this.#authService.currentUser;
+  private _authSub?: Subscription;
+  private readonly backendBaseUrl = environment.apiUrl.replace(/\/api\/?$/, '');
 
   readonly colorModes = [
     { name: 'light', text: 'Light', icon: 'cilSun' },
@@ -61,12 +75,12 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
     super();
   }
 
-  get currentUser() {
-    return this.#authService.currentUser;
-  }
-
   get userRole() {
-    return this.#authService.userRole;
+    const user = this.currentUser as any;
+    if (user?.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+      return user.roles[0].name as string;
+    }
+    return user?.role || null;
   }
 
   get userRoleTitle() {
@@ -84,23 +98,87 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
   }
 
   get userInitials() {
-    const user = this.currentUser;
-    if (!user || !user.name) return 'U';
-    const names = user.name.split(' ');
-    if (names.length >= 2) {
-      return (names[0][0] + names[1][0]).toUpperCase();
+    const name = this.currentUser?.name;
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0][0].toUpperCase();
+  }
+
+  get userAvatarUrl(): string | undefined {
+    const avatar = (this.currentUser as any)?.avatar_url || (this.currentUser as any)?.avatar;
+    if (!avatar || this.avatarLoadFailed) {
+      return undefined;
     }
-    return user.name[0].toUpperCase();
+
+    if (typeof avatar !== 'string') {
+      return undefined;
+    }
+
+    if (/^https?:\/\//i.test(avatar) || avatar.startsWith('data:')) {
+      return avatar;
+    }
+
+    if (avatar.startsWith('/')) {
+      return `${this.backendBaseUrl}${avatar}`;
+    }
+
+    return `${this.backendBaseUrl}/${avatar.replace(/^\/+/, '')}`;
   }
 
   ngOnInit(): void {
-    // Defer loading to avoid ExpressionChangedAfterItHasBeenCheckedError
-    setTimeout(() => {
-      this.loadActiveModules();
-    }, 0);
+    this._authSub = this.#authService.authState$.subscribe(state => {
+      this.currentUser = state.user;
+      this.avatarLoadFailed = false;
+      this.selectedManagedTenantId = this.#authService.selectedManagedTenantId;
+      if (this.userRole === 'SUPER_ADMIN') {
+        this.loadManagedTenants();
+      }
+      this.#cdr.detectChanges();
+    });
+    setTimeout(() => { this.loadActiveModules(); }, 0);
+  }
+
+  ngOnDestroy(): void {
+    this._authSub?.unsubscribe();
   }
 
   sidebarId = input('sidebar1');
+
+  loadManagedTenants(): void {
+    if (this.loadingTenants) {
+      return;
+    }
+
+    this.loadingTenants = true;
+    this.#apiService.get<any>('tenants?per_page=200').subscribe({
+      next: (response) => {
+        const tenants = response.success ? (response.data?.data || response.data || []) : [];
+        this.managedTenants = Array.isArray(tenants) ? tenants : [];
+
+        if (!this.selectedManagedTenantId && this.managedTenants.length > 0) {
+          this.selectedManagedTenantId = this.#authService.selectedManagedTenantId ?? this.managedTenants[0].id;
+          this.#authService.setSelectedManagedTenantId(this.selectedManagedTenantId);
+        }
+
+        this.loadingTenants = false;
+        this.#cdr.detectChanges();
+      },
+      error: () => {
+        this.loadingTenants = false;
+        this.#cdr.detectChanges();
+      }
+    });
+  }
+
+  onManagedTenantChange(): void {
+    this.#authService.setSelectedManagedTenantId(this.selectedManagedTenantId);
+    window.location.reload();
+  }
+
+  onAvatarError(): void {
+    this.avatarLoadFailed = true;
+    this.#cdr.detectChanges();
+  }
 
   loadActiveModules(): void {
     // Get modules based on user permissions
@@ -210,7 +288,7 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
       'MODULES': '/admin/modules',
       'SUBSCRIPTION_PLANS': '/admin/subscription-plans',
       'SUBSCRIPTIONS': '/admin/subscriptions',
-      'USERS': '/admin/users',
+      'USERS': '/organisation/users',
       'ROLES': '/admin/roles',
       'TENANTS': '/admin/tenants',
       'COMMERCIAL': '/commercial',

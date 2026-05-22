@@ -212,10 +212,12 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::delete('container-arrivals/{id}', [ContainerSalesController::class, 'deleteArrival']);
 
         Route::get('container-sales/global-stats', [ContainerSalesController::class, 'getGlobalStats']);
+        Route::get('container-sales/client-balances', [ContainerSalesController::class, 'getClientBalances']);
         Route::get('container-sales/client-stats/{clientId}', [ContainerSalesController::class, 'getClientStats']);
         Route::get('container-sales/allocation-summary', [ContainerSalesController::class, 'getAllocationSummary']);
         Route::get('container-sales', [ContainerSalesController::class, 'getSales']);
         Route::post('container-sales', [ContainerSalesController::class, 'storeSale']);
+        Route::post('container-sales/global-payment', [ContainerSalesController::class, 'storeGlobalClientPayment']);
         Route::put('container-sales/{id}', [ContainerSalesController::class, 'updateSale']);
 
         Route::get('container-sale-payments', [ContainerSalesController::class, 'getPayments']);
@@ -228,16 +230,19 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         // Photos conteneurs
         Route::get('container-photos', [ContainerPhotoController::class, 'publicIndex']);
         Route::post('container-photos', [ContainerPhotoController::class, 'publicStore']);
+        Route::delete('container-photos/{id}', [ContainerPhotoController::class, 'destroy']);
 
         // Clients & Fournisseurs
         // Clients
         Route::get('clients/statistics', [ClientController::class, 'getStatistics']);
+        Route::get('clients/financial-overview', [ClientController::class, 'getFinancialOverview']);
         Route::get('clients/{id}/transactions', [ClientController::class, 'getTransactionHistory']);
         Route::post('clients/{id}/photo', [ClientController::class, 'uploadPhoto']);
         Route::delete('clients/{id}/photo', [ClientController::class, 'deletePhoto']);
         Route::apiResource('clients', ClientController::class);
 
         // Fournisseurs
+        Route::get('suppliers/balance-summary', [SupplierController::class, 'getBalanceSummary']);
         Route::get('suppliers/{id}/history', [SupplierController::class, 'getHistory']);
         Route::get('suppliers/{id}/financial-relations', [SupplierController::class, 'getFinancialRelations']);
         Route::get('suppliers/{id}/payments', [SupplierController::class, 'getPayments']);
@@ -292,8 +297,10 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::get('leases/statistics', [LeaseController::class, 'statistics']);
         Route::get('leases/payments', [LeaseController::class, 'allPayments']);
         Route::apiResource('leases', LeaseController::class);
+        Route::get('leases/{lease}/financial-situation', [LeaseController::class, 'getFinancialSituation']);
         Route::get('leases/{lease}/payments',    [LeaseController::class, 'getPayments']);
         Route::post('leases/{lease}/payments',   [LeaseController::class, 'addPayment']);
+        Route::get('lease-payments/{id}/receipt', [LeaseController::class, 'getPaymentReceipt']);
         Route::delete('lease-payments/{id}',     [LeaseController::class, 'deletePayment']);
 
         // Tableau de bord Immobilier

@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 
 import {
@@ -19,7 +19,7 @@ import { AuthService } from '../../../core/services/auth.service';
   selector: 'app-client-list',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
+    CommonModule, ReactiveFormsModule, FormsModule, RouterModule, IconDirective,
     ButtonModule, ButtonGroupModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule,
   ],
@@ -60,6 +60,7 @@ export class ClientListComponent implements OnInit {
   showHistoryModal = false;
   historyLoading = false;
   clientHistory: any = null;
+  financialOverview: any = null;
 
   // Tenants (pour SUPER_ADMIN)
   tenants: any[] = [];
@@ -101,6 +102,10 @@ export class ClientListComponent implements OnInit {
   }
 
   get isSuperAdmin(): boolean { return this.authService.isSuperAdmin; }
+  get canCreateClients(): boolean { return this.authService.hasModulePermission('CLIENTS_SUPPLIERS', 'create'); }
+  get canEditClients(): boolean { return this.authService.hasModulePermission('CLIENTS_SUPPLIERS', 'edit'); }
+  get canDeleteClients(): boolean { return this.authService.hasModulePermission('CLIENTS_SUPPLIERS', 'delete'); }
+  get canManageClientPhotos(): boolean { return this.canEditClients || this.canCreateClients; }
 
   ngOnInit(): void {
     const routeClientType = this.route.snapshot.data['clientType'] as string | undefined;
@@ -117,6 +122,7 @@ export class ClientListComponent implements OnInit {
     if (routeCreateLabel) this.createButtonLabel = routeCreateLabel;
 
     this.loadClients();
+    this.loadFinancialOverview();
     if (this.isSuperAdmin) this.loadTenants();
   }
 
@@ -161,12 +167,36 @@ export class ClientListComponent implements OnInit {
   onSearch(): void {
     this.currentPage = 1;
     this.loadClients();
+    this.loadFinancialOverview();
   }
 
   onClientTypeFilterChange(): void {
     if (this.route.snapshot.data['clientType']) return;
     this.currentPage = 1;
     this.loadClients();
+    this.loadFinancialOverview();
+  }
+
+  loadFinancialOverview(): void {
+    const query = new URLSearchParams();
+    if (this.searchTerm) {
+      query.set('search', this.searchTerm);
+    }
+    if (this.clientTypeFilter) {
+      query.set('client_type', this.clientTypeFilter);
+    }
+
+    const params = query.toString() ? `?${query.toString()}` : '';
+    this.apiService.get<any>(`clients/financial-overview${params}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        this.financialOverview = r?.success ? r.data : null;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.financialOverview = null;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   get isRouteLockedClientType(): boolean {
@@ -182,6 +212,7 @@ export class ClientListComponent implements OnInit {
   // ─── CRUD ────────────────────────────────────────────────────────────────────
 
   openCreateModal(): void {
+    if (!this.canCreateClients) return;
     this.editMode = false;
     this.submitted = false;
     this.selectedPhotoFile = null;
@@ -200,6 +231,7 @@ export class ClientListComponent implements OnInit {
   }
 
   openEditModal(client: any): void {
+    if (!this.canEditClients) return;
     this.editMode = true;
     this.submitted = false;
     this.selectedClient = client;
@@ -280,11 +312,12 @@ export class ClientListComponent implements OnInit {
   }
 
   deleteClient(client: any): void {
+    if (!this.canDeleteClients) return;
     this.alertService.showDeleteConfirmation(client.name, 'client').then(r => {
       if (!r.isConfirmed) return;
       this.apiService.delete<any>(`clients/${client.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => { this.alertService.showSuccess('Client supprimé'); this.loadClients(); },
-        error: (err) => this.alertService.showError('Erreur', err?.error?.message || 'Erreur lors de la suppression'),
+        error: (err) => this.alertService.showError('Erreur', err.message || 'Erreur lors de la suppression'),
       });
     });
   }
@@ -315,13 +348,14 @@ export class ClientListComponent implements OnInit {
         next: () => { this.uploadingPhoto = false; callback(); },
         error: (err) => {
           this.uploadingPhoto = false;
-          this.alertService.showError('Photo', err?.error?.message || 'Erreur upload photo');
+          this.alertService.showError('Photo', err.message || 'Erreur upload photo');
           callback();
         },
       });
   }
 
   removePhoto(client: any): void {
+    if (!this.canManageClientPhotos) return;
     this.alertService.showConfirmation('Supprimer la photo', 'Confirmer la suppression de la photo ?').then(r => {
       if (!r.isConfirmed) return;
       this.apiService.delete<any>(`clients/${client.id}/photo`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -421,6 +455,7 @@ export class ClientListComponent implements OnInit {
   isSelected(id: number): boolean { return this.selectedClients.has(id); }
 
   deleteSelected(): void {
+    if (!this.canDeleteClients) return;
     if (!this.selectedClients.size) return;
     this.alertService.showConfirmation('Supprimer', `Supprimer ${this.selectedClients.size} client(s) ?`, 'Oui, supprimer').then(r => {
       if (!r.isConfirmed) return;
@@ -450,6 +485,21 @@ export class ClientListComponent implements OnInit {
 
   getDebtStatusColor(remaining: number): string {
     return remaining > 0 ? '#EF4444' : '#10B981';
+  }
+
+  getFinancialRow(clientId: number): any {
+    return this.financialOverview?.clients?.find((item: any) => item.id === clientId) || null;
+  }
+
+  getFinancialStatusStyle(status: string | undefined): { bg: string; color: string } {
+    switch (status) {
+      case 'DEBITEUR':
+        return { bg: '#FEF2F2', color: '#DC2626' };
+      case 'AVANCE':
+        return { bg: '#ECFDF5', color: '#059669' };
+      default:
+        return { bg: '#EFF6FF', color: '#2563EB' };
+    }
   }
 
   getPages(): number[] {

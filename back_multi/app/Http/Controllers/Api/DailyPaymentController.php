@@ -11,14 +11,16 @@ use Illuminate\Support\Facades\DB;
 
 class DailyPaymentController extends BaseController
 {
-    private function tenantId(Request $request): int
+    private function tenantId(Request $request): ?int
     {
-        return auth()->user()?->tenant_id ?? (int) $request->get('tenant_id', 1);
+        $user = auth()->user();
+        return $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
     }
 
     public function index(Request $request)
     {
         $tenantId = $this->tenantId($request);
+        [$dateFrom, $dateTo] = $this->resolvePeriodDates($request, now()->startOfMonth()->format('Y-m-d'), now()->format('Y-m-d'));
         $query = DailyPayment::with('driver', 'taxi', 'taxiAssignment')
             ->where('tenant_id', $tenantId);
 
@@ -31,11 +33,11 @@ class DailyPaymentController extends BaseController
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        if ($request->filled('date_from')) {
-            $query->where('payment_date', '>=', $request->date_from);
+        if ($dateFrom) {
+            $query->where('payment_date', '>=', $dateFrom);
         }
-        if ($request->filled('date_to')) {
-            $query->where('payment_date', '<=', $request->date_to);
+        if ($dateTo) {
+            $query->where('payment_date', '<=', $dateTo);
         }
 
         $payments = $query->orderBy('payment_date', 'desc')->paginate(15);
@@ -173,8 +175,7 @@ class DailyPaymentController extends BaseController
     public function statistics(Request $request)
     {
         $tenantId = $this->tenantId($request);
-        $dateFrom = $request->get('date_from', now()->startOfMonth()->format('Y-m-d'));
-        $dateTo   = $request->get('date_to',   now()->format('Y-m-d'));
+        [$dateFrom, $dateTo] = $this->resolvePeriodDates($request, now()->startOfMonth()->format('Y-m-d'), now()->format('Y-m-d'));
 
         $baseQuery = DB::table('daily_payments')
             ->where('tenant_id', $tenantId)
@@ -244,8 +245,7 @@ class DailyPaymentController extends BaseController
         }
 
         $tenantId = $this->tenantId($request);
-        $dateFrom = $request->get('date_from', now()->subMonths(3)->format('Y-m-d'));
-        $dateTo   = $request->get('date_to', now()->format('Y-m-d'));
+        [$dateFrom, $dateTo] = $this->resolvePeriodDates($request, now()->subMonths(3)->format('Y-m-d'), now()->format('Y-m-d'));
 
         $payments = DailyPayment::with('taxi', 'taxiAssignment')
             ->where('tenant_id', $tenantId)
@@ -273,6 +273,28 @@ class DailyPaymentController extends BaseController
             'summary'  => $summary,
             'period'   => ['from' => $dateFrom, 'to' => $dateTo]
         ], 'Driver payment history retrieved successfully');
+    }
+
+    private function resolvePeriodDates(Request $request, ?string $defaultFrom = null, ?string $defaultTo = null): array
+    {
+        $dateFrom = $request->get('date_from', $defaultFrom);
+        $dateTo = $request->get('date_to', $defaultTo);
+        $period = $request->get('period');
+
+        if (!$period || $period === 'custom') {
+            return [$dateFrom, $dateTo];
+        }
+
+        $today = now()->startOfDay();
+
+        return match ($period) {
+            'daily' => [$today->format('Y-m-d'), $today->format('Y-m-d')],
+            '3days' => [$today->copy()->subDays(2)->format('Y-m-d'), $today->format('Y-m-d')],
+            '4days' => [$today->copy()->subDays(3)->format('Y-m-d'), $today->format('Y-m-d')],
+            'weekly' => [$today->copy()->subDays(6)->format('Y-m-d'), $today->format('Y-m-d')],
+            '2weeks' => [$today->copy()->subDays(13)->format('Y-m-d'), $today->format('Y-m-d')],
+            default => [$dateFrom, $dateTo],
+        };
     }
 
     public function bulkCreate(Request $request)

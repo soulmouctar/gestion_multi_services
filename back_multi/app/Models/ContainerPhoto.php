@@ -11,6 +11,7 @@ class ContainerPhoto extends Model
 
     protected $fillable = [
         'container_id',
+        'container_arrival_id',
         'product_id',
         'image_path',
         'description',
@@ -24,5 +25,10 @@ class ContainerPhoto extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function arrival()
+    {
+        return $this->belongsTo(ContainerArrival::class, 'container_arrival_id');
     }
 }

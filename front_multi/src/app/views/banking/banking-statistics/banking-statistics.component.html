@@ -93,11 +93,26 @@
 
     <div class="row g-4 mb-4">
 
+      <div class="col-12">
+        <c-card class="border-0 shadow-sm">
+          <c-card-header class="fw-semibold bg-transparent border-0 pt-3">Évolution crédits / débits</c-card-header>
+          <c-card-body>
+            <div *ngIf="!stats.by_month?.length" class="text-muted text-center py-3">Aucune donnée</div>
+            <div *ngIf="stats.by_month?.length" style="height:300px;">
+              <c-chart type="line" [data]="monthlyFlowChartData" [options]="chartOptions"></c-chart>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+
       <!-- Par compte -->
       <div class="col-md-6">
         <c-card class="border-0 shadow-sm h-100">
           <c-card-header class="fw-semibold bg-transparent border-0 pt-3">Solde par compte</c-card-header>
           <c-card-body>
+            <div *ngIf="stats.accounts?.length" class="mb-4" style="height:260px;">
+              <c-chart type="bar" [data]="accountBalanceChartData" [options]="chartOptions"></c-chart>
+            </div>
             <div *ngIf="!stats.accounts?.length" class="text-muted text-center py-3">Aucun compte</div>
             <div *ngFor="let a of stats.accounts; trackBy: trackById" class="mb-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
@@ -123,6 +138,9 @@
         <c-card class="border-0 shadow-sm h-100">
           <c-card-header class="fw-semibold bg-transparent border-0 pt-3">Répartition par type</c-card-header>
           <c-card-body>
+            <div *ngIf="stats.by_type?.length" class="mb-4" style="height:260px;">
+              <c-chart type="doughnut" [data]="transactionTypeChartData" [options]="chartOptions"></c-chart>
+            </div>
             <div *ngIf="!stats.by_type?.length" class="text-muted text-center py-3">Aucune transaction</div>
             <div *ngFor="let t of stats.by_type; trackBy: trackById" class="mb-3">
               <div class="d-flex justify-content-between mb-1">

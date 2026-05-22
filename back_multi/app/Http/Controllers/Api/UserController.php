@@ -65,11 +65,12 @@ class UserController extends BaseController
             'password'  => 'required|min:8',
             'tenant_id' => 'nullable|exists:tenants,id',
             'role'      => 'nullable|string|exists:roles,name',
-            'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ]);
 
         if ($validator->fails()) {
-            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+            $firstError = collect($validator->errors()->toArray())->flatten()->first();
+            return $this->sendError($firstError ?? 'Erreur de validation', $validator->errors()->toArray(), 422);
         }
 
         $requestedRole = $request->get('role', 'USER');
@@ -105,7 +106,7 @@ class UserController extends BaseController
         $this->modulePermissionService->grantAllTenantModules($user);
 
 
-        return $this->sendResponse($user->load('roles'), 'User created successfully', 201);
+        return $this->sendResponse($user->fresh()->load('tenant', 'roles', 'permissions'), 'User created successfully', 201);
     }
 
     public function show($id)
@@ -133,11 +134,12 @@ class UserController extends BaseController
             'email'     => 'sometimes|email|unique:users,email,' . $id,
             'tenant_id' => 'nullable|exists:tenants,id',
             'role'      => 'nullable|string|max:100',
-            'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ]);
 
         if ($validator->fails()) {
-            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+            $firstError = collect($validator->errors()->toArray())->flatten()->first();
+            return $this->sendError($firstError ?? 'Erreur de validation', $validator->errors()->toArray(), 422);
         }
 
         if ($request->has('role')) {
@@ -188,7 +190,7 @@ class UserController extends BaseController
         $this->modulePermissionService->syncAfterUserUpdate($user, $previousTenantId);
 
 
-        return $this->sendResponse($user->load('roles'), 'User updated successfully');
+        return $this->sendResponse($user->fresh()->load('tenant', 'roles', 'permissions'), 'User updated successfully');
     }
 
     public function changePassword(Request $request, $id)
@@ -252,6 +254,10 @@ class UserController extends BaseController
             if (!$user->hasRole('USER')) {
                 return $this->sendError('Vous ne pouvez supprimer que des utilisateurs avec le rôle USER', [], 403);
             }
+        }
+
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
         }
 
         $user->delete();

@@ -50,9 +50,12 @@
         <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
           <tr>
             <th class="ps-4 py-3" style="font-weight:600">N° Conteneur</th>
-            <th class="py-3" style="font-weight:600">Capacité Min</th>
-            <th class="py-3" style="font-weight:600">Capacité Max</th>
-            <th class="py-3" style="font-weight:600">Taux d'intérêt</th>
+            <th class="py-3" style="font-weight:600">Réf. interne</th>
+            <th class="py-3" style="font-weight:600">BL</th>
+            <th class="py-3" style="font-weight:600">Capacité</th>
+            <th class="py-3" style="font-weight:600">Port d'entrée</th>
+            <th class="py-3" style="font-weight:600">Livraison prévue</th>
+            <th class="py-3" style="font-weight:600">Statut</th>
             <th class="py-3" style="font-weight:600">Date création</th>
             <th class="py-3 text-end pe-4" style="width:160px;font-weight:600">Actions</th>
           </tr>
@@ -67,28 +70,36 @@
                   <svg cIcon name="cilStorage" style="color:#3B82F6;width:16px;height:16px"></svg>
                 </div>
                 <span class="fw-bold" style="color:#1a1a2e;font-size:0.9rem">
-                  {{ container.container_number }}
+                  {{ container.shipping_number || '—' }}
                 </span>
               </div>
             </td>
             <td class="py-3">
-              <span *ngIf="container.capacity_min != null" style="font-size:0.85rem;color:#475569">
-                {{ container.capacity_min }}
-              </span>
-              <span *ngIf="container.capacity_min == null" class="text-muted">—</span>
+              <code style="font-size:0.78rem;background:#f8fafc;padding:3px 8px;border-radius:6px;color:#475569">
+                {{ container.container_number }}
+              </code>
             </td>
             <td class="py-3">
-              <span *ngIf="container.capacity_max != null" style="font-size:0.85rem;color:#475569">
-                {{ container.capacity_max }}
-              </span>
-              <span *ngIf="container.capacity_max == null" class="text-muted">—</span>
+              <span style="font-size:0.85rem;color:#475569">{{ container.bl_number || '—' }}</span>
             </td>
             <td class="py-3">
-              <span *ngIf="container.interest_rate" class="px-2 py-1 rounded-pill fw-semibold"
-                    style="font-size:0.75rem;background:#EFF6FF;color:#3B82F6">
-                {{ container.interest_rate }}&nbsp;%
+              <span style="font-size:0.85rem;color:#475569">{{ container.capacity ?? '—' }}</span>
+            </td>
+            <td class="py-3">
+              <span style="font-size:0.85rem;color:#475569">{{ container.entry_port || '—' }}</span>
+            </td>
+            <td class="py-3">
+              <span style="font-size:0.82rem;color:#94a3b8">
+                {{ container.expected_delivery_date ? (container.expected_delivery_date | date:'dd/MM/yyyy') : '—' }}
               </span>
-              <span *ngIf="!container.interest_rate" class="text-muted">—</span>
+            </td>
+            <td class="py-3">
+              <span class="px-2 py-1 rounded-pill fw-semibold"
+                    [style.background]="container.delivery_status === 'LIVRE' ? '#ECFDF5' : '#FFFBEB'"
+                    [style.color]="container.delivery_status === 'LIVRE' ? '#059669' : '#D97706'"
+                    style="font-size:0.72rem;">
+                {{ container.delivery_status === 'LIVRE' ? 'Livré' : 'Non livré' }}
+              </span>
             </td>
             <td class="py-3">
               <span style="font-size:0.82rem;color:#94a3b8">
@@ -121,7 +132,7 @@
 
           <!-- État vide -->
           <tr *ngIf="containers.length === 0">
-            <td colspan="6" class="text-center py-5">
+            <td colspan="9" class="text-center py-5">
               <svg cIcon name="cilStorage" size="3xl" class="mb-3 d-block mx-auto" style="opacity:.2;color:#94a3b8"></svg>
               <p class="mb-1 fw-semibold" style="color:#475569">Aucun conteneur trouvé</p>
               <small class="text-muted">Créez votre premier conteneur pour commencer</small>
@@ -194,35 +205,62 @@
 
       <div class="mb-4">
         <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">
-          Numéro de conteneur <span class="text-danger">*</span>
+          Référence interne
         </label>
         <input cFormControl type="text" formControlName="container_number"
-               placeholder="Ex. : CONT-001"
-               style="border-radius:8px"
-               [class.is-invalid]="submitted && containerForm.get('container_number')?.invalid" />
-        <div class="invalid-feedback" *ngIf="submitted && containerForm.get('container_number')?.hasError('required')">
-          Le numéro est obligatoire.
-        </div>
+               [attr.placeholder]="editMode ? 'Ex. : CNT26001' : 'Généré automatiquement'"
+               [readonly]="!editMode"
+               [style.background-color]="editMode ? '#fff' : '#f8fafc'"
+               style="border-radius:8px" />
+        <small class="text-muted d-block mt-1" *ngIf="!editMode">
+          Le système génère automatiquement le numéro au format <strong>{{ generatedContainerExample }}</strong>.
+        </small>
       </div>
 
       <div class="row g-3 mb-4">
         <div class="col-md-6">
-          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Capacité minimale</label>
-          <input cFormControl type="number" formControlName="capacity_min"
-                 placeholder="0" style="border-radius:8px" />
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">
+            Numéro du conteneur <span class="text-danger">*</span>
+          </label>
+          <input cFormControl type="text" formControlName="shipping_number"
+                 placeholder="Ex. : MSCU1234567" style="border-radius:8px"
+                 [class.is-invalid]="submitted && containerForm.get('shipping_number')?.invalid" />
+          <div class="invalid-feedback">Le numéro du conteneur est requis.</div>
         </div>
         <div class="col-md-6">
-          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Capacité maximale</label>
-          <input cFormControl type="number" formControlName="capacity_max"
-                 placeholder="0" style="border-radius:8px" />
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Numéro BL</label>
+          <input cFormControl type="text" formControlName="bl_number"
+                 placeholder="Ex. : BL-2026-001" style="border-radius:8px" />
+        </div>
+        <div class="col-md-4">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Capacité</label>
+          <input cFormControl type="number" formControlName="capacity"
+                 placeholder="Ex. : 150" style="border-radius:8px" />
+        </div>
+        <div class="col-md-4">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Statut</label>
+          <select cSelect formControlName="delivery_status" style="border-radius:8px">
+            <option *ngFor="let status of deliveryStatuses; trackBy: trackById" [value]="status.value">{{ status.label }}</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Port d'entrée</label>
+          <input cFormControl list="entryPorts" type="text" formControlName="entry_port"
+                 placeholder="Ex. : Dakar" style="border-radius:8px" />
+          <datalist id="entryPorts">
+            <option *ngFor="let port of ports" [value]="port"></option>
+          </datalist>
+        </div>
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Date d'entrée au port</label>
+          <input cFormControl type="date" formControlName="entry_date" style="border-radius:8px" />
+        </div>
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Date de livraison prévue à Conakry</label>
+          <input cFormControl type="date" formControlName="expected_delivery_date" style="border-radius:8px" />
         </div>
       </div>
 
-      <div class="mb-2">
-        <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Taux d'intérêt (%)</label>
-        <input cFormControl type="number" formControlName="interest_rate"
-               step="0.01" placeholder="Ex. : 2.5" style="border-radius:8px" />
-      </div>
     </form>
   </c-modal-body>
 

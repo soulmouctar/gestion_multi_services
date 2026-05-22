@@ -65,7 +65,7 @@ export class ModulesComponent implements OnInit {
   // Available data
   availableIcons = [
     'chart-line', 'dollar-sign', 'people', 'basket', 
-    'layers', 'home', 'car', 'graph'
+    'layers', 'home', 'car', 'graph', 'grid'
   ];
   
   availablePermissions = [
@@ -110,6 +110,37 @@ export class ModulesComponent implements OnInit {
     });
   }
 
+  private ensureCoreModules(): void {
+    const requiredModules = [
+      {
+        code: 'CLIENTS_SUPPLIERS',
+        name: 'Clients & Fournisseurs',
+        description: 'Gestion des clients et fournisseurs',
+        icon: 'people'
+      },
+      {
+        code: 'USERS',
+        name: 'Utilisateurs',
+        description: 'Gestion des utilisateurs du tenant',
+        icon: 'people'
+      }
+    ];
+
+    requiredModules.forEach(module => {
+      if (!this.modules.some(m => m.code === module.code)) {
+        this.modules.push({
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          name: module.name,
+          code: module.code,
+          description: module.description,
+          icon: module.icon,
+          is_active: true,
+          permissions: ['view', 'create', 'edit', 'delete']
+        });
+      }
+    });
+  }
+
   // Data loading
   loadModules(): void {
     this.loading = true;
@@ -119,6 +150,7 @@ export class ModulesComponent implements OnInit {
       next: (response: any) => {
         // L'API retourne une structure paginée avec data.data
         this.modules = response.data?.data || response.data || [];
+        this.ensureCoreModules();
         this.loading = false;
         setTimeout(() => {
           this.applyFilters();
@@ -127,6 +159,7 @@ export class ModulesComponent implements OnInit {
       },
       error: (error) => {
         this.modules = [];
+        this.ensureCoreModules();
         this.filteredModules = [];
         this.showErrorMessage('Erreur lors du chargement des modules.');
         this.loading = false;

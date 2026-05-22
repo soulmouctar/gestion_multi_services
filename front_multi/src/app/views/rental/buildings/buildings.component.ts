@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-buildings',
@@ -35,7 +36,12 @@ export class BuildingsComponent implements OnInit {
   deleteModalOpen = false; itemToDelete: any = null;
   Math = Math;
 
-  constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
+  constructor(
+    private fb: FormBuilder,
+    private apiService: ApiService,
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) {
     this.buildingForm = this.fb.group({
       location_id: [null, Validators.required],
       name: ['', Validators.required],
@@ -45,6 +51,10 @@ export class BuildingsComponent implements OnInit {
   }
 
   ngOnInit(): void { this.loadData(); this.loadLocations(); }
+
+  get canCreateBuildings(): boolean { return this.authService.hasModulePermission('RENTAL', 'create'); }
+  get canEditBuildings(): boolean { return this.authService.hasModulePermission('RENTAL', 'edit'); }
+  get canDeleteBuildings(): boolean { return this.authService.hasModulePermission('RENTAL', 'delete'); }
 
   loadLocations(): void {
     this.apiService.get<any>('locations?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -68,27 +78,28 @@ export class BuildingsComponent implements OnInit {
   }
 
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
-  openCreateModal(): void { this.editMode = false; this.submitted = false; this.buildingForm.reset({ location_id: null, name: '', type: '', total_floors: null }); this.showFormModal = true; }
-  openEditModal(item: any): void { this.editMode = true; this.submitted = false; this.selectedItem = item; this.buildingForm.patchValue(item); this.showFormModal = true; }
+  openCreateModal(): void { if (!this.canCreateBuildings) return; this.editMode = false; this.submitted = false; this.buildingForm.reset({ location_id: null, name: '', type: '', total_floors: null }); this.showFormModal = true; }
+  openEditModal(item: any): void { if (!this.canEditBuildings) return; this.editMode = true; this.submitted = false; this.selectedItem = item; this.buildingForm.patchValue(item); this.showFormModal = true; }
 
   save(): void {
     this.submitted = true; if (this.buildingForm.invalid) return;
+    if (this.editMode ? !this.canEditBuildings : !this.canCreateBuildings) return;
     const data = this.buildingForm.value;
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`buildings/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('buildings', data);
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Bâtiment mis à jour' : 'Bâtiment créé'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; }
+      error: (err) => { this.error = err.message || 'Erreur'; }
     });
   }
 
-  confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
+  confirmDelete(item: any): void { if (!this.canDeleteBuildings) return; this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
-    if (!this.itemToDelete) return;
+    if (!this.itemToDelete || !this.canDeleteBuildings) return;
     this.apiService.delete<any>(`buildings/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Bâtiment supprimé'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => { this.error = err.message || 'Erreur'; this.deleteModalOpen = false; }
     });
   }
 

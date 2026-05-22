@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AuthService } from './auth.service';
 
 export interface OrganisationCurrency {
   id?: number;
@@ -31,12 +32,17 @@ export class OrganisationCurrencyService {
   private currenciesSubject = new BehaviorSubject<OrganisationCurrency[]>([]);
   public currencies$ = this.currenciesSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
 
   getCurrencies(isActive?: boolean, isDefault?: boolean): Observable<ApiResponse<OrganisationCurrency[]>> {
     let params: any = {};
     if (isActive !== undefined) params.is_active = isActive;
     if (isDefault !== undefined) params.is_default = isDefault;
+    const tenantId = this.getManagedTenantId();
+    if (tenantId) params.tenant_id = tenantId;
 
     return this.http.get<ApiResponse<OrganisationCurrency[]>>(`${this.API_URL}/currencies`, {
       headers: this.getAuthHeaders(),
@@ -51,13 +57,13 @@ export class OrganisationCurrencyService {
   }
 
   getCurrency(id: number): Observable<ApiResponse<OrganisationCurrency>> {
-    return this.http.get<ApiResponse<OrganisationCurrency>>(`${this.API_URL}/currencies/${id}`, {
+    return this.http.get<ApiResponse<OrganisationCurrency>>(this.buildUrl(`currencies/${id}`), {
       headers: this.getAuthHeaders()
     });
   }
 
   createCurrency(currency: Omit<OrganisationCurrency, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>): Observable<ApiResponse<OrganisationCurrency>> {
-    return this.http.post<ApiResponse<OrganisationCurrency>>(`${this.API_URL}/currencies`, currency, {
+    return this.http.post<ApiResponse<OrganisationCurrency>>(this.buildUrl('currencies'), this.attachTenantId(currency), {
       headers: this.getAuthHeaders()
     }).pipe(
       tap(response => {
@@ -70,7 +76,7 @@ export class OrganisationCurrencyService {
   }
 
   updateCurrency(id: number, currency: Partial<OrganisationCurrency>): Observable<ApiResponse<OrganisationCurrency>> {
-    return this.http.put<ApiResponse<OrganisationCurrency>>(`${this.API_URL}/currencies/${id}`, currency, {
+    return this.http.put<ApiResponse<OrganisationCurrency>>(this.buildUrl(`currencies/${id}`), this.attachTenantId(currency), {
       headers: this.getAuthHeaders()
     }).pipe(
       tap(response => {
@@ -87,7 +93,7 @@ export class OrganisationCurrencyService {
   }
 
   deleteCurrency(id: number): Observable<ApiResponse<any>> {
-    return this.http.delete<ApiResponse<any>>(`${this.API_URL}/currencies/${id}`, {
+    return this.http.delete<ApiResponse<any>>(this.buildUrl(`currencies/${id}`), {
       headers: this.getAuthHeaders()
     }).pipe(
       tap(response => {
@@ -100,7 +106,7 @@ export class OrganisationCurrencyService {
   }
 
   setAsDefault(id: number): Observable<ApiResponse<OrganisationCurrency>> {
-    return this.http.post<ApiResponse<OrganisationCurrency>>(`${this.API_URL}/currencies/${id}/set-default`, {}, {
+    return this.http.post<ApiResponse<OrganisationCurrency>>(this.buildUrl(`currencies/${id}/set-default`), this.attachTenantId({}), {
       headers: this.getAuthHeaders()
     }).pipe(
       tap(response => {
@@ -117,7 +123,7 @@ export class OrganisationCurrencyService {
   }
 
   toggleStatus(id: number): Observable<ApiResponse<OrganisationCurrency>> {
-    return this.http.post<ApiResponse<OrganisationCurrency>>(`${this.API_URL}/currencies/${id}/toggle-status`, {}, {
+    return this.http.post<ApiResponse<OrganisationCurrency>>(this.buildUrl(`currencies/${id}/toggle-status`), this.attachTenantId({}), {
       headers: this.getAuthHeaders()
     }).pipe(
       tap(response => {
@@ -151,5 +157,33 @@ export class OrganisationCurrencyService {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     });
+  }
+
+  private getManagedTenantId(): number | null {
+    if (!this.authService.isSuperAdmin) {
+      return null;
+    }
+
+    return this.authService.selectedManagedTenantId;
+  }
+
+  private attachTenantId<T extends object>(data: T): T & { tenant_id?: number } {
+    const tenantId = this.getManagedTenantId();
+    if (!tenantId || (data as any).tenant_id != null) {
+      return data as T & { tenant_id?: number };
+    }
+
+    return { ...data, tenant_id: tenantId };
+  }
+
+  private buildUrl(endpoint: string): string {
+    const baseUrl = `${this.API_URL}/${endpoint}`;
+    const tenantId = this.getManagedTenantId();
+    if (!tenantId) {
+      return baseUrl;
+    }
+
+    const separator = endpoint.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}tenant_id=${tenantId}`;
   }
 }

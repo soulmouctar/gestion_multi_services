@@ -61,9 +61,12 @@ class VehicleExpenseController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
+        $user     = auth()->user();
+        $tenantId = $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+
         $expense = VehicleExpense::create([
             ...$request->only(['taxi_id', 'driver_id', 'expense_date', 'expense_type', 'amount', 'description', 'receipt_number', 'notes']),
-            'tenant_id' => auth()->user()->tenant_id,
+            'tenant_id' => $tenantId,
         ]);
 
         return $this->sendResponse(

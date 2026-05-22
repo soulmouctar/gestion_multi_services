@@ -119,7 +119,7 @@ export class OrganisationSettingsAdvancedComponent implements OnInit {
         this.testLoading = false;
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de l\'envoi du test';
+        this.error = err.message || 'Erreur lors de l\'envoi du test';
         this.testLoading = false;
         this.clearMessages();
       }

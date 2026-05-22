@@ -10,6 +10,7 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { HttpClient } from '@angular/common/http';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
@@ -44,6 +45,11 @@ export class BankingTransactionsComponent implements OnInit {
   totalItems            = 0;
   currentPage           = 1;
   perPage               = 20;
+
+  // Super Admin tenant selector
+  isSuperAdmin      = false;
+  tenants: any[]    = [];
+  selectedTenantId: number | null = null;
 
   filters = {
     account_id:       '',
@@ -300,7 +306,7 @@ export class BankingTransactionsComponent implements OnInit {
         },
         error: (e) => {
           this.uploading = false;
-          Swal.fire({ icon: 'error', title: 'Erreur', text: e?.error?.message || 'Erreur serveur' });
+          Swal.fire({ icon: 'error', title: 'Erreur', text: e?.message || 'Erreur serveur' });
         }
       });
 
@@ -334,7 +340,7 @@ export class BankingTransactionsComponent implements OnInit {
         },
         error: (e) => {
           this.uploading = false;
-          const msg = e?.error?.message || e?.message || 'Erreur serveur';
+          const msg = e?.message || e?.message || 'Erreur serveur';
           Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
         }
       });
@@ -384,7 +390,7 @@ export class BankingTransactionsComponent implements OnInit {
           this.loadTransactions();
           this.loadAccounts();
         },
-        error: (e) => Swal.fire({ icon: 'error', title: 'Erreur', text: e?.error?.message || 'Erreur' })
+        error: (e) => Swal.fire({ icon: 'error', title: 'Erreur', text: e?.message || 'Erreur' })
       });
     });
   }

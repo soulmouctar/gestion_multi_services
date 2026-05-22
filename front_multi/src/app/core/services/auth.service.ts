@@ -12,6 +12,7 @@ export class AuthService {
   private readonly API_URL = environment.apiUrl;
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_KEY = 'current_user';
+  private readonly MANAGED_TENANT_KEY = 'managed_tenant_id';
 
   private authState = new BehaviorSubject<AuthState>({
     user: null,
@@ -181,6 +182,24 @@ export class AuthService {
     );
   }
 
+  updateCurrentUser(data: Partial<User>): void {
+    const current = this.currentUser;
+    if (!current) return;
+    const merged = { ...current, ...data };
+    // Preserve existing roles/module data if the update response didn't include them
+    if (!merged.roles?.length && current.roles?.length) {
+      merged.roles = current.roles;
+    }
+    if (!(merged as any).tenant_active_modules?.length && (current as any).tenant_active_modules?.length) {
+      (merged as any).tenant_active_modules = (current as any).tenant_active_modules;
+    }
+    if (!(merged as any).module_permissions?.length && (current as any).module_permissions?.length) {
+      (merged as any).module_permissions = (current as any).module_permissions;
+    }
+    this.authState.next({ ...this.authState.value, user: merged });
+    localStorage.setItem(this.USER_KEY, JSON.stringify(merged));
+  }
+
   reloadCurrentUser(): Observable<any> {
     const currentUser = this.currentUser;
     if (!currentUser || !currentUser.id) {
@@ -212,16 +231,22 @@ export class AuthService {
     return this.authState.value.tenant;
   }
 
+  get selectedManagedTenantId(): number | null {
+    const value = localStorage.getItem(this.MANAGED_TENANT_KEY);
+    return value ? Number(value) : null;
+  }
+
   get isAuthenticated(): boolean {
     return this.authState.value.isAuthenticated;
   }
 
   get userRole(): string | null {
     const user = this.authState.value.user;
-    if (!user?.roles || !Array.isArray(user.roles) || user.roles.length === 0) {
-      return null;
+    if (user?.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+      return user.roles[0].name;
     }
-    return user.roles[0].name;
+    // Fallback: singular role field returned at login
+    return (user as any)?.role || null;
   }
 
   get isSuperAdmin(): boolean {
@@ -238,6 +263,15 @@ export class AuthService {
 
   getCurrentToken(): string | null {
     return this.authState.value.token;
+  }
+
+  setSelectedManagedTenantId(tenantId: number | null): void {
+    if (tenantId == null) {
+      localStorage.removeItem(this.MANAGED_TENANT_KEY);
+      return;
+    }
+
+    localStorage.setItem(this.MANAGED_TENANT_KEY, String(tenantId));
   }
 
   get isSubscriptionActive(): boolean {
@@ -264,6 +298,29 @@ export class AuthService {
     return !!userHasPermission;
   }
 
+  hasModulePermission(moduleCode: string, permission: string): boolean {
+    if (this.isSuperAdmin || this.isTenantAdmin) return true;
+
+    const user = this.currentUser;
+    if (!user) return false;
+
+    const modulePermission = user.module_permissions?.find(
+      (item: { module_code: string; is_active: boolean }) => item.module_code === moduleCode && item.is_active
+    );
+
+    if (!modulePermission) return false;
+
+    const permissions = Array.isArray(modulePermission.permissions) ? modulePermission.permissions : [];
+    if (permissions.includes(permission)) return true;
+
+    if (permission.startsWith('view_') && permissions.includes('view')) return true;
+    if (permission.startsWith('create_') && permissions.includes('create')) return true;
+    if (permission.startsWith('edit_') && permissions.includes('edit')) return true;
+    if (permission.startsWith('delete_') && permissions.includes('delete')) return true;
+
+    return false;
+  }
+
   getTenantActiveModules(): { code: string; name: string; is_active: boolean }[] {
     const user = this.currentUser;
     if (this.isSuperAdmin) {
@@ -271,6 +328,7 @@ export class AuthService {
         { code: 'COMMERCE',          name: 'Gestion Commerciale',    is_active: true },
         { code: 'FINANCE',           name: 'Gestion Financière',     is_active: true },
         { code: 'CLIENTS_SUPPLIERS', name: 'Clients & Fournisseurs', is_active: true },
+        { code: 'USERS',             name: 'Utilisateurs',           is_active: true },
         { code: 'PRODUCTS_STOCK',    name: 'Produits & Stock',       is_active: true },
         { code: 'CONTAINER',         name: 'Gestion Conteneurs',     is_active: true },
         { code: 'RENTAL',            name: 'Location Immobilière',   is_active: true },
@@ -325,9 +383,33 @@ export class AuthService {
           module_code: 'CLIENTS_SUPPLIERS',
           module_name: 'Clients & Fournisseurs',
           is_active: true,
-          permissions: ['create', 'read', 'update', 'delete', 'view']
+          permissions: [
+            'view',
+            'create',
+            'edit',
+            'delete',
+            'view_clients_general',
+            'view_clients_pneus',
+            'view_clients_textile',
+            'view_clients_cosmetiques',
+            'view_clients_conteneurs_pagne',
+            'view_suppliers'
+          ]
         });
       }
+    }
+
+    const hasUsersAccess =
+      tenantModules.some((module: { code?: string; is_active?: boolean }) => module?.code === 'USERS' && module?.is_active) ||
+      modulePermissions.some((permission: { module_code?: string; is_active?: boolean }) => permission?.module_code === 'USERS' && permission?.is_active);
+
+    if (hasUsersAccess && !modulePermissions.some((permission: { module_code?: string }) => permission?.module_code === 'USERS')) {
+      modulePermissions.push({
+        module_code: 'USERS',
+        module_name: 'Utilisateurs',
+        is_active: true,
+        permissions: ['view', 'create', 'edit', 'delete', 'view_users', 'manage_permissions', 'change_password', 'toggle_status']
+      });
     }
 
     return {

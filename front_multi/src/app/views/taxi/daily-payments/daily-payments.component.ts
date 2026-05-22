@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -41,10 +42,19 @@ export class DailyPaymentsComponent implements OnInit {
 
   statistics: any = null;
   activeStatsTab = 'summary'; // 'summary' | 'drivers' | 'daily'
+  periodPresets = [
+    { value: 'daily', label: 'Journalier' },
+    { value: '3days', label: '3 jours' },
+    { value: '4days', label: '4 jours' },
+    { value: 'weekly', label: '7 jours' },
+    { value: '2weeks', label: '2 semaines' },
+    { value: 'custom', label: 'Personnalisé' }
+  ];
 
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {
     this.paymentForm = this.fb.group({
@@ -57,10 +67,11 @@ export class DailyPaymentsComponent implements OnInit {
     });
 
     this.filterForm = this.fb.group({
+      period:    ['weekly'],
       driver_id: [''],
       taxi_id:   [''],
       status:    [''],
-      date_from: [this.monthStart()],
+      date_from: [this.lastNDays(6)],
       date_to:   [this.today()]
     });
   }
@@ -72,6 +83,10 @@ export class DailyPaymentsComponent implements OnInit {
     this.loadData();
     this.loadStatistics();
   }
+
+  get canCreatePayments(): boolean { return this.authService.hasModulePermission('TAXI', 'create'); }
+  get canEditPayments(): boolean { return this.authService.hasModulePermission('TAXI', 'edit'); }
+  get canDeletePayments(): boolean { return this.authService.hasModulePermission('TAXI', 'delete'); }
 
   // ===== LOAD HELPERS =====
 
@@ -99,11 +114,12 @@ export class DailyPaymentsComponent implements OnInit {
     this.loading = true;
     const f = this.filterForm.value;
     let url = `daily-payments?page=${this.currentPage}&per_page=15`;
+    if (f.period)    url += `&period=${f.period}`;
     if (f.driver_id) url += `&driver_id=${f.driver_id}`;
     if (f.taxi_id)   url += `&taxi_id=${f.taxi_id}`;
     if (f.status)    url += `&status=${f.status}`;
-    if (f.date_from) url += `&date_from=${f.date_from}`;
-    if (f.date_to)   url += `&date_to=${f.date_to}`;
+    if (f.period === 'custom' && f.date_from) url += `&date_from=${f.date_from}`;
+    if (f.period === 'custom' && f.date_to)   url += `&date_to=${f.date_to}`;
 
     this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
@@ -123,7 +139,10 @@ export class DailyPaymentsComponent implements OnInit {
   loadStatistics(): void {
     this.loadingStats = true;
     const f = this.filterForm.value;
-    let url = `daily-payments/statistics?date_from=${f.date_from || this.monthStart()}&date_to=${f.date_to || this.today()}`;
+    let url = `daily-payments/statistics?period=${f.period || 'weekly'}`;
+    if (f.period === 'custom') {
+      url += `&date_from=${f.date_from || this.monthStart()}&date_to=${f.date_to || this.today()}`;
+    }
     if (f.driver_id) url += `&driver_id=${f.driver_id}`;
     if (f.taxi_id)   url += `&taxi_id=${f.taxi_id}`;
 
@@ -144,7 +163,18 @@ export class DailyPaymentsComponent implements OnInit {
   }
 
   resetFilters(): void {
-    this.filterForm.reset({ driver_id: '', taxi_id: '', status: '', date_from: this.monthStart(), date_to: this.today() });
+    this.filterForm.reset({ period: 'weekly', driver_id: '', taxi_id: '', status: '', date_from: this.lastNDays(6), date_to: this.today() });
+    this.applyFilters();
+  }
+
+  applyQuickPeriod(period: string): void {
+    const nextDateTo = this.today();
+    const nextDateFrom = this.getPeriodStart(period);
+    this.filterForm.patchValue({
+      period,
+      date_from: nextDateFrom,
+      date_to: nextDateTo
+    });
     this.applyFilters();
   }
 
@@ -157,6 +187,7 @@ export class DailyPaymentsComponent implements OnInit {
   // ===== CRUD =====
 
   openCreateModal(): void {
+    if (!this.canCreatePayments) return;
     this.editMode  = false;
     this.submitted = false;
     this.selectedItem = null;
@@ -165,6 +196,7 @@ export class DailyPaymentsComponent implements OnInit {
   }
 
   openEditModal(item: any): void {
+    if (!this.canEditPayments) return;
     this.editMode  = true;
     this.submitted = false;
     this.selectedItem = item;
@@ -190,6 +222,7 @@ export class DailyPaymentsComponent implements OnInit {
   save(): void {
     this.submitted = true;
     if (this.paymentForm.invalid) return;
+    if (this.editMode ? !this.canEditPayments : !this.canCreatePayments) return;
 
     const data = this.paymentForm.value;
     const obs = this.editMode && this.selectedItem
@@ -205,11 +238,12 @@ export class DailyPaymentsComponent implements OnInit {
           this.loadStatistics();
         }
       },
-      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err?.error?.message || 'Erreur' })
+      error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err.message || 'Erreur' })
     });
   }
 
   deleteItem(item: any): void {
+    if (!this.canDeletePayments) return;
     Swal.fire({
       title: 'Supprimer ce versement ?',
       text: `${item.payment_date?.substring(0, 10)} — ${this.fmt(item.paid_amount)} GNF`,
@@ -264,6 +298,21 @@ export class DailyPaymentsComponent implements OnInit {
 
   private today(): string      { return new Date().toISOString().split('T')[0]; }
   private monthStart(): string { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]; }
+  private lastNDays(daysBack: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() - daysBack);
+    return d.toISOString().split('T')[0];
+  }
+  private getPeriodStart(period: string): string {
+    return {
+      daily: this.today(),
+      '3days': this.lastNDays(2),
+      '4days': this.lastNDays(3),
+      weekly: this.lastNDays(6),
+      '2weeks': this.lastNDays(13),
+      custom: this.filterForm.get('date_from')?.value || this.monthStart()
+    }[period] || this.monthStart();
+  }
   trackById(_index: number, item: any): any {
     return item?.id ?? _index;
   }

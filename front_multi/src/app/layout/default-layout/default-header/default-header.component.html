@@ -1,17 +1,16 @@
 <!--<c-header class="mb-4 d-print-none" position="sticky">-->
 <ng-container>
-  <c-container [fluid]="true" class="border-bottom px-4">
+  <c-container [fluid]="true" class="border-bottom px-3 px-lg-4 app-header-main">
     <button
       [cSidebarToggle]="sidebarId()"
       cHeaderToggler
-      class="btn"
+      class="btn app-header-toggle"
       toggle="visible"
-      style="margin-inline-start: -14px;"
       aria-label="Toggle sidebar navigation"
     >
       <svg cIcon name="cilMenu" size="lg"></svg>
     </button>
-    <c-header-nav class="d-none d-md-flex">
+    <c-header-nav class="d-none d-xl-flex app-header-links">
       <c-nav-item>
         <a cNavLink routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
       </c-nav-item>
@@ -87,19 +86,9 @@
       </c-nav-item>
     </c-header-nav>
 
-    <c-header-nav class="d-none d-md-flex ms-auto ">
-      <a cNavLink>
-        <svg cIcon class="my-1" name="cilBell" size="lg"></svg>
-      </a>
-      <a cNavLink>
-        <svg cIcon class="my-1" name="cilList" size="lg"></svg>
-      </a>
-      <a cNavLink>
-        <svg cIcon class="my-1" name="cilEnvelopeOpen" size="lg"></svg>
-      </a>
-    </c-header-nav>
+    <div class="header-spacer"></div>
 
-    <c-header-nav class="ms-auto ms-md-0">
+    <c-header-nav class="ms-auto ms-lg-0 align-items-center app-header-actions">
       <div class="nav-item py-1">
         <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
       </div>
@@ -107,14 +96,19 @@
       <div class="nav-item py-1">
         <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
       </div>
-    </c-header-nav>
-
-    <c-header-nav class="mx-0">
       <ng-container *ngTemplateOutlet="userDropdown" />
     </c-header-nav>
-
   </c-container>
-  <c-container [fluid]="true" class="px-4">
+  <c-container *ngIf="userRole === 'SUPER_ADMIN'" [fluid]="true" class="px-3 px-lg-4 py-2 border-bottom header-tenant-bar">
+    <div class="header-mobile-tenant d-flex align-items-center gap-2 flex-wrap">
+      <label class="small text-muted mb-0">Organisation</label>
+      <select class="form-select form-select-sm" [(ngModel)]="selectedManagedTenantId" (change)="onManagedTenantChange()">
+        <option [ngValue]="null">Sélectionnez un tenant</option>
+        <option *ngFor="let tenant of managedTenants" [ngValue]="tenant.id">{{ tenant.name }}</option>
+      </select>
+    </div>
+  </c-container>
+  <c-container [fluid]="true" class="px-3 px-lg-4">
     <c-breadcrumb-router />
   </c-container>
 </ng-container>
@@ -122,30 +116,27 @@
 
 <ng-template #userDropdown>
   <c-dropdown [popperOptions]="{ placement: 'bottom-start' }" variant="nav-item">
-    <button [caret]="false" cDropdownToggle class="py-0 pe-0 d-flex align-items-center" aria-label="Open user menu">
-      <div class="d-flex align-items-center me-2">
-        <div class="me-3">
+    <button [caret]="false" cDropdownToggle class="py-0 pe-0 d-flex align-items-center header-user-toggle" aria-label="Open user menu">
+      <div class="d-none d-lg-flex align-items-center me-2">
+        <div class="me-3 text-end">
           <div class="fw-semibold text-body">{{ currentUser?.name || 'Utilisateur' }}</div>
           <small class="text-muted">{{ userRoleTitle }}</small>
         </div>
       </div>
-      <c-avatar
-        shape="rounded-1"
-        size="md"
-        [textColor]="userRole === 'SUPER_ADMIN' ? 'danger' : userRole === 'ADMIN' ? 'warning' : 'primary'"
-        status="success"
-        alt="User avatar"
-      >{{ userInitials }}</c-avatar>
+      <span class="header-avatar" [class.header-avatar--image]="!!userAvatarUrl">
+        <img *ngIf="userAvatarUrl" [src]="userAvatarUrl" alt="Photo de profil" class="header-avatar__image" (error)="onAvatarError()">
+        <span *ngIf="!userAvatarUrl" class="header-avatar__fallback">{{ userInitials }}</span>
+        <span class="header-avatar__status"></span>
+      </span>
     </button>
     <ul cDropdownMenu class="pt-0 w-auto">
       <li>
         <h6 cDropdownHeader class="bg-body-secondary text-body-secondary fw-semibold py-2 rounded-top d-flex align-items-center">
-          <c-avatar
-            shape="rounded-1"
-            size="sm"
-            [textColor]="userRole === 'SUPER_ADMIN' ? 'danger' : userRole === 'ADMIN' ? 'warning' : 'primary'"
-            class="me-2"
-          >{{ userInitials }}</c-avatar>
+          <span class="header-avatar header-avatar--sm me-2" [class.header-avatar--image]="!!userAvatarUrl">
+            <img *ngIf="userAvatarUrl" [src]="userAvatarUrl" alt="Photo de profil" class="header-avatar__image" (error)="onAvatarError()">
+            <span *ngIf="!userAvatarUrl" class="header-avatar__fallback">{{ userInitials }}</span>
+            <span class="header-avatar__status"></span>
+          </span>
           <div>
             <div class="fw-semibold">{{ currentUser?.name || 'Utilisateur' }}</div>
             <small class="text-muted">{{ userRoleTitle }}</small>

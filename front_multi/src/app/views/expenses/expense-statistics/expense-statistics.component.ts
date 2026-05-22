@@ -8,6 +8,8 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-expense-statistics',
@@ -25,16 +27,66 @@ export class ExpenseStatisticsComponent implements OnInit {
 
   loading = false;
   stats: any = null;
+  isSuperAdmin = false;
+  tenants: any[] = [];
+  selectedTenantId: number | null = null;
 
   // Period selector
   selectedPeriod = 'month';
   dateFrom = '';
   dateTo   = '';
 
-  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private apiService: ApiService,
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
+    this.isSuperAdmin = this.authService.isSuperAdmin;
+    this.selectedTenantId = this.authService.selectedManagedTenantId;
+    if (this.isSuperAdmin) {
+      this.loadTenants();
+      return;
+    }
+
     this.setPeriod('month');
+  }
+
+  private loadTenants(): void {
+    this.apiService.get<any>('tenants?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        const data = r.success ? (r.data?.data || r.data || []) : [];
+        this.tenants = data;
+        if (this.tenants.length > 0 && !this.selectedTenantId) {
+          this.selectedTenantId = this.tenants[0].id;
+          this.authService.setSelectedManagedTenantId(this.selectedTenantId);
+        }
+        this.cdr.detectChanges();
+        this.setPeriod('month');
+      },
+      error: () => this.cdr.detectChanges()
+    });
+  }
+
+  onTenantChange(): void {
+    this.authService.setSelectedManagedTenantId(this.selectedTenantId);
+    this.loadStats();
+  }
+
+  private tenantQuery(): string {
+    return this.isSuperAdmin && this.selectedTenantId
+      ? `&tenant_id=${this.selectedTenantId}`
+      : '';
+  }
+
+  private ensureTenantSelection(): boolean {
+    if (this.isSuperAdmin && !this.selectedTenantId) {
+      Swal.fire({ icon: 'warning', title: 'Sélectionnez un tenant', text: 'Choisissez d\'abord l\'organisation à gérer.' });
+      return false;
+    }
+
+    return true;
   }
 
   setPeriod(period: string): void {
@@ -62,8 +114,10 @@ export class ExpenseStatisticsComponent implements OnInit {
   }
 
   loadStats(): void {
+    if (!this.ensureTenantSelection()) return;
+
     this.loading = true;
-    this.apiService.get<any>(`personal-expenses/statistics?date_from=${this.dateFrom}&date_to=${this.dateTo}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.get<any>(`personal-expenses/statistics?date_from=${this.dateFrom}&date_to=${this.dateTo}${this.tenantQuery()}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) this.stats = r.data;
         this.loading = false;

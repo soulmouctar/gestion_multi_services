@@ -7,6 +7,7 @@ use App\Http\Requests\StoreContainerRequest;
 use App\Http\Requests\UpdateContainerRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ContainerController extends BaseController
 {
@@ -40,10 +41,14 @@ class ContainerController extends BaseController
 
         $container = Container::create([
             'tenant_id'        => $tenantId,
-            'container_number' => $request->container_number,
-            'capacity_min'     => $request->capacity_min,
-            'capacity_max'     => $request->capacity_max,
-            'interest_rate'    => $request->interest_rate,
+            'container_number' => $this->generateNextContainerNumber(),
+            'shipping_number' => $request->shipping_number,
+            'bl_number' => $request->bl_number,
+            'capacity' => $request->capacity,
+            'delivery_status' => $request->input('delivery_status', 'NON_LIVRE'),
+            'entry_port' => $request->entry_port,
+            'entry_date' => $request->entry_date,
+            'expected_delivery_date' => $request->expected_delivery_date,
         ]);
 
         return $this->sendResponse($container, 'Container created successfully', 201);
@@ -78,7 +83,16 @@ class ContainerController extends BaseController
             return $this->sendError('Accès refusé', [], 403);
         }
 
-        $container->update($request->only(['container_number', 'capacity_min', 'capacity_max', 'interest_rate']));
+        $container->update($request->only([
+            'container_number',
+            'shipping_number',
+            'bl_number',
+            'capacity',
+            'delivery_status',
+            'entry_port',
+            'entry_date',
+            'expected_delivery_date',
+        ]));
 
         return $this->sendResponse($container, 'Container updated successfully');
     }
@@ -115,9 +129,9 @@ class ContainerController extends BaseController
             'total_containers'       => (clone $baseQuery)->count(),
             'containers_created'     => (clone $baseQuery)->where('created_at', '>=', $startDate)->count(),
             'containers_with_photos' => (clone $baseQuery)->whereHas('photos')->count(),
-            'avg_capacity_min'       => round((clone $baseQuery)->whereNotNull('capacity_min')->avg('capacity_min') ?? 0, 2),
-            'avg_capacity_max'       => round((clone $baseQuery)->whereNotNull('capacity_max')->avg('capacity_max') ?? 0, 2),
-            'avg_interest_rate'      => round((clone $baseQuery)->whereNotNull('interest_rate')->avg('interest_rate') ?? 0, 2),
+            'avg_capacity'           => round((clone $baseQuery)->whereNotNull('capacity')->avg('capacity') ?? 0, 2),
+            'delivered_count'        => (clone $baseQuery)->where('delivery_status', 'LIVRE')->count(),
+            'not_delivered_count'    => (clone $baseQuery)->where('delivery_status', 'NON_LIVRE')->count(),
         ];
 
         return $this->sendResponse($statistics, 'General statistics retrieved successfully');
@@ -127,8 +141,7 @@ class ContainerController extends BaseController
     {
         $tenantId   = auth()->user()->tenant_id;
         $containers = Container::where('tenant_id', $tenantId)
-            ->whereNotNull('capacity_min')
-            ->whereNotNull('capacity_max')
+            ->whereNotNull('capacity')
             ->get();
 
         $ranges = [
@@ -140,9 +153,8 @@ class ContainerController extends BaseController
         ];
 
         foreach ($containers as $container) {
-            $avgCapacity = ($container->capacity_min + $container->capacity_max) / 2;
             foreach ($ranges as &$range) {
-                if ($avgCapacity >= $range['min'] && $avgCapacity <= $range['max']) {
+                if ($container->capacity >= $range['min'] && $container->capacity <= $range['max']) {
                     $range['count']++;
                     break;
                 }
@@ -157,16 +169,13 @@ class ContainerController extends BaseController
         $tenantId  = auth()->user()->tenant_id;
         $baseQuery = Container::where('tenant_id', $tenantId);
 
-        $withPhotos    = (clone $baseQuery)->whereHas('photos')->count();
-        $withoutPhotos = (clone $baseQuery)->whereDoesntHave('photos')->count();
-        $total         = $withPhotos + $withoutPhotos;
+        $delivered    = (clone $baseQuery)->where('delivery_status', 'LIVRE')->count();
+        $notDelivered = (clone $baseQuery)->where('delivery_status', 'NON_LIVRE')->count();
+        $total        = $delivered + $notDelivered;
 
         $statistics = [
-            ['label' => 'Avec photos',       'count' => $withPhotos,    'percentage' => $total > 0 ? round(($withPhotos / $total) * 100, 2) : 0],
-            ['label' => 'Sans photos',       'count' => $withoutPhotos, 'percentage' => $total > 0 ? round(($withoutPhotos / $total) * 100, 2) : 0],
-            ['label' => 'Taux faible (<5%)', 'count' => (clone $baseQuery)->where('interest_rate', '<', 5)->count(),            'percentage' => 0],
-            ['label' => 'Taux moyen (5-10%)','count' => (clone $baseQuery)->whereBetween('interest_rate', [5, 10])->count(),    'percentage' => 0],
-            ['label' => 'Taux élevé (>10%)', 'count' => (clone $baseQuery)->where('interest_rate', '>', 10)->count(),           'percentage' => 0],
+            ['label' => 'Livrés', 'count' => $delivered, 'percentage' => $total > 0 ? round(($delivered / $total) * 100, 2) : 0],
+            ['label' => 'Non livrés', 'count' => $notDelivered, 'percentage' => $total > 0 ? round(($notDelivered / $total) * 100, 2) : 0],
         ];
 
         return $this->sendResponse($statistics, 'Status statistics retrieved successfully');
@@ -211,7 +220,7 @@ class ContainerController extends BaseController
             ->withCount('photos')
             ->orderBy('photos_count', 'desc')
             ->limit($limit)
-            ->get(['id', 'container_number', 'capacity_min', 'capacity_max', 'interest_rate']);
+            ->get(['id', 'container_number', 'shipping_number', 'capacity', 'delivery_status']);
 
         $recentlyActive = Container::where('tenant_id', $tenantId)
             ->orderBy('updated_at', 'desc')
@@ -233,5 +242,28 @@ class ContainerController extends BaseController
             'year'    => 365,
             default   => 30,
         };
+    }
+
+    private function generateNextContainerNumber(): string
+    {
+        $year = now()->format('y');
+        $prefix = 'CNT' . $year;
+
+        $lastContainerNumber = DB::table('containers')
+            ->where('container_number', 'like', $prefix . '%')
+            ->orderByDesc('id')
+            ->value('container_number');
+
+        $lastSequence = 0;
+        if ($lastContainerNumber && preg_match('/^' . preg_quote($prefix, '/') . '(\d{3,})$/i', $lastContainerNumber, $matches)) {
+            $lastSequence = (int) $matches[1];
+        }
+
+        do {
+            $lastSequence++;
+            $candidate = sprintf('%s%03d', $prefix, $lastSequence);
+        } while (DB::table('containers')->where('container_number', $candidate)->exists());
+
+        return $candidate;
     }
 }

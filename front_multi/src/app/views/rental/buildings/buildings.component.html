@@ -16,7 +16,7 @@
           </span>
         </p>
       </div>
-      <button class="btn btn-light fw-semibold d-flex align-items-center gap-2"
+      <button *ngIf="canCreateBuildings" class="btn btn-light fw-semibold d-flex align-items-center gap-2"
         style="border-radius:10px;font-size:.88rem"
         (click)="openCreateModal()">
         <svg cIcon name="cilPlus" size="sm"></svg>
@@ -86,12 +86,12 @@
             </td>
             <td class="py-3 text-center pe-4">
               <div class="d-flex align-items-center justify-content-center gap-1">
-                <button class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1"
+                <button *ngIf="canEditBuildings" class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1"
                   style="border-radius:8px;font-size:.78rem"
                   (click)="openEditModal(item)">
                   <svg cIcon name="cilPencil" size="sm"></svg>
                 </button>
-                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                <button *ngIf="canDeleteBuildings" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
                   style="border-radius:8px;font-size:.78rem"
                   (click)="confirmDelete(item)">
                   <svg cIcon name="cilTrash" size="sm"></svg>
@@ -172,7 +172,7 @@
   </c-modal-body>
   <c-modal-footer class="border-top d-flex justify-content-end gap-2">
     <button class="btn btn-outline-secondary" style="border-radius:8px" (click)="showFormModal = false">Annuler</button>
-    <button class="btn btn-primary" style="border-radius:8px" (click)="save()">
+    <button *ngIf="editMode ? canEditBuildings : canCreateBuildings" class="btn btn-primary" style="border-radius:8px" (click)="save()">
       {{ editMode ? 'Mettre à jour' : 'Créer le bâtiment' }}
     </button>
   </c-modal-footer>
@@ -196,6 +196,6 @@
   </c-modal-body>
   <c-modal-footer class="border-top d-flex justify-content-end gap-2">
     <button class="btn btn-outline-secondary" style="border-radius:8px" (click)="deleteModalOpen = false">Annuler</button>
-    <button class="btn btn-danger" style="border-radius:8px" (click)="deleteItem()">Supprimer</button>
+    <button *ngIf="canDeleteBuildings" class="btn btn-danger" style="border-radius:8px" (click)="deleteItem()">Supprimer</button>
   </c-modal-footer>
 </c-modal>

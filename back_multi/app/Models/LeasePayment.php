@@ -8,7 +8,7 @@ class LeasePayment extends Model
 {
     protected $fillable = [
         'tenant_id', 'lease_id', 'period_month', 'amount', 'currency',
-        'payment_date', 'payment_method', 'reference', 'status', 'notes',
+        'payment_date', 'payment_method', 'reference', 'receipt_number', 'status', 'notes',
     ];
 
     protected $casts = [

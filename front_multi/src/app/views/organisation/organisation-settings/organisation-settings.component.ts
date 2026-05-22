@@ -94,7 +94,7 @@ export class OrganisationSettingsComponent implements OnInit {
           this.clearMessages();
         }
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur lors de la sauvegarde'; }
+      error: (err) => { this.error = err.message || 'Erreur lors de la sauvegarde'; }
     });
   }
 

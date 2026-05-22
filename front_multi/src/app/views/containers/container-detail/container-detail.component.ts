@@ -219,7 +219,7 @@ export class ContainerDetailComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de l\'upload de la photo';
+        this.error = err.message || 'Erreur lors de l\'upload de la photo';
         this.uploadingPhoto = false;
         this.cdr.detectChanges();
       }

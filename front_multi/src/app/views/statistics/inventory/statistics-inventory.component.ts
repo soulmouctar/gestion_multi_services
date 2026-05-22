@@ -48,13 +48,14 @@ export class StatisticsInventoryComponent implements OnInit, OnDestroy {
       next: (results) => {
         if (results.productStats.success && results.productStats.data) {
           const ps = results.productStats.data;
-          this.stats.totalProducts    = ps.total_products  ?? ps.total        ?? 0;
-          this.stats.lowStockProducts = ps.low_stock_count ?? ps.low_stock    ?? 0;
-          this.stats.totalValue       = ps.total_value     ?? ps.stock_value  ?? 0;
-          this.stats.activeProducts   = ps.active_count    ?? ps.active       ?? 0;
-          this.stats.inactiveProducts = ps.inactive_count  ?? ps.inactive     ?? 0;
+          this.stats.totalProducts    = ps.total_products       ?? ps.total        ?? 0;
+          this.stats.lowStockProducts = ps.low_stock_products   ?? ps.low_stock    ?? 0;
+          this.stats.totalValue       = ps.total_stock_value    ?? ps.stock_value  ?? 0;
+          this.stats.activeProducts   = ps.active_products      ?? ps.active       ?? 0;
+          this.stats.inactiveProducts = ps.inactive_products    ?? ps.inactive     ?? 0;
           this.stats.discontinuedProducts = ps.discontinued_products ?? ps.discontinued ?? 0;
           this.stats.outOfStockProducts   = ps.out_of_stock_products ?? ps.out_of_stock ?? 0;
+          this.stats.totalCategories      = ps.categories_count  ?? this.stats.totalCategories;
         }
         if (results.lowStock.success) {
           const raw = results.lowStock.data;

@@ -17,6 +17,18 @@
     </div>
   </div>
 
+  <div *ngIf="isSuperAdmin" class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-md-5 col-lg-4">
+        <label cLabel class="small fw-semibold text-muted mb-1">Organisation à gérer</label>
+        <select cSelect [(ngModel)]="selectedTenantId" (change)="onTenantChange()" style="border-radius:8px">
+          <option [ngValue]="null">Sélectionnez un tenant</option>
+          <option *ngFor="let tenant of tenants; trackBy: trackById" [ngValue]="tenant.id">{{ tenant.name }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
   <!-- Statistiques du mois -->
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">

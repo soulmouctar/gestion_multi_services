@@ -7,7 +7,7 @@
         <h4 class="mb-1 fw-bold" style="font-size:1.4rem">👥 Gestion des Utilisateurs</h4>
         <p class="mb-0" style="opacity:.8;font-size:.875rem">{{ filteredUsers.length }} utilisateur(s) affiché(s) sur {{ users.length }} total</p>
       </div>
-      <button cButton color="light" (click)="openUserModal()" [disabled]="loading"
+      <button *ngIf="canCreateUsers" cButton color="light" (click)="openUserModal()" [disabled]="loading"
         style="background:white;color:#1a237e;border:none;border-radius:10px;font-weight:700;padding:10px 22px">
         + Nouvel Utilisateur
       </button>
@@ -124,7 +124,7 @@
                   <span style="background:#cfe2ff;color:#0a58ca;border-radius:50px;padding:4px 12px;font-size:.75rem;font-weight:700">
                     {{ getUserModuleCount(user) }} module(s)
                   </span>
-                  <button cButton size="sm" color="info" variant="outline"
+                  <button *ngIf="canManagePermissions" cButton size="sm" color="info" variant="outline"
                     (click)="openPermissionModal(user)" [disabled]="loading"
                     title="Gérer les permissions" style="border-radius:8px;padding:4px 10px;font-size:.75rem">
                     <svg cIcon name="cil-settings" size="sm"></svg>
@@ -134,17 +134,17 @@
               <!-- Actions -->
               <td style="padding:14px 20px;text-align:right">
                 <div class="d-flex gap-2 justify-content-end">
-                  <button cButton size="sm" color="warning" variant="outline"
+                  <button *ngIf="canEditUsers" cButton size="sm" color="warning" variant="outline"
                     (click)="openUserModal(user)" [disabled]="loading"
                     title="Modifier l'utilisateur" style="border-radius:8px">
                     <svg cIcon name="cil-pencil" size="sm"></svg>
                   </button>
-                  <button cButton size="sm" color="primary" variant="outline"
+                  <button *ngIf="canChangePasswords" cButton size="sm" color="primary" variant="outline"
                     (click)="openPasswordModal(user)" [disabled]="loading"
                     title="Modifier le mot de passe" style="border-radius:8px">
                     <svg cIcon name="cil-lock-locked" size="sm"></svg>
                   </button>
-                  <button cButton size="sm" color="danger" variant="outline"
+                  <button *ngIf="canDeleteUsers" cButton size="sm" color="danger" variant="outline"
                     (click)="deleteUser(user)" [disabled]="loading"
                     title="Supprimer l'utilisateur" style="border-radius:8px">
                     <svg cIcon name="cil-trash" size="sm"></svg>
@@ -172,7 +172,7 @@
         <!-- Photo de profil -->
         <div class="col-12">
           <label class="form-label fw-semibold small">Photo de profil</label>
-          <input type="file" #photoInput class="d-none" accept="image/jpeg,image/png,image/jpg,image/gif"
+          <input type="file" #photoInput class="d-none" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
                  (change)="onPhotoSelected($event)" />
           <div class="d-flex align-items-center gap-3 p-3 rounded-3"
                style="background:#f8fafc;border:1px solid #e2e8f0;">
@@ -191,7 +191,7 @@
               <div class="fw-semibold mb-1" style="font-size:.85rem;color:#1e293b;">
                 {{ photoPreview ? 'Photo sélectionnée' : 'Aucune photo sélectionnée' }}
               </div>
-              <div class="text-muted mb-2" style="font-size:.75rem;">Formats : JPG, PNG, GIF — max 2 MB</div>
+              <div class="text-muted mb-2" style="font-size:.75rem;">Formats : JPG, PNG, GIF, WebP — max 4 MB</div>
               <div class="d-flex gap-2">
                 <button type="button" (click)="triggerPhotoInput(photoInput)"
                         style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe;border-radius:8px;
@@ -257,7 +257,7 @@
   </c-modal-body>
   <c-modal-footer style="border-top:1px solid #f0f0f0">
     <button cButton color="secondary" (click)="closeUserModal()" [disabled]="loading">Annuler</button>
-    <button cButton color="primary" (click)="onSubmitUser()" [disabled]="loading"
+    <button *ngIf="editMode ? canEditUsers : canCreateUsers" cButton color="primary" (click)="onSubmitUser()" [disabled]="loading"
       style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       {{ editMode ? 'Enregistrer' : 'Créer' }}
@@ -296,7 +296,7 @@
   </c-modal-body>
   <c-modal-footer style="border-top:1px solid #f0f0f0">
     <button cButton color="secondary" (click)="closePasswordModal()" [disabled]="loading">Annuler</button>
-    <button cButton color="primary" (click)="onSubmitPassword()" [disabled]="loading"
+    <button *ngIf="canChangePasswords" cButton color="primary" (click)="onSubmitPassword()" [disabled]="loading"
       style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       Enregistrer
@@ -336,14 +336,14 @@
             </td>
             <td class="py-3 text-end">
               <div class="d-flex gap-2 justify-content-end">
-                <button cButton size="sm"
+                <button *ngIf="canManagePermissions" cButton size="sm"
                   [color]="module.is_active ? 'warning' : 'success'"
                   variant="outline"
                   (click)="toggleModuleAccess(module)" [disabled]="loading"
                   style="border-radius:8px;font-size:.75rem">
                   {{ module.is_active ? 'Désactiver' : 'Activer' }}
                 </button>
-                <button *ngIf="module.is_active" cButton size="sm" color="info" variant="outline"
+                <button *ngIf="module.is_active && canManageRoles" cButton size="sm" color="info" variant="outline"
                   (click)="openRoleModal(module)" [disabled]="loading"
                   style="border-radius:8px;font-size:.75rem">
                   Permissions
@@ -357,7 +357,7 @@
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="closePermissionModal()" [disabled]="loading">Fermer</button>
-    <button cButton color="primary" (click)="savePermissions()" [disabled]="loading"
+    <button *ngIf="canManagePermissions" cButton color="primary" (click)="savePermissions()" [disabled]="loading"
       style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;font-weight:600">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       Sauvegarder

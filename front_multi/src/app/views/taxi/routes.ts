@@ -9,36 +9,43 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () => import('./taxi-dashboard/taxi-dashboard.component').then(m => m.TaxiDashboardComponent),
-    title: 'Tableau de Bord Taxi'
+    title: 'Tableau de Bord Taxi',
+    data: { module: 'TAXI', permission: 'view' }
   },
   {
     path: 'vehicles',
     loadComponent: () => import('./vehicles/taxi-list.component').then(m => m.TaxiListComponent),
-    title: 'Véhicules Taxi'
+    title: 'Véhicules Taxi',
+    data: { module: 'TAXI', permission: 'view' }
   },
   {
     path: 'drivers',
     loadComponent: () => import('./drivers/drivers.component').then(m => m.DriversComponent),
-    title: 'Conducteurs'
+    title: 'Conducteurs',
+    data: { module: 'TAXI', permission: 'view' }
   },
   {
     path: 'assignments',
     loadComponent: () => import('./taxi-assignments/taxi-assignments.component').then(m => m.TaxiAssignmentsComponent),
-    title: 'Affectations Taxi-Conducteur'
+    title: 'Affectations Taxi-Conducteur',
+    data: { module: 'TAXI', permission: 'view' }
   },
   {
     path: 'daily-payments',
     loadComponent: () => import('./daily-payments/daily-payments.component').then(m => m.DailyPaymentsComponent),
-    title: 'Versements Journaliers'
+    title: 'Versements Journaliers',
+    data: { module: 'TAXI', permission: 'view' }
   },
   {
     path: 'vehicle-expenses',
     loadComponent: () => import('./vehicle-expenses/vehicle-expenses.component').then(m => m.VehicleExpensesComponent),
-    title: 'Dépenses Véhicules'
+    title: 'Dépenses Véhicules',
+    data: { module: 'TAXI', permission: 'view' }
   },
   {
     path: 'documents',
     loadComponent: () => import('./taxi-documents/taxi-documents.component').then(m => m.TaxiDocumentsComponent),
-    title: 'Documents & Assurances'
+    title: 'Documents & Assurances',
+    data: { module: 'TAXI', permission: 'view' }
   }
 ];

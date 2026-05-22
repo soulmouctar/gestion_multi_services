@@ -157,6 +157,29 @@ export class ClientAccountComponent implements OnInit {
     return `${this.formatAmount(amount, currency)} (≈ ${this.formatAmount(gnfAmount, 'GNF')})`;
   }
 
+  resolveStoredGnf(amount: number, currency: string, storedGnf?: number | null, exchangeRate?: number | null): number {
+    if (storedGnf !== null && storedGnf !== undefined && Number(storedGnf) > 0) {
+      return Number(storedGnf);
+    }
+    if (currency === 'GNF') {
+      return amount || 0;
+    }
+    if (exchangeRate && Number(exchangeRate) > 0) {
+      return Number(amount || 0) * Number(exchangeRate);
+    }
+    return this.convertToGNF(amount || 0, currency || 'GNF');
+  }
+
+  getConversionLabel(amount: number, currency: string, storedGnf?: number | null, exchangeRate?: number | null): string {
+    const code = currency || 'GNF';
+    if (code === 'GNF') {
+      return 'Montant saisi en GNF';
+    }
+    const gnfAmount = this.resolveStoredGnf(amount, code, storedGnf, exchangeRate);
+    const rate = exchangeRate && Number(exchangeRate) > 0 ? Number(exchangeRate) : this.exchangeRates[code] || 1;
+    return `Taux du jour: ${rate} | Équiv. GNF: ${this.formatAmount(gnfAmount, 'GNF')}`;
+  }
+
   getStatusColor(status: string): string {
     const colors: { [key: string]: string } = {
       'EN_COURS': 'warning',
@@ -185,8 +208,8 @@ export class ClientAccountComponent implements OnInit {
 
   getPaymentProgress(sale: any): number {
     if (!sale.sale_price || sale.sale_price === 0) return 0;
-    const amountPaidGNF = this.convertToGNF(sale.amount_paid || 0, sale.currency || 'GNF');
-    const salePriceGNF = this.convertToGNF(sale.sale_price, sale.currency || 'GNF');
+    const amountPaidGNF = this.resolveStoredGnf(sale.amount_paid || 0, sale.currency || 'GNF', sale.amount_paid_gnf, sale.exchange_rate);
+    const salePriceGNF = this.resolveStoredGnf(sale.sale_price, sale.currency || 'GNF', sale.sale_price_gnf, sale.exchange_rate);
     return Math.round((amountPaidGNF / salePriceGNF) * 100);
   }
   trackById(_index: number, item: any): any {

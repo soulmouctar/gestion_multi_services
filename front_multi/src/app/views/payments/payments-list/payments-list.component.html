@@ -1,44 +1,65 @@
 <div class="p-3 p-md-4">
 
   <!-- Header -->
-  <div class="rounded-3 p-4 mb-4 text-white d-flex align-items-center justify-content-between"
-       style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);">
-    <div>
-      <h4 class="fw-bold mb-1">Gestion des Paiements &amp; Reçus</h4>
-      <p class="mb-0 opacity-75 small">Suivi complet des paiements, reçus et soldes clients</p>
+  <div class="rounded-4 mb-4 px-4 py-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
+       style="background:linear-gradient(135deg,#111827 0%,#0f3460 60%,#1d4ed8 100%);">
+    <div class="d-flex align-items-center gap-3">
+      <img src="/assets/images/logo/mat_kolla_hd.png" alt="Logo" style="height:40px;width:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.12);padding:4px;" />
+      <div>
+        <h4 class="mb-0 fw-bold text-white">Paiements &amp; Reçus</h4>
+        <p class="mb-0 small" style="color:rgba(255,255,255,.65);">Suivi des paiements, reçus et soldes clients</p>
+      </div>
     </div>
-    <div class="d-flex gap-2">
-      <button cButton color="success" size="sm" (click)="openCreateModal()" style="border-radius:8px">
-        <svg cIcon name="cilPlus" class="me-1" size="sm"></svg> Nouveau paiement
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-sm fw-semibold"
+              style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:7px 16px;"
+              (click)="exportPayments()">
+        <svg cIcon name="cilCloudDownload" style="width:14px;height:14px;" class="me-1"></svg> Exporter CSV
       </button>
-      <button cButton color="light" size="sm" (click)="exportPayments()" style="border-radius:8px">
-        <svg cIcon name="cilCloudDownload" class="me-1" size="sm"></svg> Exporter
+      <button class="btn btn-sm fw-semibold"
+              style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:7px 16px;"
+              (click)="exportAllClientsPdf()" [disabled]="pdfLoading" title="Situation de tous les clients">
+        <svg cIcon name="cilPeople" style="width:14px;height:14px;" class="me-1"></svg> Clients PDF
+      </button>
+      <button class="btn btn-sm fw-semibold"
+              style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:7px 16px;"
+              (click)="exportAllSuppliersPdf()" [disabled]="pdfLoading" title="Situation de tous les fournisseurs">
+        <svg cIcon name="cilTruck" style="width:14px;height:14px;" class="me-1"></svg> Fournisseurs PDF
+      </button>
+      <button class="btn btn-sm fw-semibold"
+              style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:7px 16px;"
+              (click)="exportTenantPositionPdf()" [disabled]="pdfLoading" title="Position globale du tenant vs consignataires">
+        <svg cIcon name="cilChartPie" style="width:14px;height:14px;" class="me-1"></svg> Position Tenant
+      </button>
+      <button class="btn btn-sm fw-semibold"
+              style="background:#10B981;color:#fff;border:none;border-radius:8px;padding:7px 18px;"
+              (click)="openCreateModal()">
+        <svg cIcon name="cilPlus" style="width:14px;height:14px;" class="me-1"></svg> Nouveau paiement
       </button>
     </div>
   </div>
 
   <!-- Filtres -->
-  <div class="bg-white rounded-3 p-3 mb-4" style="border:1px solid #f0f0f0;">
+  <div class="mb-4 p-3 rounded-3" style="background:#fff;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.04);">
     <form [formGroup]="filterForm">
       <div class="row g-2 align-items-end">
         <div class="col-12 col-md-3">
-          <label cLabel class="small fw-semibold text-muted mb-1">Recherche</label>
-          <input cFormControl type="text" formControlName="search" placeholder="N° reçu, client, référence..."
-                 style="border-radius:8px" />
+          <label class="form-label small fw-semibold text-muted mb-1">Recherche</label>
+          <input cFormControl type="text" formControlName="search" placeholder="N° reçu, référence..." style="border-radius:8px;" />
         </div>
         <div class="col-6 col-md-2">
-          <label cLabel class="small fw-semibold text-muted mb-1">Type</label>
-          <select cSelect formControlName="type" style="border-radius:8px">
+          <label class="form-label small fw-semibold text-muted mb-1">Type</label>
+          <select cSelect formControlName="type" style="border-radius:8px;">
             <option value="">Tous</option>
-            <option value="CLIENT">Paiement Client</option>
+            <option value="CLIENT">Client</option>
             <option value="SUPPLIER">Fournisseur</option>
             <option value="DEPOT">Dépôt</option>
             <option value="RETRAIT">Retrait</option>
           </select>
         </div>
         <div class="col-6 col-md-2">
-          <label cLabel class="small fw-semibold text-muted mb-1">Méthode</label>
-          <select cSelect formControlName="method" style="border-radius:8px">
+          <label class="form-label small fw-semibold text-muted mb-1">Méthode</label>
+          <select cSelect formControlName="method" style="border-radius:8px;">
             <option value="">Toutes</option>
             <option value="ESPECES">Espèces</option>
             <option value="ORANGE_MONEY">Orange Money</option>
@@ -49,8 +70,8 @@
           </select>
         </div>
         <div class="col-6 col-md-1">
-          <label cLabel class="small fw-semibold text-muted mb-1">Statut</label>
-          <select cSelect formControlName="status" style="border-radius:8px">
+          <label class="form-label small fw-semibold text-muted mb-1">Statut</label>
+          <select cSelect formControlName="status" style="border-radius:8px;">
             <option value="">Tous</option>
             <option value="COMPLETED">Complété</option>
             <option value="PENDING">En attente</option>
@@ -58,198 +79,182 @@
             <option value="CANCELLED">Annulé</option>
           </select>
         </div>
-        <div class="col-6 col-md-1">
-          <label cLabel class="small fw-semibold text-muted mb-1">Date début</label>
-          <input cFormControl type="date" formControlName="date_from" style="border-radius:8px" />
-        </div>
-        <div class="col-6 col-md-1">
-          <label cLabel class="small fw-semibold text-muted mb-1">Date fin</label>
-          <input cFormControl type="date" formControlName="date_to" style="border-radius:8px" />
+        <div class="col-6 col-md-2">
+          <label class="form-label small fw-semibold text-muted mb-1">Période</label>
+          <div class="d-flex gap-1">
+            <input cFormControl type="date" formControlName="date_from" style="border-radius:8px;font-size:.8rem;" />
+            <input cFormControl type="date" formControlName="date_to" style="border-radius:8px;font-size:.8rem;" />
+          </div>
         </div>
         <div class="col-12 col-md-2 d-flex gap-2">
-          <button cButton color="primary" size="sm" (click)="applyFilters()" class="flex-fill" style="border-radius:8px">
-            <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+          <button type="button" class="btn btn-primary btn-sm flex-fill" style="border-radius:8px;" (click)="applyFilters()">
+            <svg cIcon name="cilMagnifyingGlass" style="width:13px;height:13px;" class="me-1"></svg> Filtrer
           </button>
-          <button cButton color="secondary" variant="outline" size="sm" (click)="resetFilters()" class="flex-fill" style="border-radius:8px" title="Réinitialiser">
-            <svg cIcon name="cilReload" size="sm"></svg>
+          <button type="button" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;" (click)="resetFilters()" title="Réinitialiser">
+            <svg cIcon name="cilReload" style="width:13px;height:13px;"></svg>
           </button>
         </div>
       </div>
     </form>
   </div>
 
-  <!-- Alerte erreur -->
-  <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null" class="mb-3">{{ error }}</c-alert>
+  <!-- Erreur -->
+  <div *ngIf="error" class="alert alert-danger py-2 mb-3 d-flex justify-content-between align-items-center" style="border-radius:8px;">
+    <span>{{ error }}</span>
+    <button type="button" class="btn-close btn-sm" (click)="error = null"></button>
+  </div>
 
-  <!-- Actions groupées -->
+  <!-- Sélection multiple -->
   <div class="mb-3" *ngIf="selectedPayments.size > 0">
-    <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:#FEE2E2; border:1px solid #FCA5A5;">
+    <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:#FEF2F2;border:1px solid #FECACA;">
       <span class="small fw-semibold" style="color:#EF4444;">{{ selectedPayments.size }} sélectionné(s)</span>
-      <button cButton color="danger" size="sm" (click)="deleteSelected()" style="border-radius:8px">
-        <svg cIcon name="cilTrash" class="me-1" size="sm"></svg> Supprimer
+      <button class="btn btn-danger btn-sm" style="border-radius:8px;" (click)="deleteSelected()">
+        <svg cIcon name="cilTrash" style="width:13px;height:13px;" class="me-1"></svg> Supprimer
       </button>
     </div>
   </div>
 
   <!-- Tableau -->
-  <div class="bg-white rounded-3" style="border:1px solid #f0f0f0;">
+  <div style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;">
 
     <div *ngIf="loading" class="text-center py-5">
-      <c-spinner color="primary"></c-spinner>
-      <p class="text-muted mt-2 small">Chargement...</p>
+      <div class="spinner-border text-primary" style="width:2rem;height:2rem;" role="status"></div>
+      <p class="mt-2 text-muted small">Chargement des paiements…</p>
     </div>
 
     <div *ngIf="!loading" class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead style="background:#f8fafc;">
-          <tr>
-            <th class="px-3 py-3" style="width:40px;">
+      <table class="table table-hover align-middle mb-0" style="font-size:13px;">
+        <thead>
+          <tr style="background:#F9FAFB;border-bottom:2px solid #F3F4F6;">
+            <th class="py-3 px-3" style="width:36px;">
               <input type="checkbox" class="form-check-input" [checked]="selectAll" (change)="toggleSelectAll()" />
             </th>
-            <th class="px-3 py-3 small fw-semibold text-muted">N° Reçu</th>
-            <th class="px-3 py-3 small fw-semibold text-muted">Client</th>
-            <th class="px-3 py-3 small fw-semibold text-muted">Type</th>
-            <th class="px-3 py-3 small fw-semibold text-muted">Méthode</th>
-            <th class="px-3 py-3 small fw-semibold text-muted text-end">Montant</th>
-            <th class="px-3 py-3 small fw-semibold text-muted">Facture / Solde restant</th>
-            <th class="px-3 py-3 small fw-semibold text-muted">Statut</th>
-            <th class="px-3 py-3 small fw-semibold text-muted">Date</th>
-            <th class="px-3 py-3 small fw-semibold text-muted text-center">Actions</th>
+            <th class="py-3 px-3 small fw-semibold" style="color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">N° Reçu</th>
+            <th class="py-3 px-3 small fw-semibold" style="color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">Client</th>
+            <th class="py-3 px-3 small fw-semibold" style="color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">Type</th>
+            <th class="py-3 px-3 small fw-semibold" style="color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">Méthode</th>
+            <th class="py-3 px-3 small fw-semibold text-end" style="color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">Montant</th>
+            <th class="py-3 px-3 small fw-semibold" style="color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">Facture</th>
+            <th class="py-3 px-3 small fw-semibold" style="color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">Statut</th>
+            <th class="py-3 px-3 small fw-semibold" style="color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">Date</th>
+            <th class="py-3 px-3 small fw-semibold text-center" style="color:#6B7280;text-transform:uppercase;letter-spacing:.4px;width:130px;">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let payment of payments; trackBy: trackById">
+          <tr *ngFor="let p of payments; trackBy: trackById" style="border-color:#F3F4F6;">
             <td class="px-3">
-              <input type="checkbox" class="form-check-input"
-                     [checked]="isSelected(payment.id)" (change)="toggleSelection(payment.id)" />
+              <input type="checkbox" class="form-check-input" [checked]="isSelected(p.id)" (change)="toggleSelection(p.id)" />
             </td>
-
-            <!-- N° Reçu -->
             <td class="px-3">
-              <span class="fw-semibold small" style="color:#0f3460; font-family:monospace;">
-                {{ payment.receipt_number || '—' }}
-              </span>
+              <span class="fw-semibold" style="font-family:monospace;color:#0f3460;font-size:12px;">{{ p.receipt_number || '—' }}</span>
             </td>
-
-            <!-- Client -->
-            <td class="px-3 small">
-              <ng-container *ngIf="payment.client; else noClient">
-                <div class="fw-semibold">{{ payment.client.name }}</div>
-                <div class="text-muted" style="font-size:11px;">{{ payment.client.phone }}</div>
+            <td class="px-3">
+              <ng-container *ngIf="p.client; else noClient">
+                <div class="fw-semibold" style="color:#111827;">{{ p.client.name }}</div>
+                <div class="small text-muted" style="font-size:11px;">{{ p.client.phone }}</div>
               </ng-container>
               <ng-template #noClient><span class="text-muted">—</span></ng-template>
             </td>
-
-            <!-- Type -->
             <td class="px-3">
-              <span class="badge px-2 py-1 small fw-semibold"
-                    [style.background]="isIncoming(payment.type) ? '#ECFDF5' : '#FEE2E2'"
-                    [style.color]="isIncoming(payment.type) ? '#10B981' : '#EF4444'">
-                {{ getTypeLabel(payment.type) }}
+              <span class="rounded-2 px-2 py-1 small fw-semibold"
+                    [style.background]="isIncoming(p.type) ? '#ECFDF5' : '#FEE2E2'"
+                    [style.color]="isIncoming(p.type) ? '#10B981' : '#EF4444'">
+                {{ getTypeLabel(p.type) }}
               </span>
             </td>
-
-            <!-- Méthode -->
-            <td class="px-3 small">{{ getMethodLabel(payment.method) }}</td>
-
-            <!-- Montant -->
-            <td class="px-3 text-end fw-bold" [style.color]="isIncoming(payment.type) ? '#10B981' : '#EF4444'">
-              {{ isIncoming(payment.type) ? '+' : '−' }}{{ payment.amount | number:'1.0-0' }}
-              <span class="text-muted fw-normal" style="font-size:11px;"> {{ payment.currency }}</span>
-              <div class="small text-muted fw-normal" *ngIf="payment.amount_gnf && payment.currency !== 'GNF'">
-                ≈ {{ payment.amount_gnf | number:'1.0-0' }} GNF
+            <td class="px-3 small text-muted">{{ getMethodLabel(p.method) }}</td>
+            <td class="px-3 text-end">
+              <div class="fw-bold" [style.color]="isIncoming(p.type) ? '#10B981' : '#EF4444'">
+                {{ isIncoming(p.type) ? '+' : '−' }}{{ p.amount | number:'1.0-0' }}
+                <span class="text-muted fw-normal ms-1" style="font-size:11px;">{{ p.currency }}</span>
+              </div>
+              <div class="small text-muted" *ngIf="p.amount_gnf && p.currency !== 'GNF'" style="font-size:11px;">
+                ≈ {{ p.amount_gnf | number:'1.0-0' }} GNF
               </div>
             </td>
-
-            <!-- Facture & solde -->
             <td class="px-3 small">
-              <ng-container *ngIf="payment.invoice; else noInvoice">
-                <div class="fw-semibold">{{ payment.invoice.invoice_number }}</div>
+              <ng-container *ngIf="p.invoice; else noInv">
+                <div class="fw-semibold" style="color:#374151;">{{ p.invoice.invoice_number }}</div>
                 <div class="d-flex align-items-center gap-1 mt-1">
-                  <span class="badge px-1 py-0" style="font-size:10px;"
-                        [style.background]="getInvoiceStatusColor(payment.invoice.status) + '20'"
-                        [style.color]="getInvoiceStatusColor(payment.invoice.status)">
-                    {{ getInvoiceStatusLabel(payment.invoice.status) }}
+                  <span class="rounded-2 px-1" style="font-size:10px;"
+                        [style.background]="getInvoiceStatusColor(p.invoice.status) + '20'"
+                        [style.color]="getInvoiceStatusColor(p.invoice.status)">
+                    {{ getInvoiceStatusLabel(p.invoice.status) }}
                   </span>
-                  <span *ngIf="payment.invoice.remaining_balance > 0" style="font-size:11px; color:#EF4444;">
-                    Reste: {{ payment.invoice.remaining_balance | number:'1.0-0' }} {{ payment.currency }}
+                  <span *ngIf="p.invoice.remaining_balance > 0" style="font-size:11px;color:#EF4444;">
+                    Reste: {{ p.invoice.remaining_balance | number:'1.0-0' }}
                   </span>
                 </div>
               </ng-container>
-              <ng-template #noInvoice>
-                <span class="text-muted">Versement au compte client</span>
-              </ng-template>
+              <ng-template #noInv><span class="text-muted">Versement compte</span></ng-template>
             </td>
-
-            <!-- Statut paiement -->
             <td class="px-3">
-              <span class="badge px-2 py-1 small"
-                    [style.background]="getStatusBadgeColor(payment.status) + '20'"
-                    [style.color]="getStatusBadgeColor(payment.status)">
-                {{ getStatusLabel(payment.status) }}
+              <span class="rounded-2 px-2 py-1 small fw-semibold"
+                    [style.background]="getStatusBg(p.status)"
+                    [style.color]="getStatusColor(p.status)">
+                {{ getStatusLabel(p.status) }}
               </span>
             </td>
-
-            <!-- Date -->
-            <td class="px-3 small">{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
-
-            <!-- Actions -->
-            <td class="px-3 text-center">
+            <td class="px-3 small text-muted">{{ p.payment_date | date:'dd/MM/yyyy' }}</td>
+            <td class="px-3">
               <div class="d-flex gap-1 justify-content-center">
-                <button cButton color="success" variant="outline" size="sm" title="Détail du reçu"
-                        (click)="openReceiptDetail(payment)" style="border-radius:6px">
-                  <svg cIcon name="cilSearch" size="sm"></svg>
+                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                        style="width:30px;height:30px;padding:0;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;border-radius:7px;"
+                        (click)="openReceiptDetail(p)" title="Détail">
+                  <svg cIcon name="cilSearch" style="width:13px;height:13px;"></svg>
                 </button>
-                <button cButton color="primary" variant="outline" size="sm" title="Voir le reçu"
-                        (click)="viewReceipt(payment)" style="border-radius:6px">
-                  <svg cIcon name="cilPrint" size="sm"></svg>
+                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                        style="width:30px;height:30px;padding:0;background:#EFF6FF;color:#2563EB;border:1px solid #93C5FD;border-radius:7px;"
+                        (click)="viewReceipt(p)" title="Reçu">
+                  <svg cIcon name="cilPrint" style="width:13px;height:13px;"></svg>
                 </button>
-                <button cButton color="info" variant="outline" size="sm" title="Solde client"
-                        *ngIf="payment.client_id"
-                        (click)="viewClientBalance(payment)" style="border-radius:6px">
-                  <svg cIcon name="cilBalanceScale" size="sm"></svg>
+                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                        *ngIf="p.client_id"
+                        style="width:30px;height:30px;padding:0;background:#F0F9FF;color:#0891B2;border:1px solid #BAE6FD;border-radius:7px;"
+                        (click)="viewClientBalance(p)" title="Solde client">
+                  <svg cIcon name="cilBalanceScale" style="width:13px;height:13px;"></svg>
                 </button>
-                <button cButton color="warning" variant="outline" size="sm" title="Modifier"
-                        (click)="openEditModal(payment)" style="border-radius:6px">
-                  <svg cIcon name="cilPencil" size="sm"></svg>
+                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                        style="width:30px;height:30px;padding:0;background:#FFFBEB;color:#D97706;border:1px solid #FDE68A;border-radius:7px;"
+                        (click)="openEditModal(p)" title="Modifier">
+                  <svg cIcon name="cilPencil" style="width:13px;height:13px;"></svg>
                 </button>
-                <button cButton color="danger" variant="outline" size="sm" title="Supprimer"
-                        (click)="deletePayment(payment)" style="border-radius:6px">
-                  <svg cIcon name="cilTrash" size="sm"></svg>
+                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                        style="width:30px;height:30px;padding:0;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:7px;"
+                        (click)="deletePayment(p)" title="Supprimer">
+                  <svg cIcon name="cilTrash" style="width:13px;height:13px;"></svg>
                 </button>
               </div>
             </td>
           </tr>
 
           <tr *ngIf="payments.length === 0">
-            <td colspan="10" class="text-center text-muted py-5">
-              <svg cIcon name="cilNotes" size="3xl" class="mb-2 opacity-25"></svg>
-              <p class="mb-0">Aucun paiement trouvé</p>
+            <td colspan="10" class="text-center py-5 text-muted">
+              <svg cIcon name="cilNotes" style="width:36px;height:36px;opacity:.25;" class="mb-2 d-block mx-auto"></svg>
+              Aucun paiement trouvé
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Pagination -->
     <div *ngIf="!loading && totalItems > 0"
-         class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
-         style="background:#fafafa; border-radius:0 0 12px 12px;">
+         class="d-flex align-items-center justify-content-between px-3 py-2"
+         style="border-top:1px solid #F3F4F6;background:#FAFAFA;">
       <small class="text-muted">
-        {{ (currentPage - 1) * itemsPerPage + 1 }} – {{ Math.min(currentPage * itemsPerPage, totalItems) }}
+        {{ (currentPage - 1) * itemsPerPage + 1 }}–{{ Math.min(currentPage * itemsPerPage, totalItems) }}
         sur {{ totalItems }} paiements
       </small>
       <nav *ngIf="totalPages > 1">
-        <ul class="pagination pagination-sm mb-0">
+        <ul class="pagination pagination-sm mb-0 gap-1">
           <li class="page-item" [class.disabled]="currentPage === 1">
-            <a class="page-link" (click)="onPageChange(currentPage - 1)" style="cursor:pointer;">‹</a>
+            <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(currentPage - 1)">‹</a>
           </li>
-          <li class="page-item" *ngFor="let page of getPages(); trackBy: trackById"
-              [class.active]="page === currentPage">
-            <a class="page-link" (click)="onPageChange(page)" style="cursor:pointer;">{{ page }}</a>
+          <li class="page-item" *ngFor="let page of getPages(); trackBy: trackById" [class.active]="page === currentPage">
+            <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(page)">{{ page }}</a>
           </li>
           <li class="page-item" [class.disabled]="currentPage === totalPages">
-            <a class="page-link" (click)="onPageChange(currentPage + 1)" style="cursor:pointer;">›</a>
+            <a class="page-link" style="border-radius:6px;cursor:pointer;" (click)="onPageChange(currentPage + 1)">›</a>
           </li>
         </ul>
       </nav>
@@ -258,41 +263,34 @@
 </div>
 
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+<!-- ════════════════════════════════════════════════════════
      MODAL — Créer / Modifier un paiement
-════════════════════════════════════════════════════════════════════════════ -->
-<div *ngIf="showPaymentModal" class="modal d-block" style="background:rgba(0,0,0,.5); z-index:1050;">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content" style="border-radius:16px; border:none;">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">
+════════════════════════════════════════════════════════ -->
+<div *ngIf="showPaymentModal" class="modal d-block" style="background:rgba(0,0,0,.45);z-index:1050;">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius:14px;border:none;">
+      <div class="modal-header" style="border-bottom:1px solid #F3F4F6;padding:16px 20px;">
+        <h5 class="modal-title fw-bold" style="color:#111827;">
           {{ editingPayment ? 'Modifier le paiement' : 'Nouveau paiement' }}
         </h5>
         <button type="button" class="btn-close" (click)="showPaymentModal = false"></button>
       </div>
 
       <form [formGroup]="paymentForm" (ngSubmit)="savePayment()">
-        <div class="modal-body">
+        <div class="modal-body p-4">
           <div class="row g-3">
-
-            <!-- Type -->
             <div class="col-md-6">
-              <label cLabel class="small fw-semibold mb-1">Type <span class="text-danger">*</span></label>
-              <select cSelect formControlName="type"
-                      [class.is-invalid]="paymentForm.get('type')?.invalid && paymentForm.get('type')?.touched">
+              <label class="form-label small fw-semibold">Type *</label>
+              <select cSelect formControlName="type" style="border-radius:8px;">
                 <option value="CLIENT">Paiement Client</option>
                 <option value="SUPPLIER">Fournisseur</option>
                 <option value="DEPOT">Dépôt</option>
                 <option value="RETRAIT">Retrait</option>
               </select>
-              <div class="invalid-feedback">Le type est requis</div>
             </div>
-
-            <!-- Méthode -->
             <div class="col-md-6">
-              <label cLabel class="small fw-semibold mb-1">Mode de paiement <span class="text-danger">*</span></label>
-              <select cSelect formControlName="method"
-                      [class.is-invalid]="paymentForm.get('method')?.invalid && paymentForm.get('method')?.touched">
+              <label class="form-label small fw-semibold">Mode de paiement *</label>
+              <select cSelect formControlName="method" style="border-radius:8px;">
                 <option value="ESPECES">Espèces</option>
                 <option value="ORANGE_MONEY">Orange Money</option>
                 <option value="WAVE">Wave</option>
@@ -300,136 +298,93 @@
                 <option value="VIREMENT">Virement Bancaire</option>
                 <option value="CHEQUE">Chèque</option>
               </select>
-              <div class="invalid-feedback">Le mode est requis</div>
             </div>
 
             <div class="col-md-6">
-              <label cLabel class="small fw-semibold mb-1">Client</label>
-              <select cSelect formControlName="client_id">
+              <label class="form-label small fw-semibold">Client</label>
+              <select cSelect formControlName="client_id" style="border-radius:8px;">
                 <option [ngValue]="null">-- Sélectionner un client --</option>
-                <option *ngFor="let client of clients; trackBy: trackById" [ngValue]="client.id">
-                  {{ client.name }}
+                <option *ngFor="let c of clients; trackBy: trackById" [ngValue]="c.id">{{ c.name }}</option>
+              </select>
+            </div>
+
+            <div class="col-md-6" *ngIf="paymentForm.get('client_id')?.value">
+              <label class="form-label small fw-semibold">Facture à solder</label>
+              <select cSelect formControlName="invoice_id" style="border-radius:8px;">
+                <option [ngValue]="null">Versement non affecté</option>
+                <option *ngFor="let inv of invoices; trackBy: trackById" [ngValue]="inv.id">
+                  {{ inv.invoice_number }} — reste {{ inv.remaining_balance | number:'1.0-0' }} {{ inv.currency || 'GNF' }}
                 </option>
               </select>
-              <small class="text-muted">Obligatoire pour un versement client.</small>
             </div>
 
             <div class="col-12" *ngIf="selectedClientBalance">
-              <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #E5E7EB;">
-                <div class="d-flex flex-wrap justify-content-between gap-3">
-                  <div>
-                    <div class="small text-muted">Client sélectionné</div>
-                    <div class="fw-bold">{{ selectedClientBalance.client.name }}</div>
-                  </div>
-                  <div>
-                    <div class="small text-muted">Dette actuelle</div>
-                    <div class="fw-bold" style="color:#DC2626;">{{ selectedClientBalance.total_remaining | number:'1.0-0' }} GNF</div>
-                  </div>
-                  <div>
-                    <div class="small text-muted">Crédit disponible</div>
-                    <div class="fw-bold" style="color:#10B981;">{{ (selectedClientBalance.available_credit_gnf || 0) | number:'1.0-0' }} GNF</div>
-                  </div>
-                  <div>
-                    <div class="small text-muted">Avoirs retours</div>
-                    <div class="fw-bold" style="color:#F59E0B;">{{ (selectedClientBalance.total_return_credits || 0) | number:'1.0-0' }} GNF</div>
-                  </div>
+              <div class="rounded-3 p-3 d-flex flex-wrap gap-3" style="background:#F8FAFC;border:1px solid #E5E7EB;">
+                <div>
+                  <div class="small text-muted">Client</div>
+                  <div class="fw-bold">{{ selectedClientBalance.client.name }}</div>
+                </div>
+                <div>
+                  <div class="small text-muted">Dette actuelle</div>
+                  <div class="fw-bold" style="color:#DC2626;">{{ selectedClientBalance.total_remaining | number:'1.0-0' }} GNF</div>
+                </div>
+                <div>
+                  <div class="small text-muted">Crédit dispo</div>
+                  <div class="fw-bold" style="color:#10B981;">{{ (selectedClientBalance.available_credit_gnf || 0) | number:'1.0-0' }} GNF</div>
                 </div>
               </div>
             </div>
 
-            <div class="col-md-12" *ngIf="paymentForm.get('client_id')?.value">
-              <label cLabel class="small fw-semibold mb-1">Facture à solder</label>
-              <select cSelect formControlName="invoice_id">
-                <option [ngValue]="null">Versement non affecté au compte client</option>
-                <option *ngFor="let invoice of invoices; trackBy: trackById" [ngValue]="invoice.id">
-                  {{ invoice.invoice_number }} — reste {{ invoice.remaining_balance | number:'1.0-0' }} {{ invoice.currency || 'GNF' }}
-                </option>
-              </select>
-              <small class="text-muted">Laisser vide pour créer un crédit disponible sur le compte du client.</small>
-            </div>
-
-            <!-- Montant -->
             <div class="col-md-4">
-              <label cLabel class="small fw-semibold mb-1">Montant <span class="text-danger">*</span></label>
-              <input cFormControl type="number" formControlName="amount" placeholder="0"
-                     [class.is-invalid]="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched" />
-              <div class="invalid-feedback">Montant requis (> 0)</div>
+              <label class="form-label small fw-semibold">Montant *</label>
+              <input cFormControl type="number" formControlName="amount" placeholder="0" style="border-radius:8px;" />
             </div>
-
-            <!-- Devise -->
             <div class="col-md-4">
-              <label cLabel class="small fw-semibold mb-1">Devise</label>
-              <select cSelect formControlName="currency">
+              <label class="form-label small fw-semibold">Devise</label>
+              <select cSelect formControlName="currency" style="border-radius:8px;">
                 <option value="GNF">GNF</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
+                <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.code">{{ c.code }}</option>
               </select>
             </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Taux GNF</label>
+              <input cFormControl type="number" formControlName="exchange_rate" step="0.0001" min="0.0001" style="border-radius:8px;" />
+            </div>
+
+            <div class="col-md-6" *ngIf="paymentForm.get('currency')?.value !== 'GNF'">
+              <label class="form-label small fw-semibold">Montant comptable GNF</label>
+              <input cFormControl type="number" formControlName="amount_gnf" style="border-radius:8px;" />
+            </div>
 
             <div class="col-md-4">
-              <label cLabel class="small fw-semibold mb-1">Taux du jour vers GNF</label>
-              <input cFormControl type="number" formControlName="exchange_rate" step="0.0001" min="0.0001" />
+              <label class="form-label small fw-semibold">Date *</label>
+              <input cFormControl type="date" formControlName="payment_date" style="border-radius:8px;" />
             </div>
-
             <div class="col-md-4">
-              <label cLabel class="small fw-semibold mb-1">Montant comptable en GNF</label>
-              <input cFormControl type="number" formControlName="amount_gnf" step="0.01" min="0.01" />
-              <small class="text-muted">Montant réellement déduit de la dette client.</small>
-            </div>
-
-            <!-- Date -->
-            <div class="col-md-4">
-              <label cLabel class="small fw-semibold mb-1">Date <span class="text-danger">*</span></label>
-              <input cFormControl type="date" formControlName="payment_date"
-                     [class.is-invalid]="paymentForm.get('payment_date')?.invalid && paymentForm.get('payment_date')?.touched" />
-              <div class="invalid-feedback">Date requise</div>
-            </div>
-
-            <div class="col-12" *ngIf="paymentForm.get('currency')?.value !== 'GNF'">
-              <div class="rounded-3 p-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
-                <div class="small text-muted mb-1">Conversion appliquée</div>
-                <div class="fw-semibold" style="color:#1D4ED8;">
-                  {{ paymentForm.get('amount')?.value || 0 }} {{ paymentForm.get('currency')?.value }}
-                  × {{ paymentForm.getRawValue().exchange_rate || 1 }}
-                  = {{ amountGnfPreview | number:'1.0-0' }} GNF
-                </div>
-              </div>
-            </div>
-
-            <!-- Référence -->
-            <div class="col-md-6">
-              <label cLabel class="small fw-semibold mb-1">Référence (N° chèque, virement…)</label>
-              <input cFormControl type="text" formControlName="reference"
-                     placeholder="Ex: CHQ-00123" />
-            </div>
-
-            <!-- Statut -->
-            <div class="col-md-6">
-              <label cLabel class="small fw-semibold mb-1">Statut</label>
-              <select cSelect formControlName="status">
+              <label class="form-label small fw-semibold">Statut</label>
+              <select cSelect formControlName="status" style="border-radius:8px;">
                 <option value="COMPLETED">Complété</option>
                 <option value="PENDING">En attente</option>
                 <option value="FAILED">Échoué</option>
                 <option value="CANCELLED">Annulé</option>
               </select>
             </div>
-
-            <!-- Description -->
-            <div class="col-12">
-              <label cLabel class="small fw-semibold mb-1">Description / Note</label>
-              <textarea cFormControl formControlName="description" rows="2"
-                        placeholder="Notes ou observations…"></textarea>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Référence</label>
+              <input cFormControl type="text" formControlName="reference" placeholder="CHQ-xxx, VIR-xxx…" style="border-radius:8px;" />
             </div>
 
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Description</label>
+              <textarea cFormControl formControlName="description" rows="2" placeholder="Notes…" style="border-radius:8px;resize:vertical;"></textarea>
+            </div>
           </div>
         </div>
-
-        <div class="modal-footer border-0 pt-0">
-          <button type="button" cButton color="secondary" variant="outline"
-                  (click)="showPaymentModal = false">Annuler</button>
-          <button type="submit" cButton color="primary" [disabled]="savingPayment">
-            <c-spinner *ngIf="savingPayment" size="sm" class="me-2"></c-spinner>
-            {{ editingPayment ? 'Enregistrer les modifications' : 'Créer le paiement' }}
+        <div class="modal-footer" style="border-top:1px solid #F3F4F6;padding:12px 20px;">
+          <button type="button" class="btn btn-outline-secondary" style="border-radius:8px;" (click)="showPaymentModal = false">Annuler</button>
+          <button type="submit" class="btn btn-primary fw-semibold" style="border-radius:8px;background:#0f3460;border-color:#0f3460;" [disabled]="savingPayment">
+            <span *ngIf="savingPayment" class="spinner-border spinner-border-sm me-2"></span>
+            {{ editingPayment ? 'Enregistrer' : 'Créer le paiement' }}
           </button>
         </div>
       </form>
@@ -438,123 +393,153 @@
 </div>
 
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     MODAL — Reçu de paiement
-════════════════════════════════════════════════════════════════════════════ -->
-<div *ngIf="showReceiptModal" class="modal d-block" style="background:rgba(0,0,0,.5); z-index:1050;">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content" style="border-radius:16px; border:none;">
-      <div class="modal-header border-0 pb-0 d-print-none">
-        <h5 class="modal-title fw-bold">Reçu de paiement</h5>
-        <div class="d-flex gap-2 ms-auto">
-          <button cButton color="primary" size="sm" (click)="printReceipt()" style="border-radius:8px">
-            <svg cIcon name="cilPrint" class="me-1" size="sm"></svg> Imprimer
+<!-- ════════════════════════════════════════════════════════
+     MODAL — Reçu de paiement (propre + logo)
+════════════════════════════════════════════════════════ -->
+<div *ngIf="showReceiptModal" class="modal d-block" style="background:rgba(0,0,0,.5);z-index:1050;">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:520px;">
+    <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden;">
+
+      <!-- Header modal (masqué à l'impression) -->
+      <div class="d-flex align-items-center justify-content-between px-4 py-3 d-print-none"
+           style="background:#F9FAFB;border-bottom:1px solid #F3F4F6;">
+        <span class="fw-bold" style="color:#111827;">Reçu de paiement</span>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm fw-semibold"
+                  style="background:#10B981;color:#fff;border:none;border-radius:8px;padding:5px 14px;"
+                  (click)="downloadReceiptPdf()" [disabled]="pdfLoading">
+            <svg cIcon name="cilCloudDownload" style="width:13px;height:13px;" class="me-1"></svg> Télécharger
           </button>
-          <button type="button" class="btn-close" (click)="showReceiptModal = false"></button>
+          <button class="btn btn-sm fw-semibold"
+                  style="background:#0f3460;color:#fff;border:none;border-radius:8px;padding:5px 14px;"
+                  (click)="printReceipt()" [disabled]="pdfLoading">
+            <svg cIcon name="cilPrint" style="width:13px;height:13px;" class="me-1"></svg> Imprimer
+          </button>
+          <button type="button" class="btn-close btn-sm" (click)="showReceiptModal = false"></button>
         </div>
       </div>
 
-      <div class="modal-body">
-        <div *ngIf="receiptLoading" class="text-center py-4">
-          <c-spinner color="primary"></c-spinner>
+      <div class="modal-body p-0">
+        <div *ngIf="receiptLoading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 small text-muted">Chargement…</p>
         </div>
 
         <ng-container *ngIf="!receiptLoading && currentReceipt">
-          <!-- Reçu imprimable -->
-          <div id="receipt-print" style="font-family:'Segoe UI',sans-serif; max-width:600px; margin:auto;">
+          <!-- ══ REÇU IMPRIMABLE ══ -->
+          <div id="receipt-print" style="font-family:'Segoe UI',Arial,sans-serif;padding:28px 32px;background:#fff;">
 
-            <!-- En-tête organisation -->
-            <div class="text-center mb-4">
-              <h4 class="fw-bold mb-1" style="color:#0f3460;">{{ currentReceipt.organisation.name }}</h4>
-              <h5 class="fw-semibold text-muted">REÇU DE PAIEMENT</h5>
-              <div style="border-bottom:2px solid #0f3460; margin:8px 0;"></div>
+            <!-- En-tête : logo + nom organisation -->
+            <div class="text-center" style="margin-bottom:20px;">
+              <img src="/assets/images/logo/mat_kolla_hd.png" alt="Logo"
+                   style="height:56px;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;" />
+              <div style="font-size:1.1rem;font-weight:700;color:#111827;letter-spacing:.3px;">
+                {{ currentReceipt.organisation.name || 'Gestion Multi-Modules' }}
+              </div>
+              <div style="font-size:.78rem;color:#6B7280;margin-top:2px;">
+                {{ currentReceipt.organisation.address || '' }}
+                {{ currentReceipt.organisation.phone ? '· ' + currentReceipt.organisation.phone : '' }}
+              </div>
+              <div style="margin:14px 0;border-top:2px solid #0f3460;"></div>
+              <div style="font-size:.9rem;font-weight:700;letter-spacing:1.5px;color:#0f3460;text-transform:uppercase;">
+                Reçu de paiement
+              </div>
             </div>
 
-            <!-- Numéro & date -->
-            <div class="d-flex justify-content-between mb-3">
+            <!-- N° reçu + date -->
+            <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
               <div>
-                <div class="small text-muted">N° Reçu</div>
-                <div class="fw-bold" style="font-family:monospace; color:#0f3460;">{{ currentReceipt.receipt_number }}</div>
+                <div style="font-size:.72rem;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">N° Reçu</div>
+                <div style="font-size:.95rem;font-weight:700;font-family:monospace;color:#0f3460;">
+                  {{ currentReceipt.receipt_number }}
+                </div>
               </div>
-              <div class="text-end">
-                <div class="small text-muted">Date de paiement</div>
-                <div class="fw-semibold">{{ currentReceipt.payment_date }}</div>
+              <div style="text-align:right;">
+                <div style="font-size:.72rem;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Date</div>
+                <div style="font-size:.9rem;font-weight:600;color:#374151;">{{ currentReceipt.payment_date }}</div>
               </div>
             </div>
 
             <!-- Client -->
-            <div *ngIf="currentReceipt.client" class="p-3 rounded-3 mb-3" style="background:#f8fafc;">
-              <div class="small text-muted fw-semibold mb-1">CLIENT</div>
-              <div class="fw-bold">{{ currentReceipt.client.name }}</div>
-              <div class="small text-muted" *ngIf="currentReceipt.client.phone">{{ currentReceipt.client.phone }}</div>
+            <div *ngIf="currentReceipt.client"
+                 style="background:#F8FAFC;border-radius:10px;padding:12px 14px;margin-bottom:16px;border:1px solid #E5E7EB;">
+              <div style="font-size:.72rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Client</div>
+              <div style="font-size:.95rem;font-weight:700;color:#111827;">{{ currentReceipt.client.name }}</div>
+              <div *ngIf="currentReceipt.client.phone" style="font-size:.8rem;color:#6B7280;">{{ currentReceipt.client.phone }}</div>
             </div>
 
-            <!-- Montant -->
-            <div class="text-center p-4 rounded-3 mb-3"
-                 style="background: linear-gradient(135deg, #0f3460, #16213e); color:white;">
-              <div class="small opacity-75 mb-1">MONTANT PAYÉ</div>
-              <div class="display-5 fw-bold">
-                {{ currentReceipt.amount | number:'1.0-0' }} {{ currentReceipt.currency }}
+            <!-- Montant central -->
+            <div style="text-align:center;background:linear-gradient(135deg,#111827,#0f3460);border-radius:12px;padding:20px 16px;margin-bottom:16px;">
+              <div style="font-size:.75rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Montant payé</div>
+              <div style="font-size:1.7rem;font-weight:800;color:#fff;line-height:1.1;">
+                {{ currentReceipt.amount | number:'1.0-0' }} <span style="font-size:1rem;">{{ currentReceipt.currency }}</span>
               </div>
-              <div class="small opacity-75 mt-1">{{ getMethodLabel(currentReceipt.method) }}</div>
-              <div class="small opacity-75 mt-1" *ngIf="currentReceipt.amount_gnf">
-                Valeur comptable: {{ currentReceipt.amount_gnf | number:'1.0-0' }} GNF
+              <div style="font-size:.8rem;color:rgba(255,255,255,.65);margin-top:6px;">
+                {{ getMethodLabel(currentReceipt.method) }}
+              </div>
+              <div *ngIf="currentReceipt.amount_gnf && currentReceipt.currency !== 'GNF'"
+                   style="font-size:.75rem;color:rgba(255,255,255,.5);margin-top:2px;">
+                Valeur comptable : {{ currentReceipt.amount_gnf | number:'1.0-0' }} GNF
               </div>
             </div>
 
-            <!-- Détails -->
-            <table class="table table-sm mb-3">
-              <tbody>
-                <tr>
-                  <td class="text-muted small">Type</td>
-                  <td class="fw-semibold small">{{ getTypeLabel(currentReceipt.type) }}</td>
-                </tr>
-                <tr *ngIf="currentReceipt.reference">
-                  <td class="text-muted small">Référence</td>
-                  <td class="fw-semibold small">{{ currentReceipt.reference }}</td>
-                </tr>
-                <tr *ngIf="currentReceipt.currency !== 'GNF'">
-                  <td class="text-muted small">Taux de conversion</td>
-                  <td class="small">{{ currentReceipt.exchange_rate }} vers GNF</td>
-                </tr>
-                <tr *ngIf="currentReceipt.description">
-                  <td class="text-muted small">Description</td>
-                  <td class="small">{{ currentReceipt.description }}</td>
-                </tr>
-                <tr>
-                  <td class="text-muted small">Statut</td>
-                  <td>
-                    <span class="badge" [style.background]="getStatusBadgeColor(currentReceipt.status)">
-                      {{ getStatusLabel(currentReceipt.status) }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <!-- Détails lignes -->
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F3F4F6;font-size:.82rem;">
+                <span style="color:#9CA3AF;">Type</span>
+                <span style="font-weight:600;color:#374151;">{{ getTypeLabel(currentReceipt.type) }}</span>
+              </div>
+              <div *ngIf="currentReceipt.reference" style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F3F4F6;font-size:.82rem;">
+                <span style="color:#9CA3AF;">Référence</span>
+                <span style="font-weight:600;color:#374151;">{{ currentReceipt.reference }}</span>
+              </div>
+              <div *ngIf="currentReceipt.currency !== 'GNF'" style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F3F4F6;font-size:.82rem;">
+                <span style="color:#9CA3AF;">Taux de change</span>
+                <span style="font-weight:600;">{{ currentReceipt.exchange_rate }} → GNF</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F3F4F6;font-size:.82rem;">
+                <span style="color:#9CA3AF;">Statut</span>
+                <span class="rounded-2 px-2 py-0"
+                      [style.background]="getStatusBg(currentReceipt.status)"
+                      [style.color]="getStatusColor(currentReceipt.status)"
+                      style="font-size:.78rem;font-weight:600;">
+                  {{ getStatusLabel(currentReceipt.status) }}
+                </span>
+              </div>
+              <div *ngIf="currentReceipt.description" style="display:flex;justify-content:space-between;padding:7px 0;font-size:.82rem;">
+                <span style="color:#9CA3AF;">Note</span>
+                <span style="color:#374151;max-width:65%;text-align:right;">{{ currentReceipt.description }}</span>
+              </div>
+            </div>
 
             <!-- Facture liée -->
             <ng-container *ngIf="currentReceipt.invoice">
-              <div class="p-3 rounded-3 mb-3" style="border:1px solid #e5e7eb;">
-                <div class="small fw-semibold text-muted mb-2">FACTURE ASSOCIÉE</div>
-                <div class="d-flex justify-content-between">
-                  <span class="small">N° {{ currentReceipt.invoice.invoice_number }}</span>
-                  <span class="badge" [style.background]="getInvoiceStatusColor(currentReceipt.invoice.status)">
+              <div style="border:1px solid #E5E7EB;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+                <div style="font-size:.72rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Facture associée</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <span style="font-size:.88rem;font-weight:700;color:#111827;">{{ currentReceipt.invoice.invoice_number }}</span>
+                  <span class="rounded-2 px-2 py-0"
+                        [style.background]="getInvoiceStatusColor(currentReceipt.invoice.status) + '20'"
+                        [style.color]="getInvoiceStatusColor(currentReceipt.invoice.status)"
+                        style="font-size:.75rem;font-weight:600;">
                     {{ getInvoiceStatusLabel(currentReceipt.invoice.status) }}
                   </span>
                 </div>
-                <div class="row g-2 mt-2 text-center">
-                  <div class="col-4">
-                    <div class="small text-muted">Total facture</div>
-                    <div class="fw-bold small">{{ currentReceipt.invoice.total_amount | number:'1.0-0' }} {{ currentReceipt.currency }}</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
+                  <div style="background:#F8FAFC;border-radius:7px;padding:8px;">
+                    <div style="font-size:.7rem;color:#9CA3AF;margin-bottom:3px;">Total facture</div>
+                    <div style="font-size:.85rem;font-weight:700;color:#374151;">{{ currentReceipt.invoice.total_amount | number:'1.0-0' }}</div>
                   </div>
-                  <div class="col-4">
-                    <div class="small text-muted">Déjà payé</div>
-                    <div class="fw-bold small" style="color:#10B981;">{{ currentReceipt.invoice.paid_amount | number:'1.0-0' }} {{ currentReceipt.currency }}</div>
+                  <div style="background:#ECFDF5;border-radius:7px;padding:8px;">
+                    <div style="font-size:.7rem;color:#9CA3AF;margin-bottom:3px;">Déjà payé</div>
+                    <div style="font-size:.85rem;font-weight:700;color:#059669;">{{ currentReceipt.invoice.paid_amount | number:'1.0-0' }}</div>
                   </div>
-                  <div class="col-4">
-                    <div class="small text-muted">Reste dû</div>
-                    <div class="fw-bold small" [style.color]="currentReceipt.invoice.remaining_balance > 0 ? '#EF4444' : '#10B981'">
-                      {{ currentReceipt.invoice.remaining_balance | number:'1.0-0' }} {{ currentReceipt.currency }}
+                  <div [style.background]="currentReceipt.invoice.remaining_balance > 0 ? '#FEF2F2' : '#ECFDF5'"
+                       style="border-radius:7px;padding:8px;">
+                    <div style="font-size:.7rem;color:#9CA3AF;margin-bottom:3px;">Reste dû</div>
+                    <div style="font-size:.85rem;font-weight:700;"
+                         [style.color]="currentReceipt.invoice.remaining_balance > 0 ? '#DC2626' : '#059669'">
+                      {{ currentReceipt.invoice.remaining_balance | number:'1.0-0' }}
                     </div>
                   </div>
                 </div>
@@ -562,8 +547,13 @@
             </ng-container>
 
             <!-- Pied de page -->
-            <div class="text-center text-muted small mt-4" style="border-top:1px solid #e5e7eb; padding-top:12px;">
-              Généré le {{ currentReceipt.generated_at }} — Document valable comme justificatif de paiement
+            <div style="text-align:center;padding-top:12px;border-top:1px solid #F3F4F6;margin-top:4px;">
+              <div style="font-size:.72rem;color:#9CA3AF;">
+                Généré le {{ currentReceipt.generated_at || ('' | date:'dd/MM/yyyy HH:mm') }}
+              </div>
+              <div style="font-size:.7rem;color:#D1D5DB;margin-top:2px;">
+                Ce document fait foi de paiement — {{ currentReceipt.organisation.name || '' }}
+              </div>
             </div>
 
           </div>
@@ -574,100 +564,88 @@
 </div>
 
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+<!-- ════════════════════════════════════════════════════════
      MODAL — Solde client
-════════════════════════════════════════════════════════════════════════════ -->
-<div *ngIf="showBalanceModal" class="modal d-block" style="background:rgba(0,0,0,.5); z-index:1050;">
+════════════════════════════════════════════════════════ -->
+<div *ngIf="showBalanceModal" class="modal d-block" style="background:rgba(0,0,0,.45);z-index:1050;">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content" style="border-radius:16px; border:none;">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">Situation du client</h5>
+    <div class="modal-content" style="border-radius:14px;border:none;">
+      <div class="modal-header" style="border-bottom:1px solid #F3F4F6;padding:16px 20px;">
+        <h5 class="modal-title fw-bold" style="color:#111827;">Situation du client</h5>
         <button type="button" class="btn-close" (click)="showBalanceModal = false"></button>
       </div>
 
-      <div class="modal-body">
-        <div *ngIf="balanceLoading" class="text-center py-4">
-          <c-spinner color="primary"></c-spinner>
+      <div class="modal-body p-4">
+        <div *ngIf="balanceLoading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
         </div>
 
         <ng-container *ngIf="!balanceLoading && clientBalance">
-
-          <!-- Infos client -->
-          <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3" style="background:#f8fafc;">
-            <div class="rounded-circle d-flex align-items-center justify-content-center"
-                 style="width:50px;height:50px;background:#0f3460;color:white;font-weight:bold;font-size:1.2rem;">
+          <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3" style="background:#F8FAFC;">
+            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                 style="width:48px;height:48px;background:#0f3460;color:#fff;font-size:1.1rem;flex-shrink:0;">
               {{ clientBalance.client.name.charAt(0) }}
             </div>
             <div>
-              <div class="fw-bold fs-5">{{ clientBalance.client.name }}</div>
-              <div class="text-muted small">{{ clientBalance.client.phone }}</div>
+              <div class="fw-bold fs-5" style="color:#111827;">{{ clientBalance.client.name }}</div>
+              <div class="small text-muted">{{ clientBalance.client.phone }}</div>
             </div>
           </div>
 
-          <!-- KPIs solde -->
           <div class="row g-3 mb-4">
-            <div class="col-md-4">
-              <div class="p-3 rounded-3 text-center" style="background:#EFF6FF; border:1px solid #BFDBFE;">
-                <div class="small text-muted fw-semibold mb-1">Total facturé</div>
-                <div class="fw-bold fs-5" style="color:#1D4ED8;">
-                  {{ clientBalance.total_invoiced | number:'1.0-0' }} GNF
-                </div>
+            <div class="col-md-3">
+              <div class="p-3 rounded-3 text-center" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                <div class="small text-muted mb-1">Total facturé</div>
+                <div class="fw-bold" style="color:#1D4ED8;">{{ clientBalance.total_invoiced | number:'1.0-0' }} GNF</div>
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="p-3 rounded-3 text-center" style="background:#ECFDF5; border:1px solid #A7F3D0;">
-                <div class="small text-muted fw-semibold mb-1">Total payé</div>
-                <div class="fw-bold fs-5" style="color:#059669;">
-                  {{ clientBalance.total_paid | number:'1.0-0' }} GNF
-                </div>
+            <div class="col-md-3">
+              <div class="p-3 rounded-3 text-center" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+                <div class="small text-muted mb-1">Total payé</div>
+                <div class="fw-bold" style="color:#059669;">{{ clientBalance.total_paid | number:'1.0-0' }} GNF</div>
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="p-3 rounded-3 text-center"
-                   [style.background]="clientBalance.total_remaining > 0 ? '#FEF2F2' : '#ECFDF5'"
-                   [style.border]="'1px solid ' + (clientBalance.total_remaining > 0 ? '#FECACA' : '#A7F3D0')">
-                <div class="small text-muted fw-semibold mb-1">Solde restant dû</div>
-                <div class="fw-bold fs-5"
-                     [style.color]="clientBalance.total_remaining > 0 ? '#DC2626' : '#059669'">
-                  {{ clientBalance.total_remaining | number:'1.0-0' }} GNF
-                </div>
+            <div class="col-md-3"
+                 [style.background]="clientBalance.total_remaining > 0 ? '#FEF2F2' : '#ECFDF5'"
+                 style="border-radius:10px;border:1px solid #FECACA;padding:12px;text-align:center;">
+              <div class="small text-muted mb-1">Solde restant dû</div>
+              <div class="fw-bold" [style.color]="clientBalance.total_remaining > 0 ? '#DC2626' : '#059669'">
+                {{ clientBalance.total_remaining | number:'1.0-0' }} GNF
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="p-3 rounded-3 text-center" style="background:#F0FDF4; border:1px solid #BBF7D0;">
-                <div class="small text-muted fw-semibold mb-1">Crédit disponible</div>
-                <div class="fw-bold fs-5" style="color:#16A34A;">
-                  {{ (clientBalance.available_credit_gnf || 0) | number:'1.0-0' }} GNF
-                </div>
+            <div class="col-md-3">
+              <div class="p-3 rounded-3 text-center" style="background:#F0FDF4;border:1px solid #BBF7D0;">
+                <div class="small text-muted mb-1">Crédit disponible</div>
+                <div class="fw-bold" style="color:#16A34A;">{{ (clientBalance.available_credit_gnf || 0) | number:'1.0-0' }} GNF</div>
               </div>
             </div>
           </div>
 
-          <!-- Factures -->
-          <h6 class="fw-semibold mb-2">Factures</h6>
+          <h6 class="fw-semibold mb-2 small text-uppercase" style="color:#6B7280;letter-spacing:.4px;">Factures</h6>
           <div class="table-responsive mb-4">
-            <table class="table table-sm table-hover">
-              <thead style="background:#f8fafc;">
+            <table class="table table-sm table-hover" style="font-size:13px;">
+              <thead style="background:#F9FAFB;">
                 <tr>
-                  <th class="small fw-semibold text-muted">N° Facture</th>
-                  <th class="small fw-semibold text-muted text-end">Montant</th>
-                  <th class="small fw-semibold text-muted text-end">Payé</th>
-                  <th class="small fw-semibold text-muted text-end">Reste dû</th>
-                  <th class="small fw-semibold text-muted">Échéance</th>
-                  <th class="small fw-semibold text-muted">Statut</th>
+                  <th class="small text-muted fw-semibold">N° Facture</th>
+                  <th class="small text-muted fw-semibold text-end">Montant</th>
+                  <th class="small text-muted fw-semibold text-end">Payé</th>
+                  <th class="small text-muted fw-semibold text-end">Reste</th>
+                  <th class="small text-muted fw-semibold">Échéance</th>
+                  <th class="small text-muted fw-semibold">Statut</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let inv of clientBalance.invoices; trackBy: trackById">
-                  <td class="small fw-semibold">{{ inv.invoice_number }}</td>
+                  <td class="fw-semibold small">{{ inv.invoice_number }}</td>
                   <td class="small text-end">{{ (inv.total_amount_gnf || inv.total_amount) | number:'1.0-0' }}</td>
                   <td class="small text-end" style="color:#10B981;">{{ (inv.paid_amount_gnf || inv.paid_amount) | number:'1.0-0' }}</td>
                   <td class="small text-end fw-bold" [style.color]="(inv.remaining_balance_gnf || inv.remaining_balance) > 0 ? '#EF4444' : '#10B981'">
                     {{ (inv.remaining_balance_gnf || inv.remaining_balance) | number:'1.0-0' }}
                   </td>
-                  <td class="small">{{ inv.due_date || '—' }}</td>
+                  <td class="small text-muted">{{ inv.due_date || '—' }}</td>
                   <td>
-                    <span class="badge" [style.background]="getInvoiceStatusColor(inv.status) + '20'"
+                    <span class="rounded-2 px-2 small fw-semibold"
+                          [style.background]="getInvoiceStatusColor(inv.status) + '20'"
                           [style.color]="getInvoiceStatusColor(inv.status)" style="font-size:11px;">
                       {{ getInvoiceStatusLabel(inv.status) }}
                     </span>
@@ -680,27 +658,26 @@
             </table>
           </div>
 
-          <!-- Paiements récents -->
-          <h6 class="fw-semibold mb-2">Derniers paiements</h6>
+          <h6 class="fw-semibold mb-2 small text-uppercase" style="color:#6B7280;letter-spacing:.4px;">Derniers paiements</h6>
           <div class="table-responsive">
-            <table class="table table-sm table-hover">
-              <thead style="background:#f8fafc;">
+            <table class="table table-sm table-hover" style="font-size:13px;">
+              <thead style="background:#F9FAFB;">
                 <tr>
-                  <th class="small fw-semibold text-muted">N° Reçu</th>
-                  <th class="small fw-semibold text-muted text-end">Montant</th>
-                  <th class="small fw-semibold text-muted">Mode</th>
-                  <th class="small fw-semibold text-muted">Date</th>
+                  <th class="small text-muted fw-semibold">N° Reçu</th>
+                  <th class="small text-muted fw-semibold text-end">Montant</th>
+                  <th class="small text-muted fw-semibold">Mode</th>
+                  <th class="small text-muted fw-semibold">Date</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let p of clientBalance.recent_payments; trackBy: trackById">
-                  <td class="small" style="font-family:monospace; color:#0f3460;">{{ p.receipt_number }}</td>
+                <tr *ngFor="let pay of clientBalance.recent_payments; trackBy: trackById">
+                  <td class="small fw-semibold" style="font-family:monospace;color:#0f3460;">{{ pay.receipt_number }}</td>
                   <td class="small text-end fw-bold" style="color:#10B981;">
-                    {{ p.amount | number:'1.0-0' }} {{ p.currency }}
-                    <div class="small text-muted" *ngIf="p.amount_gnf">≈ {{ p.amount_gnf | number:'1.0-0' }} GNF</div>
+                    {{ pay.amount | number:'1.0-0' }} {{ pay.currency }}
+                    <div class="text-muted fw-normal" *ngIf="pay.amount_gnf" style="font-size:11px;">≈ {{ pay.amount_gnf | number:'1.0-0' }} GNF</div>
                   </td>
-                  <td class="small">{{ getMethodLabel(p.method) }}</td>
-                  <td class="small">{{ p.payment_date }}</td>
+                  <td class="small text-muted">{{ getMethodLabel(pay.method) }}</td>
+                  <td class="small text-muted">{{ pay.payment_date }}</td>
                 </tr>
                 <tr *ngIf="!clientBalance.recent_payments.length">
                   <td colspan="4" class="text-center text-muted small py-3">Aucun paiement</td>
@@ -708,13 +685,30 @@
               </tbody>
             </table>
           </div>
-
         </ng-container>
       </div>
 
-      <div class="modal-footer border-0">
-        <button cButton color="secondary" variant="outline" (click)="showBalanceModal = false">Fermer</button>
+      <div class="modal-footer d-flex justify-content-between" style="border-top:1px solid #F3F4F6;">
+        <button class="btn btn-sm fw-semibold"
+                style="background:#10B981;color:#fff;border:none;border-radius:8px;padding:6px 14px;"
+                (click)="downloadClientSituationPdf()" [disabled]="pdfLoading || !clientBalance">
+          <svg cIcon name="cilCloudDownload" style="width:13px;height:13px;" class="me-1"></svg> Télécharger PDF
+        </button>
+        <button class="btn btn-outline-secondary" style="border-radius:8px;" (click)="showBalanceModal = false">Fermer</button>
       </div>
     </div>
   </div>
 </div>
+
+
+<!-- Print styles -->
+<style>
+@media print {
+  body > *:not(app-root) { display: none !important; }
+  .modal { position: static !important; background: none !important; }
+  .modal-dialog { max-width: 100% !important; margin: 0 !important; }
+  .modal-content { border: none !important; box-shadow: none !important; }
+  .d-print-none { display: none !important; }
+  #receipt-print { padding: 0 !important; }
+}
+</style>

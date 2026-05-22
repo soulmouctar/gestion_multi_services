@@ -508,4 +508,43 @@ class SupplierController extends BaseController
     {
         return $this->getHistory($request, $id);
     }
+
+    // ────────────────────────────────────────── Résumé de tous les fournisseurs ──
+
+    public function getBalanceSummary(Request $request)
+    {
+        $user     = Auth::user();
+        $tenantId = $user->hasRole('SUPER_ADMIN')
+            ? ($request->get('tenant_id') ?? $user->tenant_id)
+            : $user->tenant_id;
+
+        $suppliers = Supplier::where('tenant_id', $tenantId)->orderBy('name')->get();
+
+        $rows = $suppliers->map(function ($supplier) use ($tenantId) {
+            $b = $this->computeBalance($supplier->id, $tenantId);
+            return [
+                'id'               => $supplier->id,
+                'name'             => $supplier->name,
+                'category'         => $supplier->category,
+                'email'            => $supplier->email,
+                'phone1'           => $supplier->phone1,
+                'currency'         => $supplier->currency ?? 'GNF',
+                'total_debt_gnf'   => $b['total_debt_gnf'],
+                'total_paid_gnf'   => $b['total_paid_gnf'],
+                'balance_gnf'      => $b['balance_gnf'],
+                'settle_pct'       => $b['settle_pct'],
+                'is_fully_settled' => $b['is_fully_settled'],
+            ];
+        });
+
+        return $this->sendResponse([
+            'suppliers' => $rows,
+            'totals'    => [
+                'total_debt_gnf' => round($rows->sum('total_debt_gnf'), 2),
+                'total_paid_gnf' => round($rows->sum('total_paid_gnf'), 2),
+                'balance_gnf'    => round($rows->sum('balance_gnf'), 2),
+                'supplier_count' => $rows->count(),
+            ],
+        ], 'Balance summary retrieved successfully');
+    }
 }

@@ -15,6 +15,8 @@ class ContainerSalePayment extends Model
         'client_id',
         'amount',
         'currency',
+        'exchange_rate',
+        'amount_gnf',
         'payment_method',
         'payment_date',
         'reference',
@@ -24,6 +26,8 @@ class ContainerSalePayment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'exchange_rate' => 'decimal:4',
+        'amount_gnf' => 'decimal:2',
         'payment_date' => 'date'
     ];
 

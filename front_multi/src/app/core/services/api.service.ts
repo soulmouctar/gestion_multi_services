@@ -4,6 +4,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { ApiResponse, PaginatedResponse, FilterOptions } from '../models';
 import { environment } from '../../../environments/environment';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -11,14 +12,17 @@ import { environment } from '../../../environments/environment';
 export class ApiService {
   private readonly API_URL = environment.apiUrl;
   
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
   
   // Generic HTTP methods
   get<T>(endpoint: string, options?: {
     params?: FilterOptions;
     headers?: HttpHeaders;
   }): Observable<ApiResponse<T>> {
-    const httpOptions = this.buildHttpOptions(options);
+    const httpOptions = this.buildHttpOptions(endpoint, options);
     return this.http.get<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, httpOptions).pipe(
       catchError(error => this.handleError(error))
     );
@@ -28,7 +32,7 @@ export class ApiService {
     params?: FilterOptions;
     headers?: HttpHeaders;
   }): Observable<PaginatedResponse<T>> {
-    const httpOptions = this.buildHttpOptions(options);
+    const httpOptions = this.buildHttpOptions(endpoint, options);
     return this.http.get<PaginatedResponse<T>>(`${this.API_URL}/${endpoint}`, httpOptions).pipe(
       catchError(error => this.handleError(error))
     );
@@ -37,8 +41,8 @@ export class ApiService {
   post<T>(endpoint: string, data: any, options?: {
     headers?: HttpHeaders;
   }): Observable<ApiResponse<T>> {
-    const httpOptions = this.buildHttpOptions(options);
-    return this.http.post<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, data, httpOptions).pipe(
+    const httpOptions = this.buildHttpOptions(endpoint, options);
+    return this.http.post<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, this.attachTenantToPayload(endpoint, data), httpOptions).pipe(
       catchError(error => this.handleError(error))
     );
   }
@@ -46,8 +50,8 @@ export class ApiService {
   put<T>(endpoint: string, data: any, options?: {
     headers?: HttpHeaders;
   }): Observable<ApiResponse<T>> {
-    const httpOptions = this.buildHttpOptions(options);
-    return this.http.put<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, data, httpOptions).pipe(
+    const httpOptions = this.buildHttpOptions(endpoint, options);
+    return this.http.put<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, this.attachTenantToPayload(endpoint, data), httpOptions).pipe(
       catchError(error => this.handleError(error))
     );
   }
@@ -55,8 +59,8 @@ export class ApiService {
   patch<T>(endpoint: string, data: any, options?: {
     headers?: HttpHeaders;
   }): Observable<ApiResponse<T>> {
-    const httpOptions = this.buildHttpOptions(options);
-    return this.http.patch<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, data, httpOptions).pipe(
+    const httpOptions = this.buildHttpOptions(endpoint, options);
+    return this.http.patch<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, this.attachTenantToPayload(endpoint, data), httpOptions).pipe(
       catchError(error => this.handleError(error))
     );
   }
@@ -64,7 +68,7 @@ export class ApiService {
   delete<T>(endpoint: string, options?: {
     headers?: HttpHeaders;
   }): Observable<ApiResponse<T>> {
-    const httpOptions = this.buildHttpOptions(options);
+    const httpOptions = this.buildHttpOptions(endpoint, options);
     return this.http.delete<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, httpOptions).pipe(
       catchError(error => this.handleError(error))
     );
@@ -246,7 +250,7 @@ export class ApiService {
   }
   
   // Private helper methods
-  private buildHttpOptions(options?: {
+  private buildHttpOptions(endpoint: string, options?: {
     params?: FilterOptions;
     headers?: HttpHeaders;
   }): { headers?: HttpHeaders; params?: HttpParams } {
@@ -265,11 +269,83 @@ export class ApiService {
           httpParams = httpParams.set(key, value.toString());
         }
       });
+
+      const managedTenantId = this.getManagedTenantId(endpoint);
+      if (managedTenantId && !httpParams.has('tenant_id')) {
+        httpParams = httpParams.set('tenant_id', managedTenantId.toString());
+      }
       
       httpOptions.params = httpParams;
+    } else {
+      const managedTenantId = this.getManagedTenantId(endpoint);
+      if (managedTenantId) {
+        httpOptions.params = new HttpParams().set('tenant_id', managedTenantId.toString());
+      }
     }
     
     return httpOptions;
+  }
+
+  private attachTenantToPayload(endpoint: string, data: any): any {
+    const managedTenantId = this.getManagedTenantId(endpoint);
+    if (!managedTenantId || data == null) {
+      return data;
+    }
+
+    if (data instanceof FormData) {
+      if (!data.has('tenant_id')) {
+        data.append('tenant_id', managedTenantId.toString());
+      }
+      return data;
+    }
+
+    if (typeof data === 'object' && !Array.isArray(data) && data.tenant_id == null) {
+      return { ...data, tenant_id: managedTenantId };
+    }
+
+    return data;
+  }
+
+  private getManagedTenantId(endpoint: string): number | null {
+    if (!this.authService.isSuperAdmin) {
+      return null;
+    }
+
+    if (endpoint.includes('tenant_id=') || !this.isTenantScopedEndpoint(endpoint)) {
+      return null;
+    }
+
+    return this.authService.selectedManagedTenantId;
+  }
+
+  private isTenantScopedEndpoint(endpoint: string): boolean {
+    return [
+      'banking/',
+      'personal-expense',
+      'personal-expenses',
+      'finance/',
+      'currencies',
+      'exchange-rates',
+      'products',
+      'clients',
+      'suppliers',
+      'containers',
+      'container-',
+      'taxis',
+      'drivers',
+      'taxi/',
+      'taxi-',
+      'daily-payments',
+      'vehicle-expenses',
+      'payments',
+      'rental/',
+      'leases',
+      'locations',
+      'buildings',
+      'floors',
+      'housing-units',
+      'unit-configurations',
+    ].some(prefix => endpoint.startsWith(prefix));
   }
   
   private downloadBlob(blob: Blob, filename: string): void {

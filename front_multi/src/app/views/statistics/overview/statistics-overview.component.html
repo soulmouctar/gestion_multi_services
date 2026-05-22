@@ -1,81 +1,134 @@
 <div class="p-3 p-md-4">
 
   <!-- Header -->
-  <div class="mb-4" style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;padding:28px 32px;color:white;">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <h2 style="font-size:1.6rem;font-weight:700;margin:0 0 4px;">Vue d'ensemble — Statistiques</h2>
-        <p style="margin:0;opacity:0.75;font-size:0.9rem;">Indicateurs clés de performance de tous les modules</p>
-      </div>
-      <button (click)="loadAll()" style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:white;padding:8px 18px;font-size:0.875rem;font-weight:600;cursor:pointer;">
-        <svg cIcon name="cilReload" style="width:15px;height:15px;"></svg>
-        Actualiser
-      </button>
+  <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;padding:28px 32px;color:white;">
+    <div>
+      <h2 style="font-size:1.5rem;font-weight:700;margin:0 0 4px;">Vue d'ensemble — Statistiques</h2>
+      <p style="margin:0;opacity:0.7;font-size:0.875rem;">Indicateurs clés de performance de tous les modules</p>
     </div>
+    <button (click)="loadAll()"
+            style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:white;padding:8px 18px;font-size:0.875rem;font-weight:600;cursor:pointer;">
+      <svg cIcon name="cilReload" style="width:15px;height:15px;"></svg> Actualiser
+    </button>
   </div>
 
   <!-- Loading -->
   <div *ngIf="loading" class="text-center py-5">
-    <div class="spinner-border text-primary" role="status" style="width:2.5rem;height:2.5rem;"></div>
-    <p class="mt-3 text-muted" style="font-size:0.875rem;">Chargement des statistiques...</p>
+    <div class="spinner-border text-primary" style="width:2.5rem;height:2.5rem;" role="status"></div>
+    <p class="mt-3 text-muted" style="font-size:0.875rem;">Chargement des statistiques…</p>
   </div>
 
   <div *ngIf="!loading">
 
-    <!-- KPIs Globaux -->
+    <!-- ══ 1. KPIs GLOBAUX ══ -->
     <div class="row g-3 mb-4">
 
-      <!-- Revenus -->
+      <!-- Revenus du mois -->
       <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;"
-             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'"
-             onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:44px;height:44px;border-radius:10px;background:#ECFDF5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg cIcon name="cilDollar" style="color:#10B981;width:22px;height:22px;"></svg>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#ECFDF5;">
+            <svg cIcon name="cilDollar" style="color:#10B981;width:22px;height:22px;"></svg>
+          </div>
+          <div class="stat-body">
+            <div class="stat-value" style="font-size:0.9rem;">{{ fmt(payments?.monthly_amount) }}</div>
+            <div class="stat-label">Revenus du mois</div>
+            <div class="stat-sub">{{ payments?.total_payments || 0 }} paiements au total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flux net -->
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#EFF6FF;">
+            <svg cIcon name="cilArrowThickRight" style="color:#2563EB;width:22px;height:22px;"></svg>
+          </div>
+          <div class="stat-body">
+            <div class="stat-value" style="font-size:0.9rem;"
+                 [style.color]="(cashflow?.net_cashflow ?? 0) >= 0 ? '#10B981' : '#EF4444'">
+              {{ fmt(cashflow?.net_cashflow) }}
             </div>
-            <div style="min-width:0;">
-              <div style="font-size:0.95rem;font-weight:700;line-height:1.2;color:#1e293b;word-break:break-all;">
-                {{ fmt(paymentStats?.monthly_amount || paymentStats?.total_amount || 0) }}
-              </div>
-              <div style="font-size:0.75rem;color:#6c757d;margin-top:3px;">Revenus</div>
-              <div style="font-size:0.72rem;color:#adb5bd;">{{ paymentStats?.total_count || 0 }} paiements</div>
-            </div>
+            <div class="stat-label">Flux net (entrées − sorties)</div>
+            <div class="stat-sub">Entrées: {{ fmt(cashflow?.income_total) }}</div>
           </div>
         </div>
       </div>
 
       <!-- Clients -->
       <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;"
-             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'"
-             onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:44px;height:44px;border-radius:10px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg cIcon name="cilPeople" style="color:#4F46E5;width:22px;height:22px;"></svg>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#EEF2FF;">
+            <svg cIcon name="cilPeople" style="color:#4F46E5;width:22px;height:22px;"></svg>
+          </div>
+          <div class="stat-body">
+            <div class="stat-value">{{ clientStats?.total_clients || 0 }}</div>
+            <div class="stat-label">Clients</div>
+            <div class="stat-sub" *ngIf="clientStats?.clients_with_debt > 0" style="color:#EF4444;">
+              {{ clientStats.clients_with_debt }} avec dettes
             </div>
-            <div>
-              <div style="font-size:1.65rem;font-weight:700;line-height:1;color:#1e293b;">{{ clientStats?.total || 0 }}</div>
-              <div style="font-size:0.75rem;color:#6c757d;margin-top:3px;">Clients</div>
+            <div class="stat-sub" *ngIf="clientStats?.new_clients_this_month > 0" style="color:#10B981;">
+              +{{ clientStats.new_clients_this_month }} ce mois
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Produits -->
+      <!-- Factures impayées -->
       <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;"
-             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'"
-             onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:44px;height:44px;border-radius:10px;background:#FFFBEB;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg cIcon name="cilBasket" style="color:#D97706;width:22px;height:22px;"></svg>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#FEF2F2;">
+            <svg cIcon name="cilDescription" style="color:#EF4444;width:22px;height:22px;"></svg>
+          </div>
+          <div class="stat-body">
+            <div class="stat-value" style="color:#EF4444;">{{ invoices?.impaye || 0 }}</div>
+            <div class="stat-label">Factures impayées</div>
+            <div class="stat-sub">Restant dû: {{ fmt(invoices?.total_remaining) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ 2. PRODUITS & STOCK ══ -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="module-card">
+          <div class="module-header">
+            <div class="d-flex align-items-center gap-2">
+              <div class="module-icon" style="background:#FFFBEB;">
+                <svg cIcon name="cilBasket" style="color:#D97706;width:15px;height:15px;"></svg>
+              </div>
+              <span class="module-title">Produits &amp; Stock</span>
             </div>
-            <div>
-              <div style="font-size:1.65rem;font-weight:700;line-height:1;color:#1e293b;">{{ productStats?.total_products || productStats?.total || 0 }}</div>
-              <div style="font-size:0.75rem;color:#6c757d;margin-top:3px;">Produits</div>
-              <div *ngIf="productStats?.low_stock_count > 0" style="font-size:0.72rem;color:#EF4444;margin-top:2px;">
-                {{ productStats.low_stock_count }} stock faible
+            <a routerLink="/products" class="module-link" style="color:#D97706;border-color:#D97706;">Détails</a>
+          </div>
+          <div class="module-body">
+            <div *ngIf="productStats; else noData">
+              <div class="row g-2 text-center mb-3">
+                <div class="col-4">
+                  <div class="kpi-num" style="color:#1e293b;">{{ productStats.total_products || 0 }}</div>
+                  <div class="kpi-lbl">Total</div>
+                </div>
+                <div class="col-4">
+                  <div class="kpi-num" style="color:#10B981;">{{ productStats.active_products || 0 }}</div>
+                  <div class="kpi-lbl">Actifs</div>
+                </div>
+                <div class="col-4">
+                  <div class="kpi-num" style="color:#EF4444;">{{ productStats.low_stock_products || 0 }}</div>
+                  <div class="kpi-lbl">Stock faible</div>
+                </div>
+              </div>
+              <div class="info-row">
+                <span class="text-muted" style="font-size:.8rem;">Rupture de stock</span>
+                <strong style="color:#EF4444;">{{ productStats.out_of_stock_products || 0 }}</strong>
+              </div>
+              <div class="info-row">
+                <span class="text-muted" style="font-size:.8rem;">Valeur du stock</span>
+                <strong style="color:#0f3460;">{{ fmt(productStats.total_stock_value) }}</strong>
+              </div>
+              <div class="info-row">
+                <span class="text-muted" style="font-size:.8rem;">Catégories</span>
+                <strong>{{ productStats.categories_count || 0 }}</strong>
               </div>
             </div>
           </div>
@@ -83,199 +136,416 @@
       </div>
 
       <!-- Conteneurs -->
-      <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;"
-             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'"
-             onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:44px;height:44px;border-radius:10px;background:#F0F9FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg cIcon name="cilLayers" style="color:#0891B2;width:22px;height:22px;"></svg>
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="module-card">
+          <div class="module-header">
+            <div class="d-flex align-items-center gap-2">
+              <div class="module-icon" style="background:#F0F9FF;">
+                <svg cIcon name="cilLayers" style="color:#0891B2;width:15px;height:15px;"></svg>
+              </div>
+              <span class="module-title">Conteneurs</span>
             </div>
-            <div>
-              <div style="font-size:1.65rem;font-weight:700;line-height:1;color:#1e293b;">{{ containerStats?.total_containers || 0 }}</div>
-              <div style="font-size:0.75rem;color:#6c757d;margin-top:3px;">Conteneurs</div>
-              <div style="font-size:0.72rem;color:#adb5bd;">{{ containerStats?.available || 0 }} disponibles</div>
+            <a routerLink="/containers" class="module-link" style="color:#0891B2;border-color:#0891B2;">Détails</a>
+          </div>
+          <div class="module-body">
+            <div *ngIf="containerStats; else noData">
+              <div class="text-center mb-3">
+                <div class="kpi-num-lg" style="color:#0891B2;">{{ containerStats.total_containers || 0 }}</div>
+                <div class="kpi-lbl">Conteneurs au total</div>
+              </div>
+              <div class="info-row">
+                <span class="text-muted" style="font-size:.8rem;">Créés sur la période</span>
+                <strong>{{ containerStats.containers_created || 0 }}</strong>
+              </div>
+              <div class="info-row">
+                <span class="text-muted" style="font-size:.8rem;">Avec photos</span>
+                <strong>{{ containerStats.containers_with_photos || 0 }}</strong>
+              </div>
+              <div class="info-row">
+                <span class="text-muted" style="font-size:.8rem;">Capacité moyenne</span>
+                <strong>{{ (containerStats.avg_capacity || 0) | number:'1.0-0' }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cashflow détaillé -->
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="module-card">
+          <div class="module-header">
+            <div class="d-flex align-items-center gap-2">
+              <div class="module-icon" style="background:#F0FDF4;">
+                <svg cIcon name="cilChart" style="color:#16A34A;width:15px;height:15px;"></svg>
+              </div>
+              <span class="module-title">Flux de trésorerie</span>
+            </div>
+            <a routerLink="/statistics/finance" class="module-link" style="color:#16A34A;border-color:#16A34A;">Détails</a>
+          </div>
+          <div class="module-body">
+            <div *ngIf="cashflow; else noData">
+              <div class="info-row mb-2">
+                <span style="font-size:.85rem;font-weight:600;color:#10B981;">↑ Entrées</span>
+                <strong style="color:#10B981;">{{ fmt(cashflow.income_total) }}</strong>
+              </div>
+              <div class="info-row mb-2">
+                <span style="font-size:.85rem;font-weight:600;color:#EF4444;">↓ Sorties</span>
+                <strong style="color:#EF4444;">{{ fmt(cashflow.outgoing_total) }}</strong>
+              </div>
+              <hr style="margin:8px 0;border-color:#f0f0f0;">
+              <div class="info-row">
+                <span style="font-size:.85rem;font-weight:700;color:#0f3460;">Solde net</span>
+                <strong [style.color]="(cashflow.net_cashflow ?? 0) >= 0 ? '#10B981' : '#EF4444'">
+                  {{ fmt(cashflow.net_cashflow) }}
+                </strong>
+              </div>
+              <div class="info-row mt-2">
+                <span class="text-muted" style="font-size:.8rem;">Dépenses fournisseurs</span>
+                <strong>{{ fmt(cashflow.supplier_out_total) }}</strong>
+              </div>
+              <div class="info-row">
+                <span class="text-muted" style="font-size:.8rem;">Dépenses perso.</span>
+                <strong>{{ fmt(cashflow.expense_total) }}</strong>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Module Cards -->
+    <!-- ══ 3. MODULES MÉTIER ══ -->
     <div class="row g-3 mb-4">
 
-      <!-- Location Immobiliere -->
+      <!-- Location Immobilière -->
       <div class="col-12 col-md-6 col-lg-4">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+        <div class="module-card">
+          <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div style="width:30px;height:30px;border-radius:8px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;">
+              <div class="module-icon" style="background:#EFF6FF;">
                 <svg cIcon name="cilHome" style="color:#2563EB;width:15px;height:15px;"></svg>
               </div>
-              <span style="font-weight:600;font-size:0.9rem;color:#1e293b;">Location Immobiliere</span>
+              <span class="module-title">Location Immobilière</span>
             </div>
-            <a routerLink="/rental/leases" style="font-size:0.75rem;font-weight:600;color:#2563EB;text-decoration:none;padding:4px 10px;border:1px solid #2563EB;border-radius:6px;">Details</a>
+            <a routerLink="/rental/leases" class="module-link" style="color:#2563EB;border-color:#2563EB;">Détails</a>
           </div>
-          <div style="padding:16px 18px;">
-            <div *ngIf="leaseStats; else noLease">
-              <div class="row g-2 text-center mb-3">
-                <div class="col-6">
-                  <div style="font-size:1.5rem;font-weight:700;color:#10B981;">{{ leaseStats.active_leases || 0 }}</div>
-                  <div style="font-size:0.75rem;color:#6c757d;">Contrats actifs</div>
-                </div>
-                <div class="col-6">
-                  <div style="font-size:1.5rem;font-weight:700;color:#F59E0B;">{{ leaseStats.pending_leases || 0 }}</div>
-                  <div style="font-size:0.75rem;color:#6c757d;">En attente</div>
-                </div>
-              </div>
+          <div class="module-body">
+            <div *ngIf="rentalLeases; else noData">
+              <!-- Taux d'occupation -->
               <div class="mb-3">
-                <div class="d-flex justify-content-between mb-1" style="font-size:0.8rem;">
-                  <span style="color:#374151;">Collecte ce mois</span>
-                  <span style="font-weight:600;color:#374151;">{{ getLeaseCollectionRate() }}%</span>
+                <div class="d-flex justify-content-between mb-1" style="font-size:.8rem;">
+                  <span style="color:#374151;">Taux d'occupation</span>
+                  <span style="font-weight:700;color:#2563EB;">{{ occupancyRate }}%</span>
                 </div>
                 <div class="progress" style="height:7px;border-radius:4px;">
-                  <div class="progress-bar"
-                       [class]="getLeaseCollectionRate() >= 80 ? 'bg-success' : 'bg-warning'"
-                       [style.width.%]="getLeaseCollectionRate()"
-                       style="border-radius:4px;transition:width .4s ease;">
-                  </div>
+                  <div class="progress-bar" [ngClass]="progressClass(occupancyRate)"
+                       [style.width.%]="occupancyRate" style="border-radius:4px;transition:width .4s;"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-1" style="font-size:.72rem;color:#9CA3AF;">
+                  <span>{{ rentalOccupancy?.occupied || 0 }} occupés</span>
+                  <span>{{ rentalOccupancy?.total_units || 0 }} unités total</span>
                 </div>
               </div>
-              <div style="font-size:0.8rem;color:#6c757d;">Loyer mensuel: <strong style="color:#374151;">{{ fmt(leaseStats.monthly_rent_total) }}</strong></div>
-              <div style="font-size:0.8rem;color:#6c757d;margin-top:4px;">Encaisse: <strong style="color:#10B981;">{{ fmt(leaseStats.collected_this_month) }}</strong></div>
+              <!-- Contrats -->
+              <div class="row g-2 text-center mb-3">
+                <div class="col-4">
+                  <div class="kpi-num" style="color:#10B981;">{{ rentalLeases.active || 0 }}</div>
+                  <div class="kpi-lbl">Actifs</div>
+                </div>
+                <div class="col-4">
+                  <div class="kpi-num" style="color:#F59E0B;">{{ rentalLeases.pending || 0 }}</div>
+                  <div class="kpi-lbl">En attente</div>
+                </div>
+                <div class="col-4">
+                  <div class="kpi-num" style="color:#6B7280;">{{ rentalLeases.expired_count || 0 }}</div>
+                  <div class="kpi-lbl">Expirés</div>
+                </div>
+              </div>
+              <!-- Collecte -->
+              <div class="mb-2">
+                <div class="d-flex justify-content-between mb-1" style="font-size:.8rem;">
+                  <span>Collecte ce mois</span>
+                  <span style="font-weight:700;">{{ rentalCollectionRate }}%</span>
+                </div>
+                <div class="progress" style="height:6px;border-radius:4px;">
+                  <div class="progress-bar" [ngClass]="progressClass(rentalCollectionRate)"
+                       [style.width.%]="rentalCollectionRate" style="border-radius:4px;"></div>
+                </div>
+              </div>
+              <div class="info-row">
+                <span class="text-muted" style="font-size:.8rem;">Loyer mensuel attendu</span>
+                <strong>{{ fmt(rentalRevenue?.expected_monthly) }}</strong>
+              </div>
+              <div class="info-row">
+                <span class="text-muted" style="font-size:.8rem;">Encaissé ce mois</span>
+                <strong style="color:#10B981;">{{ fmt(rentalRevenue?.collected_month) }}</strong>
+              </div>
             </div>
-            <ng-template #noLease>
-              <div class="text-center py-3 text-muted" style="font-size:0.875rem;">Non disponible</div>
-            </ng-template>
           </div>
         </div>
       </div>
 
       <!-- Taxi & Transport -->
       <div class="col-12 col-md-6 col-lg-4">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+        <div class="module-card">
+          <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div style="width:30px;height:30px;border-radius:8px;background:#FFFBEB;display:flex;align-items:center;justify-content:center;">
+              <div class="module-icon" style="background:#FFFBEB;">
                 <svg cIcon name="cilSpeedometer" style="color:#D97706;width:15px;height:15px;"></svg>
               </div>
-              <span style="font-weight:600;font-size:0.9rem;color:#1e293b;">Taxi &amp; Transport</span>
+              <span class="module-title">Taxi &amp; Transport</span>
             </div>
-            <a routerLink="/taxi/daily-payments" style="font-size:0.75rem;font-weight:600;color:#D97706;text-decoration:none;padding:4px 10px;border:1px solid #D97706;border-radius:6px;">Details</a>
+            <a routerLink="/taxi/dashboard" class="module-link" style="color:#D97706;border-color:#D97706;">Détails</a>
           </div>
-          <div style="padding:16px 18px;">
-            <div *ngIf="taxiStats?.summary; else noTaxi">
+          <div class="module-body">
+            <div *ngIf="taxiSummary; else noData">
+              <!-- Flotte & conducteurs -->
               <div class="row g-2 text-center mb-3">
-                <div class="col-6">
-                  <div style="font-size:1rem;font-weight:700;color:#10B981;word-break:break-all;">{{ fmt(taxiStats.summary.total_paid) }}</div>
-                  <div style="font-size:0.75rem;color:#6c757d;">Verse</div>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#0f3460;">{{ taxiFleet?.total || 0 }}</div>
+                  <div class="kpi-lbl">Véhicules</div>
                 </div>
-                <div class="col-6">
-                  <div style="font-size:1rem;font-weight:700;color:#EF4444;word-break:break-all;">{{ fmt(taxiStats.summary.total_balance) }}</div>
-                  <div style="font-size:0.75rem;color:#6c757d;">Solde restant</div>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#10B981;">{{ taxiFleet?.active || 0 }}</div>
+                  <div class="kpi-lbl">Actifs</div>
                 </div>
-              </div>
-              <div class="mb-3">
-                <div class="d-flex justify-content-between mb-1" style="font-size:0.8rem;">
-                  <span style="color:#374151;">Taux de collecte</span>
-                  <span style="font-weight:600;color:#374151;">{{ getTaxiCollectionRate() }}%</span>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#4F46E5;">{{ taxiDrivers?.total || 0 }}</div>
+                  <div class="kpi-lbl">Conducteurs</div>
                 </div>
-                <div class="progress" style="height:7px;border-radius:4px;">
-                  <div class="progress-bar"
-                       [class]="getTaxiCollectionRate() >= 80 ? 'bg-success' : getTaxiCollectionRate() >= 50 ? 'bg-warning' : 'bg-danger'"
-                       [style.width.%]="getTaxiCollectionRate()"
-                       style="border-radius:4px;transition:width .4s ease;">
-                  </div>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#10B981;">{{ taxiDrivers?.active || 0 }}</div>
+                  <div class="kpi-lbl">Actifs</div>
                 </div>
               </div>
-              <div class="d-flex gap-2 flex-wrap">
-                <span style="background:#ECFDF5;color:#10B981;padding:3px 10px;border-radius:50px;font-size:0.72rem;font-weight:600;">{{ taxiStats.summary.paid_count || 0 }} Paye</span>
-                <span style="background:#FFFBEB;color:#D97706;padding:3px 10px;border-radius:50px;font-size:0.72rem;font-weight:600;">{{ taxiStats.summary.partial_count || 0 }} Partiel</span>
-                <span style="background:#FEE2E2;color:#EF4444;padding:3px 10px;border-radius:50px;font-size:0.72rem;font-weight:600;">{{ taxiStats.summary.unpaid_count || 0 }} Impaye</span>
-                <span style="background:#EFF6FF;color:#2563EB;padding:3px 10px;border-radius:50px;font-size:0.72rem;font-weight:600;">{{ taxiStats.summary.excused_count || 0 }} Excuse</span>
+              <!-- Aujourd'hui -->
+              <div class="info-row mb-2" style="background:#FFFBEB;border-radius:8px;padding:6px 10px;">
+                <span style="font-size:.8rem;font-weight:600;color:#D97706;">Collecte aujourd'hui</span>
+                <strong style="color:#D97706;">{{ fmt(taxiToday?.collected) }}</strong>
+              </div>
+              <!-- Taux de collecte -->
+              <div class="mb-2">
+                <div class="d-flex justify-content-between mb-1" style="font-size:.8rem;">
+                  <span>Taux de collecte global</span>
+                  <span style="font-weight:700;">{{ taxiCollectionRate }}%</span>
+                </div>
+                <div class="progress" style="height:6px;border-radius:4px;">
+                  <div class="progress-bar" [ngClass]="progressClass(taxiCollectionRate)"
+                       [style.width.%]="taxiCollectionRate" style="border-radius:4px;"></div>
+                </div>
+              </div>
+              <!-- Badges statuts -->
+              <div class="d-flex gap-1 flex-wrap mt-2">
+                <span class="badge-pill bg-success-soft">{{ taxiSummary.paid_count || 0 }} Payé</span>
+                <span class="badge-pill bg-warning-soft">{{ taxiSummary.partial_count || 0 }} Partiel</span>
+                <span class="badge-pill bg-danger-soft">{{ taxiSummary.unpaid_count || 0 }} Impayé</span>
+                <span class="badge-pill bg-primary-soft">{{ taxiSummary.excused_count || 0 }} Excusé</span>
+              </div>
+              <div class="info-row mt-2">
+                <span class="text-muted" style="font-size:.8rem;">Net du mois</span>
+                <strong [style.color]="(taxiMonth?.net ?? 0) >= 0 ? '#10B981' : '#EF4444'">
+                  {{ fmt(taxiMonth?.net) }}
+                </strong>
               </div>
             </div>
-            <ng-template #noTaxi>
-              <div class="text-center py-3 text-muted" style="font-size:0.875rem;">Non disponible</div>
-            </ng-template>
           </div>
         </div>
       </div>
 
-      <!-- Depenses Personnelles -->
+      <!-- Dépenses Personnelles -->
       <div class="col-12 col-md-6 col-lg-4">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+        <div class="module-card">
+          <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div style="width:30px;height:30px;border-radius:8px;background:#FFF1F2;display:flex;align-items:center;justify-content:center;">
+              <div class="module-icon" style="background:#FFF1F2;">
                 <svg cIcon name="cilWallet" style="color:#E11D48;width:15px;height:15px;"></svg>
               </div>
-              <span style="font-weight:600;font-size:0.9rem;color:#1e293b;">Depenses Personnelles</span>
+              <span class="module-title">Dépenses Personnelles</span>
             </div>
-            <a routerLink="/expenses/statistics" style="font-size:0.75rem;font-weight:600;color:#E11D48;text-decoration:none;padding:4px 10px;border:1px solid #E11D48;border-radius:6px;">Details</a>
+            <a routerLink="/expenses/statistics" class="module-link" style="color:#E11D48;border-color:#E11D48;">Détails</a>
           </div>
-          <div style="padding:16px 18px;">
-            <div *ngIf="expenseStats?.summary; else noExpense">
+          <div class="module-body">
+            <div *ngIf="expenseSummary; else noData">
               <div class="text-center mb-3">
-                <div style="font-size:1.4rem;font-weight:700;color:#EF4444;">{{ fmt(expenseStats.summary.total_amount) }}</div>
-                <div style="font-size:0.75rem;color:#6c757d;margin-top:3px;">Total sur la periode</div>
-              </div>
-              <div style="font-size:0.8rem;color:#6c757d;margin-bottom:10px;">
-                {{ expenseStats.summary.total_count || 0 }} depenses &mdash; Moy: {{ fmt(expenseStats.summary.avg_amount) }}
-              </div>
-              <div *ngIf="expenseStats.by_category?.length">
-                <div *ngFor="let cat of expenseStats.by_category.slice(0, 3); trackBy: trackById"
-                     class="d-flex justify-content-between align-items-center mb-2">
-                  <div class="d-flex align-items-center gap-2">
-                    <span style="width:8px;height:8px;border-radius:50%;display:inline-block;" [style.background]="cat.color"></span>
-                    <span style="font-size:0.8rem;color:#374151;">{{ cat.category_name }}</span>
-                  </div>
-                  <span style="font-size:0.8rem;font-weight:600;color:#374151;">{{ fmt(cat.total) }}</span>
+                <div style="font-size:1.35rem;font-weight:700;color:#EF4444;">{{ fmt(expenseSummary.total_amount) }}</div>
+                <div class="kpi-lbl">Total sur la période</div>
+                <!-- Évolution mois précédent -->
+                <div class="mt-1">
+                  <span [style.color]="expenseEvolution <= 0 ? '#10B981' : '#EF4444'"
+                        style="font-size:.78rem;font-weight:600;">
+                    {{ expenseEvolution <= 0 ? '▼' : '▲' }} {{ expenseEvolution | number:'1.1-1' }}% vs mois préc.
+                  </span>
                 </div>
               </div>
+              <div class="info-row mb-2">
+                <span class="text-muted" style="font-size:.8rem;">Nombre de dépenses</span>
+                <strong>{{ expenseSummary.total_count || 0 }}</strong>
+              </div>
+              <div class="info-row mb-3">
+                <span class="text-muted" style="font-size:.8rem;">Moyenne par dépense</span>
+                <strong>{{ fmt(expenseSummary.avg_amount) }}</strong>
+              </div>
+              <!-- Top catégories -->
+              <div *ngFor="let cat of expenseByCategory.slice(0, 3); trackBy: trackById"
+                   class="d-flex justify-content-between align-items-center mb-2">
+                <span style="font-size:.8rem;color:#374151;">{{ cat.category_name || 'Autre' }}</span>
+                <span style="font-size:.8rem;font-weight:600;">{{ fmt(cat.total) }}</span>
+              </div>
             </div>
-            <ng-template #noExpense>
-              <div class="text-center py-3 text-muted" style="font-size:0.875rem;">Non disponible</div>
-            </ng-template>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Acces Rapides -->
-    <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
-      <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
-        <div style="width:30px;height:30px;border-radius:8px;background:#F5F3FF;display:flex;align-items:center;justify-content:center;">
-          <svg cIcon name="cilGraph" style="color:#7C3AED;width:15px;height:15px;"></svg>
+    <!-- ══ 4. CONDUCTEURS & FACTURES ══ -->
+    <div class="row g-3 mb-4">
+
+      <!-- Conducteurs -->
+      <div class="col-12 col-md-6">
+        <div class="module-card">
+          <div class="module-header">
+            <div class="d-flex align-items-center gap-2">
+              <div class="module-icon" style="background:#F0FDF4;">
+                <svg cIcon name="cilUser" style="color:#16A34A;width:15px;height:15px;"></svg>
+              </div>
+              <span class="module-title">Conducteurs</span>
+            </div>
+            <a routerLink="/taxi/drivers" class="module-link" style="color:#16A34A;border-color:#16A34A;">Gérer</a>
+          </div>
+          <div class="module-body">
+            <div *ngIf="driverStats; else noData">
+              <div class="row g-2 text-center">
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#0f3460;">{{ driverStats.total_drivers || 0 }}</div>
+                  <div class="kpi-lbl">Total</div>
+                </div>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#10B981;">{{ driverStats.active_drivers || 0 }}</div>
+                  <div class="kpi-lbl">Actifs</div>
+                </div>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#6B7280;">{{ driverStats.inactive_drivers || 0 }}</div>
+                  <div class="kpi-lbl">Inactifs</div>
+                </div>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#EF4444;">{{ driverStats.suspended_drivers || 0 }}</div>
+                  <div class="kpi-lbl">Suspendus</div>
+                </div>
+              </div>
+              <div class="info-row mt-3">
+                <span class="text-muted" style="font-size:.8rem;">Avec affectation active</span>
+                <strong style="color:#4F46E5;">{{ driverStats.drivers_with_assignments || 0 }}</strong>
+              </div>
+            </div>
+          </div>
         </div>
-        <span style="font-weight:600;font-size:0.9rem;color:#1e293b;">Statistiques detaillees par module</span>
       </div>
-      <div style="padding:14px 18px;">
+
+      <!-- Factures -->
+      <div class="col-12 col-md-6">
+        <div class="module-card">
+          <div class="module-header">
+            <div class="d-flex align-items-center gap-2">
+              <div class="module-icon" style="background:#FEF2F2;">
+                <svg cIcon name="cilDescription" style="color:#DC2626;width:15px;height:15px;"></svg>
+              </div>
+              <span class="module-title">Factures</span>
+            </div>
+            <a routerLink="/finance/invoices" class="module-link" style="color:#DC2626;border-color:#DC2626;">Gérer</a>
+          </div>
+          <div class="module-body">
+            <div *ngIf="invoices; else noData">
+              <div class="row g-2 text-center mb-3">
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#0f3460;">{{ invoices.total || 0 }}</div>
+                  <div class="kpi-lbl">Total</div>
+                </div>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#10B981;">{{ invoices.paye || 0 }}</div>
+                  <div class="kpi-lbl">Payées</div>
+                </div>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#F59E0B;">{{ invoices.partiel || 0 }}</div>
+                  <div class="kpi-lbl">Partielles</div>
+                </div>
+                <div class="col-3">
+                  <div class="kpi-num" style="color:#EF4444;">{{ invoices.impaye || 0 }}</div>
+                  <div class="kpi-lbl">Impayées</div>
+                </div>
+              </div>
+              <div class="info-row" style="background:#FEF2F2;border-radius:8px;padding:8px 12px;">
+                <span style="font-size:.85rem;font-weight:600;color:#DC2626;">Total restant dû</span>
+                <strong style="color:#DC2626;">{{ fmt(invoices.total_remaining) }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ 5. ACCÈS RAPIDES ══ -->
+    <div class="module-card">
+      <div class="module-header">
+        <div class="d-flex align-items-center gap-2">
+          <div class="module-icon" style="background:#F5F3FF;">
+            <svg cIcon name="cilGraph" style="color:#7C3AED;width:15px;height:15px;"></svg>
+          </div>
+          <span class="module-title">Statistiques détaillées par module</span>
+        </div>
+      </div>
+      <div class="module-body">
         <div class="d-flex flex-wrap gap-2">
-          <a routerLink="/statistics/sales" style="display:inline-flex;align-items:center;gap:6px;background:#EEF2FF;color:#4F46E5;border:1px solid #C7D2FE;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilCart" style="width:13px;height:13px;"></svg> Ventes
-          </a>
-          <a routerLink="/statistics/finance" style="display:inline-flex;align-items:center;gap:6px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilDollar" style="width:13px;height:13px;"></svg> Finance
-          </a>
-          <a routerLink="/statistics/inventory" style="display:inline-flex;align-items:center;gap:6px;background:#FFFBEB;color:#D97706;border:1px solid #FDE68A;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilLayers" style="width:13px;height:13px;"></svg> Inventaire
-          </a>
-          <a routerLink="/taxi/daily-payments" style="display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilSpeedometer" style="width:13px;height:13px;"></svg> Taxi
-          </a>
-          <a routerLink="/rental/leases" style="display:inline-flex;align-items:center;gap:6px;background:#F8FAFC;color:#475569;border:1px solid #E2E8F0;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilHome" style="width:13px;height:13px;"></svg> Location
-          </a>
-          <a routerLink="/expenses/statistics" style="display:inline-flex;align-items:center;gap:6px;background:#FFF1F2;color:#E11D48;border:1px solid #FECDD3;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilWallet" style="width:13px;height:13px;"></svg> Depenses
-          </a>
-          <a routerLink="/containers/statistics" style="display:inline-flex;align-items:center;gap:6px;background:#F0F9FF;color:#0891B2;border:1px solid #BAE6FD;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilLayers" style="width:13px;height:13px;"></svg> Conteneurs
-          </a>
+          <a routerLink="/statistics/sales"     class="quick-link" style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE;"><svg cIcon name="cilCart" style="width:13px;height:13px;"></svg> Ventes</a>
+          <a routerLink="/statistics/finance"   class="quick-link" style="background:#ECFDF5;color:#059669;border-color:#A7F3D0;"><svg cIcon name="cilDollar" style="width:13px;height:13px;"></svg> Finance</a>
+          <a routerLink="/statistics/inventory" class="quick-link" style="background:#FFFBEB;color:#D97706;border-color:#FDE68A;"><svg cIcon name="cilLayers" style="width:13px;height:13px;"></svg> Inventaire</a>
+          <a routerLink="/taxi/dashboard"       class="quick-link" style="background:#EFF6FF;color:#2563EB;border-color:#BFDBFE;"><svg cIcon name="cilSpeedometer" style="width:13px;height:13px;"></svg> Taxi</a>
+          <a routerLink="/rental/leases"        class="quick-link" style="background:#F8FAFC;color:#475569;border-color:#E2E8F0;"><svg cIcon name="cilHome" style="width:13px;height:13px;"></svg> Location</a>
+          <a routerLink="/expenses/statistics"  class="quick-link" style="background:#FFF1F2;color:#E11D48;border-color:#FECDD3;"><svg cIcon name="cilWallet" style="width:13px;height:13px;"></svg> Dépenses</a>
+          <a routerLink="/containers"           class="quick-link" style="background:#F0F9FF;color:#0891B2;border-color:#BAE6FD;"><svg cIcon name="cilLayers" style="width:13px;height:13px;"></svg> Conteneurs</a>
+          <a routerLink="/finance/invoices"     class="quick-link" style="background:#FEF2F2;color:#DC2626;border-color:#FECACA;"><svg cIcon name="cilDescription" style="width:13px;height:13px;"></svg> Factures</a>
         </div>
       </div>
     </div>
 
   </div>
 </div>
+
+<!-- Template vide réutilisable -->
+<ng-template #noData>
+  <div class="text-center py-3 text-muted" style="font-size:.875rem;">Non disponible</div>
+</ng-template>
+
+<style>
+  .stat-card {
+    background: white; border-radius: 12px; padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    display: flex; align-items: flex-start; gap: 14px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+  .stat-icon { width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+  .stat-body { min-width:0; }
+  .stat-value { font-size:1.45rem;font-weight:700;line-height:1.1;color:#1e293b;word-break:break-all; }
+  .stat-label { font-size:.75rem;color:#6c757d;margin-top:3px; }
+  .stat-sub   { font-size:.72rem;color:#adb5bd;margin-top:2px; }
+
+  .module-card { background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;height:100%; }
+  .module-header { padding:12px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between; }
+  .module-icon { width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center; }
+  .module-title { font-weight:600;font-size:.9rem;color:#1e293b; }
+  .module-link { font-size:.73rem;font-weight:600;text-decoration:none;padding:3px 9px;border:1px solid;border-radius:6px; }
+  .module-body { padding:14px 16px; }
+
+  .kpi-num    { font-size:1.4rem;font-weight:700;line-height:1; }
+  .kpi-num-lg { font-size:2rem;font-weight:700;line-height:1; }
+  .kpi-lbl    { font-size:.72rem;color:#6c757d;margin-top:2px; }
+
+  .info-row { display:flex;justify-content:space-between;align-items:center;margin-bottom:6px; }
+
+  .badge-pill { padding:3px 10px;border-radius:50px;font-size:.72rem;font-weight:600; }
+  .bg-success-soft { background:#ECFDF5;color:#10B981; }
+  .bg-warning-soft { background:#FFFBEB;color:#D97706; }
+  .bg-danger-soft  { background:#FEF2F2;color:#EF4444; }
+  .bg-primary-soft { background:#EFF6FF;color:#2563EB; }
+
+  .quick-link { display:inline-flex;align-items:center;gap:6px;border:1px solid;border-radius:8px;padding:7px 14px;font-size:.8rem;font-weight:600;text-decoration:none; }
+</style>

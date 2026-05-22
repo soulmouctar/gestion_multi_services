@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class BankAccount extends Model
 {
     protected $fillable = [
         'tenant_id', 'bank_name', 'account_number', 'account_name',
         'account_type', 'currency', 'opening_balance', 'current_balance',
-        'is_active', 'description',
+        'is_active', 'description', 'brand_color', 'logo_path',
     ];
 
     protected $casts = [
@@ -18,6 +19,16 @@ class BankAccount extends Model
         'is_active'       => 'boolean',
     ];
 
+    protected $appends = ['logo_url'];
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (!$this->logo_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->logo_path);
+    }
 
     public function scopeForTenant($query, int $tenantId)
     {

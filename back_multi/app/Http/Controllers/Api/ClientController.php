@@ -11,16 +11,23 @@ use App\Models\ContainerSalePayment;
 use App\Models\ClientAdvance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class ClientController extends BaseController
 {
+    private function tenantId(Request $request): ?int
+    {
+        $user = Auth::user();
+
+        return $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+    }
+
     public function index(Request $request)
     {
-        $user     = Auth::user();
-        $tenantId = $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+        $tenantId = $this->tenantId($request);
 
         $query = Client::query();
 
@@ -476,8 +483,7 @@ class ClientController extends BaseController
 
     public function getStatistics(Request $request)
     {
-        $user     = Auth::user();
-        $tenantId = $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+        $tenantId = $this->tenantId($request);
 
         $query = Client::where('tenant_id', $tenantId);
 
@@ -491,5 +497,153 @@ class ClientController extends BaseController
         ];
 
         return $this->sendResponse($stats, 'Client statistics retrieved successfully');
+    }
+
+    public function getFinancialOverview(Request $request)
+    {
+        $tenantId = $this->tenantId($request);
+
+        $clientsQuery = Client::query()->where('tenant_id', $tenantId);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $clientsQuery->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone1', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('client_type')) {
+            $clientsQuery->where('client_type', $request->client_type);
+        }
+
+        $clients = $clientsQuery
+            ->orderBy('name')
+            ->get(['id', 'tenant_id', 'name', 'email', 'phone1', 'phone2', 'client_type', 'photo']);
+
+        $invoiceAmountColumn = Schema::hasColumn('invoices', 'total_amount_gnf') ? 'total_amount_gnf' : 'total_amount';
+        $paymentAmountColumn = Schema::hasColumn('payments', 'amount_gnf') ? 'amount_gnf' : 'amount';
+        $containerSaleAmountColumn = Schema::hasColumn('container_sales', 'sale_price_gnf') ? 'sale_price_gnf' : 'sale_price';
+        $containerRemainingColumn = Schema::hasColumn('container_sales', 'remaining_amount_gnf') ? 'remaining_amount_gnf' : 'remaining_amount';
+        $containerPaymentAmountColumn = Schema::hasColumn('container_sale_payments', 'amount_gnf') ? 'amount_gnf' : 'amount';
+
+        $invoiceTotals = Invoice::query()
+            ->where('tenant_id', $tenantId)
+            ->select('client_id', DB::raw("COALESCE(SUM({$invoiceAmountColumn}), 0) as total"))
+            ->groupBy('client_id')
+            ->pluck('total', 'client_id');
+
+        $invoicePayments = Payment::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'COMPLETED')
+            ->select('client_id', DB::raw("COALESCE(SUM({$paymentAmountColumn}), 0) as total"))
+            ->groupBy('client_id')
+            ->pluck('total', 'client_id');
+
+        $containerSales = ContainerSale::query()
+            ->where('tenant_id', $tenantId)
+            ->select(
+                'client_id',
+                DB::raw("COALESCE(SUM({$containerSaleAmountColumn}), 0) as total_sales"),
+                DB::raw("COALESCE(SUM({$containerRemainingColumn}), 0) as total_remaining"),
+                DB::raw('COUNT(*) as sale_count')
+            )
+            ->groupBy('client_id')
+            ->get()
+            ->keyBy('client_id');
+
+        $containerPayments = ContainerSalePayment::query()
+            ->where('tenant_id', $tenantId)
+            ->select('client_id', DB::raw("COALESCE(SUM({$containerPaymentAmountColumn}), 0) as total"))
+            ->groupBy('client_id')
+            ->pluck('total', 'client_id');
+
+        $advances = ClientAdvance::query()
+            ->where('tenant_id', $tenantId)
+            ->select(
+                'client_id',
+                DB::raw('COALESCE(SUM(amount), 0) as total_advances'),
+                DB::raw('COALESCE(SUM(remaining_amount), 0) as remaining_advances')
+            )
+            ->groupBy('client_id')
+            ->get()
+            ->keyBy('client_id');
+
+        $rows = $clients->map(function (Client $client) use (
+            $invoiceTotals,
+            $invoicePayments,
+            $containerSales,
+            $containerPayments,
+            $advances
+        ) {
+            $invoiceInvoiced = (float) ($invoiceTotals[$client->id] ?? 0);
+            $invoicePaid = (float) ($invoicePayments[$client->id] ?? 0);
+            $invoiceRemaining = max(0, $invoiceInvoiced - $invoicePaid);
+
+            $containerData = $containerSales->get($client->id);
+            $containerCharged = (float) ($containerData?->total_sales ?? 0);
+            $containerRemaining = (float) ($containerData?->total_remaining ?? 0);
+            $containerPaid = (float) ($containerPayments[$client->id] ?? 0);
+            $saleCount = (int) ($containerData?->sale_count ?? 0);
+
+            $advanceData = $advances->get($client->id);
+            $advanceTotal = (float) ($advanceData?->total_advances ?? 0);
+            $advanceRemaining = (float) ($advanceData?->remaining_advances ?? 0);
+
+            $grossDebt = $invoiceRemaining + $containerRemaining;
+            $restToPay = max(0, $grossDebt - $advanceRemaining);
+            $creditBalance = max(0, $advanceRemaining - $grossDebt);
+            $status = $restToPay > 0.009 ? 'DEBITEUR' : ($creditBalance > 0.009 ? 'AVANCE' : 'SOLDE');
+
+            return [
+                'id' => $client->id,
+                'name' => $client->name,
+                'email' => $client->email,
+                'phone1' => $client->phone1,
+                'phone2' => $client->phone2,
+                'client_type' => $client->client_type,
+                'photo_url' => $client->photo_url,
+                'sale_count' => $saleCount,
+                'invoice_invoiced' => round($invoiceInvoiced, 2),
+                'invoice_paid' => round($invoicePaid, 2),
+                'invoice_remaining' => round($invoiceRemaining, 2),
+                'container_charged' => round($containerCharged, 2),
+                'container_paid' => round($containerPaid, 2),
+                'container_remaining' => round($containerRemaining, 2),
+                'total_charged' => round($invoiceInvoiced + $containerCharged, 2),
+                'total_paid' => round($invoicePaid + $containerPaid, 2),
+                'advances_total' => round($advanceTotal, 2),
+                'advances_remaining' => round($advanceRemaining, 2),
+                'gross_debt_gnf' => round($grossDebt, 2),
+                'rest_to_pay_gnf' => round($restToPay, 2),
+                'credit_balance_gnf' => round($creditBalance, 2),
+                'status' => $status,
+                'status_label' => match ($status) {
+                    'DEBITEUR' => 'Débiteur',
+                    'AVANCE' => 'Avance',
+                    default => 'Soldé',
+                },
+            ];
+        })->values();
+
+        $summary = [
+            'total_clients' => $rows->count(),
+            'debtor_clients' => $rows->where('status', 'DEBITEUR')->count(),
+            'settled_clients' => $rows->where('status', 'SOLDE')->count(),
+            'credit_clients' => $rows->where('status', 'AVANCE')->count(),
+            'total_charged' => round((float) $rows->sum('total_charged'), 2),
+            'total_paid' => round((float) $rows->sum('total_paid'), 2),
+            'total_advances' => round((float) $rows->sum('advances_total'), 2),
+            'total_advances_remaining' => round((float) $rows->sum('advances_remaining'), 2),
+            'total_debt' => round((float) $rows->sum('gross_debt_gnf'), 2),
+            'total_rest_to_pay' => round((float) $rows->sum('rest_to_pay_gnf'), 2),
+            'total_credit_balance' => round((float) $rows->sum('credit_balance_gnf'), 2),
+        ];
+
+        return $this->sendResponse([
+            'summary' => $summary,
+            'clients' => $rows,
+        ], 'Client financial overview retrieved successfully');
     }
 }

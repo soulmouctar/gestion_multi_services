@@ -9,10 +9,16 @@ use Illuminate\Support\Facades\Validator;
 
 class ContainerPaymentController extends BaseController
 {
+    private function tenantId(Request $request): ?int
+    {
+        $user = auth()->user();
+        return $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+    }
+
     public function index(Request $request)
     {
         try {
-            $tenantId = $request->get('tenant_id', 1);
+            $tenantId = $this->tenantId($request);
             
             $query = ContainerPayment::with(['container', 'supplier', 'client'])
                 ->where('tenant_id', $tenantId);
@@ -69,7 +75,7 @@ class ContainerPaymentController extends BaseController
             }
 
             $data = $request->all();
-            $data['tenant_id'] = $request->get('tenant_id', 1);
+            $data['tenant_id'] = $this->tenantId($request);
 
             $payment = ContainerPayment::create($data);
 
@@ -117,7 +123,10 @@ class ContainerPaymentController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $payment->update($request->all());
+        $payment->update($request->only([
+            'container_id', 'type', 'amount', 'currency', 'payment_method',
+            'payment_date', 'reference', 'description', 'status', 'supplier_id', 'client_id',
+        ]));
 
         return $this->sendResponse($payment->load(['container', 'supplier', 'client']), 'Container payment updated successfully');
     }
@@ -138,7 +147,7 @@ class ContainerPaymentController extends BaseController
     public function statistics(Request $request)
     {
         try {
-            $tenantId = $request->get('tenant_id', 1);
+            $tenantId = $this->tenantId($request);
 
             $supplierPaid = ContainerPayment::where('tenant_id', $tenantId)
                 ->where('type', 'SUPPLIER')

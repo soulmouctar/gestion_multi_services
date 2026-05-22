@@ -83,7 +83,7 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <div class="text-body-secondary small">Échéance</div>
-                <div class="fw-semibold">{{ invoice.due_date | date:'dd/MM/yyyy' || '—' }}</div>
+                <div class="fw-semibold">{{ invoice.due_date ? (invoice.due_date | date:'dd/MM/yyyy') : '—' }}</div>
               </div>
               <div class="col-md-6">
                 <div class="text-body-secondary small">Devise</div>
@@ -116,6 +116,7 @@
                   <tr>
                     <th class="px-3 py-3 small text-uppercase text-body-secondary">#</th>
                     <th class="px-3 py-3 small text-uppercase text-body-secondary">Description</th>
+                    <th class="px-3 py-3 small text-uppercase text-body-secondary">Conditionnement</th>
                     <th class="px-3 py-3 small text-uppercase text-body-secondary text-center">Qté</th>
                     <th class="px-3 py-3 small text-uppercase text-body-secondary text-end">PU</th>
                     <th class="px-3 py-3 small text-uppercase text-body-secondary text-end">Total</th>
@@ -126,6 +127,14 @@
                     <td class="px-3 py-3">{{ i + 1 }}</td>
                     <td class="px-3 py-3">
                       <div class="fw-semibold">{{ item.description || item.product?.name || 'Ligne de facture' }}</div>
+                    </td>
+                    <td class="px-3 py-3">
+                      <span class="badge rounded-pill"
+                            [style.background]="item.sale_type === 'CARTON' ? '#DBEAFE' : item.sale_type === 'DEMI_CARTON' ? '#EDE9FE' : item.sale_type === 'DOUZAINE' ? '#D1FAE5' : '#F3F4F6'"
+                            [style.color]="item.sale_type === 'CARTON' ? '#1D4ED8' : item.sale_type === 'DEMI_CARTON' ? '#7C3AED' : item.sale_type === 'DOUZAINE' ? '#065F46' : '#374151'"
+                            style="font-size:.72rem;">
+                        {{ item.sale_type === 'CARTON' ? 'Carton' : item.sale_type === 'DEMI_CARTON' ? '½ Carton' : item.sale_type === 'DOUZAINE' ? 'Douzaine' : 'Unité' }}
+                      </span>
                     </td>
                     <td class="px-3 py-3 text-center">{{ item.quantity }}</td>
                     <td class="px-3 py-3 text-end">{{ item.unit_price | number:'1.0-0' }} {{ invoice.currency || 'GNF' }}</td>

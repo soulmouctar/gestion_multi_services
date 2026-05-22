@@ -1,0 +1,128 @@
+.app-header-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 4.5rem;
+  flex-wrap: wrap;
+}
+
+.app-header-toggle {
+  margin-inline-start: -0.5rem;
+  flex: 0 0 auto;
+}
+
+.app-header-links,
+.app-header-actions {
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.app-header-links {
+  flex: 0 1 auto;
+}
+
+.header-spacer {
+  flex: 1 1 auto;
+}
+
+.header-user-toggle {
+  gap: 0.5rem;
+}
+
+.header-avatar {
+  position: relative;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.9rem;
+  border: 1px solid #dbe4f0;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+  color: #fff;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.header-avatar--sm {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+}
+
+.header-avatar--image {
+  background: #fff;
+}
+
+.header-avatar__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.header-avatar__fallback {
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.header-avatar__status {
+  position: absolute;
+  right: 0.1rem;
+  bottom: 0.1rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  background: #16a34a;
+  border: 2px solid #fff;
+}
+
+.header-mobile-tenant {
+  width: 100%;
+
+  select {
+    min-width: 16rem;
+    max-width: 24rem;
+    flex: 1 1 18rem;
+  }
+}
+
+.header-tenant-bar {
+  background: #fff;
+}
+
+@media (max-width: 1199.98px) {
+  .app-header-main {
+    gap: 0.35rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .app-header-main {
+    min-height: 4rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .app-header-main {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .header-mobile-tenant {
+    align-items: stretch !important;
+
+    select {
+      min-width: 100%;
+      max-width: 100%;
+      flex-basis: 100%;
+    }
+  }
+
+  .header-avatar {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.8rem;
+  }
+}

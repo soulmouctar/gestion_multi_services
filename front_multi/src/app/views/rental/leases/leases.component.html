@@ -60,7 +60,7 @@
     <!-- ===== LEASES TAB ===== -->
     <div *ngIf="activeTab === 'leases'">
       <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-        <button cButton color="success" size="sm" (click)="openNewLeaseModal()">
+        <button *ngIf="canCreateLeases" cButton color="success" size="sm" (click)="openNewLeaseModal()">
           <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau contrat
         </button>
         <select class="form-select form-select-sm w-auto" [(ngModel)]="leaseStatusFilter" (change)="leasesPage = 1; loadLeases()">
@@ -104,16 +104,16 @@
               <td class="text-muted small">{{ getLeaseDuration(lease) }}</td>
               <td class="text-end">
                 <div class="d-flex gap-1 justify-content-end flex-wrap">
-                  <button cButton color="success" variant="outline" size="sm" (click)="openPaymentModal(lease)" title="Enregistrer paiement">
+                  <button *ngIf="canRegisterLeasePayments" cButton color="success" variant="outline" size="sm" (click)="openPaymentModal(lease)" title="Enregistrer paiement">
                     <svg cIcon name="cilCash" size="sm"></svg>
                   </button>
                   <button cButton color="info" variant="outline" size="sm" (click)="openLeasePaymentsModal(lease)" title="Voir paiements">
                     <svg cIcon name="cilList" size="sm"></svg>
                   </button>
-                  <button cButton color="warning" variant="outline" size="sm" (click)="openEditLeaseModal(lease)" title="Modifier">
+                  <button *ngIf="canEditLeases" cButton color="warning" variant="outline" size="sm" (click)="openEditLeaseModal(lease)" title="Modifier">
                     <svg cIcon name="cilPencil" size="sm"></svg>
                   </button>
-                  <button cButton color="danger" variant="outline" size="sm" (click)="deleteLease(lease)" title="Supprimer">
+                  <button *ngIf="canDeleteLeases" cButton color="danger" variant="outline" size="sm" (click)="deleteLease(lease)" title="Supprimer">
                     <svg cIcon name="cilTrash" size="sm"></svg>
                   </button>
                 </div>
@@ -172,6 +172,9 @@
                 <c-badge [color]="getStatusColor(p.status)">{{ getStatusLabel(p.status) }}</c-badge>
               </td>
               <td class="text-end">
+                <button cButton color="info" variant="outline" size="sm" class="me-1" (click)="printPaymentReceipt(p)" title="Reçu">
+                  <svg cIcon name="cilPrint" size="sm"></svg>
+                </button>
                 <button cButton color="danger" variant="outline" size="sm" (click)="deletePayment(p)" title="Supprimer">
                   <svg cIcon name="cilTrash" size="sm"></svg>
                 </button>
@@ -303,7 +306,7 @@
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="showLeaseModal = false">Annuler</button>
-    <button cButton color="primary" (click)="saveLease()">
+    <button *ngIf="editMode ? canEditLeases : canCreateLeases" cButton color="primary" (click)="saveLease()">
       {{ editMode ? 'Enregistrer les modifications' : 'Créer le contrat' }}
     </button>
   </c-modal-footer>
@@ -409,7 +412,7 @@
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="showPaymentModal = false">Annuler</button>
-    <button cButton color="success" (click)="savePayment()">Enregistrer le paiement</button>
+    <button *ngIf="canRegisterLeasePayments" cButton color="success" (click)="savePayment()">Enregistrer le paiement</button>
   </c-modal-footer>
 </c-modal>
 
@@ -425,6 +428,49 @@
       <div class="text-muted small">
         Loyer: {{ formatAmount(selectedLease.monthly_rent, selectedLease.currency) }} —
         Mois payés: <strong class="text-success">{{ selectedLeasePayments.length }}</strong>
+      </div>
+    </div>
+
+    <div *ngIf="selectedLeaseFinancialSituation as fs" class="row g-2 mb-3">
+      <div class="col-6 col-lg-3">
+        <div class="rounded-3 p-3 h-100" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+          <div class="small text-uppercase fw-semibold text-muted">Total attendu</div>
+          <div class="fw-bold mt-1" style="color:#1D4ED8;">{{ formatAmount(fs.summary.expected_total, fs.lease.currency) }}</div>
+          <div class="small text-muted">{{ fs.summary.due_months_count }} mois dus</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="rounded-3 p-3 h-100" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+          <div class="small text-uppercase fw-semibold text-muted">Total versé</div>
+          <div class="fw-bold mt-1" style="color:#059669;">{{ formatAmount(fs.summary.paid_total, fs.lease.currency) }}</div>
+          <div class="small text-muted">{{ fs.summary.payment_count }} paiement(s)</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="rounded-3 p-3 h-100" style="background:#FFFBEB;border:1px solid #FDE68A;">
+          <div class="small text-uppercase fw-semibold text-muted">Avance locataire</div>
+          <div class="fw-bold mt-1" style="color:#B45309;">{{ formatAmount(fs.summary.advance_total, fs.lease.currency) }}</div>
+          <div class="small text-muted">Excédent déjà payé</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="rounded-3 p-3 h-100" style="background:#FEF2F2;border:1px solid #FECACA;">
+          <div class="small text-uppercase fw-semibold text-muted">Reste à payer</div>
+          <div class="fw-bold mt-1" [style.color]="fs.summary.remaining_total > 0 ? '#DC2626' : '#059669'">
+            {{ formatAmount(fs.summary.remaining_total, fs.lease.currency) }}
+          </div>
+          <div class="small text-muted">{{ fs.summary.paid_months_count }} mois soldés</div>
+        </div>
+      </div>
+      <div class="col-12" *ngIf="fs.unpaid_periods?.length">
+        <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #E5E7EB;">
+          <div class="small fw-semibold text-muted text-uppercase mb-2">Mois non soldés</div>
+          <div class="d-flex flex-wrap gap-2">
+            <span *ngFor="let period of fs.unpaid_periods; trackBy: trackById" class="badge text-bg-warning">
+              {{ formatPeriod(period) }}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -450,7 +496,10 @@
               <c-badge [color]="getStatusColor(p.status)">{{ getStatusLabel(p.status) }}</c-badge>
             </td>
             <td class="text-end">
-              <button cButton color="danger" variant="outline" size="sm" (click)="deletePayment(p)">
+              <button cButton color="info" variant="outline" size="sm" class="me-1" (click)="printPaymentReceipt(p)">
+                <svg cIcon name="cilPrint" size="sm"></svg>
+              </button>
+              <button *ngIf="canDeleteLeasePayments" cButton color="danger" variant="outline" size="sm" (click)="deletePayment(p)">
                 <svg cIcon name="cilTrash" size="sm"></svg>
               </button>
             </td>
@@ -464,7 +513,7 @@
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="showLeasePaymentsModal = false">Fermer</button>
-    <button cButton color="success" (click)="showLeasePaymentsModal = false; openPaymentModal(selectedLease)">
+    <button *ngIf="canRegisterLeasePayments" cButton color="success" (click)="showLeasePaymentsModal = false; openPaymentModal(selectedLease)">
       + Nouveau paiement
     </button>
   </c-modal-footer>

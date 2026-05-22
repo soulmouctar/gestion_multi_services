@@ -9,10 +9,13 @@ class UpdateContainerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'container_number' => 'sometimes|string|max:50',
-            'capacity_min'     => 'nullable|integer|min:0',
-            'capacity_max'     => 'nullable|integer|min:0',
-            'interest_rate'    => 'nullable|numeric|min:0|max:100',
+            'shipping_number' => 'sometimes|string|max:100',
+            'bl_number' => 'nullable|string|max:100',
+            'capacity' => 'nullable|integer|min:0',
+            'delivery_status' => 'nullable|in:LIVRE,NON_LIVRE',
+            'entry_port' => 'nullable|string|max:100',
+            'entry_date' => 'nullable|date',
+            'expected_delivery_date' => 'nullable|date',
         ];
     }
 }

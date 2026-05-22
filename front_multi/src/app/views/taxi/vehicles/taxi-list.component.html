@@ -8,7 +8,7 @@
       </h4>
       <small class="text-muted">{{ totalItems }} véhicule(s) enregistré(s)</small>
     </div>
-    <button cButton color="primary" size="sm" (click)="openCreateModal()"
+    <button *ngIf="canCreateVehicles" cButton color="primary" size="sm" (click)="openCreateModal()"
       style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;border-radius:10px;padding:9px 20px;font-weight:600">
       <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau véhicule
     </button>
@@ -28,7 +28,7 @@
     <div *ngIf="taxis.length === 0" class="text-center py-5 text-muted">
       <div style="font-size:3rem">🚕</div>
       <p class="mt-2">Aucun véhicule trouvé</p>
-      <button cButton color="primary" variant="outline" size="sm" (click)="openCreateModal()">Ajouter le premier véhicule</button>
+      <button *ngIf="canCreateVehicles" cButton color="primary" variant="outline" size="sm" (click)="openCreateModal()">Ajouter le premier véhicule</button>
     </div>
 
     <div *ngIf="taxis.length > 0" class="row g-3">
@@ -104,11 +104,11 @@
 
           <!-- Actions -->
           <div class="d-flex gap-2">
-            <button cButton color="warning" variant="outline" size="sm" (click)="openEditModal(item)"
+            <button *ngIf="canEditVehicles" cButton color="warning" variant="outline" size="sm" (click)="openEditModal(item)"
               style="border-radius:8px;flex:1;font-size:.8rem">
               <svg cIcon name="cilPencil" class="me-1"></svg> Modifier
             </button>
-            <button cButton color="danger" variant="ghost" size="sm" (click)="confirmDelete(item)"
+            <button *ngIf="canDeleteVehicles" cButton color="danger" variant="ghost" size="sm" (click)="confirmDelete(item)"
               style="border-radius:8px;font-size:.8rem">
               <svg cIcon name="cilTrash"></svg>
             </button>
@@ -214,7 +214,7 @@
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" variant="outline" (click)="showFormModal = false">Annuler</button>
-    <button cButton color="primary" (click)="save()"
+    <button *ngIf="editMode ? canEditVehicles : canCreateVehicles" cButton color="primary" (click)="save()"
       style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;border-radius:8px;font-weight:600">
       {{ editMode ? 'Mettre à jour' : 'Créer le véhicule' }}
     </button>
@@ -233,6 +233,6 @@
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="deleteModalOpen = false">Annuler</button>
-    <button cButton color="danger" (click)="deleteItem()">Supprimer</button>
+    <button *ngIf="canDeleteVehicles" cButton color="danger" (click)="deleteItem()">Supprimer</button>
   </c-modal-footer>
 </c-modal>

@@ -48,15 +48,15 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
         // Create roles and assign permissions
-        $superAdminRole = Role::create(['name' => 'SUPER_ADMIN']);
-        $superAdminRole->givePermissionTo(Permission::all());
+        $superAdminRole = Role::firstOrCreate(['name' => 'SUPER_ADMIN', 'guard_name' => 'web']);
+        $superAdminRole->syncPermissions(Permission::all());
 
-        $adminRole = Role::create(['name' => 'ADMIN']);
-        $adminRole->givePermissionTo([
+        $adminRole = Role::firstOrCreate(['name' => 'ADMIN', 'guard_name' => 'web']);
+        $adminRole->syncPermissions([
             'user.view', 'user.create', 'user.update',
             'product.view', 'product.create', 'product.update', 'product.delete',
             'client.view', 'client.create', 'client.update', 'client.delete',
@@ -71,8 +71,8 @@ class RolePermissionSeeder extends Seeder
             'taxi.view', 'taxi.create', 'taxi.update', 'taxi.delete',
         ]);
 
-        $userRole = Role::create(['name' => 'USER']);
-        $userRole->givePermissionTo([
+        $userRole = Role::firstOrCreate(['name' => 'USER', 'guard_name' => 'web']);
+        $userRole->syncPermissions([
             'product.view',
             'client.view',
             'supplier.view',

@@ -122,11 +122,14 @@ export class TenantsComponent implements OnInit {
         // Fallback vers les modules par défaut en cas d'erreur
         this.modules = [
           { id: 1, code: 'COMMERCE', name: 'Module Commerce', icon: 'cil-cart', is_active: true },
-          { id: 2, code: 'CONTAINER', name: 'Module Conteneurs', icon: 'cil-truck', is_active: true },
-          { id: 3, code: 'IMMOBILIER', name: 'Module Immobilier', icon: 'cil-home', is_active: true },
-          { id: 4, code: 'TAXI', name: 'Module Taxi', icon: 'cil-car-alt', is_active: true },
-          { id: 5, code: 'FINANCE', name: 'Module Finance', icon: 'cil-dollar', is_active: true },
-          { id: 6, code: 'STATISTICS', name: 'Module Statistiques', icon: 'cil-chart-pie', is_active: true }
+          { id: 2, code: 'CLIENTS_SUPPLIERS', name: 'Clients & Fournisseurs', icon: 'cil-people', is_active: true },
+          { id: 3, code: 'USERS', name: 'Utilisateurs', icon: 'cil-people', is_active: true },
+          { id: 4, code: 'PRODUCTS_STOCK', name: 'Module Produits & Stock', icon: 'cil-grid', is_active: true },
+          { id: 5, code: 'CONTAINER', name: 'Module Conteneurs', icon: 'cil-truck', is_active: true },
+          { id: 6, code: 'RENTAL', name: 'Module Immobilier', icon: 'cil-home', is_active: true },
+          { id: 7, code: 'TAXI', name: 'Module Taxi', icon: 'cil-car-alt', is_active: true },
+          { id: 8, code: 'FINANCE', name: 'Module Finance', icon: 'cil-dollar', is_active: true },
+          { id: 9, code: 'STATISTICS', name: 'Module Statistiques', icon: 'cil-chart-pie', is_active: true }
         ];
         setTimeout(() => {
           this.cdr.detectChanges();
@@ -138,14 +141,16 @@ export class TenantsComponent implements OnInit {
   private getModuleIcon(code: string): string {
     const iconMap: { [key: string]: string } = {
       'COMMERCE': 'cil-cart',
+      'CLIENTS_SUPPLIERS': 'cil-people',
+      'USERS': 'cil-people',
+      'PRODUCTS_STOCK': 'cil-grid',
       'CONTAINER': 'cil-truck',
-      'IMMOBILIER': 'cil-home',
+      'RENTAL': 'cil-home',
       'TAXI': 'cil-car-alt',
       'FINANCE': 'cil-dollar',
       'STATISTICS': 'cil-chart-pie',
       'COMMERCIAL': 'cil-cart',
-      'CONTAINERS': 'cil-truck',
-      'RENTAL': 'cil-home'
+      'CONTAINERS': 'cil-truck'
     };
     return iconMap[code] || 'cil-puzzle';
   }

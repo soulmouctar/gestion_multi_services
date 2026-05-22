@@ -123,8 +123,13 @@ class AuthController extends BaseController
                     ];
                 });
 
+            // Merge explicit role string so frontend can detect role reliably
+            // regardless of Spatie roles array hydration timing
+            $primaryRole = $userData->roles->first()?->name ?? null;
+            $userDataArray = array_merge($userData->toArray(), ['role' => $primaryRole]);
+
             return $this->sendResponse([
-                'user' => $userData,
+                'user' => $userDataArray,
                 'token' => $token,
                 'token_type' => 'Bearer',
                 'isAuthenticated' => true,
@@ -163,7 +168,9 @@ class AuthController extends BaseController
         $user->fill($request->only(['name', 'email']));
         $user->save();
 
-        return $this->sendResponse($user->fresh()->load('roles'), 'Profil mis à jour avec succès');
+        $updatedUser = $user->fresh()->load('roles');
+        $userArr = array_merge($updatedUser->toArray(), ['role' => $updatedUser->roles->first()?->name ?? null]);
+        return $this->sendResponse($userArr, 'Profil mis à jour avec succès');
     }
 
     public function updateAvatar(Request $request)
@@ -171,7 +178,7 @@ class AuthController extends BaseController
         $user = auth()->user();
 
         $validator = Validator::make($request->all(), [
-            'avatar' => 'required|image|mimes:jpeg,jpg,png,gif|max:2048',
+            'avatar' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:4096',
         ]);
 
         if ($validator->fails()) {
@@ -187,7 +194,10 @@ class AuthController extends BaseController
         $user->avatar = $path;
         $user->save();
 
-        return $this->sendResponse($user->fresh(), 'Photo de profil mise à jour');
+        $updatedUser = $user->fresh()->load('tenant.modules', 'roles', 'permissions');
+        $userArr = array_merge($updatedUser->toArray(), ['role' => $updatedUser->roles->first()?->name ?? null]);
+
+        return $this->sendResponse($userArr, 'Photo de profil mise à jour');
     }
 
     public function logout(Request $request)
@@ -200,8 +210,8 @@ class AuthController extends BaseController
     public function me(Request $request)
     {
         $user = $request->user()->load('tenant.modules', 'roles', 'permissions');
-
-        return $this->sendResponse($user, 'User profile retrieved');
+        $userArr = array_merge($user->toArray(), ['role' => $user->roles->first()?->name ?? null]);
+        return $this->sendResponse($userArr, 'User profile retrieved');
     }
 
     public function refresh(Request $request)

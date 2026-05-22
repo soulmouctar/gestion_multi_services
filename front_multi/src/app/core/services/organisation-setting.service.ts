@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http
 import { Observable, BehaviorSubject, tap, catchError, timeout, retry, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
+import { AuthService } from './auth.service';
 
 export interface OrganisationSetting {
   id?: number;
@@ -52,10 +53,13 @@ export class OrganisationSettingService {
   private settingsSubject = new BehaviorSubject<OrganisationSetting | null>(null);
   public settings$ = this.settingsSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
 
   getSettings(): Observable<ApiResponse<OrganisationSetting>> {
-    return this.http.get<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings`).pipe(
+    return this.http.get<ApiResponse<OrganisationSetting>>(this.buildUrl('organisation-settings')).pipe(
       timeout(10000),
       retry(2),
       tap(response => {
@@ -68,7 +72,7 @@ export class OrganisationSettingService {
   }
 
   updateSettings(settings: Partial<OrganisationSetting>): Observable<ApiResponse<OrganisationSetting>> {
-    return this.http.put<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings`, settings).pipe(
+    return this.http.put<ApiResponse<OrganisationSetting>>(this.buildUrl('organisation-settings'), settings).pipe(
       tap(response => {
         if (response.success && response.data) {
           this.settingsSubject.next(response.data);
@@ -80,7 +84,7 @@ export class OrganisationSettingService {
   }
 
   resetSettings(): Observable<ApiResponse<OrganisationSetting>> {
-    return this.http.post<ApiResponse<OrganisationSetting>>(`${this.API_URL}/organisation-settings/reset`, {}).pipe(
+    return this.http.post<ApiResponse<OrganisationSetting>>(this.buildUrl('organisation-settings/reset'), {}).pipe(
       tap(response => {
         if (response.success && response.data) {
           this.settingsSubject.next(response.data);
@@ -92,25 +96,25 @@ export class OrganisationSettingService {
   }
 
   getOptions(): Observable<ApiResponse<SettingOptions>> {
-    return this.http.get<ApiResponse<SettingOptions>>(`${this.API_URL}/organisation-settings/options`, {
+    return this.http.get<ApiResponse<SettingOptions>>(this.buildUrl('organisation-settings/options'), {
       headers: this.getAuthHeaders()
     });
   }
 
   getNextInvoiceNumber(): Observable<ApiResponse<{ next_invoice_number: string }>> {
-    return this.http.get<ApiResponse<{ next_invoice_number: string }>>(`${this.API_URL}/organisation-settings/next-invoice-number`, {
+    return this.http.get<ApiResponse<{ next_invoice_number: string }>>(this.buildUrl('organisation-settings/next-invoice-number'), {
       headers: this.getAuthHeaders()
     });
   }
 
   getNextQuoteNumber(): Observable<ApiResponse<{ next_quote_number: string }>> {
-    return this.http.get<ApiResponse<{ next_quote_number: string }>>(`${this.API_URL}/organisation-settings/next-quote-number`, {
+    return this.http.get<ApiResponse<{ next_quote_number: string }>>(this.buildUrl('organisation-settings/next-quote-number'), {
       headers: this.getAuthHeaders()
     });
   }
 
   testNotifications(type: 'email' | 'sms' | 'browser'): Observable<ApiResponse<{ success: boolean; message: string }>> {
-    return this.http.post<ApiResponse<{ success: boolean; message: string }>>(`${this.API_URL}/organisation-settings/test-notifications`, { type }, {
+    return this.http.post<ApiResponse<{ success: boolean; message: string }>>(this.buildUrl('organisation-settings/test-notifications'), { type }, {
       headers: this.getAuthHeaders()
     }).pipe(
       tap(response => {
@@ -243,6 +247,21 @@ export class OrganisationSettingService {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     });
+  }
+
+  private buildUrl(endpoint: string): string {
+    const baseUrl = `${this.API_URL}/${endpoint}`;
+    if (!this.authService.isSuperAdmin) {
+      return baseUrl;
+    }
+
+    const tenantId = this.authService.selectedManagedTenantId;
+    if (!tenantId) {
+      return baseUrl;
+    }
+
+    const separator = endpoint.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}tenant_id=${tenantId}`;
   }
 
   private handleError(error: HttpErrorResponse): Observable<never> {

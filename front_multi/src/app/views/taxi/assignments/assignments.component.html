@@ -4,7 +4,7 @@
       <c-card class="mb-4">
         <c-card-header class="d-flex justify-content-between align-items-center">
           <div><strong>Affectations Taxi-Conducteur</strong><small class="text-medium-emphasis ms-2">{{ totalItems }} affectation(s)</small></div>
-          <button cButton color="primary" size="sm" (click)="openCreateModal()"><svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle affectation</button>
+          <button *ngIf="canCreateAssignments" cButton color="primary" size="sm" (click)="openCreateModal()"><svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle affectation</button>
         </c-card-header>
         <c-card-body>
           <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
@@ -22,8 +22,8 @@
                   <td>{{ item.created_at | date:'dd/MM/yyyy' }}</td>
                   <td>
                     <c-button-group size="sm">
-                      <button cButton color="warning" variant="outline" size="sm" (click)="openEditModal(item)"><svg cIcon name="cilPencil"></svg></button>
-                      <button cButton color="danger" variant="outline" size="sm" (click)="confirmDelete(item)"><svg cIcon name="cilTrash"></svg></button>
+                      <button *ngIf="canEditAssignments" cButton color="warning" variant="outline" size="sm" (click)="openEditModal(item)"><svg cIcon name="cilPencil"></svg></button>
+                      <button *ngIf="canDeleteAssignments" cButton color="danger" variant="outline" size="sm" (click)="confirmDelete(item)"><svg cIcon name="cilTrash"></svg></button>
                     </c-button-group>
                   </td>
                 </tr>
@@ -71,7 +71,7 @@
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="showFormModal = false">Annuler</button>
-    <button cButton color="primary" (click)="save()">{{ editMode ? 'Mettre à jour' : 'Créer' }}</button>
+    <button *ngIf="editMode ? canEditAssignments : canCreateAssignments" cButton color="primary" (click)="save()">{{ editMode ? 'Mettre à jour' : 'Créer' }}</button>
   </c-modal-footer>
 </c-modal>
 
@@ -80,6 +80,6 @@
   <c-modal-body><p>Supprimer cette affectation ?</p><p class="text-danger"><small>Cette action est irréversible.</small></p></c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="deleteModalOpen = false">Annuler</button>
-    <button cButton color="danger" (click)="deleteItem()">Supprimer</button>
+    <button *ngIf="canDeleteAssignments" cButton color="danger" (click)="deleteItem()">Supprimer</button>
   </c-modal-footer>
 </c-modal>

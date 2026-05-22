@@ -3,6 +3,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { SuperAdminGuard } from './core/guards/auth.guard';
 import { SubscriptionGuard } from './core/guards/auth.guard';
 import { NoAuthGuard } from './core/guards/no-auth.guard';
+import { FeatureAccessGuard } from './core/guards/feature-access.guard';
 
 export const routes: Routes = [
   {
@@ -73,6 +74,7 @@ export const routes: Routes = [
       {
         path: 'module',
         children: [
+          { path: 'admin', redirectTo: '/admin/modules', pathMatch: 'full' },
           { path: 'expenses', redirectTo: '/expenses/list', pathMatch: 'full' },
           { path: 'banking', redirectTo: '/banking/accounts', pathMatch: 'full' },
           { path: 'clients_suppliers', redirectTo: '/clients/list', pathMatch: 'full' }
@@ -84,6 +86,7 @@ export const routes: Routes = [
       },
       {
         path: 'clients',
+        canActivateChild: [FeatureAccessGuard],
         loadChildren: () => import('./views/clients/routes').then(m => m.routes)
       },
       {
@@ -96,6 +99,7 @@ export const routes: Routes = [
       },
       {
         path: 'suppliers',
+        canActivateChild: [FeatureAccessGuard],
         loadChildren: () => import('./views/suppliers/routes').then(m => m.routes)
       },
       {
@@ -142,7 +146,7 @@ export const routes: Routes = [
       },
       {
         path: 'organisation',
-        loadChildren: () => import('./views/organisation/organisation.module').then(m => m.OrganisationModule),
+        loadChildren: () => import('./views/organisation/routes').then(m => m.routes),
         title: 'Organisation'
       }
     ]

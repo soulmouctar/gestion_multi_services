@@ -11,8 +11,11 @@ import { AuthService } from '../../../core/services/auth.service';
 import { InvoiceHeaderService, InvoiceHeader } from '../../../core/services/invoice-header.service';
 import { PdfService } from '../../../core/services/pdf.service';
 
+type SaleType = 'UNITE' | 'CARTON' | 'DEMI_CARTON' | 'DOUZAINE';
+
 interface InvoiceLineItem {
   product_id: number | null;
+  sale_type: SaleType;
   description: string;
   quantity: number;
   unit_price: number;
@@ -324,6 +327,7 @@ export class InvoicesComponent implements OnInit {
     this.invoiceLineItems = Array.isArray(invoice.items) && invoice.items.length > 0
       ? invoice.items.map((item: any) => ({
           product_id: item.product_id ?? null,
+          sale_type:  (item.sale_type as SaleType) || 'UNITE',
           description: item.description || '',
           quantity: Number(item.quantity || 1),
           unit_price: Number(item.unit_price || 0),
@@ -349,6 +353,7 @@ export class InvoicesComponent implements OnInit {
       .filter((item) => !!item.description?.trim())
       .map((item) => ({
         product_id: item.product_id || null,
+        sale_type:  item.sale_type || 'UNITE',
         description: item.description.trim(),
         quantity: Number(item.quantity || 0),
         unit_price: Number(item.unit_price || 0),
@@ -531,17 +536,59 @@ export class InvoicesComponent implements OnInit {
     this.syncComputedTotals();
   }
 
+  readonly saleTypeOptions: { value: SaleType; label: string }[] = [
+    { value: 'UNITE',       label: 'À l\'unité' },
+    { value: 'CARTON',      label: 'Carton complet' },
+    { value: 'DEMI_CARTON', label: 'Demi-carton' },
+    { value: 'DOUZAINE',    label: 'À la douzaine' },
+  ];
+
   onProductSelected(item: InvoiceLineItem): void {
     if (!item.product_id) return;
     const product = this.products.find((p) => p.id === item.product_id);
     if (!product) return;
-
     item.description = product.name || item.description;
-    item.unit_price = Number(product.sale_price || product.selling_price || item.unit_price || 0);
-    if (!item.quantity || item.quantity <= 0) {
-      item.quantity = 1;
-    }
+    item.unit_price  = this.getPriceForSaleType(product, item.sale_type);
+    if (!item.quantity || item.quantity <= 0) item.quantity = 1;
     this.syncComputedTotals();
+  }
+
+  onSaleTypeChanged(item: InvoiceLineItem): void {
+    if (!item.product_id) return;
+    const product = this.products.find((p) => p.id === item.product_id);
+    if (!product) return;
+    item.unit_price = this.getPriceForSaleType(product, item.sale_type);
+    this.syncComputedTotals();
+  }
+
+  getPriceForSaleType(product: any, saleType: SaleType): number {
+    switch (saleType) {
+      case 'CARTON':
+        return Number(product.carton_selling_price || 0);
+      case 'DEMI_CARTON':
+        return Number(product.half_carton_price || (product.carton_selling_price ? product.carton_selling_price / 2 : 0));
+      case 'DOUZAINE':
+        return Number(product.dozen_price || (product.unit_selling_price ? product.unit_selling_price * 12 : 0));
+      case 'UNITE':
+      default:
+        return Number(product.unit_selling_price || product.selling_price || 0);
+    }
+  }
+
+  getSaleTypeLabel(saleType: SaleType): string {
+    return this.saleTypeOptions.find(o => o.value === saleType)?.label ?? 'À l\'unité';
+  }
+
+  getProductPriceSummary(productId: number | null): string {
+    if (!productId) return '';
+    const p = this.products.find(pr => pr.id === productId);
+    if (!p) return '';
+    const parts: string[] = [];
+    if (p.unit_selling_price)    parts.push(`Unité: ${p.unit_selling_price}`);
+    if (p.carton_selling_price)  parts.push(`Carton: ${p.carton_selling_price}`);
+    if (p.half_carton_price)     parts.push(`½ Carton: ${p.half_carton_price}`);
+    if (p.dozen_price)           parts.push(`Douzaine: ${p.dozen_price}`);
+    return parts.join(' | ');
   }
 
   getLineTotal(item: InvoiceLineItem): number {
@@ -576,17 +623,13 @@ export class InvoicesComponent implements OnInit {
   }
 
   private createEmptyLineItem(): InvoiceLineItem {
-    return {
-      product_id: null,
-      description: '',
-      quantity: 1,
-      unit_price: 0,
-    };
+    return { product_id: null, sale_type: 'UNITE', description: '', quantity: 1, unit_price: 0 };
   }
 
   private createFallbackLineItem(invoice: any): InvoiceLineItem {
     return {
       product_id: null,
+      sale_type: 'UNITE',
       description: invoice.notes || 'Ligne de facturation',
       quantity: 1,
       unit_price: Number(invoice.items_subtotal_amount || invoice.total_amount || 0),

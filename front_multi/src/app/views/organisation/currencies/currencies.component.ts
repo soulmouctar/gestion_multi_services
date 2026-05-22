@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { 
   CardModule, 
   ButtonModule, 
@@ -15,6 +15,8 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { OrganisationCurrencyService, OrganisationCurrency } from '../../../core/services/organisation-currency.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { TenantService } from '../../../core/services/tenant.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -23,6 +25,7 @@ import Swal from 'sweetalert2';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     CardModule,
     ButtonModule,
     TableModule,
@@ -47,6 +50,11 @@ export class CurrenciesComponent implements OnInit {
   saving = false;
   editingCurrency: OrganisationCurrency | null = null;
   showModal = false;
+  tenantSelectionRequired = false;
+  managedTenants: any[] = [];
+  tenantsLoading = false;
+  selectedTenantId: number | null = null;
+  selectedStatusFilter: 'all' | 'active' | 'inactive' = 'all';
 
   commonCurrencies = [
     { code: 'EUR', name: 'Euro', symbol: '€' },
@@ -62,7 +70,9 @@ export class CurrenciesComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
-    private currencyService: OrganisationCurrencyService
+    private currencyService: OrganisationCurrencyService,
+    private authService: AuthService,
+    private tenantService: TenantService
   ) {
     this.currencyForm = this.fb.group({
       code: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(3)]],
@@ -75,17 +85,40 @@ export class CurrenciesComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.selectedTenantId = this.authService.selectedManagedTenantId;
+    if (this.authService.isSuperAdmin) {
+      this.loadTenants();
+    }
     this.loadCurrencies();
   }
 
+  get isSuperAdmin(): boolean {
+    return this.authService.isSuperAdmin;
+  }
+
   loadCurrencies(): void {
+    if (this.authService.isSuperAdmin && !this.authService.selectedManagedTenantId) {
+      this.currencies = [];
+      this.loading = false;
+      this.tenantSelectionRequired = true;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.tenantSelectionRequired = false;
     this.loading = true;
-    this.currencyService.getCurrencies().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    const isActive =
+      this.selectedStatusFilter === 'all'
+        ? undefined
+        : this.selectedStatusFilter === 'active';
+
+    this.currencyService.getCurrencies(isActive).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
           this.currencies = response.data;
         }
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (error) => {
         Swal.fire({
@@ -95,11 +128,49 @@ export class CurrenciesComponent implements OnInit {
           confirmButtonColor: '#dc3545'
         });
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
+  loadTenants(): void {
+    this.tenantsLoading = true;
+    this.tenantService.getTenants().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (response) => {
+        const tenants = response.data as any;
+        this.managedTenants = Array.isArray(tenants) ? tenants : (tenants?.data || []);
+        this.tenantsLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.managedTenants = [];
+        this.tenantsLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onTenantFilterChange(): void {
+    this.authService.setSelectedManagedTenantId(this.selectedTenantId);
+    this.loadCurrencies();
+  }
+
+  onStatusFilterChange(): void {
+    this.loadCurrencies();
+  }
+
   openModal(currency?: OrganisationCurrency): void {
+    if (this.authService.isSuperAdmin && !this.authService.selectedManagedTenantId) {
+      this.tenantSelectionRequired = true;
+      Swal.fire({
+        icon: 'info',
+        title: 'Organisation requise',
+        text: 'Sélectionnez d’abord une organisation avant de gérer les devises.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
     this.editingCurrency = currency || null;
     if (currency) {
       this.currencyForm.patchValue(currency);

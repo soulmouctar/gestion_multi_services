@@ -2,6 +2,10 @@
 <c-card class="mb-4">
   <c-card-body class="py-2">
     <div class="d-flex flex-wrap gap-2 align-items-center">
+      <select *ngIf="isSuperAdmin" cSelect [(ngModel)]="selectedTenantId" (change)="onTenantChange()" class="form-select form-select-sm" style="width:240px">
+        <option [ngValue]="null">Sélectionnez un tenant</option>
+        <option *ngFor="let tenant of tenants; trackBy: trackById" [ngValue]="tenant.id">{{ tenant.name }}</option>
+      </select>
       <span class="text-muted small me-2">Période :</span>
       <button *ngFor="let p of [{v:'week',l:'7 jours'},{v:'month',l:'Ce mois'},{v:'3months',l:'3 mois'},{v:'year',l:'Cette année'}]; trackBy: trackById"
         cButton [color]="selectedPeriod === p.v ? 'primary' : 'secondary'"

@@ -12,6 +12,23 @@
     </button>
   </div>
 
+  <!-- Sélecteur de tenant (Super Admin uniquement) -->
+  <div *ngIf="isSuperAdmin" class="mb-4 p-3 rounded-3 d-flex align-items-center gap-3"
+       style="background:#FFF8E1;border:1px solid #FFD54F;">
+    <svg cIcon name="cilBuilding" style="width:20px;height:20px;color:#F59E0B;flex-shrink:0;"></svg>
+    <div class="flex-fill">
+      <label class="form-label small fw-bold mb-1" style="color:#92400E;">Organisation à gérer</label>
+      <select class="form-select form-select-sm" style="border-radius:8px;max-width:350px;"
+              [(ngModel)]="selectedTenantId" (change)="onTenantChange()">
+        <option [ngValue]="null" disabled>-- Sélectionner une organisation --</option>
+        <option *ngFor="let t of tenants; trackBy: trackById" [ngValue]="t.id">{{ t.name }}</option>
+      </select>
+    </div>
+    <span *ngIf="selectedTenantName" class="badge" style="background:#10B981;color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;">
+      {{ selectedTenantName }}
+    </span>
+  </div>
+
   <!-- Chargement -->
   <div *ngIf="loading" class="text-center py-5">
     <c-spinner color="primary"></c-spinner>
@@ -39,11 +56,23 @@
 
         <!-- En-tête banque -->
         <div class="rounded-top px-3 py-3 text-white d-flex align-items-center justify-content-between"
-             [style.background]="bankColor(account.bank_name)"
+             [style.background]="accountBrandColor(account)"
              style="border-radius:12px 12px 0 0;">
-          <div>
+          <div class="d-flex align-items-center gap-2">
+            <ng-container *ngIf="account.logo_url; else bankIconFallback">
+              <img [src]="account.logo_url" alt="Logo banque"
+                   style="width:38px;height:38px;border-radius:10px;object-fit:cover;background:rgba(255,255,255,.15);padding:4px;">
+            </ng-container>
+            <ng-template #bankIconFallback>
+              <div class="d-flex align-items-center justify-content-center"
+                   style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.15);">
+                <svg cIcon name="cilBank" style="width:20px;height:20px;color:#fff;"></svg>
+              </div>
+            </ng-template>
+            <div>
             <span class="fw-bold fs-5">{{ account.bank_name }}</span>
             <div class="small opacity-75">{{ accountTypeLabel(account.account_type) }}</div>
+          </div>
           </div>
           <span class="badge"
                 style="background:rgba(255,255,255,.2); color:white; font-size:.75rem; border-radius:6px; padding:4px 10px;">
@@ -131,6 +160,31 @@
   <c-modal-body>
     <form [formGroup]="form">
       <div class="row g-3">
+        <div class="col-12">
+          <div class="d-flex flex-column align-items-center gap-2 rounded-3 p-3"
+               style="background:#f8fafc;border:1px solid #e5e7eb;">
+            <ng-container *ngIf="logoPreview; else logoFallback">
+              <img [src]="logoPreview" alt="Logo banque"
+                   style="width:84px;height:84px;border-radius:18px;object-fit:cover;border:3px solid #e5e7eb;" />
+            </ng-container>
+            <ng-template #logoFallback>
+              <div class="d-flex align-items-center justify-content-center text-white fw-bold"
+                   [style.background]="form.get('brand_color')?.value || '#0f3460'"
+                   style="width:84px;height:84px;border-radius:18px;">
+                <svg cIcon name="cilBank" style="width:34px;height:34px;"></svg>
+              </div>
+            </ng-template>
+            <div class="d-flex gap-2">
+              <label class="btn btn-sm btn-outline-primary" style="border-radius:8px;">
+                Logo
+                <input type="file" accept="image/jpeg,image/png,image/webp" class="d-none" (change)="onLogoSelected($event)">
+              </label>
+              <button *ngIf="logoPreview" cButton color="danger" variant="outline" size="sm" type="button" (click)="clearLogo()" style="border-radius:8px">
+                Retirer
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div class="col-md-6">
           <label cLabel class="fw-semibold small mb-1">Banque *</label>
@@ -147,6 +201,11 @@
                   [class.is-invalid]="submitted && form.get('account_type')?.invalid">
             <option *ngFor="let t of accountTypes; trackBy: trackById" [value]="t.value">{{ t.label }}</option>
           </select>
+        </div>
+
+        <div class="col-md-6">
+          <label cLabel class="fw-semibold small mb-1">Couleur visuelle *</label>
+          <input cFormControl type="color" formControlName="brand_color" style="border-radius:8px;height:42px;padding:6px;">
         </div>
 
         <div class="col-md-8">

@@ -162,7 +162,7 @@ export class ProductsAdvancedComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de la mise à jour du stock';
+        this.error = err.message || 'Erreur lors de la mise à jour du stock';
       }
     });
   }

@@ -44,25 +44,37 @@
     <c-card-body>
       <div class="row g-3">
         <div class="col-6 col-md-3">
-          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">N° Conteneur</div>
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Réf. interne</div>
           <div class="fw-bold mt-1" style="color:#6366F1;font-size:0.95rem">{{ container.container_number }}</div>
         </div>
         <div class="col-6 col-md-3">
-          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Capacité Min</div>
-          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.capacity_min || '—' }}</div>
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">N° Conteneur</div>
+          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.shipping_number || '—' }}</div>
         </div>
         <div class="col-6 col-md-3">
-          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Capacité Max</div>
-          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.capacity_max || '—' }}</div>
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">BL</div>
+          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.bl_number || '—' }}</div>
         </div>
         <div class="col-6 col-md-3">
-          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Taux d'intérêt</div>
-          <div class="mt-1">
-            <span *ngIf="container.interest_rate" class="px-2 py-1 rounded-pill fw-semibold"
-              style="font-size:0.78rem;background:#EFF6FF;color:#3B82F6">
-              {{ container.interest_rate }} %
-            </span>
-            <span *ngIf="!container.interest_rate" style="color:#94a3b8">—</span>
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Capacité</div>
+          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.capacity || '—' }}</div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Port d'entrée</div>
+          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.entry_port || '—' }}</div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Date d'entrée</div>
+          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.entry_date ? (container.entry_date | date:'dd/MM/yyyy') : '—' }}</div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Livraison prévue Conakry</div>
+          <div class="fw-semibold mt-1" style="color:#1e293b">{{ container.expected_delivery_date ? (container.expected_delivery_date | date:'dd/MM/yyyy') : '—' }}</div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:.04em">Statut</div>
+          <div class="fw-semibold mt-1" [style.color]="container.delivery_status === 'LIVRE' ? '#059669' : '#D97706'">
+            {{ container.delivery_status === 'LIVRE' ? 'Livré' : 'Non livré' }}
           </div>
         </div>
       </div>

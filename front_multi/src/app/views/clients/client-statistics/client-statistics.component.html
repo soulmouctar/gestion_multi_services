@@ -1,0 +1,145 @@
+<div class="p-3 p-md-4">
+  <div class="rounded-3 p-4 mb-4 text-white d-flex align-items-center justify-content-between flex-wrap gap-3"
+       style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);">
+    <div>
+      <h4 class="fw-bold mb-1">Statistiques Clients</h4>
+      <p class="mb-0 opacity-75 small">Vue financière consolidée des clients</p>
+    </div>
+    <a routerLink="/clients/list" cButton color="light" size="sm" style="border-radius:8px">
+      <svg cIcon name="cilList" class="me-1" size="sm"></svg> Retour à la liste
+    </a>
+  </div>
+
+  <div class="bg-white rounded-3 p-3 mb-4" style="border:1px solid #f0f0f0;">
+    <div class="row g-2">
+      <div class="col-md-7">
+        <input cFormControl type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un client..."
+               (keyup.enter)="loadStats()" style="border-radius:8px;" />
+      </div>
+      <div class="col-md-4">
+        <select cSelect [(ngModel)]="clientTypeFilter" style="border-radius:8px;">
+          <option *ngFor="let type of clientTypes; trackBy: trackById" [ngValue]="type.value">{{ type.label }}</option>
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button cButton color="primary" size="sm" (click)="loadStats()" style="border-radius:8px" class="w-100">
+          <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="text-muted mt-2 small">Chargement des statistiques clients...</p>
+  </div>
+
+  <ng-container *ngIf="!loading && stats?.summary as summary">
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-xl-2">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="small text-uppercase fw-semibold text-muted">Clients</div>
+          <div class="fw-bold fs-4" style="color:#0f3460;">{{ summary.total_clients }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="small text-uppercase fw-semibold text-muted">Débiteurs</div>
+          <div class="fw-bold fs-4" style="color:#DC2626;">{{ summary.debtor_clients }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="small text-uppercase fw-semibold text-muted">Soldés</div>
+          <div class="fw-bold fs-4" style="color:#2563EB;">{{ summary.settled_clients }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="small text-uppercase fw-semibold text-muted">Avances</div>
+          <div class="fw-bold fs-6" style="color:#059669;">{{ fmt(summary.total_advances_remaining) }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="small text-uppercase fw-semibold text-muted">Restes à payer</div>
+          <div class="fw-bold fs-6" style="color:#D97706;">{{ fmt(summary.total_rest_to_pay) }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="small text-uppercase fw-semibold text-muted">Crédit net</div>
+          <div class="fw-bold fs-6" style="color:#7C3AED;">{{ fmt(summary.total_credit_balance) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-xl-4">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="fw-semibold mb-3" style="color:#0f3460;">Comptes clients</div>
+          <div style="height:280px;">
+            <c-chart type="bar" [data]="countsChartData" [options]="chartOptions"></c-chart>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-xl-4">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="fw-semibold mb-3" style="color:#0f3460;">Répartition des statuts</div>
+          <div style="height:280px;">
+            <c-chart type="doughnut" [data]="statusesChartData" [options]="chartOptions"></c-chart>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-xl-4">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="fw-semibold mb-3" style="color:#0f3460;">Montants globaux</div>
+          <div style="height:280px;">
+            <c-chart type="bar" [data]="amountsChartData" [options]="chartOptions"></c-chart>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3 p-3" style="border:1px solid #f0f0f0;">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="fw-semibold" style="color:#0f3460;">Clients les plus exposés</div>
+        <small class="text-muted">{{ stats.clients?.length || 0 }} client(s)</small>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Client</th>
+              <th>Type</th>
+              <th class="text-end">Total achats</th>
+              <th class="text-end">Versements</th>
+              <th class="text-end">Avance dispo</th>
+              <th class="text-end">Reste à payer</th>
+              <th class="text-center">Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let client of stats.clients; trackBy: trackById">
+              <td class="fw-semibold">{{ client.name }}</td>
+              <td>{{ client.client_type }}</td>
+              <td class="text-end">{{ fmt(client.total_charged) }}</td>
+              <td class="text-end text-success">{{ fmt(client.total_paid) }}</td>
+              <td class="text-end text-primary">{{ fmt(client.advances_remaining) }}</td>
+              <td class="text-end" [style.color]="client.rest_to_pay_gnf > 0 ? '#DC2626' : '#059669'">
+                {{ fmt(client.rest_to_pay_gnf) }}
+              </td>
+              <td class="text-center">
+                <span class="px-2 py-1 rounded-pill small fw-semibold"
+                      [style.background]="getStatusBg(client.status)"
+                      [style.color]="getStatusTone(client.status)">
+                  {{ client.status_label }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+</div>

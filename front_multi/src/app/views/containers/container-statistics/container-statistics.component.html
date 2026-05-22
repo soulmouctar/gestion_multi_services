@@ -123,31 +123,172 @@
       </div>
     </div>
 
-    <div class="row g-3 mb-4" *ngIf="salesStats">
-      <div class="col-md-3 col-sm-6">
-        <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-          <div class="small text-muted text-uppercase fw-semibold mb-1">Valeur des ventes</div>
-          <div class="fw-bold" style="font-size:1.1rem;color:#0f3460">{{ formatAmount(salesStats.total_sales_value) }}</div>
-        </div>
-      </div>
-      <div class="col-md-3 col-sm-6">
-        <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-          <div class="small text-muted text-uppercase fw-semibold mb-1">Montant collecté</div>
-          <div class="fw-bold" style="font-size:1.1rem;color:#10B981">{{ formatAmount(salesStats.total_collected) }}</div>
-        </div>
-      </div>
-      <div class="col-md-3 col-sm-6">
-        <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-          <div class="small text-muted text-uppercase fw-semibold mb-1">Reste à encaisser</div>
-          <div class="fw-bold" style="font-size:1.1rem;color:#F59E0B">{{ formatAmount(salesStats.total_pending) }}</div>
-        </div>
-      </div>
-      <div class="col-md-3 col-sm-6">
-        <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-          <div class="small text-muted text-uppercase fw-semibold mb-1">Profit estimé</div>
-          <div class="fw-bold" style="font-size:1.1rem" [style.color]="salesStats.estimated_profit >= 0 ? '#10B981' : '#EF4444'">
-            {{ formatAmount(salesStats.estimated_profit) }}
+    <div class="mb-4" *ngIf="salesStats">
+      <div class="p-4 mb-3" style="background:linear-gradient(135deg,#064E3B 0%,#065F46 45%,#047857 100%);border-radius:16px;box-shadow:0 8px 24px rgba(6,95,70,.18)">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div class="small fw-semibold text-uppercase mb-1" style="color:rgba(255,255,255,.68);letter-spacing:.08em">Intérêt Généré</div>
+            <div class="fw-bold" style="font-size:2rem;line-height:1;color:#fff">
+              {{ formatAmount(salesStats.generated_interest) }}
+            </div>
+            <div class="mt-2" style="color:rgba(255,255,255,.72);font-size:.9rem">
+              Gain brut produit par l'ensemble des ventes enregistrées
+            </div>
           </div>
+          <div class="d-flex flex-wrap gap-3">
+            <div class="px-3 py-2 rounded-3" style="background:rgba(255,255,255,.1);min-width:170px">
+              <div class="small text-uppercase fw-semibold" style="color:rgba(255,255,255,.65)">Intérêt encaissé</div>
+              <div class="fw-bold mt-1" style="font-size:1.2rem;color:#D1FAE5">{{ formatAmount(salesStats.realized_interest) }}</div>
+            </div>
+            <div class="px-3 py-2 rounded-3" style="background:rgba(255,255,255,.1);min-width:170px">
+              <div class="small text-uppercase fw-semibold" style="color:rgba(255,255,255,.65)">Intérêt restant</div>
+              <div class="fw-bold mt-1" style="font-size:1.2rem;color:#FEF3C7">{{ formatAmount(salesStats.outstanding_interest) }}</div>
+            </div>
+            <div class="px-3 py-2 rounded-3" style="background:rgba(255,255,255,.1);min-width:170px">
+              <div class="small text-uppercase fw-semibold" style="color:rgba(255,255,255,.65)">Marge globale</div>
+              <div class="fw-bold mt-1" style="font-size:1.2rem;color:#DBEAFE">{{ salesStats.profit_margin_rate || 0 }}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Nombre de ventes</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#6366F1">{{ salesStats.total_sales_count || 0 }}</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Quantité vendue</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#0EA5E9">{{ salesStats.total_quantity_sold || 0 }} unités</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Chiffre d'affaires</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#0f3460">{{ formatAmount(salesStats.total_sales_value) }}</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Montant collecté</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#10B981">{{ formatAmount(salesStats.total_collected) }}</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Balles reçues</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#8B5CF6">{{ salesStats.total_bales_received || 0 }}</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Conteneurs vendus ce mois</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#0891B2">{{ salesStats.containers_sold_this_month || 0 }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Coût des ventes</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#DC2626">{{ formatAmount(salesStats.cost_of_goods_sold) }}</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Reste à encaisser</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#F59E0B">{{ formatAmount(salesStats.total_pending) }}</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Panier moyen</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#7C3AED">{{ formatAmount(salesStats.average_sale_value) }}</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Prix moyen / unité</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#2563EB">{{ formatAmount(salesStats.average_unit_sale_price) }}</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Balles vendues</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#4F46E5">{{ salesStats.total_bales_sold || 0 }}</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Balles restantes</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#D97706">{{ salesStats.total_bales_remaining || 0 }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+          <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
+                <svg cIcon name="cilPieChart" class="me-1" style="color:#10B981"></svg>
+                Répartition Des Gains
+              </h6>
+              <span class="small text-muted">Vue globale</span>
+            </div>
+            <div style="height:280px">
+              <c-chart type="doughnut" [data]="interestBreakdownChartData" [options]="interestBreakdownChartOptions" />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-8">
+          <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
+                <svg cIcon name="cilChartLine" class="me-1" style="color:#047857"></svg>
+                Graphique Des Arrivages Rentables
+              </h6>
+              <span class="small text-muted">Top 10</span>
+            </div>
+            <div style="height:280px">
+              <c-chart type="bar" [data]="profitableArrivalsChartData" [options]="profitableArrivalsChartOptions" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 mb-4" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)" *ngIf="salesStats.containers_sold_monthly?.length">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
+            <svg cIcon name="cilCalendar" class="me-1" style="color:#0891B2"></svg>
+            Conteneurs vendus par mois
+          </h6>
+          <span class="small text-muted">Volume et balles</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead style="background:#f8fafc">
+              <tr>
+                <th>Mois</th>
+                <th class="text-end">Conteneurs vendus</th>
+                <th class="text-end">Balles vendues</th>
+                <th class="text-end">Montant</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of salesStats.containers_sold_monthly; trackBy: trackById">
+                <td class="fw-semibold">{{ item.month }}</td>
+                <td class="text-end">{{ item.containers_sold }}</td>
+                <td class="text-end">{{ item.bales_sold }}</td>
+                <td class="text-end fw-semibold">{{ formatAmount(item.sales_value) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -179,7 +320,7 @@
         <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <h6 class="fw-bold mb-4" style="color:#1a1a2e;font-size:.9rem">
             <svg cIcon name="cilList" class="me-1" style="color:#6366F1"></svg>
-            Qualité et taux d'intérêt
+            Qualité et statuts
           </h6>
           <div *ngIf="statusStats.length === 0" class="text-center text-muted py-4">Aucune donnée disponible</div>
           <div *ngFor="let stat of statusStats; trackBy: trackById" class="d-flex justify-content-between align-items-center mb-3 p-3 rounded"
@@ -247,8 +388,8 @@
               <small class="text-muted">{{ container.photos_count || 0 }} photo(s)</small>
             </div>
             <div class="text-end">
-              <div class="fw-bold" style="color:#3B82F6;font-size:.9rem">{{ container.interest_rate || 0 }}%</div>
-              <small class="text-muted">{{ formatCapacityRange(container) }}</small>
+              <div class="fw-bold" style="color:#3B82F6;font-size:.9rem">{{ formatCapacityRange(container) }}</div>
+              <small class="text-muted">Capacité</small>
             </div>
           </div>
         </div>
@@ -256,7 +397,57 @@
     </div>
 
     <div class="row g-3 mb-4">
-      <div class="col-lg-6">
+      <div class="col-lg-7">
+        <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
+              <svg cIcon name="cilChartLine" class="me-1" style="color:#047857"></svg>
+              Arrivages Les Plus Rentables
+            </h6>
+            <span class="px-2 py-1 rounded-pill" style="background:#ECFDF5;color:#047857;font-size:.75rem;font-weight:700">
+              {{ topProfitableArrivals.length }} arrivage(s)
+            </span>
+          </div>
+          <div *ngIf="topProfitableArrivals.length === 0" class="text-center text-muted py-4">Aucun classement de rentabilité disponible</div>
+          <div *ngIf="topProfitableArrivals.length > 0" class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+                <tr>
+                  <th class="py-2" style="font-weight:600">Arrivage</th>
+                  <th class="py-2" style="font-weight:600">Vendu</th>
+                  <th class="py-2 text-end" style="font-weight:600">CA</th>
+                  <th class="py-2 text-end" style="font-weight:600">Intérêt</th>
+                  <th class="py-2 text-end" style="font-weight:600">Marge</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let arrival of topProfitableArrivals; let i = index; trackBy: trackById">
+                  <td class="py-2">
+                    <div class="fw-semibold" style="font-size:.85rem;color:#1e293b">
+                      <span class="me-1 fw-bold" style="color:#047857">#{{ i + 1 }}</span>{{ arrival.container_number }}
+                    </div>
+                    <small class="text-muted">{{ arrival.supplier_name || 'Sans fournisseur' }} • {{ arrival.arrival_date | date:'dd/MM/yyyy' }}</small>
+                  </td>
+                  <td class="py-2">
+                    <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:.72rem;background:#EFF6FF;color:#2563EB">
+                      {{ arrival.quantity_sold }} / {{ arrival.total_quantity }}
+                    </span>
+                  </td>
+                  <td class="py-2 text-end fw-semibold" style="font-size:.82rem;color:#0f3460">{{ formatAmount(arrival.total_sales_value) }}</td>
+                  <td class="py-2 text-end fw-bold" style="font-size:.82rem;color:#059669">{{ formatAmount(arrival.generated_interest) }}</td>
+                  <td class="py-2 text-end">
+                    <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:.72rem;background:#ECFDF5;color:#059669">
+                      {{ arrival.margin_rate }}%
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
         <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <h6 class="fw-bold mb-4" style="color:#1a1a2e;font-size:.9rem">
             <svg cIcon name="cilDollar" class="me-1" style="color:#10B981"></svg>
@@ -291,11 +482,13 @@
           <div *ngIf="!paymentStats" class="text-center text-muted py-4">Aucune donnée de paiement disponible</div>
         </div>
       </div>
+    </div>
 
+    <div class="row g-3 mb-4">
       <div class="col-lg-6">
         <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <h6 class="fw-bold mb-4" style="color:#1a1a2e;font-size:.9rem">
-            <svg cIcon name="cilHistory" class="me-1" style="color:#6366F1"></svg>
+            <svg cIcon name="cilDollar" class="me-1" style="color:#10B981"></svg>
             Conteneurs récemment modifiés
           </h6>
           <div *ngIf="recentContainers.length === 0" class="text-center text-muted py-4">Aucune activité récente</div>
@@ -362,11 +555,11 @@
             <div class="col-md-6">
               <div class="d-flex align-items-start gap-2 mb-2">
                 <svg cIcon name="cilDollar" style="color:#F59E0B;flex-shrink:0;width:16px;height:16px"></svg>
-                <span style="font-size:.85rem;color:#475569">Le taux d'encaissement suit la part réellement collectée sur les ventes.</span>
+                <span style="font-size:.85rem;color:#475569">L'intérêt encaissé montre ce que les ventes ont déjà réellement rapporté.</span>
               </div>
               <div class="d-flex align-items-start gap-2">
                 <svg cIcon name="cilSpeedometer" style="color:#6366F1;flex-shrink:0;width:16px;height:16px"></svg>
-                <span style="font-size:.85rem;color:#475569">La marge estimée est calculée à partir des achats et ventes enregistrés.</span>
+                <span style="font-size:.85rem;color:#475569">L'intérêt généré compare le chiffre d'affaires au coût des quantités réellement vendues.</span>
               </div>
             </div>
           </div>

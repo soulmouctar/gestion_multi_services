@@ -30,6 +30,8 @@ export interface User {
   name: string;
   email: string;
   password?: string;
+  avatar?: string;
+  avatar_url?: string;
   role?: 'SUPER_ADMIN' | 'ADMIN' | 'USER';
   roles?: Role[];
   permissions?: Permission[];

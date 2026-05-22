@@ -19,6 +19,7 @@ export interface DashboardStats {
   totalContainers: number;
   totalTaxis: number;
   totalLocations: number;
+  totalModules?: number;
 }
 
 export interface RecentActivity {
@@ -101,9 +102,6 @@ export class DashboardService {
   }
 
   calculateMonthlyRevenue(subscriptions: any[]): number {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    
     return subscriptions
       .filter(sub => sub.status === 'ACTIVE')
       .reduce((total, sub) => {

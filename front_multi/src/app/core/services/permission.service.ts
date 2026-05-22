@@ -62,6 +62,7 @@ export class PermissionService {
           { module_code: 'FINANCE', module_name: 'Gestion Financière', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'PRODUCTS_STOCK', module_name: 'Produits & Stock', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'CLIENTS_SUPPLIERS', module_name: 'Clients & Fournisseurs', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
+          { module_code: 'USERS', module_name: 'Utilisateurs', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'CONTAINERS', module_name: 'Conteneurs', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'RENTAL', module_name: 'Location', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'TAXI', module_name: 'Gestion Taxi', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
@@ -83,6 +84,7 @@ export class PermissionService {
           { module_code: 'FINANCE', module_name: 'Gestion Financière', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'PRODUCTS_STOCK', module_name: 'Produits & Stock', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'CLIENTS_SUPPLIERS', module_name: 'Clients & Fournisseurs', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
+          { module_code: 'USERS', module_name: 'Utilisateurs', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'CONTAINERS', module_name: 'Conteneurs', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'RENTAL', module_name: 'Location', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
           { module_code: 'TAXI', module_name: 'Gestion Taxi', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
@@ -224,8 +226,8 @@ export class PermissionService {
    */
   getNavigationModules(): Observable<UserModulePermission[]> {
     return this.getActiveModules().pipe(
-      map(modules => modules.filter(module => 
-        module.permissions?.includes('view')
+      map(modules => modules.filter(module =>
+        module.is_active && (module.permissions?.length ?? 0) > 0
       ))
     );
   }

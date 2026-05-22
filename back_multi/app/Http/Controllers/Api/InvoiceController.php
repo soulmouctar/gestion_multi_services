@@ -215,11 +215,12 @@ class InvoiceController extends BaseController
             'exchange_rate'            => 'nullable|numeric|min:0',
             'previous_balance_amount'  => 'nullable|numeric|min:0',
             'include_previous_balance' => 'nullable|boolean',
-            'line_items'               => 'nullable|array',
-            'line_items.*.product_id'  => 'nullable|exists:products,id',
-            'line_items.*.description' => 'required_with:line_items|string|max:255',
-            'line_items.*.quantity'    => 'nullable|numeric|min:0.01',
-            'line_items.*.unit_price'  => 'nullable|numeric|min:0',
+            'line_items'                => 'nullable|array',
+            'line_items.*.product_id'   => 'nullable|exists:products,id',
+            'line_items.*.sale_type'    => 'nullable|in:UNITE,CARTON,DEMI_CARTON,DOUZAINE',
+            'line_items.*.description'  => 'required_with:line_items|string|max:255',
+            'line_items.*.quantity'     => 'nullable|numeric|min:0.01',
+            'line_items.*.unit_price'   => 'nullable|numeric|min:0',
         ]);
     }
 
@@ -239,10 +240,14 @@ class InvoiceController extends BaseController
             ->filter(fn ($item) => filled($item['description'] ?? null))
             ->values()
             ->map(function ($item, $index) {
-                $quantity = (float) ($item['quantity'] ?? 1);
+                $quantity  = (float) ($item['quantity'] ?? 1);
                 $unitPrice = (float) ($item['unit_price'] ?? 0);
+                $saleType  = in_array($item['sale_type'] ?? '', ['UNITE', 'CARTON', 'DEMI_CARTON', 'DOUZAINE'])
+                    ? $item['sale_type']
+                    : 'UNITE';
                 return [
                     'product_id'   => $item['product_id'] ?? null,
+                    'sale_type'    => $saleType,
                     'description'  => $item['description'],
                     'quantity'     => $quantity,
                     'unit_price'   => $unitPrice,

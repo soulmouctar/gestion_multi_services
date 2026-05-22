@@ -10,10 +10,15 @@ class DriverController extends BaseController
 {
     public function index(Request $request)
     {
+        $user     = auth()->user();
+        $tenantId = $user->hasRole('SUPER_ADMIN')
+            ? $request->get('tenant_id')
+            : $user->tenant_id;
+
         $query = Driver::with('tenant', 'taxiAssignments');
 
-        if ($request->has('tenant_id')) {
-            $query->where('tenant_id', $request->tenant_id);
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
         }
 
         $drivers = $query->paginate(15);
@@ -22,18 +27,35 @@ class DriverController extends BaseController
 
     public function store(Request $request)
     {
+        $user     = auth()->user();
+        $tenantId = $user->hasRole('SUPER_ADMIN')
+            ? $request->get('tenant_id')
+            : $user->tenant_id;
+
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID requis.', [], 422);
+        }
+
         $validator = Validator::make($request->all(), [
-            'tenant_id' => 'required|exists:tenants,id',
-            'name' => 'required|string|max:150',
-            'phone' => 'nullable|string|max:50',
+            'name'         => 'required|string|max:150',
+            'phone'        => 'nullable|string|max:50',
             'contract_end' => 'nullable|date',
+            'status'       => 'nullable|in:ACTIVE,INACTIVE,SUSPENDED',
+            'daily_rate'   => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $driver = Driver::create($request->all());
+        $driver = Driver::create([
+            'tenant_id'    => $tenantId,
+            'name'         => $request->name,
+            'phone'        => $request->phone,
+            'contract_end' => $request->contract_end,
+            'status'       => $request->get('status', 'ACTIVE'),
+            'daily_rate'   => $request->get('daily_rate', 0),
+        ]);
 
         return $this->sendResponse($driver, 'Driver created successfully', 201);
     }
@@ -58,17 +80,18 @@ class DriverController extends BaseController
         }
 
         $validator = Validator::make($request->all(), [
-            'tenant_id' => 'sometimes|exists:tenants,id',
-            'name' => 'sometimes|string|max:150',
-            'phone' => 'nullable|string|max:50',
+            'name'         => 'sometimes|string|max:150',
+            'phone'        => 'nullable|string|max:50',
             'contract_end' => 'nullable|date',
+            'status'       => 'nullable|in:ACTIVE,INACTIVE,SUSPENDED',
+            'daily_rate'   => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $driver->update($request->all());
+        $driver->update($request->only(['name', 'phone', 'contract_end', 'status', 'daily_rate']));
 
         return $this->sendResponse($driver, 'Driver updated successfully');
     }
@@ -82,7 +105,6 @@ class DriverController extends BaseController
         }
 
         $driver->delete();
-
         return $this->sendResponse([], 'Driver deleted successfully');
     }
 
@@ -109,7 +131,6 @@ class DriverController extends BaseController
         }
 
         $driver->update(['status' => 'SUSPENDED']);
-
         return $this->sendResponse($driver, 'Driver suspended successfully');
     }
 
@@ -122,32 +143,36 @@ class DriverController extends BaseController
         }
 
         $driver->update(['status' => 'ACTIVE']);
-
         return $this->sendResponse($driver, 'Driver activated successfully');
     }
 
     public function statistics(Request $request)
     {
-        $tenantId = $request->get('tenant_id', 1);
+        $user     = auth()->user();
+        $tenantId = $user->hasRole('SUPER_ADMIN')
+            ? $request->get('tenant_id', null)
+            : $user->tenant_id;
 
-        $totalDrivers = Driver::where('tenant_id', $tenantId)->count();
-        $activeDrivers = Driver::where('tenant_id', $tenantId)->where('status', 'ACTIVE')->count();
-        $inactiveDrivers = Driver::where('tenant_id', $tenantId)->where('status', 'INACTIVE')->count();
-        $suspendedDrivers = Driver::where('tenant_id', $tenantId)->where('status', 'SUSPENDED')->count();
+        $query = Driver::query();
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
 
-        // Drivers with active assignments
-        $driversWithAssignments = Driver::where('tenant_id', $tenantId)
-            ->whereHas('taxiAssignments', function ($q) {
-                $q->whereNull('end_date')->orWhere('end_date', '>=', now());
-            })
-            ->count();
+        $totalDrivers     = (clone $query)->count();
+        $activeDrivers    = (clone $query)->where('status', 'ACTIVE')->count();
+        $inactiveDrivers  = (clone $query)->where('status', 'INACTIVE')->count();
+        $suspendedDrivers = (clone $query)->where('status', 'SUSPENDED')->count();
+
+        $driversWithAssignments = (clone $query)->whereHas('taxiAssignments', function ($q) {
+            $q->whereNull('end_date')->orWhere('end_date', '>=', now());
+        })->count();
 
         return $this->sendResponse([
-            'total_drivers' => $totalDrivers,
-            'active_drivers' => $activeDrivers,
-            'inactive_drivers' => $inactiveDrivers,
-            'suspended_drivers' => $suspendedDrivers,
-            'drivers_with_assignments' => $driversWithAssignments,
+            'total_drivers'             => $totalDrivers,
+            'active_drivers'            => $activeDrivers,
+            'inactive_drivers'          => $inactiveDrivers,
+            'suspended_drivers'         => $suspendedDrivers,
+            'drivers_with_assignments'  => $driversWithAssignments,
         ], 'Driver statistics retrieved successfully');
     }
 }

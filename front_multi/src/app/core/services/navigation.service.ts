@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, map, switchMap, combineLatest } from 'rxjs';
-import { PermissionService } from './permission.service';
+import { Observable, of, switchMap } from 'rxjs';
 import { AuthService } from './auth.service';
 import { INavData } from '@coreui/angular';
 import { User } from '../models';
@@ -17,7 +16,6 @@ export interface NavigationItem extends INavData {
 export class NavigationService {
 
   constructor(
-    private permissionService: PermissionService,
     private authService: AuthService
   ) {}
 
@@ -85,23 +83,30 @@ export class NavigationService {
           );
         }
 
-        return of(baseNavigation);
+        return of(this.filterNavigationItems(baseNavigation, authState.user));
       })
     );
   }
 
   private getUserRole(user: User): string | null {
-    if (!user?.roles || !Array.isArray(user.roles) || user.roles.length === 0) {
-      return null;
+    if (user?.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+      return user.roles[0].name;
     }
-    return user.roles[0].name;
+    // Fallback: singular role field stored at login
+    return (user as any)?.role || null;
   }
 
   private getTenantModulesNavigation(user: User): NavigationItem[] {
     if (!user) return [];
 
+    const userRole = this.getUserRole(user);
+    const isSuperAdmin = userRole === 'SUPER_ADMIN';
+
     const moduleNavigation: NavigationItem[] = [];
-    const accessibleModules = this.authService.getUserAccessibleModules();
+    // For SUPER_ADMIN, always use the full module list regardless of DB permissions
+    const accessibleModules = isSuperAdmin
+      ? this.authService.getTenantActiveModules()
+      : this.authService.getUserAccessibleModules();
 
     if (!accessibleModules || accessibleModules.length === 0) return [];
 
@@ -128,13 +133,26 @@ export class NavigationService {
               name: 'Clients & Fournisseurs',
               url: '/clients',
               iconComponent: { name: 'cilPeople' },
+              requiredModule: 'CLIENTS_SUPPLIERS',
               children: [
-                { name: 'Clients généraux',         url: '/clients/list',             icon: 'nav-icon-bullet' },
-                { name: 'Clients pneus',            url: '/clients/pneus',            icon: 'nav-icon-bullet' },
-                { name: 'Clients textile',          url: '/clients/textile',          icon: 'nav-icon-bullet' },
-                { name: 'Clients cosmétiques',      url: '/clients/cosmetiques',      icon: 'nav-icon-bullet' },
-                { name: 'Clients conteneurs pagne', url: '/clients/conteneurs-pagne', icon: 'nav-icon-bullet' },
-                { name: 'Fournisseurs',             url: '/suppliers/list',           icon: 'nav-icon-bullet' },
+                { name: 'Clients généraux',         url: '/clients/list',             icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general' },
+                { name: 'Clients pneus',            url: '/clients/pneus',            icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_pneus' },
+                { name: 'Clients textile',          url: '/clients/textile',          icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_textile' },
+                { name: 'Clients cosmétiques',      url: '/clients/cosmetiques',      icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_cosmetiques' },
+                { name: 'Clients conteneurs pagne', url: '/clients/conteneurs-pagne', icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_conteneurs_pagne' },
+                { name: 'Fournisseurs',             url: '/suppliers/list',           icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_suppliers' },
+              ]
+            });
+            break;
+
+          case 'USERS':
+            moduleNavigation.push({
+              name: 'Utilisateurs',
+              url: '/organisation/users',
+              iconComponent: { name: 'cilPeople' },
+              requiredModule: 'USERS',
+              children: [
+                { name: 'Gestion des Utilisateurs', url: '/organisation/users', icon: 'nav-icon-bullet', requiredModule: 'USERS', requiredPermission: 'view_users' }
               ]
             });
             break;
@@ -237,52 +255,48 @@ export class NavigationService {
     return moduleNavigation;
   }
 
-  private filterItemsRecursively(items: NavigationItem[], userPermissions: any): NavigationItem[] {
-    return items.filter(item => {
-      if (!item.requiredModule) return true;
+  private filterNavigationItems(items: NavigationItem[], user: User): NavigationItem[] {
+    const userRole = this.getUserRole(user);
+    const isAdmin = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
 
-      if (userPermissions.role === 'SUPER_ADMIN' || userPermissions.role === 'ADMIN') return true;
+    return items
+      .map(item => {
+        if (item.title) {
+          return { ...item };
+        }
 
-      const hasModuleAccess = userPermissions.modules.some((module: any) =>
-        module.module_code === item.requiredModule && module.is_active
-      );
+        const children = Array.isArray(item.children)
+          ? this.filterNavigationItems(item.children, user)
+          : undefined;
 
-      if (!hasModuleAccess) return false;
+        return {
+          ...item,
+          children
+        };
+      })
+      .filter(item => {
+        if (item.title) return true;
 
-      if (item.requiredPermission) {
-        const modulePermission = userPermissions.modules.find((module: any) =>
-          module.module_code === item.requiredModule
-        );
-        if (!modulePermission?.permissions.includes(item.requiredPermission)) return false;
-      }
+        if (!item.requiredModule) {
+          return true;
+        }
 
-      if (item.children) {
-        item.children = this.filterItemsRecursively(item.children, userPermissions);
-        return item.children.length > 0;
-      }
+        if (isAdmin) {
+          return !item.children || item.children.length > 0 || !item.requiredPermission;
+        }
 
-      return true;
-    });
-  }
+        const hasModuleAccess = this.authService.hasModuleAccess(item.requiredModule);
+        if (!hasModuleAccess) return false;
 
-  canAccessNavItem(item: NavigationItem): Observable<boolean> {
-    if (!item.requiredModule) {
-      return new Observable(observer => observer.next(true));
-    }
+        if (item.requiredPermission && !this.authService.hasModulePermission(item.requiredModule, item.requiredPermission)) {
+          return false;
+        }
 
-    const moduleAccess$ = this.permissionService.hasModuleAccess(item.requiredModule);
+        if (item.children) {
+          return item.children.length > 0;
+        }
 
-    if (!item.requiredPermission) {
-      return moduleAccess$;
-    }
-
-    const permissionAccess$ = this.permissionService.hasPermission(
-      item.requiredModule,
-      item.requiredPermission
-    );
-
-    return combineLatest([moduleAccess$, permissionAccess$]).pipe(
-      map(([hasModule, hasPermission]) => hasModule && hasPermission)
-    );
+        return true;
+      });
   }
 }

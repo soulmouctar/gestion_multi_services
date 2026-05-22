@@ -5,9 +5,11 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angul
 import {
   AlertModule, BadgeModule, ButtonModule, CardModule, FormModule, SpinnerModule, TableModule
 } from '@coreui/angular';
+import { ChartjsComponent } from '@coreui/angular-chartjs';
 import { IconDirective } from '@coreui/icons-angular';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { ChartData, ChartOptions } from 'chart.js';
 import { ApiService } from '../../../core/services/api.service';
 
 type GeneralStats = {
@@ -15,9 +17,9 @@ type GeneralStats = {
   total_containers: number;
   containers_created: number;
   containers_with_photos: number;
-  avg_capacity_min: number;
-  avg_capacity_max: number;
-  avg_interest_rate: number;
+  avg_capacity: number;
+  delivered_count?: number;
+  not_delivered_count?: number;
 };
 
 type CapacityStat = {
@@ -42,21 +44,56 @@ type MonthlyStat = {
 type TopContainer = {
   id: number;
   container_number: string;
-  capacity_min: number | null;
-  capacity_max: number | null;
-  interest_rate: number | null;
+  shipping_number?: string | null;
+  capacity?: number | null;
+  delivery_status?: string | null;
   photos_count?: number;
   updated_at?: string;
 };
 
+type ProfitableArrival = {
+  arrival_id: number;
+  container_number: string;
+  arrival_date: string;
+  supplier_name: string | null;
+  total_quantity: number;
+  quantity_sold: number;
+  total_sales_value: number;
+  total_collected: number;
+  cost_of_goods_sold: number;
+  generated_interest: number;
+  margin_rate: number;
+};
+
 type SalesGlobalStats = {
   total_arrivals: number;
+  total_bales_received: number;
+  total_bales_sold: number;
+  total_bales_remaining: number;
+  containers_sold_this_month: number;
+  total_sales_count: number;
+  total_quantity_sold: number;
   total_purchase_value: number;
   total_sales_value: number;
   total_collected: number;
   total_pending: number;
   total_client_advances: number;
+  cost_of_goods_sold: number;
+  realized_cost_of_goods: number;
+  average_sale_value: number;
+  average_unit_sale_price: number;
   estimated_profit: number;
+  generated_interest: number;
+  realized_interest: number;
+  outstanding_interest: number;
+  profit_margin_rate: number;
+  containers_sold_monthly?: Array<{
+    month: string;
+    containers_sold: number;
+    bales_sold: number;
+    sales_value: number;
+  }>;
+  top_profitable_arrivals?: ProfitableArrival[];
 };
 
 type PaymentStats = {
@@ -71,7 +108,7 @@ type PaymentStats = {
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
-    ButtonModule, CardModule, FormModule, BadgeModule, AlertModule, SpinnerModule, TableModule
+    ButtonModule, CardModule, FormModule, BadgeModule, AlertModule, SpinnerModule, TableModule, ChartjsComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './container-statistics.component.html'
@@ -90,6 +127,56 @@ export class ContainerStatisticsComponent implements OnInit {
   recentContainers: TopContainer[] = [];
   salesStats: SalesGlobalStats | null = null;
   paymentStats: PaymentStats | null = null;
+  topProfitableArrivals: ProfitableArrival[] = [];
+  interestBreakdownChartData: ChartData<'doughnut'> = {
+    labels: [],
+    datasets: [{ data: [] }]
+  };
+  interestBreakdownChartOptions: ChartOptions<'doughnut'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          padding: 18,
+          color: '#475569',
+          font: { size: 12, weight: 600 }
+        }
+      }
+    },
+    cutout: '68%'
+  };
+  profitableArrivalsChartData: ChartData<'bar'> = {
+    labels: [],
+    datasets: []
+  };
+  profitableArrivalsChartOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        ticks: { color: '#64748b', font: { size: 11 } },
+        grid: { display: false }
+      },
+      y: {
+        ticks: { color: '#64748b', font: { size: 11 } },
+        grid: { color: 'rgba(148,163,184,.18)' }
+      }
+    },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          padding: 18,
+          color: '#475569',
+          font: { size: 12, weight: 600 }
+        }
+      }
+    }
+  };
 
   filterForm: FormGroup;
 
@@ -140,6 +227,8 @@ export class ContainerStatisticsComponent implements OnInit {
         this.recentContainers = result.top?.success ? result.top.data?.recently_active || [] : [];
         this.salesStats = result.sales?.success ? result.sales.data : null;
         this.paymentStats = result.payments?.success ? result.payments.data : null;
+        this.topProfitableArrivals = this.salesStats?.top_profitable_arrivals || [];
+        this.buildCharts();
 
         if (!this.generalStats && !this.salesStats && !this.paymentStats) {
           this.error = 'Aucune statistique n’a pu être chargée.';
@@ -175,22 +264,33 @@ export class ContainerStatisticsComponent implements OnInit {
         ['Conteneurs', 'Total conteneurs', String(this.generalStats.total_containers || 0)],
         ['Conteneurs', 'Créés sur la période', String(this.generalStats.containers_created || 0)],
         ['Conteneurs', 'Avec photos', String(this.generalStats.containers_with_photos || 0)],
-        ['Conteneurs', 'Capacité min moyenne', String(this.generalStats.avg_capacity_min || 0)],
-        ['Conteneurs', 'Capacité max moyenne', String(this.generalStats.avg_capacity_max || 0)],
-        ['Conteneurs', 'Taux d’intérêt moyen', String(this.generalStats.avg_interest_rate || 0)]
+        ['Conteneurs', 'Capacité moyenne', String(this.generalStats.avg_capacity || 0)]
       );
     }
 
     if (this.salesStats) {
       rows.push(
         ['Ventes', 'Arrivages', String(this.salesStats.total_arrivals || 0)],
+        ['Ventes', 'Nombre de ventes', String(this.salesStats.total_sales_count || 0)],
+        ['Ventes', 'Quantité vendue', String(this.salesStats.total_quantity_sold || 0)],
         ['Ventes', 'Valeur achats', String(this.salesStats.total_purchase_value || 0)],
         ['Ventes', 'Valeur ventes', String(this.salesStats.total_sales_value || 0)],
+        ['Ventes', 'Coût des quantités vendues', String(this.salesStats.cost_of_goods_sold || 0)],
         ['Ventes', 'Montant collecté', String(this.salesStats.total_collected || 0)],
         ['Ventes', 'Reste à encaisser', String(this.salesStats.total_pending || 0)],
         ['Ventes', 'Avances clients', String(this.salesStats.total_client_advances || 0)],
-        ['Ventes', 'Profit estimé', String(this.salesStats.estimated_profit || 0)]
+        ['Ventes', 'Panier moyen', String(this.salesStats.average_sale_value || 0)],
+        ['Ventes', 'Prix moyen par unité', String(this.salesStats.average_unit_sale_price || 0)],
+        ['Ventes', 'Intérêt généré', String(this.salesStats.generated_interest || 0)],
+        ['Ventes', 'Intérêt encaissé', String(this.salesStats.realized_interest || 0)],
+        ['Ventes', 'Intérêt restant', String(this.salesStats.outstanding_interest || 0)]
       );
+
+      this.topProfitableArrivals.forEach((arrival, index) => {
+        rows.push(
+          ['Classement arrivages', `#${index + 1} ${arrival.container_number}`, String(arrival.generated_interest || 0)]
+        );
+      });
     }
 
     if (this.paymentStats) {
@@ -219,9 +319,7 @@ export class ContainerStatisticsComponent implements OnInit {
 
   get averageCapacity(): number {
     if (!this.generalStats) return 0;
-    const min = this.generalStats.avg_capacity_min || 0;
-    const max = this.generalStats.avg_capacity_max || 0;
-    return Math.round((min + max) / 2);
+    return Math.round(this.generalStats.avg_capacity || 0);
   }
 
   get collectionRate(): number {
@@ -230,8 +328,8 @@ export class ContainerStatisticsComponent implements OnInit {
   }
 
   get marginRate(): number {
-    if (!this.salesStats?.total_sales_value) return 0;
-    return Math.round(((this.salesStats.estimated_profit || 0) / this.salesStats.total_sales_value) * 100);
+    if (!this.salesStats) return 0;
+    return Math.round(this.salesStats.profit_margin_rate || 0);
   }
 
   get activityRate(): number {
@@ -261,7 +359,7 @@ export class ContainerStatisticsComponent implements OnInit {
   }
 
   formatCapacityRange(container: TopContainer): string {
-    return `${container.capacity_min || 0} - ${container.capacity_max || 0}`;
+    return container.capacity != null ? `${container.capacity}` : '—';
   }
 
   monthlyShare(count: number): number {
@@ -272,6 +370,48 @@ export class ContainerStatisticsComponent implements OnInit {
 
   periodLabel(period: string | null | undefined): string {
     return this.dateRanges.find((range) => range.value === period)?.label || 'Période personnalisée';
+  }
+
+  private buildCharts(): void {
+    const sales = this.salesStats;
+    const arrivals = this.topProfitableArrivals;
+
+    this.interestBreakdownChartData = {
+      labels: ['Intérêt encaissé', 'Intérêt restant', 'Coût des ventes'],
+      datasets: [
+        {
+          data: [
+            Math.max(0, sales?.realized_interest || 0),
+            Math.max(0, sales?.outstanding_interest || 0),
+            Math.max(0, sales?.cost_of_goods_sold || 0)
+          ],
+          backgroundColor: ['#10B981', '#F59E0B', '#CBD5E1'],
+          borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+          borderWidth: 3,
+          hoverOffset: 8
+        }
+      ]
+    };
+
+    this.profitableArrivalsChartData = {
+      labels: arrivals.map((arrival) => arrival.container_number),
+      datasets: [
+        {
+          label: 'Intérêt généré',
+          data: arrivals.map((arrival) => arrival.generated_interest || 0),
+          backgroundColor: '#047857',
+          borderRadius: 8,
+          maxBarThickness: 36
+        },
+        {
+          label: 'Montant encaissé',
+          data: arrivals.map((arrival) => arrival.total_collected || 0),
+          backgroundColor: '#60A5FA',
+          borderRadius: 8,
+          maxBarThickness: 36
+        }
+      ]
+    };
   }
 
   private enrichCapacityStats(stats: CapacityStat[]): CapacityStat[] {

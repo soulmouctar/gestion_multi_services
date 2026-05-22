@@ -19,7 +19,9 @@ class ContainerArrival extends Model
         'exchange_rate',
         'purchase_price_gnf',
         'product_type',
+        'product_category_id',
         'total_quantity',
+        'bale_quantity',
         'remaining_quantity',
         'description',
         'status'
@@ -30,6 +32,7 @@ class ContainerArrival extends Model
         'exchange_rate'      => 'float',
         'purchase_price_gnf' => 'float',
         'arrival_date'       => 'date',
+        'bale_quantity'      => 'integer',
     ];
 
 
@@ -56,5 +59,15 @@ class ContainerArrival extends Model
     public function sales()
     {
         return $this->hasMany(ContainerSale::class);
+    }
+
+    public function productCategory()
+    {
+        return $this->belongsTo(ProductCategory::class, 'product_category_id');
+    }
+
+    public function photos()
+    {
+        return $this->hasMany(ContainerPhoto::class, 'container_arrival_id');
     }
 }

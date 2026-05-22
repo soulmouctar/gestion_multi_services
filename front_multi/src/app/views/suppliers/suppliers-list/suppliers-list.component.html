@@ -7,7 +7,7 @@
       <h4 class="fw-bold mb-1">Gestion des Fournisseurs</h4>
       <p class="mb-0 opacity-75 small">{{ totalItems }} fournisseur(s) enregistré(s)</p>
     </div>
-    <button cButton color="success" size="sm" (click)="openCreateModal()" style="border-radius:8px">
+    <button *ngIf="canCreateSuppliers" cButton color="success" size="sm" (click)="openCreateModal()" style="border-radius:8px">
       <svg cIcon name="cilPlus" class="me-1" size="sm"></svg> Nouveau fournisseur
     </button>
   </div>
@@ -39,7 +39,7 @@
   <div class="mb-3" *ngIf="selectedSuppliers.size > 0">
     <div class="d-flex gap-2 align-items-center p-2 rounded-3" style="background:#FEE2E2;border:1px solid #FCA5A5;">
       <span class="small fw-semibold" style="color:#EF4444;">{{ selectedSuppliers.size }} sélectionné(s)</span>
-      <button cButton color="danger" size="sm" (click)="deleteSelected()" style="border-radius:8px">
+      <button *ngIf="canDeleteSuppliers" cButton color="danger" size="sm" (click)="deleteSelected()" style="border-radius:8px">
         <svg cIcon name="cilTrash" class="me-1" size="sm"></svg> Supprimer
       </button>
     </div>
@@ -61,10 +61,10 @@
 
         <!-- Checkbox + actions -->
         <div class="d-flex align-items-center justify-content-between px-3 pt-3">
-          <input type="checkbox" class="form-check-input"
+          <input *ngIf="canDeleteSuppliers" type="checkbox" class="form-check-input"
                  [checked]="isSelected(supplier.id)" (change)="toggleSelection(supplier.id)" />
           <div class="d-flex gap-1">
-            <button class="btn btn-sm p-1" title="Verser" (click)="openPaymentModal(supplier)"
+            <button *ngIf="canRegisterPayments" class="btn btn-sm p-1" title="Verser" (click)="openPaymentModal(supplier)"
                     style="border-radius:6px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;">
               <svg cIcon name="cilPlus" style="width:14px;height:14px;"></svg>
             </button>
@@ -72,11 +72,11 @@
                     style="border-radius:6px;background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;">
               <svg cIcon name="cilChart" style="width:14px;height:14px;"></svg>
             </button>
-            <button class="btn btn-sm p-1" title="Modifier" (click)="openEditModal(supplier)"
+            <button *ngIf="canEditSuppliers" class="btn btn-sm p-1" title="Modifier" (click)="openEditModal(supplier)"
                     style="border-radius:6px;background:#FFFBEB;color:#D97706;border:1px solid #FDE68A;">
               <svg cIcon name="cilPencil" style="width:14px;height:14px;"></svg>
             </button>
-            <button class="btn btn-sm p-1" title="Supprimer" (click)="deleteSupplier(supplier)"
+            <button *ngIf="canDeleteSuppliers" class="btn btn-sm p-1" title="Supprimer" (click)="deleteSupplier(supplier)"
                     style="border-radius:6px;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;">
               <svg cIcon name="cilTrash" style="width:14px;height:14px;"></svg>
             </button>
@@ -123,7 +123,7 @@
 
         <!-- Actions bas de carte -->
         <div class="px-3 pb-3 d-flex gap-2">
-          <button cButton color="success" variant="outline" size="sm" class="flex-fill"
+          <button *ngIf="canRegisterPayments" cButton color="success" variant="outline" size="sm" class="flex-fill"
                   (click)="openPaymentModal(supplier)" style="border-radius:8px;font-size:12px;">
             <svg cIcon name="cilMoney" class="me-1" size="sm"></svg> Verser
           </button>

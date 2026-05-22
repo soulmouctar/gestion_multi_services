@@ -79,6 +79,10 @@ export class LocationsAdvancedComponent implements OnInit {
     this.loadLocationStatistics();
   }
 
+  get canCreateLocationsAdvanced(): boolean { return this.authService.hasModulePermission('RENTAL', 'create'); }
+  get canEditLocationsAdvanced(): boolean { return this.authService.hasModulePermission('RENTAL', 'edit'); }
+  get canDeleteLocationsAdvanced(): boolean { return this.authService.hasModulePermission('RENTAL', 'delete'); }
+
   loadLocations(page: number = 1): void {
     this.loading = true;
     const filters = this.filterForm.value;
@@ -135,6 +139,7 @@ export class LocationsAdvancedComponent implements OnInit {
   }
 
   openCreateModal(): void {
+    if (!this.canCreateLocationsAdvanced) return;
     this.isEditing = false;
     this.modalTitle = 'Nouvel Emplacement';
     this.currentLocation = null;
@@ -144,6 +149,7 @@ export class LocationsAdvancedComponent implements OnInit {
   }
 
   openEditModal(location: any): void {
+    if (!this.canEditLocationsAdvanced) return;
     this.isEditing = true;
     this.modalTitle = 'Modifier l\'Emplacement';
     this.currentLocation = location;
@@ -161,6 +167,7 @@ export class LocationsAdvancedComponent implements OnInit {
   saveLocation(): void {
     this.submitted = true;
     if (this.locationForm.invalid) return;
+    if (this.isEditing ? !this.canEditLocationsAdvanced : !this.canCreateLocationsAdvanced) return;
 
     const data = this.locationForm.value;
 
@@ -181,12 +188,13 @@ export class LocationsAdvancedComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de l\'enregistrement';
+        this.error = err.message || 'Erreur lors de l\'enregistrement';
       }
     });
   }
 
   deleteLocation(location: any): void {
+    if (!this.canDeleteLocationsAdvanced) return;
     if (confirm(`Êtes-vous sûr de vouloir supprimer l'emplacement "${location.name}" ?`)) {
       this.apiService.delete<any>(`locations/${location.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r) => {
@@ -198,7 +206,7 @@ export class LocationsAdvancedComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.error = err?.error?.message || 'Erreur lors de la suppression';
+          this.error = err.message || 'Erreur lors de la suppression';
         }
       });
     }

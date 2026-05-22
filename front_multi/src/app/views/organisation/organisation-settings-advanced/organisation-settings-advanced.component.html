@@ -27,7 +27,7 @@
             <div *ngFor="let option of settingsOptions | keyvalue; trackBy: trackById" class="border-bottom pb-2 mb-2">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
-                  <h6 class="mb-1">{{ option.key | titlecase }}</h6>
+                  <h6 class="mb-1">{{ $any(option.key) | titlecase }}</h6>
                   <small class="text-muted">Configuration système</small>
                 </div>
                 <div>

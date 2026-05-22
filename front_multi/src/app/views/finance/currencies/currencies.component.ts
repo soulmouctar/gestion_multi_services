@@ -113,7 +113,7 @@ export class FinanceCurrenciesComponent implements OnInit {
           this.showFormModal = false; this.loadCurrencies(); this.clearMessages();
         }
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; }
+      error: (err) => { this.error = err.message || 'Erreur'; }
     });
   }
 
@@ -128,7 +128,7 @@ export class FinanceCurrenciesComponent implements OnInit {
           this.currencyToDelete = null; this.loadCurrencies(); this.clearMessages();
         }
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => { this.error = err.message || 'Erreur'; this.deleteModalOpen = false; }
     });
   }
 

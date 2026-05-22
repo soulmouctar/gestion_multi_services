@@ -104,7 +104,7 @@ export class CompanyInfoComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de la mise à jour.';
+        this.error = err.message || 'Erreur lors de la mise à jour.';
         this.saving = false;
         this.cdr.detectChanges();
       }

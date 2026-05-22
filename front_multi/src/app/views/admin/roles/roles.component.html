@@ -161,12 +161,12 @@
                 <small class="text-muted">{{ role.created_at | date:'dd/MM/yyyy HH:mm' }}</small>
               </td>
               <td class="text-end pe-4">
-                <div class="d-flex gap-1 justify-content-end">
-                  <button type="button" class="btn btn-sm btn-outline-primary rounded-3"
+                <div class="d-flex gap-2 justify-content-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary rounded-3 role-action-btn"
                           (click)="openRoleModal(role)" [disabled]="loading" title="Modifier">
                     <svg cIcon name="cilPencil"></svg>
                   </button>
-                  <button type="button" class="btn btn-sm btn-outline-danger rounded-3"
+                  <button type="button" class="btn btn-sm btn-outline-danger rounded-3 role-action-btn"
                           (click)="deleteRole(role)"
                           [disabled]="loading || role.name === 'SUPER_ADMIN'"
                           title="Supprimer">
@@ -199,9 +199,9 @@
       </div>
       <div *ngIf="permissions.length > 0" class="row g-3">
         <div class="col-md-6 col-lg-4" *ngFor="let permission of permissions; trackBy: trackById">
-          <div class="d-flex justify-content-between align-items-center rounded-3 px-3 py-3"
+          <div class="d-flex justify-content-between align-items-center rounded-3 px-3 py-3 permission-item"
                style="background:#F8FAFC;border:1px solid #f0f0f0">
-            <div>
+            <div class="permission-item__content">
               <div class="fw-semibold small">{{ getPermissionDisplayName(permission.name) }}</div>
               <code class="text-muted" style="font-size:.75rem">{{ permission.name }}</code>
               <div class="mt-1">
@@ -209,7 +209,7 @@
                       style="background:#F3F4F6;color:#374151;font-size:.7rem">{{ permission.guard_name }}</span>
               </div>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-danger rounded-3 ms-2 flex-shrink-0"
+            <button type="button" class="btn btn-sm btn-outline-danger rounded-3 ms-2 flex-shrink-0 role-action-btn"
                     (click)="deletePermission(permission)" [disabled]="loading" title="Supprimer">
               <svg cIcon name="cilTrash"></svg>
             </button>

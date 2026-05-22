@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-vehicle-expenses',
@@ -55,7 +56,7 @@ export class VehicleExpensesComponent implements OnInit {
     { value: 'AUTRE', label: 'Autre' }
   ];
 
-  constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
+  constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.expenseForm = this.fb.group({
       taxi_id: [null, Validators.required],
       driver_id: [null],
@@ -82,6 +83,10 @@ export class VehicleExpensesComponent implements OnInit {
     this.loadDrivers();
     this.loadStatistics();
   }
+
+  get canCreateExpenses(): boolean { return this.authService.hasModulePermission('TAXI', 'create'); }
+  get canEditExpenses(): boolean { return this.authService.hasModulePermission('TAXI', 'edit'); }
+  get canDeleteExpenses(): boolean { return this.authService.hasModulePermission('TAXI', 'delete'); }
 
   getTodayDate(): string {
     return new Date().toISOString().substring(0, 10);
@@ -191,6 +196,7 @@ export class VehicleExpensesComponent implements OnInit {
   }
 
   openCreateModal(): void {
+    if (!this.canCreateExpenses) return;
     this.editMode = false;
     this.submitted = false;
     this.selectedItem = null;
@@ -208,6 +214,7 @@ export class VehicleExpensesComponent implements OnInit {
   }
 
   openEditModal(item: any): void {
+    if (!this.canEditExpenses) return;
     this.editMode = true;
     this.submitted = false;
     this.selectedItem = item;
@@ -227,6 +234,7 @@ export class VehicleExpensesComponent implements OnInit {
   save(): void {
     this.submitted = true;
     if (this.expenseForm.invalid) return;
+    if (this.editMode ? !this.canEditExpenses : !this.canCreateExpenses) return;
 
     const data = this.expenseForm.value;
     const obs = this.editMode && this.selectedItem
@@ -244,18 +252,19 @@ export class VehicleExpensesComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de l\'enregistrement';
+        this.error = err.message || 'Erreur lors de l\'enregistrement';
       }
     });
   }
 
   confirmDelete(item: any): void {
+    if (!this.canDeleteExpenses) return;
     this.itemToDelete = item;
     this.deleteModalOpen = true;
   }
 
   deleteItem(): void {
-    if (!this.itemToDelete) return;
+    if (!this.itemToDelete || !this.canDeleteExpenses) return;
     this.apiService.delete<any>(`vehicle-expenses/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
@@ -268,7 +277,7 @@ export class VehicleExpensesComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur';
+        this.error = err.message || 'Erreur';
         this.deleteModalOpen = false;
       }
     });

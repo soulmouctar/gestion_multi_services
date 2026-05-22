@@ -79,7 +79,7 @@ export class StatisticsComponent implements OnInit {
       revenue: this.dashboardService.getRevenueChart('12months')
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ stats, activities, usage, trends, revenue }) => {
-        this.stats = stats.success ? stats.data : null;
+        this.stats = stats.success ? this.normalizeStats(stats.data as any) : null;
         this.recentActivities = activities.success ? (activities.data || []) : [];
         this.moduleUsage = usage.success ? ((usage.data as any) || []) : [];
 
@@ -114,6 +114,29 @@ export class StatisticsComponent implements OnInit {
       created: Number(created[index] || 0),
       canceled: Number(canceled[index] || 0)
     }));
+  }
+
+  normalizeStats(raw: any): DashboardStats | null {
+    if (!raw) return null;
+
+    return {
+      totalTenants: raw.totalTenants ?? raw.total_tenants ?? 0,
+      activeTenants: raw.activeTenants ?? raw.active_tenants ?? 0,
+      totalUsers: raw.totalUsers ?? raw.total_users ?? 0,
+      activeUsers: raw.activeUsers ?? raw.active_users ?? 0,
+      totalSubscriptions: raw.totalSubscriptions ?? raw.total_subscriptions ?? 0,
+      activeSubscriptions: raw.activeSubscriptions ?? raw.active_subscriptions ?? 0,
+      expiredSubscriptions: raw.expiredSubscriptions ?? raw.expired_subscriptions ?? 0,
+      expiringSoonSubscriptions: raw.expiringSoonSubscriptions ?? raw.expiring_soon_subscriptions ?? 0,
+      totalRevenue: raw.totalRevenue ?? raw.total_revenue ?? 0,
+      monthlyRevenue: raw.monthlyRevenue ?? raw.monthly_revenue ?? raw.revenue_this_month ?? 0,
+      totalProducts: raw.totalProducts ?? raw.total_products ?? 0,
+      totalClients: raw.totalClients ?? raw.total_clients ?? 0,
+      totalContainers: raw.totalContainers ?? raw.total_containers ?? 0,
+      totalTaxis: raw.totalTaxis ?? raw.total_taxis ?? 0,
+      totalLocations: raw.totalLocations ?? raw.total_locations ?? 0,
+      totalModules: raw.totalModules ?? raw.total_modules ?? 0,
+    };
   }
 
   fmt(value: number | undefined | null): string {

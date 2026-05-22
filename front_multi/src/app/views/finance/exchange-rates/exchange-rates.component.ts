@@ -126,7 +126,7 @@ export class ExchangeRatesComponent implements OnInit {
           this.showFormModal = false; this.loadExchangeRates(); this.clearMessages();
         }
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur lors de la sauvegarde'; }
+      error: (err) => { this.error = err.message || 'Erreur lors de la sauvegarde'; }
     });
   }
 
@@ -141,7 +141,7 @@ export class ExchangeRatesComponent implements OnInit {
           this.rateToDelete = null; this.loadExchangeRates(); this.clearMessages();
         }
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => { this.error = err.message || 'Erreur'; this.deleteModalOpen = false; }
     });
   }
 

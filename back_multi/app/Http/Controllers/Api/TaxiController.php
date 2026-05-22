@@ -10,7 +10,8 @@ class TaxiController extends BaseController
 {
     public function index(Request $request)
     {
-        $tenantId = auth()->user()->tenant_id;
+        $user     = auth()->user();
+        $tenantId = $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
 
         $query = $tenantId
             ? Taxi::where('tenant_id', $tenantId)
@@ -23,7 +24,12 @@ class TaxiController extends BaseController
 
     public function store(Request $request)
     {
-        $tenantId = auth()->user()->tenant_id;
+        $user     = auth()->user();
+        $tenantId = $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID requis.', [], 422);
+        }
 
         $validator = Validator::make($request->all(), [
             'plate_number' => 'required|string|max:50',

@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -26,6 +27,9 @@ export class ExpenseCategoriesComponent implements OnInit {
 
   categories: any[] = [];
   loading = false;
+  isSuperAdmin = false;
+  tenants: any[] = [];
+  selectedTenantId: number | null = null;
   showModal = false;
   editMode = false;
   submitted = false;
@@ -46,6 +50,7 @@ export class ExpenseCategoriesComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
@@ -57,11 +62,58 @@ export class ExpenseCategoriesComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void { this.loadCategories(); }
+  ngOnInit(): void {
+    this.isSuperAdmin = this.authService.isSuperAdmin;
+    this.selectedTenantId = this.authService.selectedManagedTenantId;
+    if (this.isSuperAdmin) {
+      this.loadTenants();
+      return;
+    }
+
+    this.loadCategories();
+  }
+
+  private loadTenants(): void {
+    this.apiService.get<any>('tenants?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        const data = r.success ? (r.data?.data || r.data || []) : [];
+        this.tenants = data;
+        if (this.tenants.length > 0 && !this.selectedTenantId) {
+          this.selectedTenantId = this.tenants[0].id;
+          this.authService.setSelectedManagedTenantId(this.selectedTenantId);
+        }
+        this.cdr.detectChanges();
+        this.loadCategories();
+      },
+      error: () => this.cdr.detectChanges()
+    });
+  }
+
+  onTenantChange(): void {
+    this.authService.setSelectedManagedTenantId(this.selectedTenantId);
+    this.loadCategories();
+  }
+
+  private tenantQuery(): string {
+    return this.isSuperAdmin && this.selectedTenantId
+      ? `?tenant_id=${this.selectedTenantId}`
+      : '';
+  }
+
+  private ensureTenantSelection(): boolean {
+    if (this.isSuperAdmin && !this.selectedTenantId) {
+      Swal.fire({ icon: 'warning', title: 'Sélectionnez un tenant', text: 'Choisissez d\'abord l\'organisation à gérer.' });
+      return false;
+    }
+
+    return true;
+  }
 
   loadCategories(): void {
+    if (!this.ensureTenantSelection()) return;
+
     this.loading = true;
-    this.apiService.get<any>('personal-expense-categories').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.get<any>(`personal-expense-categories${this.tenantQuery()}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.categories = r.success ? (Array.isArray(r.data) ? r.data : (r.data?.data || [])) : [];
         this.loading = false;
@@ -72,6 +124,8 @@ export class ExpenseCategoriesComponent implements OnInit {
   }
 
   openNew(): void {
+    if (!this.ensureTenantSelection()) return;
+
     this.editMode = false;
     this.submitted = false;
     this.selectedCategory = null;
@@ -89,11 +143,16 @@ export class ExpenseCategoriesComponent implements OnInit {
 
   save(): void {
     this.submitted = true;
-    if (this.form.invalid) return;
+    if (this.form.invalid || !this.ensureTenantSelection()) return;
+
+    const payload: any = { ...this.form.value };
+    if (this.isSuperAdmin && this.selectedTenantId) {
+      payload.tenant_id = this.selectedTenantId;
+    }
 
     const obs = this.editMode && this.selectedCategory
-      ? this.apiService.put<any>(`personal-expense-categories/${this.selectedCategory.id}`, this.form.value)
-      : this.apiService.post<any>('personal-expense-categories', this.form.value);
+      ? this.apiService.put<any>(`personal-expense-categories/${this.selectedCategory.id}`, payload)
+      : this.apiService.post<any>('personal-expense-categories', payload);
 
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
@@ -103,7 +162,7 @@ export class ExpenseCategoriesComponent implements OnInit {
           this.loadCategories();
         }
       },
-      error: (e) => Swal.fire({ icon: 'error', title: 'Erreur', text: e?.error?.message || 'Erreur' })
+      error: (e) => Swal.fire({ icon: 'error', title: 'Erreur', text: e?.message || 'Erreur' })
     });
   }
 
@@ -116,7 +175,8 @@ export class ExpenseCategoriesComponent implements OnInit {
       confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler'
     }).then(r => {
       if (!r.isConfirmed) return;
-      this.apiService.delete<any>(`personal-expense-categories/${cat.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      if (!this.ensureTenantSelection()) return;
+      this.apiService.delete<any>(`personal-expense-categories/${cat.id}${this.tenantQuery()}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           Swal.fire({ icon: 'success', timer: 1500, showConfirmButton: false, title: 'Supprimé' });
           this.loadCategories();

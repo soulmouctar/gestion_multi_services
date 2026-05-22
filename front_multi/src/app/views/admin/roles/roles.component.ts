@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { CardModule, ButtonModule, FormModule, AlertModule, GridModule, ModalModule, TableModule, BadgeModule, ButtonGroupModule } from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
 import { RoleService, Role, Permission } from '../../../core/services/role.service';
 import Swal from 'sweetalert2';
 import { AlertService } from '../../../core/services/alert.service';
@@ -21,7 +22,8 @@ import { AlertService } from '../../../core/services/alert.service';
     ModalModule,
     TableModule,
     BadgeModule,
-    ButtonGroupModule
+    ButtonGroupModule,
+    IconDirective
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './roles.component.html',

@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-unit-configurations',
@@ -34,7 +35,7 @@ export class UnitConfigurationsComponent implements OnInit {
   deleteModalOpen = false; itemToDelete: any = null;
   Math = Math;
 
-  constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
+  constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.configForm = this.fb.group({
       name: ['', Validators.required],
       bedrooms: [null],
@@ -45,6 +46,10 @@ export class UnitConfigurationsComponent implements OnInit {
   }
 
   ngOnInit(): void { this.loadData(); }
+
+  get canCreateConfigurations(): boolean { return this.authService.hasModulePermission('RENTAL', 'create'); }
+  get canEditConfigurations(): boolean { return this.authService.hasModulePermission('RENTAL', 'edit'); }
+  get canDeleteConfigurations(): boolean { return this.authService.hasModulePermission('RENTAL', 'delete'); }
 
   loadData(): void {
     this.loading = true; this.error = null;
@@ -62,27 +67,28 @@ export class UnitConfigurationsComponent implements OnInit {
   }
 
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
-  openCreateModal(): void { this.editMode = false; this.submitted = false; this.configForm.reset({ name: '', bedrooms: null, living_rooms: null, bathrooms: null, has_terrace: false }); this.showFormModal = true; }
-  openEditModal(item: any): void { this.editMode = true; this.submitted = false; this.selectedItem = item; this.configForm.patchValue(item); this.showFormModal = true; }
+  openCreateModal(): void { if (!this.canCreateConfigurations) return; this.editMode = false; this.submitted = false; this.configForm.reset({ name: '', bedrooms: null, living_rooms: null, bathrooms: null, has_terrace: false }); this.showFormModal = true; }
+  openEditModal(item: any): void { if (!this.canEditConfigurations) return; this.editMode = true; this.submitted = false; this.selectedItem = item; this.configForm.patchValue(item); this.showFormModal = true; }
 
   save(): void {
     this.submitted = true; if (this.configForm.invalid) return;
+    if (this.editMode ? !this.canEditConfigurations : !this.canCreateConfigurations) return;
     const data = this.configForm.value;
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`unit-configurations/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('unit-configurations', data);
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Configuration mise à jour' : 'Configuration créée'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; }
+      error: (err) => { this.error = err.message || 'Erreur'; }
     });
   }
 
-  confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
+  confirmDelete(item: any): void { if (!this.canDeleteConfigurations) return; this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
-    if (!this.itemToDelete) return;
+    if (!this.itemToDelete || !this.canDeleteConfigurations) return;
     this.apiService.delete<any>(`unit-configurations/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Configuration supprimée'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => { this.error = err.message || 'Erreur'; this.deleteModalOpen = false; }
     });
   }
 

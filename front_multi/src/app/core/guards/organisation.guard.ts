@@ -25,6 +25,11 @@ export class OrganisationGuard implements CanActivate {
       return false;
     }
 
+    const requiredModule = route.data['module'] as string | undefined;
+    if (requiredModule && this.authService.hasModuleAccess(requiredModule)) {
+      return true;
+    }
+
     // Vérifier si l'utilisateur a un rôle autorisé pour accéder aux sections organisation
     const allowedRoles = ['SUPER_ADMIN', 'ADMIN'];
     const hasValidRole = user.roles?.some((role: any) => 

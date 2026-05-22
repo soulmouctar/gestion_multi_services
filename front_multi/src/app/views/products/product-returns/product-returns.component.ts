@@ -147,7 +147,7 @@ export class ProductReturnsComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.alertService.showError('Erreur', err?.error?.message || 'Erreur lors de l’enregistrement du retour');
+        this.alertService.showError('Erreur', err.message || 'Erreur lors de l’enregistrement du retour');
       }
     });
   }

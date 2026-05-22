@@ -10,16 +10,42 @@ use Illuminate\Support\Facades\Validator;
 
 class PersonalExpenseController extends BaseController
 {
-    private function tenantId(Request $request): int
+    private function tenantId(Request $request): ?int
     {
-        return auth()->user()?->tenant_id ?? (int) $request->get('tenant_id', 1);
+        $user = auth()->user();
+        if (!$user) {
+            return null;
+        }
+
+        if ($user->hasRole('SUPER_ADMIN')) {
+            return $request->input('tenant_id')
+                ?? $request->query('tenant_id')
+                ?? $request->get('current_tenant_id');
+        }
+
+        return $user->tenant_id ?? $request->get('current_tenant_id');
+    }
+
+    private function requireTenantId(Request $request): ?int
+    {
+        $tenantId = $this->tenantId($request);
+
+        if (!$tenantId) {
+            abort(response()->json([
+                'success' => false,
+                'message' => 'tenant_id requis. Sélectionnez un tenant avant d\'effectuer cette action.',
+                'data'    => [],
+            ], 422));
+        }
+
+        return $tenantId;
     }
 
     // ==================== CATÉGORIES ====================
 
     public function indexCategories(Request $request)
     {
-        $tenantId   = $this->tenantId($request);
+        $tenantId   = $this->requireTenantId($request);
         $categories = PersonalExpenseCategory::where('tenant_id', $tenantId)
             ->withCount('expenses')
             ->orderBy('name')
@@ -41,7 +67,7 @@ class PersonalExpenseController extends BaseController
         }
 
         $category = PersonalExpenseCategory::create([
-            'tenant_id'   => $this->tenantId($request),
+            'tenant_id'   => $this->requireTenantId($request),
             'name'        => $request->name,
             'color'       => $request->color ?? '#6c757d',
             'icon'        => $request->icon,
@@ -54,7 +80,7 @@ class PersonalExpenseController extends BaseController
 
     public function updateCategory(Request $request, $id)
     {
-        $tenantId = $this->tenantId($request);
+        $tenantId = $this->requireTenantId($request);
         $category = PersonalExpenseCategory::where('tenant_id', $tenantId)->find($id);
         if (!$category) return $this->sendError('Category not found', [], 404);
 
@@ -75,7 +101,7 @@ class PersonalExpenseController extends BaseController
 
     public function destroyCategory(Request $request, $id)
     {
-        $tenantId = $this->tenantId($request);
+        $tenantId = $this->requireTenantId($request);
         $category = PersonalExpenseCategory::where('tenant_id', $tenantId)->find($id);
         if (!$category) return $this->sendError('Category not found', [], 404);
 
@@ -90,7 +116,7 @@ class PersonalExpenseController extends BaseController
 
     public function index(Request $request)
     {
-        $tenantId = $this->tenantId($request);
+        $tenantId = $this->requireTenantId($request);
         $query    = PersonalExpense::with('category')
             ->where('tenant_id', $tenantId);
 
@@ -110,6 +136,8 @@ class PersonalExpenseController extends BaseController
 
     public function store(Request $request)
     {
+        $tenantId = $this->requireTenantId($request);
+
         $validator = Validator::make($request->all(), [
             'title'             => 'required|string|max:200',
             'amount'            => 'required|numeric|min:0',
@@ -128,7 +156,7 @@ class PersonalExpenseController extends BaseController
         }
 
         $data                 = $request->all();
-        $data['tenant_id']    = $this->tenantId($request);
+        $data['tenant_id']    = $tenantId;
         $data['user_id']      = auth()->id();
         $data['status']       = $data['status'] ?? 'PAID';
         $data['payment_method'] = $data['payment_method'] ?? 'ESPECES';
@@ -139,7 +167,7 @@ class PersonalExpenseController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $tenantId = $this->tenantId($request);
+        $tenantId = $this->requireTenantId($request);
         $expense  = PersonalExpense::where('tenant_id', $tenantId)->find($id);
         if (!$expense) return $this->sendError('Expense not found', [], 404);
 
@@ -166,7 +194,7 @@ class PersonalExpenseController extends BaseController
 
     public function destroy(Request $request, $id)
     {
-        $tenantId = $this->tenantId($request);
+        $tenantId = $this->requireTenantId($request);
         $expense  = PersonalExpense::where('tenant_id', $tenantId)->find($id);
         if (!$expense) return $this->sendError('Expense not found', [], 404);
 
@@ -179,7 +207,7 @@ class PersonalExpenseController extends BaseController
     public function statistics(Request $request)
     {
         try {
-            $tenantId   = $this->tenantId($request);
+            $tenantId   = $this->requireTenantId($request);
             $dateFrom   = $request->get('date_from', now()->startOfMonth()->format('Y-m-d'));
             $dateTo     = $request->get('date_to', now()->format('Y-m-d'));
             $categoryId = $request->get('category_id');

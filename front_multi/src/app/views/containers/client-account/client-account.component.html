@@ -143,6 +143,7 @@
               <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Prix vente</th>
               <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Payé</th>
               <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Reste</th>
+              <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Conversion GNF</th>
               <th class="text-center" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Statut</th>
               <th style="min-width:120px;font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Progression</th>
             </tr>
@@ -160,6 +161,9 @@
               <td class="text-end fw-semibold" style="font-size:0.85rem"
                 [style.color]="(sale.remaining_amount || 0) > 0 ? '#EF4444' : '#10B981'">
                 {{ formatAmountWithConversion(sale.remaining_amount || 0, sale.currency || 'GNF') }}
+              </td>
+              <td style="font-size:0.78rem;color:#64748b">
+                {{ getConversionLabel(sale.sale_price, sale.currency || 'GNF', sale.sale_price_gnf, sale.exchange_rate) }}
               </td>
               <td class="text-center">
                 <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem"
@@ -179,7 +183,7 @@
               </td>
             </tr>
             <tr *ngIf="sales.length === 0">
-              <td colspan="9" class="text-center py-4" style="color:#94a3b8;font-size:0.85rem">Aucun achat enregistré</td>
+              <td colspan="10" class="text-center py-4" style="color:#94a3b8;font-size:0.85rem">Aucun achat enregistré</td>
             </tr>
           </tbody>
         </table>
@@ -208,6 +212,7 @@
                   <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Date</th>
                   <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Vente</th>
                   <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Montant</th>
+                  <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Conversion GNF</th>
                   <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Méthode</th>
                   <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Réf.</th>
                 </tr>
@@ -219,6 +224,9 @@
                   <td class="text-end fw-semibold" style="font-size:0.85rem;color:#10B981">
                     {{ formatAmountWithConversion(payment.amount, payment.currency || 'GNF') }}
                   </td>
+                  <td style="font-size:0.78rem;color:#64748b">
+                    {{ getConversionLabel(payment.amount, payment.currency || 'GNF', payment.amount_gnf, payment.exchange_rate) }}
+                  </td>
                   <td>
                     <span class="px-2 py-1 rounded-pill" style="font-size:0.72rem;background:#EFF6FF;color:#3B82F6;font-weight:600">
                       {{ payment.payment_method }}
@@ -227,7 +235,7 @@
                   <td style="font-size:0.78rem;color:#94a3b8">{{ payment.reference || '—' }}</td>
                 </tr>
                 <tr *ngIf="payments.length === 0">
-                  <td colspan="5" class="text-center py-3" style="color:#94a3b8;font-size:0.85rem">Aucun versement enregistré</td>
+                  <td colspan="6" class="text-center py-3" style="color:#94a3b8;font-size:0.85rem">Aucun versement enregistré</td>
                 </tr>
               </tbody>
             </table>

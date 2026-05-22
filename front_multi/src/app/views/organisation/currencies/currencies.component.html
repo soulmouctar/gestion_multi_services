@@ -6,18 +6,51 @@
           <strong><svg cIcon name="cilDollar" class="me-2"></svg>Gestion des Devises</strong>
           <small class="text-muted ms-2">Configurez les devises utilisées dans votre organisation</small>
         </div>
-        <button cButton color="primary" (click)="openModal()">
+        <button cButton color="primary" (click)="openModal()" [disabled]="tenantSelectionRequired">
           <svg cIcon name="cilPlus" class="me-1"></svg>
           Ajouter une devise
         </button>
       </c-card-header>
       <c-card-body>
+        <div *ngIf="isSuperAdmin" class="row g-3 mb-4">
+          <div class="col-md-7">
+            <label class="form-label fw-semibold">Organisation</label>
+            <select
+              cFormSelect
+              [(ngModel)]="selectedTenantId"
+              (change)="onTenantFilterChange()"
+              [disabled]="tenantsLoading"
+            >
+              <option [ngValue]="null">Sélectionnez une organisation</option>
+              <option *ngFor="let tenant of managedTenants; trackBy: trackById" [ngValue]="tenant.id">
+                {{ tenant.name }}
+              </option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">Statut des devises</label>
+            <select
+              cFormSelect
+              [(ngModel)]="selectedStatusFilter"
+              (change)="onStatusFilterChange()"
+            >
+              <option value="all">Toutes les devises</option>
+              <option value="active">Devises actives</option>
+              <option value="inactive">Devises inactives</option>
+            </select>
+          </div>
+        </div>
+
+        <c-alert *ngIf="tenantSelectionRequired" color="info" class="mb-4">
+          Sélectionnez une organisation dans l’en-tête pour afficher et gérer ses devises.
+        </c-alert>
+
         <div *ngIf="loading" class="text-center py-4">
           <c-spinner></c-spinner>
           <p class="text-muted mt-2">Chargement des devises...</p>
         </div>
 
-        <div *ngIf="!loading && currencies.length === 0" class="text-center py-5">
+        <div *ngIf="!tenantSelectionRequired && !loading && currencies.length === 0" class="text-center py-5">
           <svg cIcon name="cilDollar" size="3xl" class="text-muted mb-3"></svg>
           <h5 class="text-muted">Aucune devise configurée</h5>
           <p class="text-muted">Ajoutez votre première devise pour commencer</p>

@@ -12,13 +12,19 @@ class Container extends Model
     protected $fillable = [
         'tenant_id',
         'container_number',
-        'capacity_min',
-        'capacity_max',
-        'interest_rate',
+        'shipping_number',
+        'bl_number',
+        'capacity',
+        'delivery_status',
+        'entry_port',
+        'entry_date',
+        'expected_delivery_date',
     ];
 
     protected $casts = [
-        'interest_rate' => 'decimal:2',
+        'capacity' => 'integer',
+        'entry_date' => 'date',
+        'expected_delivery_date' => 'date',
     ];
 
 

@@ -67,7 +67,7 @@ export interface PaymentReceipt {
     total_amount: number; paid_amount: number;
     remaining_balance: number; status: string;
   } | null;
-  organisation: { name: string };
+  organisation: { name: string; address?: string; phone?: string };
   generated_at: string;
 }
 

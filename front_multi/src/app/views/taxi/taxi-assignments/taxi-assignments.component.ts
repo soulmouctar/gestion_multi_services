@@ -155,7 +155,7 @@ export class TaxiAssignmentsComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = err?.error?.message || 'Erreur lors de l\'enregistrement';
+        this.error = err.message || 'Erreur lors de l\'enregistrement';
       }
     });
   }
@@ -171,7 +171,7 @@ export class TaxiAssignmentsComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.error = err?.error?.message || 'Erreur lors de la suppression';
+          this.error = err.message || 'Erreur lors de la suppression';
         }
       });
     }

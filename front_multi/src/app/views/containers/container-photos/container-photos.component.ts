@@ -235,7 +235,7 @@ export class ContainerPhotosComponent implements OnInit {
           this.showFormModal = false; this.loadData(); this.clearMessages();
         }
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur lors de la sauvegarde'; }
+      error: (err) => { this.error = err.message || 'Erreur lors de la sauvegarde'; }
     });
   }
 
@@ -250,7 +250,7 @@ export class ContainerPhotosComponent implements OnInit {
           this.itemToDelete = null; this.loadData(); this.clearMessages(); 
         } 
       },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => { this.error = err.message || 'Erreur'; this.deleteModalOpen = false; }
     });
   }
 

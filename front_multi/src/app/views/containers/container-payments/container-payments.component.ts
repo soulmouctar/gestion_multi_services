@@ -370,7 +370,7 @@ export class ContainerPaymentsComponent implements OnInit {
         }
       },
       error: (err) => {
-        Swal.fire({ title: 'Erreur', text: err?.error?.message || 'Erreur lors de la sauvegarde', icon: 'error' });
+        Swal.fire({ title: 'Erreur', text: err.message || 'Erreur lors de la sauvegarde', icon: 'error' });
       }
     });
   }
@@ -439,7 +439,7 @@ export class ContainerPaymentsComponent implements OnInit {
         }
       },
       error: (err) => {
-        Swal.fire({ title: 'Erreur', text: err?.error?.message || 'Erreur lors de la vente', icon: 'error' });
+        Swal.fire({ title: 'Erreur', text: err.message || 'Erreur lors de la vente', icon: 'error' });
       }
     });
   }
@@ -478,7 +478,7 @@ export class ContainerPaymentsComponent implements OnInit {
         }
       },
       error: (err) => {
-        Swal.fire({ title: 'Erreur', text: err?.error?.message || 'Erreur lors du versement', icon: 'error' });
+        Swal.fire({ title: 'Erreur', text: err.message || 'Erreur lors du versement', icon: 'error' });
       }
     });
   }
@@ -515,7 +515,7 @@ export class ContainerPaymentsComponent implements OnInit {
         }
       },
       error: (err) => {
-        Swal.fire({ title: 'Erreur', text: err?.error?.message || 'Erreur lors de l\'enregistrement', icon: 'error' });
+        Swal.fire({ title: 'Erreur', text: err.message || 'Erreur lors de l\'enregistrement', icon: 'error' });
       }
     });
   }

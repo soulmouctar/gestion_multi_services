@@ -9,13 +9,28 @@ export const routes: Routes = [
   {
     path: 'list',
     loadComponent: () => import('./client-list/client-list.component').then(m => m.ClientListComponent),
-    title: 'Liste des Clients'
+    title: 'Liste des Clients',
+    data: {
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_clients_general'
+    }
+  },
+  {
+    path: 'statistics',
+    loadComponent: () => import('./client-statistics/client-statistics.component').then(m => m.ClientStatisticsComponent),
+    title: 'Statistiques Clients',
+    data: {
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_clients_general'
+    }
   },
   {
     path: 'pneus',
     loadComponent: () => import('./client-list/client-list.component').then(m => m.ClientListComponent),
     title: 'Clients Pneus',
     data: {
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_clients_pneus',
       clientType: 'PNEUS',
       pageTitle: 'Clients Pneus',
       pageDescription: 'client(s) pneus enregistré(s)',
@@ -27,6 +42,8 @@ export const routes: Routes = [
     loadComponent: () => import('./client-list/client-list.component').then(m => m.ClientListComponent),
     title: 'Clients Textile',
     data: {
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_clients_textile',
       clientType: 'TEXTILE',
       pageTitle: 'Clients Textile',
       pageDescription: 'client(s) textile enregistré(s)',
@@ -38,6 +55,8 @@ export const routes: Routes = [
     loadComponent: () => import('./client-list/client-list.component').then(m => m.ClientListComponent),
     title: 'Clients Cosmétiques',
     data: {
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_clients_cosmetiques',
       clientType: 'COSMETIQUES',
       pageTitle: 'Clients Cosmétiques',
       pageDescription: 'client(s) cosmétiques enregistré(s)',
@@ -49,6 +68,8 @@ export const routes: Routes = [
     loadComponent: () => import('./client-list/client-list.component').then(m => m.ClientListComponent),
     title: 'Clients Conteneurs Pagne',
     data: {
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_clients_conteneurs_pagne',
       clientType: 'CONTAINER_PAGNE',
       pageTitle: 'Clients Conteneurs Pagne',
       pageDescription: 'client(s) conteneurs pagne enregistré(s)',

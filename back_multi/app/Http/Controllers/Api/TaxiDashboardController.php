@@ -7,9 +7,10 @@ use Illuminate\Support\Facades\DB;
 
 class TaxiDashboardController extends BaseController
 {
-    private function tid(): int
+    private function tid(): ?int
     {
-        return (int) (auth()->user()?->tenant_id ?? 1);
+        $user = auth()->user();
+        return $user->hasRole('SUPER_ADMIN') ? request()->get('tenant_id') : $user->tenant_id;
     }
 
     public function dashboard(Request $request)

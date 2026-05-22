@@ -6,15 +6,20 @@ use App\Models\ContainerPhoto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 
 class ContainerPhotoController extends BaseController
 {
     public function index(Request $request)
     {
-        $query = ContainerPhoto::with('container');
+        $query = ContainerPhoto::with($this->photoRelations());
 
         if ($request->has('container_id')) {
             $query->where('container_id', $request->container_id);
+        }
+
+        if ($this->hasArrivalPhotoLinkColumn() && $request->has('arrival_id')) {
+            $query->where('container_arrival_id', $request->arrival_id);
         }
 
         if ($request->has('tenant_id')) {
@@ -34,6 +39,10 @@ class ContainerPhotoController extends BaseController
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        if ($this->hasArrivalPhotoLinkColumn()) {
+            $validator->addRules(['container_arrival_id' => 'nullable|exists:container_arrivals,id']);
+        }
+
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
@@ -45,17 +54,22 @@ class ContainerPhotoController extends BaseController
             $imagePath = $image->store('uploads/container/products', 'public');
         }
 
-        $photo = ContainerPhoto::create([
+        $payload = [
             'container_id' => $request->container_id,
             'image_path' => $imagePath,
-        ]);
+        ];
+        if ($this->hasArrivalPhotoLinkColumn()) {
+            $payload['container_arrival_id'] = $request->container_arrival_id;
+        }
 
-        return $this->sendResponse($photo->load('container'), 'Container photo created successfully', 201);
+        $photo = ContainerPhoto::create($payload);
+
+        return $this->sendResponse($photo->load($this->photoRelations()), 'Container photo created successfully', 201);
     }
 
     public function show($id)
     {
-        $photo = ContainerPhoto::with('container')->find($id);
+        $photo = ContainerPhoto::with($this->photoRelations())->find($id);
 
         if (!$photo) {
             return $this->sendError('Container photo not found');
@@ -77,6 +91,10 @@ class ContainerPhotoController extends BaseController
             'image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        if ($this->hasArrivalPhotoLinkColumn()) {
+            $validator->addRules(['container_arrival_id' => 'nullable|exists:container_arrivals,id']);
+        }
+
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
@@ -97,9 +115,13 @@ class ContainerPhotoController extends BaseController
             $photo->container_id = $request->container_id;
         }
 
+        if ($this->hasArrivalPhotoLinkColumn() && $request->has('container_arrival_id')) {
+            $photo->container_arrival_id = $request->container_arrival_id;
+        }
+
         $photo->save();
 
-        return $this->sendResponse($photo->load('container'), 'Container photo updated successfully');
+        return $this->sendResponse($photo->load($this->photoRelations()), 'Container photo updated successfully');
     }
 
     public function destroy($id)
@@ -122,10 +144,14 @@ class ContainerPhotoController extends BaseController
 
     public function publicIndex(Request $request)
     {
-        $query = ContainerPhoto::with('container');
+        $query = ContainerPhoto::with($this->photoRelations());
 
         if ($request->has('container_id')) {
             $query->where('container_id', $request->container_id);
+        }
+
+        if ($this->hasArrivalPhotoLinkColumn() && $request->has('arrival_id')) {
+            $query->where('container_arrival_id', $request->arrival_id);
         }
 
         // Use fixed tenant_id for testing
@@ -149,6 +175,10 @@ class ContainerPhotoController extends BaseController
             'description' => 'nullable|string|max:500',
         ]);
 
+        if ($this->hasArrivalPhotoLinkColumn()) {
+            $validator->addRules(['container_arrival_id' => 'nullable|exists:container_arrivals,id']);
+        }
+
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
@@ -160,13 +190,33 @@ class ContainerPhotoController extends BaseController
             $imagePath = $image->store('uploads/container/products', 'public');
         }
 
-        $photo = ContainerPhoto::create([
+        $payload = [
             'container_id' => $request->container_id,
             'image_path' => $imagePath,
             'product_id' => $request->product_id,
             'description' => $request->description,
-        ]);
+        ];
+        if ($this->hasArrivalPhotoLinkColumn()) {
+            $payload['container_arrival_id'] = $request->container_arrival_id;
+        }
 
-        return $this->sendResponse($photo->load('container', 'product'), 'Container photo created successfully', 201);
+        $photo = ContainerPhoto::create($payload);
+
+        return $this->sendResponse($photo->load($this->photoRelations()), 'Container photo created successfully', 201);
+    }
+
+    private function hasArrivalPhotoLinkColumn(): bool
+    {
+        return Schema::hasColumn('container_photos', 'container_arrival_id');
+    }
+
+    private function photoRelations(): array
+    {
+        $relations = ['container', 'product'];
+        if ($this->hasArrivalPhotoLinkColumn()) {
+            $relations[] = 'arrival';
+        }
+
+        return $relations;
     }
 }

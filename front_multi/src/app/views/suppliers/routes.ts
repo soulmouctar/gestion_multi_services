@@ -9,6 +9,10 @@ export const routes: Routes = [
   {
     path: 'list',
     loadComponent: () => import('./suppliers-list/suppliers-list.component').then(m => m.SuppliersListComponent),
-    title: 'Liste des Fournisseurs'
+    title: 'Liste des Fournisseurs',
+    data: {
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_suppliers'
+    }
   }
 ];

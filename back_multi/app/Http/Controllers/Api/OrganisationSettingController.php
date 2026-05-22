@@ -10,17 +10,10 @@ use Illuminate\Support\Facades\Auth;
 
 class OrganisationSettingController extends BaseController
 {
-    public function show($tenantId = null)
+    public function show(Request $request, $tenantId = null)
     {
         try {
-            // Si aucun tenantId n'est fourni, utiliser le tenant de l'utilisateur connecté
-            if (!$tenantId) {
-                $user = Auth::user();
-                if (!$user) {
-                    return $this->sendError('User not authenticated', [], 401);
-                }
-                $tenantId = $user->tenant_id;
-            }
+            $tenantId = $this->resolveTenantId($request, $tenantId);
 
             if (!$tenantId) {
                 return $this->sendError('Tenant ID is required', [], 400);
@@ -62,10 +55,10 @@ class OrganisationSettingController extends BaseController
 
     public function update(Request $request, $tenantId = null)
     {
-        // Si aucun tenantId n'est fourni, utiliser le tenant de l'utilisateur connecté
+        $tenantId = $this->resolveTenantId($request, $tenantId);
+
         if (!$tenantId) {
-            $user = Auth::user();
-            $tenantId = $user->tenant_id;
+            return $this->sendError('Tenant ID is required', [], 400);
         }
 
         $settings = OrganisationSetting::where('tenant_id', $tenantId)->first();
@@ -112,12 +105,12 @@ class OrganisationSettingController extends BaseController
         return $this->sendResponse($settings, 'Organisation settings updated successfully');
     }
 
-    public function reset($tenantId = null)
+    public function reset(Request $request, $tenantId = null)
     {
-        // Si aucun tenantId n'est fourni, utiliser le tenant de l'utilisateur connecté
+        $tenantId = $this->resolveTenantId($request, $tenantId);
+
         if (!$tenantId) {
-            $user = Auth::user();
-            $tenantId = $user->tenant_id;
+            return $this->sendError('Tenant ID is required', [], 400);
         }
 
         $settings = OrganisationSetting::where('tenant_id', $tenantId)->first();
@@ -181,12 +174,13 @@ class OrganisationSettingController extends BaseController
     /**
      * Get next invoice number preview
      */
-    public function getNextInvoiceNumber($tenantId = null)
+    public function getNextInvoiceNumber(Request $request, $tenantId = null)
     {
         try {
+            $tenantId = $this->resolveTenantId($request, $tenantId);
+
             if (!$tenantId) {
-                $user = Auth::user();
-                $tenantId = $user->tenant_id;
+                return $this->sendError('Tenant ID is required', [], 400);
             }
 
             $settings = OrganisationSetting::where('tenant_id', $tenantId)->first();
@@ -208,12 +202,13 @@ class OrganisationSettingController extends BaseController
     /**
      * Get next quote number preview
      */
-    public function getNextQuoteNumber($tenantId = null)
+    public function getNextQuoteNumber(Request $request, $tenantId = null)
     {
         try {
+            $tenantId = $this->resolveTenantId($request, $tenantId);
+
             if (!$tenantId) {
-                $user = Auth::user();
-                $tenantId = $user->tenant_id;
+                return $this->sendError('Tenant ID is required', [], 400);
             }
 
             $settings = OrganisationSetting::where('tenant_id', $tenantId)->first();
@@ -238,9 +233,10 @@ class OrganisationSettingController extends BaseController
     public function testNotifications(Request $request, $tenantId = null)
     {
         try {
+            $tenantId = $this->resolveTenantId($request, $tenantId);
+
             if (!$tenantId) {
-                $user = Auth::user();
-                $tenantId = $user->tenant_id;
+                return $this->sendError('Tenant ID is required', [], 400);
             }
 
             $validator = Validator::make($request->all(), [
@@ -294,5 +290,24 @@ class OrganisationSettingController extends BaseController
             \Log::error('Erreur lors du test de notification: ' . $e->getMessage());
             return $this->sendError('Erreur lors du test de notification', [], 500);
         }
+    }
+
+    private function resolveTenantId(Request $request, $tenantId = null): ?int
+    {
+        if ($tenantId) {
+            return (int) $tenantId;
+        }
+
+        $requestedTenantId = $request->input('tenant_id');
+        if ($requestedTenantId) {
+            return (int) $requestedTenantId;
+        }
+
+        $user = Auth::user();
+        if (!$user) {
+            return null;
+        }
+
+        return $user->tenant_id ? (int) $user->tenant_id : null;
     }
 }

@@ -216,7 +216,24 @@ export class UserService {
       {
         module_code: 'CLIENTS_SUPPLIERS',
         module_name: 'Clients & Fournisseurs',
-        permissions: ['view', 'create', 'edit', 'delete'],
+        permissions: [
+          'view',
+          'create',
+          'edit',
+          'delete',
+          'view_clients_general',
+          'view_clients_pneus',
+          'view_clients_textile',
+          'view_clients_cosmetiques',
+          'view_clients_conteneurs_pagne',
+          'view_suppliers'
+        ],
+        is_active: false
+      },
+      {
+        module_code: 'USERS',
+        module_name: 'Utilisateurs',
+        permissions: ['view', 'create', 'edit', 'delete', 'view_users', 'manage_permissions', 'change_password', 'toggle_status'],
         is_active: false
       },
       {
@@ -290,7 +307,17 @@ export class UserService {
       'track': 'Suivre',
       'manage_contracts': 'Gérer Contrats',
       'assign_drivers': 'Assigner Chauffeurs',
-      'export': 'Exporter'
+      'export': 'Exporter',
+      'view_clients_general': 'Clients généraux',
+      'view_clients_pneus': 'Clients pneus',
+      'view_clients_textile': 'Clients textile',
+      'view_clients_cosmetiques': 'Clients cosmétiques',
+      'view_clients_conteneurs_pagne': 'Clients conteneurs pagne',
+      'view_suppliers': 'Fournisseurs',
+      'view_users': 'Voir utilisateurs',
+      'manage_permissions': 'Permissions',
+      'change_password': 'Mot de passe',
+      'toggle_status': 'Statut'
     };
     return permissionNames[permission] || permission;
   }

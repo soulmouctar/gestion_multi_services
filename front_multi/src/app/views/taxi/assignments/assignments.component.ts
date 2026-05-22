@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-taxi-assignments',
@@ -36,7 +37,7 @@ export class TaxiAssignmentsComponent implements OnInit {
   deleteModalOpen = false; itemToDelete: any = null;
   Math = Math;
 
-  constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
+  constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.assignForm = this.fb.group({
       taxi_id: [null, Validators.required],
       driver_id: [null, Validators.required],
@@ -46,6 +47,10 @@ export class TaxiAssignmentsComponent implements OnInit {
   }
 
   ngOnInit(): void { this.loadData(); this.loadTaxis(); this.loadDrivers(); }
+
+  get canCreateAssignments(): boolean { return this.authService.hasModulePermission('TAXI', 'create'); }
+  get canEditAssignments(): boolean { return this.authService.hasModulePermission('TAXI', 'edit'); }
+  get canDeleteAssignments(): boolean { return this.authService.hasModulePermission('TAXI', 'delete'); }
 
   loadTaxis(): void {
     this.apiService.get<any>('taxis?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -75,8 +80,9 @@ export class TaxiAssignmentsComponent implements OnInit {
   }
 
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
-  openCreateModal(): void { this.editMode = false; this.submitted = false; this.assignForm.reset({ taxi_id: null, driver_id: null, start_date: '', end_date: '' }); this.showFormModal = true; }
+  openCreateModal(): void { if (!this.canCreateAssignments) return; this.editMode = false; this.submitted = false; this.assignForm.reset({ taxi_id: null, driver_id: null, start_date: '', end_date: '' }); this.showFormModal = true; }
   openEditModal(item: any): void {
+    if (!this.canEditAssignments) return;
     this.editMode = true; this.submitted = false; this.selectedItem = item;
     this.assignForm.patchValue({
       taxi_id: item.taxi_id, driver_id: item.driver_id,
@@ -88,22 +94,23 @@ export class TaxiAssignmentsComponent implements OnInit {
 
   save(): void {
     this.submitted = true; if (this.assignForm.invalid) return;
+    if (this.editMode ? !this.canEditAssignments : !this.canCreateAssignments) return;
     const data = this.assignForm.value;
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`taxi-assignments/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('taxi-assignments', data);
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = this.editMode ? 'Affectation mise à jour' : 'Affectation créée'; this.showFormModal = false; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; }
+      error: (err) => { this.error = err.message || 'Erreur'; }
     });
   }
 
-  confirmDelete(item: any): void { this.itemToDelete = item; this.deleteModalOpen = true; }
+  confirmDelete(item: any): void { if (!this.canDeleteAssignments) return; this.itemToDelete = item; this.deleteModalOpen = true; }
   deleteItem(): void {
-    if (!this.itemToDelete) return;
+    if (!this.itemToDelete || !this.canDeleteAssignments) return;
     this.apiService.delete<any>(`taxi-assignments/${this.itemToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => { if (r.success) { this.successMessage = 'Affectation supprimée'; this.deleteModalOpen = false; this.itemToDelete = null; this.loadData(); this.clearMessages(); } },
-      error: (err) => { this.error = err?.error?.message || 'Erreur'; this.deleteModalOpen = false; }
+      error: (err) => { this.error = err.message || 'Erreur'; this.deleteModalOpen = false; }
     });
   }
 

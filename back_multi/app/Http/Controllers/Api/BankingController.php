@@ -11,9 +11,27 @@ use Illuminate\Support\Facades\Validator;
 
 class BankingController extends BaseController
 {
-    private function tenantId(): int
+    private function tenantId(): ?int
     {
-        return (int) (auth()->user()?->tenant_id ?? 1);
+        $user = auth()->user();
+        if ($user->hasRole('SUPER_ADMIN')) {
+            // Accept tenant_id from query string OR request body
+            return request()->input('tenant_id') ?? request()->query('tenant_id');
+        }
+        return $user->tenant_id;
+    }
+
+    private function requireTenantId(): ?int
+    {
+        $id = $this->tenantId();
+        if (!$id) {
+            abort(response()->json([
+                'success' => false,
+                'message' => 'tenant_id requis. Sélectionnez un tenant avant d\'effectuer cette action.',
+                'data'    => []
+            ], 422));
+        }
+        return $id;
     }
 
     // ==================== COMPTES ====================
@@ -40,12 +58,19 @@ class BankingController extends BaseController
             'currency'        => 'nullable|string|max:10',
             'opening_balance' => 'nullable|numeric|min:0',
             'description'     => 'nullable|string|max:1000',
+            'brand_color'     => ['nullable', 'regex:/^#?[0-9A-Fa-f]{6}$/'],
+            'logo'            => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
         if ($v->fails()) return $this->sendError('Validation Error', $v->errors()->toArray(), 422);
 
         $opening = (float) ($request->opening_balance ?? 0);
+        $logoPath = null;
+        if ($request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->store('uploads/banking/logos', 'public');
+        }
+
         $account = BankAccount::create([
-            'tenant_id'       => $this->tenantId(),
+            'tenant_id'       => $this->requireTenantId(),
             'bank_name'       => $request->bank_name,
             'account_number'  => $request->account_number,
             'account_name'    => $request->account_name,
@@ -55,9 +80,11 @@ class BankingController extends BaseController
             'current_balance' => $opening,
             'is_active'       => true,
             'description'     => $request->description,
+            'brand_color'     => $this->normalizeBrandColor($request->brand_color),
+            'logo_path'       => $logoPath,
         ]);
 
-        return $this->sendResponse($account, 'Account created', 201);
+        return $this->sendResponse($this->appendAccountMeta($account), 'Account created', 201);
     }
 
     public function showAccount($id)
@@ -83,15 +110,36 @@ class BankingController extends BaseController
             'currency'       => 'nullable|string|max:10',
             'is_active'      => 'nullable|boolean',
             'description'    => 'nullable|string|max:1000',
+            'brand_color'    => ['nullable', 'regex:/^#?[0-9A-Fa-f]{6}$/'],
+            'logo'           => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'remove_logo'    => 'nullable|boolean',
         ]);
         if ($v->fails()) return $this->sendError('Validation Error', $v->errors()->toArray(), 422);
 
-        $account->update($request->only([
+        $payload = $request->only([
             'bank_name', 'account_number', 'account_name',
             'account_type', 'currency', 'is_active', 'description',
-        ]));
+        ]);
 
-        return $this->sendResponse($account, 'Account updated');
+        if ($request->has('brand_color')) {
+            $payload['brand_color'] = $this->normalizeBrandColor($request->brand_color);
+        }
+
+        if ($request->boolean('remove_logo') && $account->logo_path) {
+            Storage::disk('public')->delete($account->logo_path);
+            $payload['logo_path'] = null;
+        }
+
+        if ($request->hasFile('logo')) {
+            if ($account->logo_path) {
+                Storage::disk('public')->delete($account->logo_path);
+            }
+            $payload['logo_path'] = $request->file('logo')->store('uploads/banking/logos', 'public');
+        }
+
+        $account->update($payload);
+
+        return $this->sendResponse($this->appendAccountMeta($account->fresh()), 'Account updated');
     }
 
     public function destroyAccount($id)
@@ -105,6 +153,7 @@ class BankingController extends BaseController
         foreach ($account->transactions as $t) {
             if ($t->proof_file) Storage::disk('public')->delete($t->proof_file);
         }
+        if ($account->logo_path) Storage::disk('public')->delete($account->logo_path);
 
         $account->delete();
         return $this->sendResponse([], 'Account deleted');
@@ -431,5 +480,19 @@ class BankingController extends BaseController
         // Pending count
         $account->pending_count = $account->transactions()->where('status', 'PENDING')->count();
         return $account;
+    }
+
+    private function normalizeBrandColor(?string $color): ?string
+    {
+        if (!$color) {
+            return null;
+        }
+
+        $clean = ltrim(trim($color), '#');
+        if (strlen($clean) !== 6) {
+            return null;
+        }
+
+        return '#' . strtoupper($clean);
     }
 }

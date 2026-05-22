@@ -28,6 +28,7 @@ export class ContainerListComponent implements OnInit {
 
   containers: any[] = [];
   tenants: any[] = [];
+  isSuperAdmin = false;
   loading = false;
   error: string | null = null;
   successMessage: string | null = null;
@@ -43,8 +44,12 @@ export class ContainerListComponent implements OnInit {
   deleteModalOpen = false;
   containerToDelete: any = null;
   Math = Math;
-
-  get isSuperAdmin(): boolean { return this.authService.isSuperAdmin; }
+  readonly generatedContainerExample = `CNT${new Date().getFullYear().toString().slice(-2)}001`;
+  readonly ports = ['Dakar', 'Banjul', 'Conakry', 'Abidjan', 'Lomé', 'Tema', 'Cotonou', 'Autre'];
+  readonly deliveryStatuses = [
+    { value: 'NON_LIVRE', label: 'Non livré' },
+    { value: 'LIVRE', label: 'Livré' }
+  ];
 
   constructor(
     private fb: FormBuilder,
@@ -54,19 +59,30 @@ export class ContainerListComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {
     this.containerForm = this.fb.group({
-      container_number: ['', Validators.required],
-      capacity_min: [null],
-      capacity_max: [null],
-      interest_rate: [null],
+      container_number: [''],
+      shipping_number: ['', Validators.required],
+      bl_number: [''],
+      capacity: [null],
+      delivery_status: ['NON_LIVRE', Validators.required],
+      entry_port: [''],
+      entry_date: [null],
+      expected_delivery_date: [null],
       tenant_id: [null]
     });
   }
 
   ngOnInit(): void {
+    // Subscribe to authState so isSuperAdmin is always up-to-date
+    this.authService.authState$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(state => {
+      const user = state.user as any;
+      const roles: any[] = Array.isArray(user?.roles) ? user.roles : [];
+      this.isSuperAdmin = roles.some((r: any) => r?.name === 'SUPER_ADMIN');
+      if (this.isSuperAdmin && this.tenants.length === 0) {
+        this.loadTenants();
+      }
+      this.cdr.markForCheck();
+    });
     this.loadContainers();
-    if (this.isSuperAdmin) {
-      this.loadTenants();
-    }
   }
 
   loadTenants(): void {
@@ -111,7 +127,18 @@ export class ContainerListComponent implements OnInit {
   openCreateModal(): void {
     this.editMode = false;
     this.submitted = false;
-    this.containerForm.reset({ container_number: '', capacity_min: null, capacity_max: null, interest_rate: null, tenant_id: null });
+    this.containerForm.reset({
+      container_number: '',
+      shipping_number: '',
+      bl_number: '',
+      capacity: null,
+      delivery_status: 'NON_LIVRE',
+      entry_port: '',
+      entry_date: null,
+      expected_delivery_date: null,
+      tenant_id: null
+    });
+    this.containerForm.get('container_number')?.disable();
     if (this.isSuperAdmin) {
       this.containerForm.get('tenant_id')?.setValidators(Validators.required);
     } else {
@@ -125,9 +152,20 @@ export class ContainerListComponent implements OnInit {
     this.editMode = true;
     this.submitted = false;
     this.selectedContainer = container;
+    this.containerForm.get('container_number')?.enable();
     this.containerForm.get('tenant_id')?.clearValidators();
     this.containerForm.get('tenant_id')?.updateValueAndValidity();
-    this.containerForm.patchValue(container);
+    this.containerForm.patchValue({
+      container_number: container.container_number || '',
+      shipping_number: container.shipping_number || '',
+      bl_number: container.bl_number || '',
+      capacity: container.capacity ?? null,
+      delivery_status: container.delivery_status || 'NON_LIVRE',
+      entry_port: container.entry_port || '',
+      entry_date: container.entry_date ? String(container.entry_date).split('T')[0] : null,
+      expected_delivery_date: container.expected_delivery_date ? String(container.expected_delivery_date).split('T')[0] : null,
+      tenant_id: container.tenant_id || null
+    });
     this.showFormModal = true;
   }
 
@@ -139,7 +177,7 @@ export class ContainerListComponent implements OnInit {
       return;
     }
 
-    const data = this.containerForm.value;
+    const data = this.containerForm.getRawValue();
 
     if (this.isSuperAdmin && !data.tenant_id) {
       this.error = 'Veuillez sélectionner une organisation.';

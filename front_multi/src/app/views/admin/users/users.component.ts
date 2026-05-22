@@ -71,6 +71,12 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   // Form controls getter
   get f() { return this.userForm.controls; }
+  get canCreateUsers(): boolean { return this.authService.isSuperAdmin; }
+  get canEditUsers(): boolean { return this.authService.isSuperAdmin; }
+  get canDeleteUsers(): boolean { return this.authService.isSuperAdmin; }
+  get canChangePasswords(): boolean { return this.authService.isSuperAdmin; }
+  get canManagePermissions(): boolean { return this.authService.isSuperAdmin; }
+  get canManageRoles(): boolean { return this.authService.isSuperAdmin; }
 
   constructor(
     private userService: UserService,
@@ -223,6 +229,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   // User management
   openUserModal(user?: UserProfile): void {
+    if (user ? !this.canEditUsers : !this.canCreateUsers) return;
     setTimeout(() => {
       this.editMode = !!user;
       this.selectedUser = user || null;
@@ -278,6 +285,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   }
 
   openPasswordModal(user: UserProfile): void {
+    if (!this.canChangePasswords) return;
     this.selectedUserForPassword = user;
     this.passwordForm.reset({
       password: '',
@@ -304,8 +312,13 @@ export class UsersComponent implements OnInit, AfterViewInit {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
     const file = input.files[0];
-    if (file.size > 2 * 1024 * 1024) {
-      this.showErrorMessage('La photo ne doit pas dépasser 2 MB.');
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      this.showErrorMessage('Format non accepté. Utilisez JPEG, PNG, GIF ou WebP.');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      this.showErrorMessage('La photo ne doit pas dépasser 4 MB.');
       return;
     }
     this.selectedPhoto = file;
@@ -320,6 +333,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   }
 
   onSubmitUser(): void {
+    if (this.editMode ? !this.canEditUsers : !this.canCreateUsers) return;
     this.submitted = true;
     this.cdr.detectChanges();
 
@@ -351,14 +365,18 @@ export class UsersComponent implements OnInit, AfterViewInit {
             this.users[index] = response.data;
             this.users = [...this.users];
           }
+          // Si l'utilisateur modifié est l'utilisateur courant, mettre à jour son avatar dans le header
+          if (String(response.data.id) === String(this.authService.currentUser?.id)) {
+            this.authService.updateCurrentUser(response.data as any);
+          }
           this.closeUserModal();
           this.applyFilters();
           this.showSuccessMessage('Utilisateur modifié avec succès!');
           this.loading = false;
           this.cdr.detectChanges();
         },
-        error: () => {
-          this.showErrorMessage('Erreur lors de la modification de l\'utilisateur.');
+        error: (err: any) => {
+          this.showErrorMessage(err.message || 'Erreur lors de la modification de l\'utilisateur.');
           this.loading = false;
           this.cdr.detectChanges();
         }
@@ -380,8 +398,8 @@ export class UsersComponent implements OnInit, AfterViewInit {
           this.loading = false;
           this.cdr.detectChanges();
         },
-        error: () => {
-          this.showErrorMessage('Erreur lors de la création de l\'utilisateur.');
+        error: (err: any) => {
+          this.showErrorMessage(err.message || 'Erreur lors de la création de l\'utilisateur.');
           this.loading = false;
           this.cdr.detectChanges();
         }
@@ -390,16 +408,13 @@ export class UsersComponent implements OnInit, AfterViewInit {
   }
 
   onSubmitPassword(): void {
-    if (!this.selectedUserForPassword) {
-      return;
-    }
+    if (!this.canChangePasswords) return;
+    if (!this.selectedUserForPassword) return;
 
     this.submitted = true;
     this.cdr.detectChanges();
 
-    if (this.passwordForm.invalid) {
-      return;
-    }
+    if (this.passwordForm.invalid) return;
 
     if (this.passwordForm.value.password !== this.passwordForm.value.password_confirmation) {
       this.showErrorMessage('Les deux mots de passe ne correspondent pas.');
@@ -420,8 +435,8 @@ export class UsersComponent implements OnInit, AfterViewInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => {
-        this.showErrorMessage('Erreur lors de la modification du mot de passe.');
+      error: (err: any) => {
+        this.showErrorMessage(err.message || 'Erreur lors de la modification du mot de passe.');
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -430,6 +445,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   // Delete user
   deleteUser(user: UserProfile): void {
+    if (!this.canDeleteUsers) return;
     this.alertService.showDeleteConfirmation(user.name, 'l\'utilisateur').then((result) => {
       if (result.isConfirmed) {
         this.confirmDelete(user);
@@ -459,6 +475,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   // Permission management
   openPermissionModal(user: UserProfile): void {
+    if (!this.canManagePermissions) return;
     this.selectedUserForPermissions = user;
     this.permissionModalOpen = true;
     
@@ -477,6 +494,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   // Role modal management
   openRoleModal(module: ModulePermission): void {
+    if (!this.canManageRoles) return;
     this.selectedModuleForRoles = module;
     this.roleModalOpen = true;
   }
@@ -581,6 +599,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   }
 
   savePermissions(): void {
+    if (!this.canManagePermissions) return;
     if (!this.selectedUserForPermissions) return;
 
     this.loading = true;
@@ -705,6 +724,10 @@ export class UsersComponent implements OnInit, AfterViewInit {
     if (!moduleCode) return basePermissions;
 
     switch (moduleCode) {
+      case 'CLIENTS_SUPPLIERS':
+        return [...basePermissions, 'view_clients_general', 'view_clients_pneus', 'view_clients_textile', 'view_clients_cosmetiques', 'view_clients_conteneurs_pagne', 'view_suppliers'];
+      case 'USERS':
+        return [...basePermissions, 'view_users', 'manage_permissions', 'change_password', 'toggle_status'];
       case 'FINANCE':
         return [...basePermissions, 'approve'];
       case 'PRODUCTS_STOCK':

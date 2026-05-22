@@ -4,7 +4,7 @@
       <c-card class="mb-4">
         <c-card-header class="d-flex justify-content-between align-items-center">
           <div><strong>Unités de Logement</strong><small class="text-medium-emphasis ms-2">{{ totalItems }} unité(s)</small></div>
-          <button cButton color="primary" size="sm" (click)="openCreateModal()"><svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle unité</button>
+          <button *ngIf="canCreateUnits" cButton color="primary" size="sm" (click)="openCreateModal()"><svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle unité</button>
         </c-card-header>
         <c-card-body>
           <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
@@ -48,8 +48,8 @@
                   <td><c-badge [color]="getStatusClass(item.status)">{{ getStatusLabel(item.status) }}</c-badge></td>
                   <td>
                     <c-button-group size="sm">
-                      <button cButton color="info" variant="ghost" size="sm" (click)="openEditModal(item)" title="Modifier"><svg cIcon name="cilPencil"></svg></button>
-                      <button cButton color="danger" variant="ghost" size="sm" (click)="confirmDelete(item)" title="Supprimer"><svg cIcon name="cilTrash"></svg></button>
+                      <button *ngIf="canEditUnits" cButton color="info" variant="ghost" size="sm" (click)="openEditModal(item)" title="Modifier"><svg cIcon name="cilPencil"></svg></button>
+                      <button *ngIf="canDeleteUnits" cButton color="danger" variant="ghost" size="sm" (click)="confirmDelete(item)" title="Supprimer"><svg cIcon name="cilTrash"></svg></button>
                     </c-button-group>
                   </td>
                 </tr>
@@ -192,7 +192,7 @@
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="showFormModal = false">Annuler</button>
-    <button cButton color="primary" (click)="save()"
+    <button *ngIf="editMode ? canEditUnits : canCreateUnits" cButton color="primary" (click)="save()"
       style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
       {{ editMode ? 'Mettre à jour' : 'Créer l\'unité' }}
     </button>
@@ -204,6 +204,6 @@
   <c-modal-body><p>Supprimer cette unité de logement ?</p><p class="text-danger"><small>Cette action est irréversible.</small></p></c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="deleteModalOpen = false">Annuler</button>
-    <button cButton color="danger" (click)="deleteItem()">Supprimer</button>
+    <button *ngIf="canDeleteUnits" cButton color="danger" (click)="deleteItem()">Supprimer</button>
   </c-modal-footer>
 </c-modal>

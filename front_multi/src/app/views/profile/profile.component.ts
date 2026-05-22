@@ -102,8 +102,14 @@ export class ProfileComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
     const file = input.files[0];
-    if (file.size > 2 * 1024 * 1024) {
-      this.errorProfile = 'La photo ne doit pas dépasser 2 MB.';
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      this.errorProfile = 'Format non accepté. Utilisez JPEG, PNG, GIF ou WebP.';
+      this.cdr.detectChanges();
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      this.errorProfile = 'La photo ne doit pas dépasser 4 MB.';
       this.cdr.detectChanges();
       return;
     }
@@ -124,6 +130,9 @@ export class ProfileComponent implements OnInit {
 
     this.authService.updateAvatar(this.selectedPhoto).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
+        if (res.data) {
+          this.authService.updateCurrentUser(res.data);
+        }
         this.photoPreview = res.data?.avatar_url || this.photoPreview;
         this.selectedPhoto = null;
         this.successProfile = 'Photo de profil mise à jour.';

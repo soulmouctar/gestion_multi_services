@@ -34,7 +34,7 @@ export class ClientSupplierService {
   
   // Client Management
   getClients(options?: FilterOptions): Observable<PaginatedResponse<Client>> {
-    return this.apiService.getPaginated('clients', { params: options }).pipe(
+    return this.apiService.getPaginated<Client>('clients', { params: options }).pipe(
       tap(response => {
         if (response.data) {
           this.clients.next(response.data);
@@ -44,7 +44,7 @@ export class ClientSupplierService {
   }
   
   createClient(clientData: Partial<Client>): Observable<ApiResponse<Client>> {
-    return this.apiService.post('clients', clientData).pipe(
+    return this.apiService.post<Client>('clients', clientData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentClients = this.clients.value;
@@ -55,7 +55,7 @@ export class ClientSupplierService {
   }
   
   updateClient(id: string, clientData: Partial<Client>): Observable<ApiResponse<Client>> {
-    return this.apiService.put(`clients/${id}`, clientData).pipe(
+    return this.apiService.put<Client>(`clients/${id}`, clientData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentClients = this.clients.value;
@@ -90,7 +90,7 @@ export class ClientSupplierService {
   
   // Supplier Management
   getSuppliers(options?: FilterOptions): Observable<PaginatedResponse<Supplier>> {
-    return this.apiService.getPaginated('suppliers', { params: options }).pipe(
+    return this.apiService.getPaginated<Supplier>('suppliers', { params: options }).pipe(
       tap(response => {
         if (response.data) {
           this.suppliers.next(response.data);
@@ -100,7 +100,7 @@ export class ClientSupplierService {
   }
   
   createSupplier(supplierData: Partial<Supplier>): Observable<ApiResponse<Supplier>> {
-    return this.apiService.post('suppliers', supplierData).pipe(
+    return this.apiService.post<Supplier>('suppliers', supplierData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentSuppliers = this.suppliers.value;
@@ -111,7 +111,7 @@ export class ClientSupplierService {
   }
   
   updateSupplier(id: string, supplierData: Partial<Supplier>): Observable<ApiResponse<Supplier>> {
-    return this.apiService.put(`suppliers/${id}`, supplierData).pipe(
+    return this.apiService.put<Supplier>(`suppliers/${id}`, supplierData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentSuppliers = this.suppliers.value;
@@ -139,14 +139,22 @@ export class ClientSupplierService {
   getSupplierDetails(id: string): Observable<ApiResponse<Supplier>> {
     return this.apiService.get(`suppliers/${id}`);
   }
-  
+
   getSupplierBalance(id: string): Observable<ApiResponse<{ balanceUSD: number; balanceGNF: number }>> {
     return this.apiService.get(`suppliers/${id}/balance`);
+  }
+
+  getSupplierHistory(id: string): Observable<ApiResponse<any>> {
+    return this.apiService.get(`suppliers/${id}/history`);
+  }
+
+  getSuppliersBalanceSummary(): Observable<ApiResponse<any>> {
+    return this.apiService.get('suppliers/balance-summary');
   }
   
   // Invoice Management
   getInvoices(options?: FilterOptions): Observable<PaginatedResponse<Invoice>> {
-    return this.apiService.getPaginated('invoices', { params: options }).pipe(
+    return this.apiService.getPaginated<Invoice>('invoices', { params: options }).pipe(
       tap(response => {
         if (response.data) {
           this.invoices.next(response.data);
@@ -156,7 +164,7 @@ export class ClientSupplierService {
   }
   
   createInvoice(invoiceData: Partial<Invoice>): Observable<ApiResponse<Invoice>> {
-    return this.apiService.post('invoices', invoiceData).pipe(
+    return this.apiService.post<Invoice>('invoices', invoiceData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentInvoices = this.invoices.value;
@@ -167,7 +175,7 @@ export class ClientSupplierService {
   }
   
   updateInvoice(id: string, invoiceData: Partial<Invoice>): Observable<ApiResponse<Invoice>> {
-    return this.apiService.put(`invoices/${id}`, invoiceData).pipe(
+    return this.apiService.put<Invoice>(`invoices/${id}`, invoiceData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentInvoices = this.invoices.value;
@@ -198,7 +206,7 @@ export class ClientSupplierService {
   
   // Payment Management
   getPayments(options?: FilterOptions): Observable<PaginatedResponse<Payment>> {
-    return this.apiService.getPaginated('payments', { params: options }).pipe(
+    return this.apiService.getPaginated<Payment>('payments', { params: options }).pipe(
       tap(response => {
         if (response.data) {
           this.payments.next(response.data);
@@ -208,7 +216,7 @@ export class ClientSupplierService {
   }
   
   createPayment(paymentData: Partial<Payment>): Observable<ApiResponse<Payment>> {
-    return this.apiService.post('payments', paymentData).pipe(
+    return this.apiService.post<Payment>('payments', paymentData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentPayments = this.payments.value;
@@ -219,7 +227,7 @@ export class ClientSupplierService {
   }
   
   updatePayment(id: string, paymentData: Partial<Payment>): Observable<ApiResponse<Payment>> {
-    return this.apiService.put(`payments/${id}`, paymentData).pipe(
+    return this.apiService.put<Payment>(`payments/${id}`, paymentData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentPayments = this.payments.value;
@@ -250,7 +258,7 @@ export class ClientSupplierService {
   
   // Advance Management
   getAdvances(options?: FilterOptions): Observable<PaginatedResponse<Advance>> {
-    return this.apiService.getPaginated('advances', { params: options }).pipe(
+    return this.apiService.getPaginated<Advance>('advances', { params: options }).pipe(
       tap(response => {
         if (response.data) {
           this.advances.next(response.data);
@@ -258,9 +266,9 @@ export class ClientSupplierService {
       })
     );
   }
-  
+
   createAdvance(advanceData: Partial<Advance>): Observable<ApiResponse<Advance>> {
-    return this.apiService.post('advances', advanceData).pipe(
+    return this.apiService.post<Advance>('advances', advanceData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentAdvances = this.advances.value;
@@ -269,13 +277,13 @@ export class ClientSupplierService {
       })
     );
   }
-  
+
   updateAdvance(id: string, advanceData: Partial<Advance>): Observable<ApiResponse<Advance>> {
-    return this.apiService.put(`advances/${id}`, advanceData).pipe(
+    return this.apiService.put<Advance>(`advances/${id}`, advanceData).pipe(
       tap(response => {
         if (response.success && response.data) {
           const currentAdvances = this.advances.value;
-          const updatedAdvances = currentAdvances.map(advance => 
+          const updatedAdvances = currentAdvances.map(advance =>
             advance.id === id ? response.data! : advance
           );
           this.advances.next(updatedAdvances);
@@ -310,22 +318,12 @@ export class ClientSupplierService {
   }
   
   // Reports
-  getClientReport(clientId: string, filters: {
-    dateFrom?: Date;
-    dateTo?: Date;
-    includeInvoices?: boolean;
-    includePayments?: boolean;
-  }): Observable<Blob> {
-    return this.apiService.downloadFile(`clients/${clientId}/report`, filters);
+  getClientReport(clientId: string): Observable<Blob> {
+    return this.apiService.downloadFile(`clients/${clientId}/report`);
   }
-  
-  getSupplierReport(supplierId: string, filters: {
-    dateFrom?: Date;
-    dateTo?: Date;
-    includeInvoices?: boolean;
-    includePayments?: boolean;
-  }): Observable<Blob> {
-    return this.apiService.downloadFile(`suppliers/${supplierId}/report`, filters);
+
+  getSupplierReport(supplierId: string): Observable<Blob> {
+    return this.apiService.downloadFile(`suppliers/${supplierId}/report`);
   }
   
   getOverdueInvoices(): Observable<ApiResponse<Invoice[]>> {

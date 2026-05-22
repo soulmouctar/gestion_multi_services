@@ -77,7 +77,7 @@
         <strong>Emplacements Immobiliers</strong>
         <small class="text-muted ms-2">({{ totalItems }} emplacement(s))</small>
       </div>
-      <button cButton color="primary" (click)="openCreateModal()">
+      <button *ngIf="canCreateLocationsAdvanced" cButton color="primary" (click)="openCreateModal()">
         <svg cIcon name="cilPlus" class="me-1"></svg>
         Nouvel Emplacement
       </button>
@@ -124,10 +124,10 @@
                   <button cButton color="info" variant="outline" size="sm" (click)="viewBuildings(location)" title="Voir bâtiments">
                     <svg cIcon name="cilBuilding"></svg>
                   </button>
-                  <button cButton color="warning" variant="outline" size="sm" (click)="openEditModal(location)" title="Modifier">
+                  <button *ngIf="canEditLocationsAdvanced" cButton color="warning" variant="outline" size="sm" (click)="openEditModal(location)" title="Modifier">
                     <svg cIcon name="cilPencil"></svg>
                   </button>
-                  <button cButton color="danger" variant="outline" size="sm" (click)="deleteLocation(location)" title="Supprimer">
+                  <button *ngIf="canDeleteLocationsAdvanced" cButton color="danger" variant="outline" size="sm" (click)="deleteLocation(location)" title="Supprimer">
                     <svg cIcon name="cilTrash"></svg>
                   </button>
                 </c-button-group>
@@ -209,7 +209,7 @@
   </c-modal-body>
   <c-modal-footer>
     <button cButton color="secondary" (click)="showModal = false">Annuler</button>
-    <button cButton color="primary" (click)="saveLocation()">
+    <button *ngIf="isEditing ? canEditLocationsAdvanced : canCreateLocationsAdvanced" cButton color="primary" (click)="saveLocation()">
       {{ isEditing ? 'Modifier' : 'Créer' }}
     </button>
   </c-modal-footer>

@@ -73,6 +73,7 @@ export type ModuleCode =
   | 'COMMERCIAL'
   | 'FINANCE' 
   | 'CLIENTS_SUPPLIERS'
+  | 'USERS'
   | 'PRODUCTS_STOCK'
   | 'CONTAINERS'
   | 'RENTAL'

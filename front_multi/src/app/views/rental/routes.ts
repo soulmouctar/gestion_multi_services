@@ -9,41 +9,49 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () => import('./rental-dashboard/rental-dashboard.component').then(m => m.RentalDashboardComponent),
-    title: 'Tableau de Bord Location'
+    title: 'Tableau de Bord Location',
+    data: { module: 'RENTAL', permission: 'view' }
   },
   {
     path: 'leases',
     loadComponent: () => import('./leases/leases.component').then(m => m.LeasesComponent),
-    title: 'Contrats de Location'
+    title: 'Contrats de Location',
+    data: { module: 'RENTAL', permission: 'view' }
   },
   {
     path: 'tenants',
     loadComponent: () => import('./rental-tenants/rental-tenants.component').then(m => m.RentalTenantsComponent),
-    title: 'Registre des Locataires'
+    title: 'Registre des Locataires',
+    data: { module: 'RENTAL', permission: 'view' }
   },
   {
     path: 'housing-units',
     loadComponent: () => import('./housing-units/housing-units.component').then(m => m.HousingUnitsComponent),
-    title: 'Unités de Logement'
+    title: 'Unités de Logement',
+    data: { module: 'RENTAL', permission: 'view' }
   },
   {
     path: 'buildings',
     loadComponent: () => import('./buildings/buildings.component').then(m => m.BuildingsComponent),
-    title: 'Bâtiments'
+    title: 'Bâtiments',
+    data: { module: 'RENTAL', permission: 'view' }
   },
   {
     path: 'locations',
     loadComponent: () => import('./locations/locations.component').then(m => m.LocationsComponent),
-    title: 'Emplacements'
+    title: 'Emplacements',
+    data: { module: 'RENTAL', permission: 'view' }
   },
   {
     path: 'floors',
     loadComponent: () => import('./floors/floors.component').then(m => m.FloorsComponent),
-    title: 'Étages'
+    title: 'Étages',
+    data: { module: 'RENTAL', permission: 'view' }
   },
   {
     path: 'unit-configurations',
     loadComponent: () => import('./unit-configurations/unit-configurations.component').then(m => m.UnitConfigurationsComponent),
-    title: 'Configurations d\'Unités'
+    title: 'Configurations d\'Unités',
+    data: { module: 'RENTAL', permission: 'view' }
   }
 ];

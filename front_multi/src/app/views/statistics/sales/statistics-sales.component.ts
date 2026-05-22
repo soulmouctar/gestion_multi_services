@@ -69,7 +69,7 @@ export class StatisticsSalesComponent implements OnInit, OnDestroy {
       next: (results) => {
         if (results.payStats.success && results.payStats.data) {
           const p = results.payStats.data;
-          this.stats.totalPayments = p.total_count  ?? p.total   ?? 0;
+          this.stats.totalPayments = p.total_payments ?? p.total_count ?? p.total ?? 0;
           this.stats.totalAmount   = p.total_amount ?? p.sum     ?? 0;
           this.stats.totalRemaining = p.invoices_summary?.total_remaining ?? p.total_remaining ?? 0;
           this.stats.collectionRate = (this.stats.totalAmount + this.stats.totalRemaining) > 0
@@ -94,7 +94,8 @@ export class StatisticsSalesComponent implements OnInit, OnDestroy {
           }
         }
         if (results.clients.success && results.clients.data) {
-          this.stats.totalClients = results.clients.data.total ?? 0;
+          const clientData = results.clients.data;
+          this.stats.totalClients = clientData.total ?? clientData.data?.total ?? 0;
         }
         this.loading = false;
       },

@@ -30,6 +30,7 @@ export class SuppliersListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   suppliers: any[] = [];
+  categories: string[] = [];
   loading = false;
   error: string | null = null;
   searchTerm = '';
@@ -72,12 +73,6 @@ export class SuppliersListComponent implements OnInit {
   // SUPER_ADMIN
   tenants: any[] = [];
 
-  readonly categories = [
-    'Textile', 'Cosmétiques', 'Pneus & Pièces auto',
-    'Alimentation', 'Électronique', 'Matériaux construction',
-    'Mobilier', 'Médicaments', 'Autres',
-  ];
-
   readonly paymentMethods = [
     { value: 'ESPECES',      label: 'Espèces' },
     { value: 'VIREMENT',     label: 'Virement bancaire' },
@@ -93,6 +88,11 @@ export class SuppliersListComponent implements OnInit {
   get isSuperAdmin(): boolean {
     return this.authService.userRole === 'SUPER_ADMIN';
   }
+  get canCreateSuppliers(): boolean { return this.authService.hasModulePermission('CLIENTS_SUPPLIERS', 'create'); }
+  get canEditSuppliers(): boolean { return this.authService.hasModulePermission('CLIENTS_SUPPLIERS', 'edit'); }
+  get canDeleteSuppliers(): boolean { return this.authService.hasModulePermission('CLIENTS_SUPPLIERS', 'delete'); }
+  get canRegisterPayments(): boolean { return this.authService.hasModulePermission('CLIENTS_SUPPLIERS', 'create'); }
+  get canManageSupplierPhotos(): boolean { return this.canEditSuppliers || this.canCreateSuppliers; }
 
   get showExchangeRate(): boolean {
     return this.paymentForm.get('currency')?.value !== 'GNF';
@@ -143,6 +143,7 @@ export class SuppliersListComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.isSuperAdmin) this.loadTenants();
+    this.loadCategories();
     this.loadSuppliers();
   }
 
@@ -151,6 +152,24 @@ export class SuppliersListComponent implements OnInit {
       next: (r) => { this.tenants = r.data?.data ?? r.data ?? []; this.cdr.detectChanges(); },
       error: () => {},
     });
+  }
+
+  loadCategories(): void {
+    this.apiService.get<any>('product-categories?per_page=200')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          const items = r.data?.data ?? r.data ?? [];
+          this.categories = items
+            .map((category: any) => (category?.name || '').trim())
+            .filter((name: string) => name.length > 0);
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.categories = [];
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   loadSuppliers(): void {
@@ -188,6 +207,7 @@ export class SuppliersListComponent implements OnInit {
   // ─── CRUD ────────────────────────────────────────────────────────────────────
 
   openCreateModal(): void {
+    if (!this.canCreateSuppliers) return;
     this.editMode = false;
     this.submitted = false;
     this.selectedPhotoFile = null;
@@ -197,6 +217,7 @@ export class SuppliersListComponent implements OnInit {
   }
 
   openEditModal(supplier: any): void {
+    if (!this.canEditSuppliers) return;
     this.editMode = true;
     this.submitted = false;
     this.selectedSupplier = supplier;
@@ -219,6 +240,8 @@ export class SuppliersListComponent implements OnInit {
   saveSupplier(): void {
     this.submitted = true;
     if (this.supplierForm.invalid) return;
+    if (!this.editMode && !this.canCreateSuppliers) return;
+    if (this.editMode && !this.canEditSuppliers) return;
     this.savingSupplier = true;
 
     const v    = this.supplierForm.value;
@@ -267,6 +290,7 @@ export class SuppliersListComponent implements OnInit {
   }
 
   deleteSupplier(supplier: any): void {
+    if (!this.canDeleteSuppliers) return;
     this.alertService.showDeleteConfirmation(supplier.name, 'fournisseur').then(r => {
       if (!r.isConfirmed) return;
       this.apiService.delete<any>(`suppliers/${supplier.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -281,6 +305,7 @@ export class SuppliersListComponent implements OnInit {
   onPhotoSelected(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
+    if (!this.canManageSupplierPhotos) return;
     this.selectedPhotoFile = file;
     const reader = new FileReader();
     reader.onload = (e) => { this.photoPreview = e.target?.result as string; this.cdr.detectChanges(); };
@@ -302,6 +327,7 @@ export class SuppliersListComponent implements OnInit {
   // ─── Versement fournisseur ───────────────────────────────────────────────────
 
   openPaymentModal(supplier: any): void {
+    if (!this.canRegisterPayments) return;
     this.currentSupplierForPayment = supplier;
     this.paymentSubmitted = false;
 
@@ -326,6 +352,7 @@ export class SuppliersListComponent implements OnInit {
   savePayment(): void {
     this.paymentSubmitted = true;
     if (this.paymentForm.invalid) return;
+    if (!this.canRegisterPayments) return;
     this.savingPayment = true;
 
     const v    = this.paymentForm.value;
@@ -363,6 +390,7 @@ export class SuppliersListComponent implements OnInit {
   }
 
   deletePayment(payment: any): void {
+    if (!this.canDeleteSuppliers) return;
     const supplier = this.currentSupplierForPayment;
     this.alertService.showConfirmation(
       'Supprimer ce versement',
