@@ -8,7 +8,6 @@ use App\Models\HousingUnit;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class LeaseController extends BaseController
@@ -83,7 +82,7 @@ class LeaseController extends BaseController
             $data['status']         = $data['status'] ?? 'ACTIVE';
 
             if ($request->hasFile('renter_photo')) {
-                $data['renter_photo'] = $request->file('renter_photo')->store('lease-tenants', 'public');
+                $data['renter_photo'] = $this->uploadFile($request->file('renter_photo'), 'leases');
             }
 
             $lease = Lease::create($data);
@@ -156,10 +155,8 @@ class LeaseController extends BaseController
             ]);
 
             if ($request->hasFile('renter_photo')) {
-                if ($lease->renter_photo) {
-                    Storage::disk('public')->delete($lease->renter_photo);
-                }
-                $data['renter_photo'] = $request->file('renter_photo')->store('lease-tenants', 'public');
+                $this->deleteFile($lease->renter_photo);
+                $data['renter_photo'] = $this->uploadFile($request->file('renter_photo'), 'leases');
             }
 
             $lease->update($data);
@@ -201,9 +198,7 @@ class LeaseController extends BaseController
         DB::beginTransaction();
         try {
             $unitId = $lease->housing_unit_id;
-            if ($lease->renter_photo) {
-                Storage::disk('public')->delete($lease->renter_photo);
-            }
+            $this->deleteFile($lease->renter_photo);
             $lease->delete();
 
             // Free the housing unit if no other active lease
@@ -472,6 +467,23 @@ class LeaseController extends BaseController
             return $this->sendResponse($payments, 'Payments retrieved successfully');
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function uploadFile($file, string $subfolder): string
+    {
+        $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('uploads/' . $subfolder), $filename);
+        return 'uploads/' . $subfolder . '/' . $filename;
+    }
+
+    private function deleteFile(?string $path): void
+    {
+        if ($path) {
+            $full = public_path($path);
+            if (file_exists($full)) {
+                unlink($full);
+            }
         }
     }
 

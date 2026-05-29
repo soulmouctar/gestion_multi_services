@@ -12,7 +12,6 @@ use App\Models\ClientAdvance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
@@ -157,7 +156,7 @@ class ClientController extends BaseController
         }
 
         if ($client->photo) {
-            Storage::disk('public')->delete($client->photo);
+            $this->deleteUploadedFile($client->photo);
         }
 
         $client->delete();
@@ -186,10 +185,10 @@ class ClientController extends BaseController
         }
 
         if ($client->photo) {
-            Storage::disk('public')->delete($client->photo);
+            $this->deleteUploadedFile($client->photo);
         }
 
-        $path = $request->file('photo')->store('clients', 'public');
+        $path = $this->storeUploadedFile($request->file('photo'), 'clients');
         $client->update(['photo' => $path]);
 
         return $this->sendResponse($client, 'Photo uploaded successfully');
@@ -205,7 +204,7 @@ class ClientController extends BaseController
         }
 
         if ($client->photo) {
-            Storage::disk('public')->delete($client->photo);
+            $this->deleteUploadedFile($client->photo);
             $client->update(['photo' => null]);
         }
 

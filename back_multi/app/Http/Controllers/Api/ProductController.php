@@ -6,7 +6,6 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class ProductController extends BaseController
 {
@@ -244,7 +243,7 @@ class ProductController extends BaseController
         }
 
         if ($product->image) {
-            Storage::disk('public')->delete($product->image);
+            $this->deleteUploadedFile($product->image);
         }
 
         $product->delete();
@@ -273,12 +272,11 @@ class ProductController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // Supprimer l'ancienne image si elle existe
         if ($product->image) {
-            Storage::disk('public')->delete($product->image);
+            $this->deleteUploadedFile($product->image);
         }
 
-        $path = $request->file('image')->store('products', 'public');
+        $path = $this->storeUploadedFile($request->file('image'), 'products');
         $product->update(['image' => $path]);
 
         return $this->sendResponse($product->load('category', 'unit'), 'Image uploaded successfully');
@@ -298,7 +296,7 @@ class ProductController extends BaseController
         }
 
         if ($product->image) {
-            Storage::disk('public')->delete($product->image);
+            $this->deleteUploadedFile($product->image);
             $product->update(['image' => null]);
         }
 

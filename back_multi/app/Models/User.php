@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -32,7 +31,11 @@ class User extends Authenticatable
             return $this->avatar;
         }
 
-        return Storage::disk('public')->url($this->avatar);
+        $path = ltrim($this->avatar, '/');
+        if (!str_starts_with($path, 'uploads/')) {
+            $path = 'uploads/' . $path;
+        }
+        return asset($path);
     }
 
     protected $appends = ['avatar_url'];

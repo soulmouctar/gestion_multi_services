@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
@@ -18,7 +17,7 @@ use Illuminate\Auth\Events\PasswordReset;
 class AuthController extends BaseController
 {
     public function __construct(
-        private readonly UserModulePermissionService $modulePermissionService
+        private UserModulePermissionService $modulePermissionService
     ) {}
 
     public function register(Request $request)
@@ -185,12 +184,11 @@ class AuthController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // Supprimer l'ancienne photo
         if ($user->avatar) {
-            Storage::disk('public')->delete($user->avatar);
+            $this->deleteUploadedFile($user->avatar);
         }
 
-        $path = $request->file('avatar')->store('avatars', 'public');
+        $path = $this->storeUploadedFile($request->file('avatar'), 'avatars');
         $user->avatar = $path;
         $user->save();
 

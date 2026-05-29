@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class Lease extends Model
 {
@@ -30,7 +29,7 @@ class Lease extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->renter_photo);
+        return asset($this->renter_photo);
     }
 
 

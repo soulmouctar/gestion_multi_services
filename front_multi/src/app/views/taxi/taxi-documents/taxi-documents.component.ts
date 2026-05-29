@@ -340,10 +340,6 @@ export class TaxiDocumentsComponent implements OnInit {
       .some(f => v[f] === 'danger' || v[f] === 'warning');
   }
 
-  docColor(status: string): string {
-    const map: any = { expired: 'danger', danger: 'danger', warning: 'warning', info: 'info', ok: 'success', missing: 'secondary' };
-    return map[status] || 'secondary';
-  }
   docColor2(status: string): string {
     const map: any = { expired: '#ef4444', danger: '#ef4444', warning: '#d97706', info: '#3b82f6', ok: '#10b981', missing: '#9ca3af' };
     return map[status] || '#9ca3af';
@@ -355,14 +351,6 @@ export class TaxiDocumentsComponent implements OnInit {
   docLabel(status: string): string {
     const map: any = { expired: 'EXPIRÉ', danger: '≤ 15 jours', warning: '≤ 30 jours', info: '≤ 60 jours', ok: 'Valide', missing: 'Non renseigné' };
     return map[status] || status;
-  }
-  docTextClass(status: string): string {
-    const map: any = { expired: 'text-danger fw-bold', danger: 'text-danger', warning: 'text-warning', info: 'text-info', ok: 'text-success', missing: 'text-muted' };
-    return map[status] || '';
-  }
-  fleetColor(status: string): string {
-    const map: any = { ACTIVE: 'success', MAINTENANCE: 'warning', INACTIVE: 'secondary' };
-    return map[status] || 'secondary';
   }
   fleetLabel(status: string): string {
     const map: any = { ACTIVE: 'Actif', MAINTENANCE: 'Maintenance', INACTIVE: 'Inactif' };

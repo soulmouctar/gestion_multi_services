@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-
 class Supplier extends Model
 {
     use HasFactory;
@@ -28,7 +26,12 @@ class Supplier extends Model
     public function getPhotoUrlAttribute(): ?string
     {
         if (!$this->photo) return null;
-        return Storage::disk('public')->url($this->photo);
+        if (str_starts_with($this->photo, 'http')) return $this->photo;
+        $path = ltrim($this->photo, '/');
+        if (!str_starts_with($path, 'uploads/')) {
+            $path = 'uploads/' . $path;
+        }
+        return asset($path);
     }
 
     public function scopeForTenant($query, int $tenantId)

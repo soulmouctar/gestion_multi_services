@@ -31,4 +31,28 @@ class BaseController extends Controller
 
         return response()->json($response, $code);
     }
+
+    protected function storeUploadedFile($file, string $subfolder): string
+    {
+        $dir = public_path('uploads/' . $subfolder);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $filename = \Illuminate\Support\Str::random(40) . '.' . $file->getClientOriginalExtension();
+        $file->move($dir, $filename);
+        return 'uploads/' . $subfolder . '/' . $filename;
+    }
+
+    protected function deleteUploadedFile(?string $path): void
+    {
+        if (!$path) return;
+        $normalized = ltrim($path, '/');
+        if (!str_starts_with($normalized, 'uploads/')) {
+            $normalized = 'uploads/' . $normalized;
+        }
+        $full = public_path($normalized);
+        if (file_exists($full)) {
+            unlink($full);
+        }
+    }
 }

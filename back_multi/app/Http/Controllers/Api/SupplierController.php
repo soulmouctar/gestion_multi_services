@@ -7,7 +7,6 @@ use App\Models\SupplierPayment;
 use App\Models\ContainerArrival;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class SupplierController extends BaseController
@@ -147,7 +146,7 @@ class SupplierController extends BaseController
         }
 
         if ($supplier->photo) {
-            Storage::disk('public')->delete($supplier->photo);
+            $this->deleteUploadedFile($supplier->photo);
         }
 
         $supplier->delete();
@@ -172,10 +171,10 @@ class SupplierController extends BaseController
         }
 
         if ($supplier->photo) {
-            Storage::disk('public')->delete($supplier->photo);
+            $this->deleteUploadedFile($supplier->photo);
         }
 
-        $path = $request->file('photo')->store('suppliers', 'public');
+        $path = $this->storeUploadedFile($request->file('photo'), 'suppliers');
         $supplier->update(['photo' => $path]);
 
         return $this->sendResponse($supplier, 'Photo uploaded successfully');
@@ -191,7 +190,7 @@ class SupplierController extends BaseController
         }
 
         if ($supplier->photo) {
-            Storage::disk('public')->delete($supplier->photo);
+            $this->deleteUploadedFile($supplier->photo);
             $supplier->update(['photo' => null]);
         }
 

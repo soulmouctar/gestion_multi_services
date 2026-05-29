@@ -10,12 +10,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class UserController extends BaseController
 {
     public function __construct(
-        private readonly UserModulePermissionService $modulePermissionService
+        private UserModulePermissionService $modulePermissionService
     ) {}
 
     public function index(Request $request)
@@ -88,7 +87,7 @@ class UserController extends BaseController
 
         $avatarPath = null;
         if ($request->hasFile('avatar')) {
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            $avatarPath = $this->uploadFile($request->file('avatar'), 'users');
         }
 
         $user = User::create([
@@ -173,10 +172,8 @@ class UserController extends BaseController
         $data = $request->only(['name', 'email', 'tenant_id', 'is_active']);
 
         if ($request->hasFile('avatar')) {
-            if ($user->avatar) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
+            $this->deleteFile($user->avatar);
+            $data['avatar'] = $this->uploadFile($request->file('avatar'), 'users');
         }
 
         $user->update($data);
@@ -256,10 +253,7 @@ class UserController extends BaseController
             }
         }
 
-        if ($user->avatar) {
-            Storage::disk('public')->delete($user->avatar);
-        }
-
+        $this->deleteFile($user->avatar);
         $user->delete();
 
         return $this->sendResponse([], 'User deleted successfully');
@@ -448,23 +442,52 @@ class UserController extends BaseController
         }
     }
 
+    private function uploadFile($file, string $subfolder): string
+    {
+        $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('uploads/' . $subfolder), $filename);
+        return 'uploads/' . $subfolder . '/' . $filename;
+    }
+
+    private function deleteFile(?string $path): void
+    {
+        if ($path) {
+            $full = public_path($path);
+            if (file_exists($full)) {
+                unlink($full);
+            }
+        }
+    }
+
     public function getUserModulePermissions($id)
     {
+        $currentUser = auth()->user();
         $user = User::find($id);
 
         if (!$user) {
             return $this->sendError('User not found', [], 404);
         }
 
-        // Récupérer les modules disponibles depuis la base de données
-        $availableModules = Module::all()->map(function ($module) {
-            return [
-                'module_code' => $module->code,
-                'module_name' => $module->name,
-                'permissions' => [],
-                'is_active'   => false,
-            ];
-        })->toArray();
+        // Filter modules to only those active for the user's tenant
+        $tenantId = ($currentUser && $currentUser->hasRole('SUPER_ADMIN'))
+            ? $user->tenant_id
+            : ($currentUser->tenant_id ?? $user->tenant_id);
+
+        $activeModuleIds = DB::table('tenant_modules')
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->pluck('module_id');
+
+        $availableModules = Module::whereIn('id', $activeModuleIds)
+            ->get()
+            ->map(function ($module) {
+                return [
+                    'module_code' => $module->code,
+                    'module_name' => $module->name,
+                    'permissions' => [],
+                    'is_active'   => false,
+                ];
+            })->toArray();
 
         // Récupérer les permissions existantes de l'utilisateur
         $userPermissions = DB::table('user_module_permissions')

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Models\ContainerPhoto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 
 class ContainerPhotoController extends BaseController
@@ -47,11 +46,9 @@ class ContainerPhotoController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // Upload image
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imagePath = $image->store('uploads/container/products', 'public');
+            $imagePath = $this->uploadFile($request->file('image'), 'containers');
         }
 
         $payload = [
@@ -99,16 +96,9 @@ class ContainerPhotoController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // Update image if provided
         if ($request->hasFile('image')) {
-            // Delete old image
-            if ($photo->image_path && Storage::disk('public')->exists($photo->image_path)) {
-                Storage::disk('public')->delete($photo->image_path);
-            }
-            
-            $image = $request->file('image');
-            $imagePath = $image->store('uploads/container/products', 'public');
-            $photo->image_path = $imagePath;
+            $this->deleteFile($photo->image_path);
+            $photo->image_path = $this->uploadFile($request->file('image'), 'containers');
         }
 
         if ($request->has('container_id')) {
@@ -132,11 +122,7 @@ class ContainerPhotoController extends BaseController
             return $this->sendError('Container photo not found');
         }
 
-        // Delete image file
-        if ($photo->image_path && Storage::disk('public')->exists($photo->image_path)) {
-            Storage::disk('public')->delete($photo->image_path);
-        }
-
+        $this->deleteFile($photo->image_path);
         $photo->delete();
 
         return $this->sendResponse([], 'Container photo deleted successfully');
@@ -183,11 +169,9 @@ class ContainerPhotoController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // Upload image
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imagePath = $image->store('uploads/container/products', 'public');
+            $imagePath = $this->uploadFile($request->file('image'), 'containers');
         }
 
         $payload = [
@@ -218,5 +202,22 @@ class ContainerPhotoController extends BaseController
         }
 
         return $relations;
+    }
+
+    private function uploadFile($file, string $subfolder): string
+    {
+        $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('uploads/' . $subfolder), $filename);
+        return 'uploads/' . $subfolder . '/' . $filename;
+    }
+
+    private function deleteFile(?string $path): void
+    {
+        if ($path) {
+            $full = public_path($path);
+            if (file_exists($full)) {
+                unlink($full);
+            }
+        }
     }
 }

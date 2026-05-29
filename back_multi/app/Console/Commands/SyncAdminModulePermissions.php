@@ -11,7 +11,7 @@ class SyncAdminModulePermissions extends Command
     protected $signature   = 'permissions:sync-admins {--force : Réinitialiser même si des permissions existent déjà}';
     protected $description = 'Accorde tous les modules actifs du tenant aux utilisateurs ADMIN qui n\'en ont pas encore.';
 
-    public function __construct(private readonly UserModulePermissionService $service)
+    public function __construct(private UserModulePermissionService $service)
     {
         parent::__construct();
     }

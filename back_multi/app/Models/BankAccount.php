@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class BankAccount extends Model
 {
@@ -27,7 +26,7 @@ class BankAccount extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->logo_path);
+        return asset($this->logo_path);
     }
 
     public function scopeForTenant($query, int $tenantId)

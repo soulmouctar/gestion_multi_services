@@ -1,7 +1,8 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.saas-management.com/api',
-  appUrl: 'https://app.saas-management.com',
+  urlBase: 'https://apimatkolla.ddevstock.com/',
+  apiUrl: 'https://apimatkolla.ddevstock.com/api',
+  appUrl: 'https://matkolla.ddevstock.com/',
   
   // Multi-tenant configuration
   multiTenant: true,

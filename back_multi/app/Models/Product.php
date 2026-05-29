@@ -37,7 +37,12 @@ class Product extends Model
     public function getImageUrlAttribute(): ?string
     {
         if (!$this->image) return null;
-        return url(\Illuminate\Support\Facades\Storage::url($this->image));
+        if (str_starts_with($this->image, 'http')) return $this->image;
+        $path = ltrim($this->image, '/');
+        if (!str_starts_with($path, 'uploads/')) {
+            $path = 'uploads/' . $path;
+        }
+        return asset($path);
     }
 
     /** Prix de vente à l'unité : priorité au selling_price manuel, sinon carton / nb unités */

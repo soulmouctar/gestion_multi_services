@@ -6,7 +6,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 
 import {
-  AvatarComponent,
   BadgeComponent,
   BreadcrumbRouterComponent,
   ColorModeService,
@@ -35,7 +34,7 @@ import { PermissionService, UserModulePermission } from '../../../core/services/
   selector: 'app-default-header',
   templateUrl: './default-header.component.html',
   styleUrls: ['./default-header.component.scss'],
-  imports: [CommonModule, FormsModule, ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
+  imports: [CommonModule, FormsModule, ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
 })
 export class DefaultHeaderComponent extends HeaderComponent implements OnInit, OnDestroy {
 
@@ -118,11 +117,11 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
       return avatar;
     }
 
-    if (avatar.startsWith('/')) {
-      return `${this.backendBaseUrl}${avatar}`;
+    let path = avatar.startsWith('/') ? avatar.substring(1) : avatar;
+    if (!path.startsWith('uploads/') && !path.startsWith('storage/')) {
+      path = 'uploads/' + path;
     }
-
-    return `${this.backendBaseUrl}/${avatar.replace(/^\/+/, '')}`;
+    return `${this.backendBaseUrl}/${path}`;
   }
 
   ngOnInit(): void {

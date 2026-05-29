@@ -2,7 +2,11 @@ export const environment = {
   production: false,
   urlBase: 'http://localhost:8000',
   apiUrl: 'http://127.0.0.1:8000/api',
-  appUrl: 'http://localhost:4200',
+  // appUrl: 'http://localhost:4200',
+
+  // urlBase: 'https://apimatkolla.ddevstock.com/',
+  // apiUrl: 'https://apimatkolla.ddevstock.com/api',
+  // appUrl: 'https://matkolla.ddevstock.com/',
   
   // Multi-tenant configuration
   multiTenant: true,

@@ -6,7 +6,6 @@ use App\Models\BankAccount;
 use App\Models\BankTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class BankingController extends BaseController
@@ -66,7 +65,7 @@ class BankingController extends BaseController
         $opening = (float) ($request->opening_balance ?? 0);
         $logoPath = null;
         if ($request->hasFile('logo')) {
-            $logoPath = $request->file('logo')->store('uploads/banking/logos', 'public');
+            $logoPath = $this->uploadFile($request->file('logo'), 'banking/logos');
         }
 
         $account = BankAccount::create([
@@ -126,15 +125,13 @@ class BankingController extends BaseController
         }
 
         if ($request->boolean('remove_logo') && $account->logo_path) {
-            Storage::disk('public')->delete($account->logo_path);
+            $this->deleteFile($account->logo_path);
             $payload['logo_path'] = null;
         }
 
         if ($request->hasFile('logo')) {
-            if ($account->logo_path) {
-                Storage::disk('public')->delete($account->logo_path);
-            }
-            $payload['logo_path'] = $request->file('logo')->store('uploads/banking/logos', 'public');
+            $this->deleteFile($account->logo_path);
+            $payload['logo_path'] = $this->uploadFile($request->file('logo'), 'banking/logos');
         }
 
         $account->update($payload);
@@ -149,11 +146,10 @@ class BankingController extends BaseController
             ->find($id);
         if (!$account) return $this->sendError('Account not found', [], 404);
 
-        // Delete proof files
         foreach ($account->transactions as $t) {
-            if ($t->proof_file) Storage::disk('public')->delete($t->proof_file);
+            $this->deleteFile($t->proof_file);
         }
-        if ($account->logo_path) Storage::disk('public')->delete($account->logo_path);
+        $this->deleteFile($account->logo_path);
 
         $account->delete();
         return $this->sendResponse([], 'Account deleted');
@@ -209,7 +205,7 @@ class BankingController extends BaseController
         try {
             $proofPath = null;
             if ($request->hasFile('proof_file')) {
-                $proofPath = $request->file('proof_file')->store('uploads/banking/proofs', 'public');
+                $proofPath = $this->uploadFile($request->file('proof_file'), 'banking/proofs');
             }
 
             $status = $request->status ?? 'COMPLETED';
@@ -243,7 +239,7 @@ class BankingController extends BaseController
             );
         } catch (\Exception $e) {
             DB::rollBack();
-            if ($proofPath) Storage::disk('public')->delete($proofPath);
+            $this->deleteFile($proofPath);
             return $this->sendError('Error', ['error' => $e->getMessage()], 500);
         }
     }
@@ -308,12 +304,8 @@ class BankingController extends BaseController
         ]);
         if ($v->fails()) return $this->sendError('Validation Error', $v->errors()->toArray(), 422);
 
-        // Delete old proof
-        if ($transaction->proof_file) {
-            Storage::disk('public')->delete($transaction->proof_file);
-        }
-
-        $proofPath = $request->file('proof_file')->store('uploads/banking/proofs', 'public');
+        $this->deleteFile($transaction->proof_file);
+        $proofPath = $this->uploadFile($request->file('proof_file'), 'banking/proofs');
         $transaction->update([
             'proof_file' => $proofPath,
             'proof_type' => $request->proof_type ?? $transaction->proof_type,
@@ -328,7 +320,7 @@ class BankingController extends BaseController
         if (!$transaction) return $this->sendError('Transaction not found', [], 404);
 
         $account = $transaction->bankAccount;
-        if ($transaction->proof_file) Storage::disk('public')->delete($transaction->proof_file);
+        $this->deleteFile($transaction->proof_file);
         $transaction->delete();
         $account->recalculateBalance();
 
@@ -441,7 +433,7 @@ class BankingController extends BaseController
                 ->get()
                 ->map(function ($t) {
                     if ($t->proof_file) {
-                        $t->proof_url = url('storage/' . ltrim($t->proof_file, '/'));
+                        $t->proof_url = asset($t->proof_file);
                     }
                     return $t;
                 });
@@ -469,10 +461,26 @@ class BankingController extends BaseController
     private function appendProofUrl($transaction)
     {
         if ($transaction->proof_file) {
-            // Use url() helper to always get the correct host:port
-            $transaction->proof_url = url('storage/' . ltrim($transaction->proof_file, '/'));
+            $transaction->proof_url = asset($transaction->proof_file);
         }
         return $transaction;
+    }
+
+    private function uploadFile($file, string $subfolder): string
+    {
+        $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('uploads/' . $subfolder), $filename);
+        return 'uploads/' . $subfolder . '/' . $filename;
+    }
+
+    private function deleteFile(?string $path): void
+    {
+        if ($path) {
+            $full = public_path($path);
+            if (file_exists($full)) {
+                unlink($full);
+            }
+        }
     }
 
     private function appendAccountMeta($account)

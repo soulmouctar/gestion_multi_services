@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Validator;
 class TenantController extends BaseController
 {
     public function __construct(
-        private readonly UserModulePermissionService $modulePermissionService
+        private UserModulePermissionService $modulePermissionService
     ) {}
 
     public function index()

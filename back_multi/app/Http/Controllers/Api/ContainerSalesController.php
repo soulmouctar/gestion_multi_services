@@ -626,7 +626,7 @@ class ContainerSalesController extends BaseController
                     'phone1' => $client->phone1,
                     'email' => $client->email,
                     'client_type' => $client->client_type,
-                    'photo_url' => $client->photo ? asset('storage/' . ltrim($client->photo, '/')) : null,
+                    'photo_url' => $client->photo_url,
                     'sale_count' => $sales->count(),
                     'open_sales_count' => $sales->whereIn('status', ['EN_COURS', 'PAYE_PARTIEL'])->count(),
                     'total_sales_gnf' => round((float) $totalSales, 2),
