@@ -80,8 +80,8 @@ class UserController extends BaseController
 
         if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
             $request->merge(['tenant_id' => $currentUser->tenant_id]);
-            if ($requestedRole !== 'USER') {
-                return $this->sendError('Vous ne pouvez créer que des utilisateurs avec le rôle USER', [], 403);
+            if (!in_array($requestedRole, ['USER', 'ADMIN'])) {
+                return $this->sendError('Vous ne pouvez créer que des utilisateurs avec le rôle USER ou ADMIN', [], 403);
             }
         }
 
@@ -152,8 +152,8 @@ class UserController extends BaseController
                 if ($user->tenant_id !== $currentUser->tenant_id) {
                     return $this->sendError('Vous ne pouvez gérer que les utilisateurs de votre organisation', [], 403);
                 }
-                if ($requestedRole !== 'USER') {
-                    return $this->sendError('Vous ne pouvez assigner que le rôle USER', [], 403);
+                if (!in_array($requestedRole, ['USER', 'ADMIN'])) {
+                    return $this->sendError('Vous ne pouvez assigner que les rôles USER ou ADMIN', [], 403);
                 }
             }
         }
@@ -286,8 +286,8 @@ class UserController extends BaseController
             if ($user->tenant_id !== $currentUser->tenant_id) {
                 return $this->sendError('Vous ne pouvez gérer que les utilisateurs de votre organisation', [], 403);
             }
-            if ($requestedRole !== 'USER') {
-                return $this->sendError('Vous ne pouvez assigner que le rôle USER', [], 403);
+            if (!in_array($requestedRole, ['USER', 'ADMIN'])) {
+                return $this->sendError('Vous ne pouvez assigner que les rôles USER ou ADMIN', [], 403);
             }
         }
 
@@ -444,8 +444,12 @@ class UserController extends BaseController
 
     private function uploadFile($file, string $subfolder): string
     {
+        $dir = public_path('uploads/' . $subfolder);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
         $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-        $file->move(public_path('uploads/' . $subfolder), $filename);
+        $file->move($dir, $filename);
         return 'uploads/' . $subfolder . '/' . $filename;
     }
 

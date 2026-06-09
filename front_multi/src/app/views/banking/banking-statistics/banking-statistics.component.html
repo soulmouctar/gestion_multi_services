@@ -1,184 +1,364 @@
-<div class="container-fluid px-4">
+<div class="banking-stats container-fluid px-3 px-md-4">
 
-  <!-- Header & filters -->
-  <div class="d-flex align-items-center justify-content-between mb-4">
+  <!-- ===== HEADER ===== -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <div>
-      <h2 class="mb-1 fw-bold">Statistiques Bancaires</h2>
-      <p class="text-muted mb-0">Vue consolidée de tous vos comptes bancaires</p>
+      <h2 class="mb-1 fw-bold d-flex align-items-center gap-2">
+        <svg cIcon name="cilBank" size="xl" class="text-primary"></svg>
+        Statistiques Bancaires
+      </h2>
+      <p class="text-muted mb-0 small">Vue consolidée et analyse de vos comptes bancaires</p>
     </div>
-    <a [routerLink]="['/banking/transactions']" cButton color="light" size="sm">
-      <svg cIcon name="cilList" class="me-1" size="sm"></svg> Transactions
-    </a>
+    <div class="d-flex gap-2">
+      <button cButton color="light" size="sm" (click)="loadStats()" [disabled]="loading">
+        <svg cIcon name="cilReload" size="sm" class="me-1"></svg> Actualiser
+      </button>
+      <a [routerLink]="['/banking/transactions']" cButton color="primary" size="sm">
+        <svg cIcon name="cilList" size="sm" class="me-1"></svg> Voir les transactions
+      </a>
+    </div>
   </div>
 
-  <!-- Period & account filters -->
-  <c-card class="mb-4 border-0 shadow-sm">
-    <c-card-body>
-      <div class="row g-3 align-items-end">
-        <div class="col-auto">
-          <div class="btn-group btn-group-sm">
-            <button *ngFor="let p of [{v:'week',l:'Semaine'},{v:'month',l:'Mois'},{v:'3months',l:'3 mois'},{v:'year',l:'Année'}]; trackBy: trackById"
-                    cButton [color]="period === p.v ? 'primary' : 'light'" size="sm" (click)="setPeriod(p.v)">
-              {{ p.l }}
-            </button>
-          </div>
-        </div>
-        <div class="col-md-2">
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_from" (change)="loadStats()" />
-        </div>
-        <div class="col-md-2">
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_to" (change)="loadStats()" />
-        </div>
-        <div class="col-md-3">
-          <select class="form-select form-select-sm" [(ngModel)]="filters.account_id" (change)="loadStats()">
+  <!-- ===== FILTRES ===== -->
+  <c-card class="mb-4 border-0 shadow-sm filter-card">
+    <c-card-body class="py-3">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="text-muted small me-2 fw-semibold">
+          <svg cIcon name="cilCalendar" size="sm" class="me-1"></svg>Période :
+        </span>
+        <button *ngFor="let p of [{v:'week',l:'Semaine'},{v:'month',l:'Ce mois'},{v:'3months',l:'3 mois'},{v:'year',l:'Année'}]; trackBy: trackById"
+                cButton [color]="period === p.v ? 'primary' : 'secondary'"
+                [variant]="period === p.v ? undefined : 'outline'"
+                size="sm" (click)="setPeriod(p.v)">
+          {{ p.l }}
+        </button>
+
+        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
+          <input type="date" class="form-control form-control-sm" style="width:140px"
+                 [(ngModel)]="filters.date_from" (change)="loadStats()" />
+          <span class="text-muted">→</span>
+          <input type="date" class="form-control form-control-sm" style="width:140px"
+                 [(ngModel)]="filters.date_to" (change)="loadStats()" />
+          <select class="form-select form-select-sm" style="width:220px"
+                  [(ngModel)]="filters.account_id" (change)="loadStats()">
             <option value="">Tous les comptes</option>
-            <option *ngFor="let a of accounts; trackBy: trackById" [value]="a.id">{{ a.bank_name }} – {{ a.account_name }}</option>
+            <option *ngFor="let a of accounts; trackBy: trackById" [value]="a.id">
+              {{ a.bank_name }} – {{ a.account_name }}
+            </option>
           </select>
         </div>
       </div>
     </c-card-body>
   </c-card>
 
-  <!-- Loading -->
+  <!-- ===== LOADING ===== -->
   <div *ngIf="loading" class="text-center py-5">
     <c-spinner color="primary"></c-spinner>
+    <div class="text-muted small mt-2">Chargement des statistiques...</div>
   </div>
 
   <div *ngIf="!loading && stats">
 
-    <!-- KPI Row -->
-    <div class="row g-4 mb-4">
-      <div class="col-md-3">
-        <c-card class="border-0 shadow-sm h-100 border-start border-4 border-primary">
+    <!-- ===== KPI ROW ===== -->
+    <div class="row g-3 mb-4">
+
+      <!-- Solde total -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <c-card class="kpi-card border-0 shadow-sm h-100">
           <c-card-body>
-            <div class="text-muted small mb-1">Solde Total</div>
-            <div class="fw-bold fs-4" [class.text-success]="stats.total_balance >= 0" [class.text-danger]="stats.total_balance < 0">
-              {{ fmt(stats.total_balance) }}
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="text-muted text-uppercase fw-semibold small mb-1" style="letter-spacing:0.5px;">Solde Total</div>
+                <div class="fs-4 fw-bold" [class.text-success]="stats.total_balance >= 0" [class.text-danger]="stats.total_balance < 0">
+                  {{ fmt(stats.total_balance) }}
+                </div>
+              </div>
+              <div class="kpi-icon bg-primary-subtle text-primary">
+                <svg cIcon name="cilWallet" size="lg"></svg>
+              </div>
             </div>
-            <div class="text-muted small">{{ stats.active_accounts }} compte(s) actif(s)</div>
-          </c-card-body>
-        </c-card>
-      </div>
-      <div class="col-md-3">
-        <c-card class="border-0 shadow-sm h-100 border-start border-4 border-success">
-          <c-card-body>
-            <div class="text-muted small mb-1">Total Crédits</div>
-            <div class="fw-bold fs-4 text-success">{{ fmt(stats.summary?.total_credits) }}</div>
-            <div class="text-muted small">Dépôts + Remises + Virements entrants</div>
-          </c-card-body>
-        </c-card>
-      </div>
-      <div class="col-md-3">
-        <c-card class="border-0 shadow-sm h-100 border-start border-4 border-danger">
-          <c-card-body>
-            <div class="text-muted small mb-1">Total Débits</div>
-            <div class="fw-bold fs-4 text-danger">{{ fmt(stats.summary?.total_debits) }}</div>
-            <div class="text-muted small">Retraits + Virements sortants</div>
-          </c-card-body>
-        </c-card>
-      </div>
-      <div class="col-md-3">
-        <c-card class="border-0 shadow-sm h-100" [class.border-start]="true" [class.border-4]="true"
-                [class.border-success]="netFlow() >= 0" [class.border-warning]="netFlow() < 0">
-          <c-card-body>
-            <div class="text-muted small mb-1">Flux Net de la Période</div>
-            <div class="fw-bold fs-4" [class.text-success]="netFlow() >= 0" [class.text-danger]="netFlow() < 0">
-              {{ netFlow() >= 0 ? '+' : '' }}{{ fmt(netFlow()) }}
+            <div class="mt-2 d-flex flex-wrap gap-1">
+              <ng-container *ngIf="stats.balance_by_currency?.length; else fallbackBalance">
+                <span *ngFor="let c of stats.balance_by_currency; trackBy: trackById"
+                      class="badge bg-light text-dark border small">
+                  {{ fmt(c.total_balance, c.currency) }}
+                </span>
+              </ng-container>
+              <ng-template #fallbackBalance>
+                <span class="text-muted small">{{ stats.active_accounts }} compte(s) actif(s) / {{ stats.total_accounts }}</span>
+              </ng-template>
             </div>
-            <div class="text-muted small">{{ stats.summary?.total_transactions }} transactions</div>
+          </c-card-body>
+        </c-card>
+      </div>
+
+      <!-- Crédits -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <c-card class="kpi-card border-0 shadow-sm h-100">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="text-muted text-uppercase fw-semibold small mb-1" style="letter-spacing:0.5px;">Total Crédits</div>
+                <div class="fs-4 fw-bold text-success">{{ fmt(stats.summary?.total_credits) }}</div>
+              </div>
+              <div class="kpi-icon bg-success-subtle text-success">
+                <svg cIcon name="cilArrowBottom" size="lg"></svg>
+              </div>
+            </div>
+            <div class="mt-2 small text-muted">
+              <span class="me-2">Dépôts : <b class="text-dark">{{ fmt(stats.summary?.total_depots) }}</b></span>
+              <span>Virements : <b class="text-dark">{{ fmt(stats.summary?.total_virements_entrants) }}</b></span>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+
+      <!-- Débits -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <c-card class="kpi-card border-0 shadow-sm h-100">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="text-muted text-uppercase fw-semibold small mb-1" style="letter-spacing:0.5px;">Total Débits</div>
+                <div class="fs-4 fw-bold text-danger">{{ fmt(stats.summary?.total_debits) }}</div>
+              </div>
+              <div class="kpi-icon bg-danger-subtle text-danger">
+                <svg cIcon name="cilArrowTop" size="lg"></svg>
+              </div>
+            </div>
+            <div class="mt-2 small text-muted">
+              <span class="me-2">Retraits : <b class="text-dark">{{ fmt(stats.summary?.total_retraits) }}</b></span>
+              <span>Virements : <b class="text-dark">{{ fmt(stats.summary?.total_virements_sortants) }}</b></span>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+
+      <!-- Flux net -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <c-card class="kpi-card border-0 shadow-sm h-100">
+          <c-card-body>
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="text-muted text-uppercase fw-semibold small mb-1" style="letter-spacing:0.5px;">Flux Net</div>
+                <div class="fs-4 fw-bold" [class.text-success]="netFlow() >= 0" [class.text-danger]="netFlow() < 0">
+                  {{ netFlow() >= 0 ? '+' : '' }}{{ fmt(netFlow()) }}
+                </div>
+              </div>
+              <div class="kpi-icon" [class.bg-success-subtle]="netFlow() >= 0" [class.text-success]="netFlow() >= 0"
+                                    [class.bg-warning-subtle]="netFlow() < 0" [class.text-warning]="netFlow() < 0">
+                <svg cIcon [name]="netFlow() >= 0 ? 'cilTrendingUp' : 'cilTrendingDown'" size="lg"></svg>
+              </div>
+            </div>
+            <div class="mt-2 small text-muted d-flex justify-content-between">
+              <span>{{ stats.summary?.total_transactions }} tx</span>
+              <span>Taux épargne : <b [class.text-success]="savingsRate() >= 0" [class.text-danger]="savingsRate() < 0">{{ savingsRate() }}%</b></span>
+            </div>
           </c-card-body>
         </c-card>
       </div>
     </div>
 
-    <div class="row g-4 mb-4">
-
-      <div class="col-12">
-        <c-card class="border-0 shadow-sm">
-          <c-card-header class="fw-semibold bg-transparent border-0 pt-3">Évolution crédits / débits</c-card-header>
-          <c-card-body>
-            <div *ngIf="!stats.by_month?.length" class="text-muted text-center py-3">Aucune donnée</div>
-            <div *ngIf="stats.by_month?.length" style="height:300px;">
-              <c-chart type="line" [data]="monthlyFlowChartData" [options]="chartOptions"></c-chart>
+    <!-- ===== INSIGHTS ROW ===== -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-4">
+        <c-card class="insight-card border-0 shadow-sm h-100">
+          <c-card-body class="d-flex align-items-center gap-3">
+            <div class="insight-icon bg-info-subtle text-info">
+              <svg cIcon name="cilSpeedometer" size="lg"></svg>
+            </div>
+            <div class="flex-grow-1">
+              <div class="text-muted small">Volume moyen / jour</div>
+              <div class="fw-bold">{{ fmt(avgDailyVolume()) }}</div>
             </div>
           </c-card-body>
         </c-card>
       </div>
-
-      <!-- Par compte -->
-      <div class="col-md-6">
-        <c-card class="border-0 shadow-sm h-100">
-          <c-card-header class="fw-semibold bg-transparent border-0 pt-3">Solde par compte</c-card-header>
-          <c-card-body>
-            <div *ngIf="stats.accounts?.length" class="mb-4" style="height:260px;">
-              <c-chart type="bar" [data]="accountBalanceChartData" [options]="chartOptions"></c-chart>
+      <div class="col-12 col-md-4">
+        <c-card class="insight-card border-0 shadow-sm h-100">
+          <c-card-body class="d-flex align-items-center gap-3">
+            <div class="insight-icon bg-success-subtle text-success">
+              <svg cIcon name="cilStar" size="lg"></svg>
             </div>
-            <div *ngIf="!stats.accounts?.length" class="text-muted text-center py-3">Aucun compte</div>
-            <div *ngFor="let a of stats.accounts; trackBy: trackById" class="mb-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <div>
-                  <span class="fw-semibold small">{{ a.bank_name }}</span>
-                  <span class="text-muted small ms-2">{{ a.account_name }}</span>
-                </div>
-                <span class="fw-bold small" [class.text-success]="a.current_balance >= 0" [class.text-danger]="a.current_balance < 0">
-                  {{ fmt(a.current_balance, a.currency) }}
-                </span>
+            <div class="flex-grow-1">
+              <div class="text-muted small">Meilleur mois</div>
+              <div class="fw-bold" *ngIf="bestMonth(); else noBest">
+                {{ monthLabel(bestMonth().month) }}
+                <span class="text-success small ms-1">(+{{ fmt(bestMonth().credits - bestMonth().debits) }})</span>
               </div>
-              <div class="text-muted x-small font-monospace">{{ a.account_number }}</div>
-              <span class="badge" [class.bg-success]="a.is_active" [class.bg-secondary]="!a.is_active">
-                {{ a.is_active ? 'Actif' : 'Inactif' }}
-              </span>
+              <ng-template #noBest><div class="text-muted small">Aucune donnée</div></ng-template>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+      <div class="col-12 col-md-4">
+        <c-card class="insight-card border-0 shadow-sm h-100">
+          <c-card-body class="d-flex align-items-center gap-3">
+            <div class="insight-icon bg-warning-subtle text-warning">
+              <svg cIcon name="cilChartPie" size="lg"></svg>
+            </div>
+            <div class="flex-grow-1">
+              <div class="text-muted small">Type dominant</div>
+              <div class="fw-bold" *ngIf="topType(); else noTop">
+                {{ txTypeLabel(topType().transaction_type) }}
+                <span class="text-muted small ms-1">({{ topType().count }} tx)</span>
+              </div>
+              <ng-template #noTop><div class="text-muted small">Aucune transaction</div></ng-template>
+            </div>
+          </c-card-body>
+        </c-card>
+      </div>
+    </div>
+
+    <!-- ===== ÉVOLUTION CRÉDITS / DÉBITS ===== -->
+    <c-card class="border-0 shadow-sm mb-4">
+      <c-card-header class="bg-transparent border-0 pt-3 pb-2 d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-semibold">Évolution crédits / débits</div>
+          <div class="text-muted small">12 derniers mois</div>
+        </div>
+        <div class="d-flex gap-3 align-items-center">
+          <span class="d-flex align-items-center small text-muted">
+            <span class="legend-dot bg-success me-1"></span>Crédits
+          </span>
+          <span class="d-flex align-items-center small text-muted">
+            <span class="legend-dot bg-danger me-1"></span>Débits
+          </span>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <div *ngIf="!stats.by_month?.length" class="text-center py-5 text-muted">
+          <svg cIcon name="cilChart" size="xxl" class="mb-2 opacity-50"></svg>
+          <div>Aucune donnée disponible</div>
+        </div>
+        <div *ngIf="stats.by_month?.length" style="height:320px;">
+          <c-chart type="line" [data]="monthlyFlowChartData" [options]="lineChartOptions"></c-chart>
+        </div>
+      </c-card-body>
+    </c-card>
+
+    <!-- ===== CHARTS ROW ===== -->
+    <div class="row g-3 mb-4">
+
+      <!-- Solde par compte -->
+      <div class="col-12 col-lg-7">
+        <c-card class="border-0 shadow-sm h-100">
+          <c-card-header class="bg-transparent border-0 pt-3 pb-2">
+            <div class="fw-semibold">Solde par compte</div>
+            <div class="text-muted small">Vue détaillée et comparative</div>
+          </c-card-header>
+          <c-card-body>
+            <div *ngIf="!stats.accounts?.length" class="text-center py-5 text-muted">
+              <svg cIcon name="cilBank" size="xxl" class="mb-2 opacity-50"></svg>
+              <div>Aucun compte enregistré</div>
+            </div>
+
+            <div *ngIf="stats.accounts?.length" class="mb-3" style="height:220px;">
+              <c-chart type="bar" [data]="accountBalanceChartData" [options]="barChartOptions"></c-chart>
+            </div>
+
+            <div *ngFor="let a of stats.accounts; trackBy: trackById" class="account-row py-2 border-bottom">
+              <div class="d-flex align-items-center gap-2">
+                <span class="brand-dot" [style.background]="a.brand_color || '#64748b'"></span>
+                <div class="flex-grow-1 min-w-0">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-truncate">
+                      <span class="fw-semibold small">{{ a.bank_name }}</span>
+                      <span class="text-muted small ms-1">· {{ a.account_name }}</span>
+                    </div>
+                    <span class="fw-bold small text-nowrap"
+                          [class.text-success]="a.current_balance >= 0"
+                          [class.text-danger]="a.current_balance < 0">
+                      {{ fmt(a.current_balance, a.currency) }}
+                    </span>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center mt-1">
+                    <span class="text-muted x-small font-monospace">{{ a.account_number }}</span>
+                    <span class="badge" [class.bg-success-subtle]="a.is_active" [class.text-success]="a.is_active"
+                                       [class.bg-secondary-subtle]="!a.is_active" [class.text-secondary]="!a.is_active"
+                                       style="font-size:0.7rem;">
+                      {{ a.is_active ? 'Actif' : 'Inactif' }}
+                    </span>
+                  </div>
+                  <c-progress class="mt-2"
+                              [value]="maxAccountBalance() > 0 ? (abs(a.current_balance) / maxAccountBalance() * 100) : 0"
+                              [color]="a.current_balance >= 0 ? 'success' : 'danger'"
+                              height="4"></c-progress>
+                </div>
+              </div>
             </div>
           </c-card-body>
         </c-card>
       </div>
 
       <!-- Répartition par type -->
-      <div class="col-md-6">
+      <div class="col-12 col-lg-5">
         <c-card class="border-0 shadow-sm h-100">
-          <c-card-header class="fw-semibold bg-transparent border-0 pt-3">Répartition par type</c-card-header>
+          <c-card-header class="bg-transparent border-0 pt-3 pb-2">
+            <div class="fw-semibold">Répartition par type</div>
+            <div class="text-muted small">Volume des opérations</div>
+          </c-card-header>
           <c-card-body>
-            <div *ngIf="stats.by_type?.length" class="mb-4" style="height:260px;">
-              <c-chart type="doughnut" [data]="transactionTypeChartData" [options]="chartOptions"></c-chart>
+            <div *ngIf="!stats.by_type?.length" class="text-center py-5 text-muted">
+              <svg cIcon name="cilChartPie" size="xxl" class="mb-2 opacity-50"></svg>
+              <div>Aucune transaction</div>
             </div>
-            <div *ngIf="!stats.by_type?.length" class="text-muted text-center py-3">Aucune transaction</div>
+
+            <div *ngIf="stats.by_type?.length" class="doughnut-wrapper mb-3">
+              <div class="doughnut-canvas">
+                <c-chart type="doughnut" [data]="transactionTypeChartData" [options]="doughnutOptions"></c-chart>
+              </div>
+              <div class="doughnut-center">
+                <div class="text-muted small">Total opérations</div>
+                <div class="fw-bold fs-5">{{ stats.summary?.total_transactions || 0 }}</div>
+              </div>
+            </div>
+
             <div *ngFor="let t of stats.by_type; trackBy: trackById" class="mb-3">
-              <div class="d-flex justify-content-between mb-1">
-                <span class="small">
-                  <span class="badge bg-{{ txTypeColor(t.transaction_type) }} me-2">{{ t.count }}</span>
-                  {{ txTypeLabel(t.transaction_type) }}
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small d-flex align-items-center gap-2">
+                  <svg cIcon [name]="txTypeIcon(t.transaction_type)" size="sm"
+                       [class]="'text-' + txTypeColor(t.transaction_type)"></svg>
+                  <span class="fw-semibold">{{ txTypeLabel(t.transaction_type) }}</span>
+                  <span class="badge bg-light text-dark border" style="font-size:0.7rem;">{{ t.count }}</span>
                 </span>
                 <span class="fw-bold small" [class.text-success]="isCredit(t.transaction_type)" [class.text-danger]="!isCredit(t.transaction_type)">
-                  {{ fmt(t.total) }}
+                  {{ isCredit(t.transaction_type) ? '+' : '-' }}{{ fmt(t.total) }}
                 </span>
               </div>
               <c-progress [value]="maxByType() > 0 ? (t.total / maxByType() * 100) : 0"
-                          [color]="txTypeColor(t.transaction_type)" thin></c-progress>
+                          [color]="txTypeColor(t.transaction_type)"
+                          height="6"></c-progress>
             </div>
           </c-card-body>
         </c-card>
       </div>
     </div>
 
-    <!-- Évolution mensuelle -->
+    <!-- ===== TABLEAU ÉVOLUTION MENSUELLE ===== -->
     <c-card class="border-0 shadow-sm mb-4">
-      <c-card-header class="fw-semibold bg-transparent border-0 pt-3">Évolution mensuelle (12 derniers mois)</c-card-header>
-      <c-card-body>
-        <div *ngIf="!stats.by_month?.length" class="text-muted text-center py-3">Aucune donnée</div>
+      <c-card-header class="bg-transparent border-0 pt-3 pb-2 d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-semibold">Détail mensuel</div>
+          <div class="text-muted small">12 derniers mois</div>
+        </div>
+      </c-card-header>
+      <c-card-body class="p-0">
+        <div *ngIf="!stats.by_month?.length" class="text-center text-muted py-4">Aucune donnée</div>
         <div *ngIf="stats.by_month?.length" class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
+          <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
-                <th>Mois</th>
+                <th class="ps-3">Mois</th>
                 <th class="text-end text-success">Crédits</th>
                 <th class="text-end text-danger">Débits</th>
                 <th class="text-end">Flux net</th>
-                <th class="text-center">Nb tx</th>
+                <th class="text-center pe-3">Transactions</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let m of stats.by_month; trackBy: trackById">
-                <td class="fw-semibold small">{{ m.month }}</td>
+                <td class="fw-semibold small ps-3">{{ monthLabel(m.month) }}</td>
                 <td class="text-end text-success small">+{{ fmt(m.credits) }}</td>
                 <td class="text-end text-danger small">-{{ fmt(m.debits) }}</td>
                 <td class="text-end small fw-bold"
@@ -186,7 +366,9 @@
                     [class.text-danger]="(m.credits - m.debits) < 0">
                   {{ (m.credits - m.debits) >= 0 ? '+' : '' }}{{ fmt(m.credits - m.debits) }}
                 </td>
-                <td class="text-center small">{{ m.count }}</td>
+                <td class="text-center small pe-3">
+                  <span class="badge bg-light text-dark border">{{ m.count }}</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -194,41 +376,55 @@
       </c-card-body>
     </c-card>
 
-    <!-- Transactions récentes -->
+    <!-- ===== TRANSACTIONS RÉCENTES ===== -->
     <c-card class="border-0 shadow-sm">
-      <c-card-header class="fw-semibold bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
-        <span>Transactions récentes</span>
-        <a [routerLink]="['/banking/transactions']" cButton color="light" size="sm">Voir tout</a>
+      <c-card-header class="bg-transparent border-0 pt-3 pb-2 d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-semibold">Transactions récentes</div>
+          <div class="text-muted small">Les 15 dernières opérations</div>
+        </div>
+        <a [routerLink]="['/banking/transactions']" cButton color="light" size="sm">
+          Voir tout <svg cIcon name="cilArrowRight" size="sm" class="ms-1"></svg>
+        </a>
       </c-card-header>
       <c-card-body class="p-0">
-        <div *ngIf="!stats.recent_transactions?.length" class="text-muted text-center py-3">Aucune transaction</div>
+        <div *ngIf="!stats.recent_transactions?.length" class="text-center text-muted py-4">Aucune transaction</div>
         <div *ngIf="stats.recent_transactions?.length" class="table-responsive">
-          <table class="table table-hover table-sm mb-0">
+          <table class="table table-hover table-sm align-middle mb-0">
             <thead class="table-light">
               <tr>
-                <th>Date</th>
-                <th>Banque</th>
+                <th class="ps-3">Date</th>
+                <th>Banque / Compte</th>
                 <th>Type</th>
                 <th class="text-end">Montant</th>
-                <th>Réf.</th>
-                <th class="text-center">Preuve</th>
+                <th>Référence</th>
+                <th class="text-center pe-3">Preuve</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let t of stats.recent_transactions; trackBy: trackById">
-                <td class="small">{{ t.transaction_date | date:'dd/MM/yy' }}</td>
-                <td class="small fw-semibold">{{ t.bank_name }}<br/><span class="text-muted font-monospace">{{ t.account_number }}</span></td>
+                <td class="small ps-3 text-nowrap">{{ t.transaction_date | date:'dd/MM/yy' }}</td>
+                <td class="small">
+                  <div class="fw-semibold">{{ t.bank_name }}</div>
+                  <div class="text-muted font-monospace x-small">{{ t.account_number }}</div>
+                </td>
                 <td>
-                  <span class="badge bg-{{ txTypeColor(t.transaction_type) }}-subtle text-{{ txTypeColor(t.transaction_type) }} border border-{{ txTypeColor(t.transaction_type) }}-subtle small">
+                  <span class="badge d-inline-flex align-items-center gap-1"
+                        [class]="'bg-' + txTypeColor(t.transaction_type) + '-subtle text-' + txTypeColor(t.transaction_type)"
+                        style="font-size:0.72rem;">
+                    <svg cIcon [name]="txTypeIcon(t.transaction_type)" size="sm"></svg>
                     {{ txTypeLabel(t.transaction_type) }}
                   </span>
                 </td>
-                <td class="text-end fw-bold small" [class.text-success]="isCredit(t.transaction_type)" [class.text-danger]="!isCredit(t.transaction_type)">
+                <td class="text-end fw-bold small text-nowrap"
+                    [class.text-success]="isCredit(t.transaction_type)"
+                    [class.text-danger]="!isCredit(t.transaction_type)">
                   {{ isCredit(t.transaction_type) ? '+' : '-' }}{{ fmt(t.amount, t.currency) }}
                 </td>
                 <td class="small text-muted">{{ t.reference || '—' }}</td>
-                <td class="text-center">
-                  <a *ngIf="t.proof_url" [href]="t.proof_url" target="_blank" class="btn btn-sm btn-outline-info py-0 px-1">
+                <td class="text-center pe-3">
+                  <a *ngIf="t.proof_url" [href]="t.proof_url" target="_blank"
+                     class="btn btn-sm btn-outline-info py-0 px-2">
                     <svg cIcon name="cilFile" size="sm"></svg>
                   </a>
                   <span *ngIf="!t.proof_url" class="text-muted">—</span>
@@ -239,6 +435,84 @@
         </div>
       </c-card-body>
     </c-card>
-
   </div>
 </div>
+
+<style>
+  .banking-stats .kpi-card {
+    transition: transform .2s ease, box-shadow .2s ease;
+    border-radius: 12px;
+  }
+  .banking-stats .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
+  }
+  .banking-stats .kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .banking-stats .insight-card {
+    border-radius: 10px;
+  }
+  .banking-stats .insight-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .banking-stats .filter-card {
+    border-radius: 10px;
+  }
+  .banking-stats .legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .banking-stats .brand-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .banking-stats .x-small {
+    font-size: 0.72rem;
+  }
+  .banking-stats .account-row:last-child {
+    border-bottom: none !important;
+  }
+  .banking-stats .doughnut-wrapper {
+    position: relative;
+    height: 260px;
+  }
+  .banking-stats .doughnut-canvas {
+    position: absolute;
+    inset: 0;
+  }
+  .banking-stats .doughnut-center {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .banking-stats .table thead th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #64748b;
+    font-weight: 600;
+  }
+  .banking-stats .min-w-0 {
+    min-width: 0;
+  }
+</style>

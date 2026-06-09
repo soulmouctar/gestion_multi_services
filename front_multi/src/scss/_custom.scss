@@ -1,17 +1,17 @@
-// Here you can add other styles
-
-// custom .chartjs-tooltip-body-item padding
+// @use rules must come first
 @use "charts";
-
-// custom tweaks for scrollbar styling (wip)
 @use "scrollbar";
 
- // custom calendar today cell color
+// Sécurité : empêche les overlays SweetAlert2 orphelins de bloquer l'interface
+body:not(.swal2-shown) .swal2-container {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 .calendar-cell.today {
   --cui-calendar-cell-today-color: var(--cui-info) !important;
 }
 
-// custom select week cursor pointer
 .select-week .calendar-row.current {
   cursor: pointer;
 }

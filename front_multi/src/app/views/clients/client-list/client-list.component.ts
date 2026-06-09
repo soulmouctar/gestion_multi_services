@@ -14,6 +14,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
 import { AlertService } from '../../../core/services/alert.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ImageCompressionService } from '../../../core/services/image-compression.service';
 
 @Component({
   selector: 'app-client-list',
@@ -88,6 +89,7 @@ export class ClientListComponent implements OnInit {
     private alertService: AlertService,
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
+    private imageCompression: ImageCompressionService,
   ) {
     this.clientForm = this.fb.group({
       name:      ['', [Validators.required, Validators.maxLength(150)]],
@@ -327,13 +329,12 @@ export class ClientListComponent implements OnInit {
   onPhotoSelected(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    this.selectedPhotoFile = file;
     const reader = new FileReader();
-    reader.onload = (e) => {
-      this.photoPreview = e.target?.result as string;
-      this.cdr.detectChanges();
-    };
+    reader.onload = (e) => { this.photoPreview = e.target?.result as string; this.cdr.detectChanges(); };
     reader.readAsDataURL(file);
+    this.imageCompression.compress(file).then(compressed => {
+      this.selectedPhotoFile = compressed;
+    });
   }
 
   private uploadPhoto(clientId: number, callback: () => void): void {

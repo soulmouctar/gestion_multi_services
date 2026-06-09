@@ -340,9 +340,22 @@ class BankingController extends BaseController
             // All active accounts
             $accounts = BankAccount::where('tenant_id', $tenantId)
                 ->orderBy('bank_name')
-                ->get(['id', 'bank_name', 'account_number', 'account_name', 'currency', 'current_balance', 'account_type', 'is_active']);
+                ->get(['id', 'bank_name', 'account_number', 'account_name', 'currency', 'current_balance', 'account_type', 'is_active', 'brand_color', 'logo_path']);
 
             $totalBalance = $accounts->where('is_active', true)->sum('current_balance');
+
+            // Per-currency balance breakdown (USD + GNF cannot be naively summed)
+            $balanceByCurrency = $accounts
+                ->where('is_active', true)
+                ->groupBy('currency')
+                ->map(function ($items, $cur) {
+                    return [
+                        'currency'      => $cur,
+                        'total_balance' => (float) $items->sum('current_balance'),
+                        'accounts'      => $items->count(),
+                    ];
+                })
+                ->values();
 
             // Period summary
             $summary = DB::table('bank_transactions')
@@ -433,22 +446,23 @@ class BankingController extends BaseController
                 ->get()
                 ->map(function ($t) {
                     if ($t->proof_file) {
-                        $t->proof_url = asset($t->proof_file);
+                        $t->proof_url = rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . ltrim($t->proof_file, '/');
                     }
                     return $t;
                 });
 
             return $this->sendResponse([
-                'total_balance'       => (float) $totalBalance,
-                'total_accounts'      => $accounts->count(),
-                'active_accounts'     => $accounts->where('is_active', true)->count(),
-                'accounts'            => $accounts,
-                'summary'             => $summary,
-                'by_account'          => $byAccount,
-                'by_month'            => $byMonth,
-                'by_type'             => $byType,
-                'recent_transactions' => $recentTransactions,
-                'period'              => ['from' => $dateFrom, 'to' => $dateTo],
+                'total_balance'        => (float) $totalBalance,
+                'total_accounts'       => $accounts->count(),
+                'active_accounts'      => $accounts->where('is_active', true)->count(),
+                'balance_by_currency'  => $balanceByCurrency,
+                'accounts'             => $accounts,
+                'summary'              => $summary,
+                'by_account'           => $byAccount,
+                'by_month'             => $byMonth,
+                'by_type'              => $byType,
+                'recent_transactions'  => $recentTransactions,
+                'period'               => ['from' => $dateFrom, 'to' => $dateTo],
             ], 'Statistics retrieved');
 
         } catch (\Exception $e) {
@@ -461,15 +475,19 @@ class BankingController extends BaseController
     private function appendProofUrl($transaction)
     {
         if ($transaction->proof_file) {
-            $transaction->proof_url = asset($transaction->proof_file);
+            $transaction->proof_url = rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . ltrim($transaction->proof_file, '/');
         }
         return $transaction;
     }
 
     private function uploadFile($file, string $subfolder): string
     {
+        $dir = public_path('uploads/' . $subfolder);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
         $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-        $file->move(public_path('uploads/' . $subfolder), $filename);
+        $file->move($dir, $filename);
         return 'uploads/' . $subfolder . '/' . $filename;
     }
 

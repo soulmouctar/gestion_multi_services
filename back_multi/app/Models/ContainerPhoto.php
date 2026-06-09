@@ -23,7 +23,11 @@ class ContainerPhoto extends Model
     {
         if (!$this->image_path) return null;
         if (str_starts_with($this->image_path, 'http')) return $this->image_path;
-        return asset($this->image_path);
+        $path = ltrim($this->image_path, '/');
+        if (!str_starts_with($path, 'uploads/')) {
+            $path = 'uploads/' . $path;
+        }
+        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
     }
 
     public function container()

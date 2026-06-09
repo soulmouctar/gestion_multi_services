@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, timeout, retry, catchError, throwError } from 'rxjs';
+import { Observable, from, timeout, retry, catchError, throwError, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, PaginatedResponse } from '../models';
+import { ImageCompressionService } from './image-compression.service';
 
 export interface Product {
   id: number;
@@ -87,7 +88,7 @@ export interface ProductStatistics {
 export class ProductService {
   private readonly API_URL = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private imageCompression: ImageCompressionService) {}
 
   /**
    * Get paginated list of products with filters
@@ -159,10 +160,14 @@ export class ProductService {
   }
 
   uploadImage(id: number, file: File): Observable<ApiResponse<Product>> {
-    const fd = new FormData();
-    fd.append('image', file);
-    return this.http.post<ApiResponse<Product>>(`${this.API_URL}/products/${id}/image`, fd)
-      .pipe(timeout(30000), catchError(this.handleError));
+    return from(this.imageCompression.compress(file)).pipe(
+      switchMap(compressed => {
+        const fd = new FormData();
+        fd.append('image', compressed);
+        return this.http.post<ApiResponse<Product>>(`${this.API_URL}/products/${id}/image`, fd)
+          .pipe(timeout(30000), catchError(this.handleError));
+      })
+    );
   }
 
   removeImage(id: number): Observable<ApiResponse<Product>> {

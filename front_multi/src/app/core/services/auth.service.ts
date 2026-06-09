@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
+import { Observable, BehaviorSubject, from, tap, catchError, throwError, switchMap } from 'rxjs';
 import { User, AuthState, ApiResponse } from '../models';
 import { environment } from '../../../environments/environment';
+import { ImageCompressionService } from './image-compression.service';
 
 @Injectable({
   providedIn: 'root'
@@ -25,7 +26,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private imageCompression: ImageCompressionService,
   ) {
     this.initializeAuthState();
   }
@@ -145,12 +147,15 @@ export class AuthService {
   }
 
   updateAvatar(avatar: File): Observable<ApiResponse<any>> {
-    const fd = new FormData();
-    fd.append('avatar', avatar);
     const token = this.getCurrentToken();
-    return this.http.post<ApiResponse<any>>(`${this.API_URL}/me/avatar`, fd, {
-      headers: new HttpHeaders({ 'Authorization': `Bearer ${token}` })
-    }).pipe(
+    return from(this.imageCompression.compressAvatar(avatar)).pipe(
+      switchMap(compressed => {
+        const fd = new FormData();
+        fd.append('avatar', compressed);
+        return this.http.post<ApiResponse<any>>(`${this.API_URL}/me/avatar`, fd, {
+          headers: new HttpHeaders({ 'Authorization': `Bearer ${token}` })
+        });
+      }),
       tap(response => {
         if (response.success && response.data) {
           const updated = { ...this.currentUser, ...response.data };

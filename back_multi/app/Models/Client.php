@@ -48,7 +48,7 @@ class Client extends Model
         if (!str_starts_with($path, 'uploads/')) {
             $path = 'uploads/' . $path;
         }
-        return asset($path);
+        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
     }
 
     public function scopeForTenant($query, int $tenantId)

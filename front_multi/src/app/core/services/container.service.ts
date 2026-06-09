@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Observable, BehaviorSubject, from } from 'rxjs';
+import { map, tap, switchMap } from 'rxjs/operators';
 import { ApiService } from './api.service';
+import { ImageCompressionService } from './image-compression.service';
 import { 
   Container, 
   ContainerPhoto, 
@@ -30,7 +31,7 @@ export class ContainerService {
   interestCalculations$ = this.interestCalculations.asObservable();
   dispatchRequests$ = this.dispatchRequests.asObservable();
   
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService, private imageCompression: ImageCompressionService) {}
   
   // Container Management
   getContainers(options?: FilterOptions): Observable<PaginatedResponse<Container>> {
@@ -86,9 +87,13 @@ export class ContainerService {
   
   // Container Photos Management
   uploadContainerPhoto(containerId: string, file: File): Observable<ApiResponse<ContainerPhoto>> {
-    const formData = new FormData();
-    formData.append('photo', file);
-    return this.apiService.post(`containers/${containerId}/photos`, formData);
+    return from(this.imageCompression.compress(file)).pipe(
+      switchMap(compressed => {
+        const formData = new FormData();
+        formData.append('photo', compressed);
+        return this.apiService.post(`containers/${containerId}/photos`, formData);
+      })
+    );
   }
   
   deleteContainerPhoto(containerId: string, photoId: string): Observable<ApiResponse<any>> {
@@ -279,10 +284,13 @@ export class ContainerService {
     if (returnData.notes) {
       formData.append('notes', returnData.notes);
     }
-    if (returnData.photos) {
-      returnData.photos.forEach(photo => {
-        formData.append('photos[]', photo);
-      });
+    if (returnData.photos && returnData.photos.length > 0) {
+      return from(this.imageCompression.compressAll(returnData.photos)).pipe(
+        switchMap(compressed => {
+          compressed.forEach(photo => formData.append('photos[]', photo));
+          return this.apiService.post(`containers/${containerId}/return`, formData);
+        })
+      );
     }
     return this.apiService.post(`containers/${containerId}/return`, formData);
   }

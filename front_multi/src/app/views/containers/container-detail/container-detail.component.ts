@@ -253,12 +253,18 @@ export class ContainerDetailComponent implements OnInit {
     });
   }
 
-  getPhotoUrl(imagePath: string): string {
-    if (!imagePath) return 'assets/img/placeholder.png';
+  getPhotoUrl(photo: any): string {
+    if (!photo) return 'assets/img/placeholder.png';
+    if (photo.image_url) return photo.image_url;
+
+    const imagePath: string = photo.image_path || photo;
+    if (!imagePath || typeof imagePath !== 'string') return 'assets/img/placeholder.png';
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return imagePath;
     }
-    return `${environment.urlBase}/storage/${imagePath}`;
+    const clean = imagePath.replace(/^\/+/, '');
+    const path  = clean.startsWith('uploads/') ? clean : `uploads/${clean}`;
+    return `${environment.urlBase}/${path}`;
   }
 
   getProductName(productId: number): string {

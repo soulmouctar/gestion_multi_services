@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Observable, BehaviorSubject, from } from 'rxjs';
+import { map, tap, switchMap } from 'rxjs/operators';
 import { ApiService } from './api.service';
+import { ImageCompressionService } from './image-compression.service';
 import { 
   Location, 
   Building, 
@@ -45,7 +46,7 @@ export class RentalService {
   owners$ = this.owners.asObservable();
   ownerPayments$ = this.ownerPayments.asObservable();
   
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService, private imageCompression: ImageCompressionService) {}
   
   // Location Management
   getLocations(options?: FilterOptions): Observable<PaginatedResponse<Location>> {
@@ -288,11 +289,13 @@ export class RentalService {
   }
   
   uploadUnitPhotos(unitId: string, files: File[]): Observable<ApiResponse<string[]>> {
-    const formData = new FormData();
-    files.forEach(file => {
-      formData.append('photos[]', file);
-    });
-    return this.apiService.post(`housing-units/${unitId}/photos`, formData);
+    return from(this.imageCompression.compressAll(files)).pipe(
+      switchMap(compressed => {
+        const formData = new FormData();
+        compressed.forEach(f => formData.append('photos[]', f));
+        return this.apiService.post(`housing-units/${unitId}/photos`, formData);
+      })
+    );
   }
   
   deleteUnitPhoto(unitId: string, photoId: string): Observable<ApiResponse<any>> {

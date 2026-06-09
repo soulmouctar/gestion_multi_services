@@ -77,6 +77,14 @@ import { AlertService } from '../../../core/services/alert.service';
     .btn-icon.btn-toggle:hover { border-color: #198754; color: #198754; }
     .btn-icon.btn-toggle.active:hover { border-color: #dc3545; color: #dc3545; }
     .btn-icon.btn-perm:hover { border-color: #6f42c1; color: #6f42c1; }
+    .btn-icon.btn-role:hover { border-color: #0891b2; color: #0891b2; }
+    .role-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 2px solid #e9ecef; border-radius: 10px; cursor: pointer; margin-bottom: 10px; transition: all 0.15s; }
+    .role-option:hover { border-color: #c7d2fe; background: #f5f7ff; }
+    .role-option.selected { border-color: #3949ab; background: #eef2ff; }
+    .role-option input { display: none; }
+    .role-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+    .role-title { font-weight: 700; font-size: 0.9rem; color: #1e293b; }
+    .role-desc { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
     .btn-icon.btn-pwd:hover { border-color: #fd7e14; color: #fd7e14; }
     .empty-state { text-align: center; padding: 60px 20px; color: #6c757d; }
     .empty-icon { font-size: 3rem; margin-bottom: 12px; }
@@ -227,6 +235,9 @@ import { AlertService } from '../../../core/services/alert.service';
                   <button *ngIf="canChangePasswords" class="btn-icon btn-pwd" (click)="openPasswordModal(user)" title="Mot de passe">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   </button>
+                  <button *ngIf="canChangeRoles && !isSuperAdminUser(user)" class="btn-icon btn-role" (click)="openRoleModal(user)" title="Changer le rôle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/><path d="M18 8l2 2-2 2"/><path d="M22 10h-4"/></svg>
+                  </button>
                   <button *ngIf="canManagePermissions" class="btn-icon btn-perm" (click)="openPermModal(user)" title="Permissions">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   </button>
@@ -333,6 +344,45 @@ import { AlertService } from '../../../core/services/alert.service';
       </div>
     </div>
 
+    <!-- Role Modal -->
+    <div class="modal-overlay" *ngIf="showRoleModal" (click)="closeRoleModal()">
+      <div class="modal-box" style="max-width:420px;" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h5>Changer le Rôle</h5>
+          <button class="btn-icon" (click)="closeRoleModal()" style="font-size:1rem;font-weight:700;">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:0.875rem;color:#6c757d;margin-bottom:16px;">
+            Utilisateur : <strong>{{ roleUser?.name }}</strong>
+          </p>
+
+          <label class="role-option" [class.selected]="selectedRole === 'USER'" (click)="selectedRole = 'USER'">
+            <input type="radio" name="role" value="USER" [checked]="selectedRole === 'USER'" />
+            <div class="role-icon" style="background:#dbeafe;">👤</div>
+            <div>
+              <div class="role-title">Utilisateur</div>
+              <div class="role-desc">Accès limité aux modules activés par l'administrateur</div>
+            </div>
+          </label>
+
+          <label class="role-option" [class.selected]="selectedRole === 'ADMIN'" (click)="selectedRole = 'ADMIN'">
+            <input type="radio" name="role" value="ADMIN" [checked]="selectedRole === 'ADMIN'" />
+            <div class="role-icon" style="background:#fef3c7;">🛡️</div>
+            <div>
+              <div class="role-title">Administrateur</div>
+              <div class="role-desc">Gère l'organisation, les utilisateurs et les modules</div>
+            </div>
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" (click)="closeRoleModal()">Annuler</button>
+          <button class="btn-save" (click)="saveRole()" [disabled]="saving || selectedRole === roleUser?.role">
+            {{ saving ? 'Enregistrement...' : 'Confirmer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Permissions Modal -->
     <div class="modal-overlay" *ngIf="showPermModal" (click)="closePermModal()">
       <div class="modal-box" (click)="$event.stopPropagation()">
@@ -398,6 +448,11 @@ export class OrganisationUsersComponent implements OnInit {
   passwordUser: UserProfile | null = null;
   passwordForm: FormGroup;
 
+  // Role modal
+  showRoleModal = false;
+  roleUser: UserProfile | null = null;
+  selectedRole = 'USER';
+
   // Permissions modal
   showPermModal = false;
   permUser: UserProfile | null = null;
@@ -417,6 +472,13 @@ export class OrganisationUsersComponent implements OnInit {
   get canChangePasswords(): boolean { return this.authService.hasModulePermission('USERS', 'change_password'); }
   get canManagePermissions(): boolean { return this.authService.hasModulePermission('USERS', 'manage_permissions'); }
   get canToggleStatus(): boolean { return this.authService.hasModulePermission('USERS', 'toggle_status'); }
+  get canChangeRoles(): boolean { return this.authService.isSuperAdmin || this.authService.isTenantAdmin; }
+  get isSuperAdmin(): boolean { return this.authService.isSuperAdmin; }
+
+  isSuperAdminUser(user: UserProfile): boolean {
+    const role = user.role ?? (user as any).roles?.[0]?.name;
+    return role === 'SUPER_ADMIN';
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -644,6 +706,45 @@ export class OrganisationUsersComponent implements OnInit {
         }
       });
     });
+  }
+
+  // Role modal
+  openRoleModal(user: UserProfile): void {
+    if (!this.canChangeRoles || this.isSuperAdminUser(user)) return;
+    this.roleUser = user;
+    this.selectedRole = user.role ?? (user as any).roles?.[0]?.name ?? 'USER';
+    this.showRoleModal = true;
+  }
+
+  closeRoleModal(): void {
+    this.showRoleModal = false;
+    this.roleUser = null;
+  }
+
+  saveRole(): void {
+    if (!this.roleUser || this.saving) return;
+    if (this.selectedRole === this.roleUser.role) { this.closeRoleModal(); return; }
+    this.saving = true;
+    this.userService.assignRole(this.roleUser.id, this.selectedRole)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: any) => {
+          const updated = res.data;
+          const newRole = updated?.roles?.[0]?.name ?? this.selectedRole;
+          const idx = this.users.findIndex(u => u.id === this.roleUser!.id);
+          if (idx !== -1) this.users[idx] = { ...this.users[idx], role: newRole };
+          this.filterUsers();
+          this.saving = false;
+          this.closeRoleModal();
+          this.alertService.showSuccess('Succès', `Rôle changé en ${newRole === 'ADMIN' ? 'Administrateur' : 'Utilisateur'}`);
+          this.cdr.detectChanges();
+        },
+        error: (e: any) => {
+          this.saving = false;
+          this.alertService.showError('Erreur', e?.message || 'Erreur lors du changement de rôle');
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   // Permissions modal

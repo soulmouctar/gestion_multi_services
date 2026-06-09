@@ -42,8 +42,8 @@ export class ContainerPhotosComponent implements OnInit {
   previewModalOpen = false;
   previewItem: any = null;
   
-  // Base URL for images (Laravel storage)
-  readonly storageBaseUrl = environment.urlBase + '/storage/';
+  // Base URL for uploaded images (served from public/uploads)
+  readonly storageBaseUrl = environment.urlBase + '/';
 
   constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
     this.photoForm = this.fb.group({
@@ -261,12 +261,12 @@ export class ContainerPhotosComponent implements OnInit {
 
   getImageUrl(imagePath: string): string {
     if (!imagePath) return 'assets/img/placeholder.png';
-    // If it's already a full URL, return as is
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return imagePath;
     }
-    // Build the full URL to Laravel storage
-    return this.storageBaseUrl + imagePath;
+    const clean = imagePath.replace(/^\/+/, '');
+    const path  = clean.startsWith('uploads/') ? clean : `uploads/${clean}`;
+    return this.storageBaseUrl + path;
   }
 
   previewImage(item: any): void {

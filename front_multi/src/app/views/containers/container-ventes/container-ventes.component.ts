@@ -880,9 +880,14 @@ export class ContainerVentesComponent implements OnInit {
   }
 
   getArrivalPhotoUrl(photo: any): string {
-    if (!photo?.image_path) return '';
-    if (String(photo.image_path).startsWith('http')) return photo.image_path;
-    return `${environment.apiUrl.replace(/\/api$/, '')}/storage/${String(photo.image_path).replace(/^\/+/, '')}`;
+    if (!photo) return '';
+    if (photo.image_url) return photo.image_url;
+    if (!photo.image_path) return '';
+    const raw = String(photo.image_path);
+    if (raw.startsWith('http')) return raw;
+    const clean = raw.replace(/^\/+/, '');
+    const path  = clean.startsWith('uploads/') ? clean : `uploads/${clean}`;
+    return `${environment.apiUrl.replace(/\/api$/, '')}/${path}`;
   }
 
   canAddSale(arrival: any): boolean {

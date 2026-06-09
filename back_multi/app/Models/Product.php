@@ -42,7 +42,7 @@ class Product extends Model
         if (!str_starts_with($path, 'uploads/')) {
             $path = 'uploads/' . $path;
         }
-        return asset($path);
+        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
     }
 
     /** Prix de vente à l'unité : priorité au selling_price manuel, sinon carton / nb unités */

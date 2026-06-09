@@ -472,8 +472,12 @@ class LeaseController extends BaseController
 
     private function uploadFile($file, string $subfolder): string
     {
+        $dir = public_path('uploads/' . $subfolder);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
         $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-        $file->move(public_path('uploads/' . $subfolder), $filename);
+        $file->move($dir, $filename);
         return 'uploads/' . $subfolder . '/' . $filename;
     }
 

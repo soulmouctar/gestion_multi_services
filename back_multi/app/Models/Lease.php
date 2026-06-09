@@ -28,8 +28,11 @@ class Lease extends Model
         if (!$this->renter_photo) {
             return null;
         }
-
-        return asset($this->renter_photo);
+        $path = ltrim($this->renter_photo, '/');
+        if (!str_starts_with($path, 'uploads/')) {
+            $path = 'uploads/' . $path;
+        }
+        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
     }
 
 

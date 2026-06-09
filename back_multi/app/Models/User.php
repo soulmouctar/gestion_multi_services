@@ -35,7 +35,7 @@ class User extends Authenticatable
         if (!str_starts_with($path, 'uploads/')) {
             $path = 'uploads/' . $path;
         }
-        return asset($path);
+        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
     }
 
     protected $appends = ['avatar_url'];

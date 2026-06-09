@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, from, switchMap } from 'rxjs';
 import { ApiResponse } from '../models/tenant.model';
 import { environment } from '../../../environments/environment';
+import { ImageCompressionService } from './image-compression.service';
 
 export interface Role {
   id: number;
@@ -70,7 +71,7 @@ export interface UpdateUserRequest {
 export class UserService {
   private readonly API_URL = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private imageCompression: ImageCompressionService) {}
 
   private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('auth_token');
@@ -99,16 +100,20 @@ export class UserService {
 
   createUser(userData: CreateUserRequest, avatar?: File | null): Observable<ApiResponse<UserProfile>> {
     if (avatar) {
-      const fd = new FormData();
-      fd.append('name', userData.name);
-      fd.append('email', userData.email);
-      fd.append('password', userData.password);
-      if (userData.tenant_id != null) fd.append('tenant_id', String(userData.tenant_id));
-      if (userData.role) fd.append('role', userData.role);
-      fd.append('avatar', avatar);
-      return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users`, fd, {
-        headers: this.getAuthHeadersMultipart()
-      });
+      return from(this.imageCompression.compressAvatar(avatar)).pipe(
+        switchMap(compressed => {
+          const fd = new FormData();
+          fd.append('name', userData.name);
+          fd.append('email', userData.email);
+          fd.append('password', userData.password);
+          if (userData.tenant_id != null) fd.append('tenant_id', String(userData.tenant_id));
+          if (userData.role) fd.append('role', userData.role);
+          fd.append('avatar', compressed);
+          return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users`, fd, {
+            headers: this.getAuthHeadersMultipart()
+          });
+        })
+      );
     }
     return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users`, userData, {
       headers: this.getAuthHeaders()
@@ -117,17 +122,21 @@ export class UserService {
 
   updateUser(id: number, userData: UpdateUserRequest, avatar?: File | null): Observable<ApiResponse<UserProfile>> {
     if (avatar) {
-      const fd = new FormData();
-      if (userData.name) fd.append('name', userData.name);
-      if (userData.email) fd.append('email', userData.email);
-      if (userData.password) fd.append('password', userData.password);
-      if (userData.tenant_id != null) fd.append('tenant_id', String(userData.tenant_id));
-      if (userData.role) fd.append('role', userData.role);
-      fd.append('avatar', avatar);
-      fd.append('_method', 'PUT');
-      return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}`, fd, {
-        headers: this.getAuthHeadersMultipart()
-      });
+      return from(this.imageCompression.compressAvatar(avatar)).pipe(
+        switchMap(compressed => {
+          const fd = new FormData();
+          if (userData.name) fd.append('name', userData.name);
+          if (userData.email) fd.append('email', userData.email);
+          if (userData.password) fd.append('password', userData.password);
+          if (userData.tenant_id != null) fd.append('tenant_id', String(userData.tenant_id));
+          if (userData.role) fd.append('role', userData.role);
+          fd.append('avatar', compressed);
+          fd.append('_method', 'PUT');
+          return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}`, fd, {
+            headers: this.getAuthHeadersMultipart()
+          });
+        })
+      );
     }
     return this.http.put<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}`, userData, {
       headers: this.getAuthHeaders()

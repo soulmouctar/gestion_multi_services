@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -24,7 +24,7 @@ import { finalize } from 'rxjs/operators';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
 
   loginForm!: FormGroup;
@@ -41,6 +41,10 @@ export class LoginComponent implements OnInit {
     private route: ActivatedRoute
   ) {}
   
+  ngOnDestroy(): void {
+    Swal.close();
+  }
+
   ngOnInit(): void {
     this.initForm();
     
@@ -113,8 +117,7 @@ export class LoginComponent implements OnInit {
         if (response.success) {
           this.errorMessage = '';
           this.successMessage = 'Connexion réussie! Redirection en cours...';
-          
-          // Navigate immediately without waiting
+          Swal.close(); // ferme tout overlay SweetAlert2 avant de naviguer
           const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
           this.router.navigate([returnUrl]);
         } else {

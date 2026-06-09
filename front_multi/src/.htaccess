@@ -1,0 +1,112 @@
+# =============================================================================
+#  Angular SPA – Configuration Apache pour production
+#
+#  PRÉREQUIS CÔTÉ SERVEUR :
+#    - AllowOverride All  (dans le vhost Apache)
+#    - Modules actifs : mod_rewrite, mod_headers, mod_expires, mod_deflate, mod_mime
+#  Commande Debian/Ubuntu :
+#    sudo a2enmod rewrite headers expires deflate mime && sudo systemctl reload apache2
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1) ROUTAGE SPA  (le point critique pour la réactualisation des pages Angular)
+# -----------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+  Options -MultiViews +FollowSymLinks
+  RewriteEngine On
+  RewriteBase /
+
+  # --- (Optionnel) Forcer HTTPS : décommenter si SSL est installé en prod
+  # RewriteCond %{HTTPS} !=on
+  # RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Si le fichier OU le dossier existe physiquement => on le sert tel quel
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Sinon, tout est renvoyé vers index.html (Angular Router prend le relais)
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>
+
+# Filet de sécurité : si mod_rewrite est indisponible, on renvoie quand même
+# index.html pour toute URL inconnue (évite les vrais 404 sur les routes Angular)
+ErrorDocument 404 /index.html
+
+# -----------------------------------------------------------------------------
+# 2) TYPES MIME (certains hébergeurs mutualisés sont défaillants)
+# -----------------------------------------------------------------------------
+<IfModule mod_mime.c>
+  AddType application/javascript        .js .mjs
+  AddType text/css                      .css
+  AddType application/json              .json
+  AddType application/manifest+json     .webmanifest
+  AddType image/svg+xml                 .svg .svgz
+  AddType image/webp                    .webp
+  AddType font/woff                     .woff
+  AddType font/woff2                    .woff2
+  AddType application/vnd.ms-fontobject .eot
+  AddType application/x-font-ttf        .ttf
+  AddEncoding gzip                      .svgz
+</IfModule>
+
+# -----------------------------------------------------------------------------
+# 3) COMPRESSION
+# -----------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE application/javascript
+  AddOutputFilterByType DEFLATE application/json
+  AddOutputFilterByType DEFLATE application/manifest+json
+  AddOutputFilterByType DEFLATE application/xml
+  AddOutputFilterByType DEFLATE text/css
+  AddOutputFilterByType DEFLATE text/html
+  AddOutputFilterByType DEFLATE text/plain
+  AddOutputFilterByType DEFLATE text/xml
+  AddOutputFilterByType DEFLATE image/svg+xml
+  AddOutputFilterByType DEFLATE font/woff
+  AddOutputFilterByType DEFLATE font/woff2
+</IfModule>
+
+# -----------------------------------------------------------------------------
+# 4) CACHE BROWSER  (long pour les assets hashés, ZÉRO pour index.html)
+# -----------------------------------------------------------------------------
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault                              "access plus 1 month"
+  ExpiresByType text/html                     "access plus 0 seconds"
+  ExpiresByType application/javascript        "access plus 1 year"
+  ExpiresByType text/css                      "access plus 1 year"
+  ExpiresByType application/json              "access plus 0 seconds"
+  ExpiresByType image/png                     "access plus 1 year"
+  ExpiresByType image/jpeg                    "access plus 1 year"
+  ExpiresByType image/webp                    "access plus 1 year"
+  ExpiresByType image/svg+xml                 "access plus 1 year"
+  ExpiresByType image/x-icon                  "access plus 1 year"
+  ExpiresByType font/woff                     "access plus 1 year"
+  ExpiresByType font/woff2                    "access plus 1 year"
+</IfModule>
+
+# -----------------------------------------------------------------------------
+# 5) HEADERS : empêcher la mise en cache d'index.html + sécurité
+# -----------------------------------------------------------------------------
+<IfModule mod_headers.c>
+  <FilesMatch "index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Sécurité de base
+  Header always set X-Content-Type-Options  "nosniff"
+  Header always set X-Frame-Options         "SAMEORIGIN"
+  Header always set Referrer-Policy         "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy      "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# -----------------------------------------------------------------------------
+# 6) BLOQUER L'ACCÈS AUX FICHIERS SENSIBLES
+# -----------------------------------------------------------------------------
+<FilesMatch "(^\.ht|\.(env|lock|md|yml|yaml|sh|ini|log|sql|bak)$)">
+  Require all denied
+</FilesMatch>

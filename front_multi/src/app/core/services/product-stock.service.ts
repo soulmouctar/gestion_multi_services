@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Observable, BehaviorSubject, from } from 'rxjs';
+import { map, tap, switchMap } from 'rxjs/operators';
 import { ApiService } from './api.service';
+import { ImageCompressionService } from './image-compression.service';
 import { 
   ProductCategory, 
   Unit, 
@@ -33,7 +34,7 @@ export class ProductStockService {
   stockMovements$ = this.stockMovements.asObservable();
   conversionRules$ = this.conversionRules.asObservable();
   
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService, private imageCompression: ImageCompressionService) {}
   
   // Product Categories Management
   getCategories(options?: FilterOptions): Observable<PaginatedResponse<ProductCategory>> {
@@ -184,9 +185,13 @@ export class ProductStockService {
   }
   
   uploadProductPhoto(productId: string, file: File): Observable<ApiResponse<string>> {
-    const formData = new FormData();
-    formData.append('photo', file);
-    return this.apiService.post(`products/${productId}/photos`, formData);
+    return from(this.imageCompression.compress(file)).pipe(
+      switchMap(compressed => {
+        const formData = new FormData();
+        formData.append('photo', compressed);
+        return this.apiService.post(`products/${productId}/photos`, formData);
+      })
+    );
   }
   
   deleteProductPhoto(productId: string, photoId: string): Observable<ApiResponse<any>> {

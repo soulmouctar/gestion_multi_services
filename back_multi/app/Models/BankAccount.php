@@ -25,8 +25,12 @@ class BankAccount extends Model
         if (!$this->logo_path) {
             return null;
         }
-
-        return asset($this->logo_path);
+        if (str_starts_with($this->logo_path, 'http')) return $this->logo_path;
+        $path = ltrim($this->logo_path, '/');
+        if (!str_starts_with($path, 'uploads/')) {
+            $path = 'uploads/' . $path;
+        }
+        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
     }
 
     public function scopeForTenant($query, int $tenantId)

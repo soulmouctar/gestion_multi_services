@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Observable, BehaviorSubject, from } from 'rxjs';
+import { map, tap, switchMap } from 'rxjs/operators';
 import { ApiService } from './api.service';
+import { ImageCompressionService } from './image-compression.service';
 import { 
   Driver, 
   Taxi, 
@@ -30,7 +31,7 @@ export class TaxiService {
   payments$ = this.payments.asObservable();
   reports$ = this.reports.asObservable();
   
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService, private imageCompression: ImageCompressionService) {}
   
   // Driver Management
   getDrivers(options?: FilterOptions): Observable<PaginatedResponse<Driver>> {
@@ -89,17 +90,23 @@ export class TaxiService {
   }
   
   uploadDriverPhoto(driverId: string, file: File): Observable<ApiResponse<string>> {
-    const formData = new FormData();
-    formData.append('photo', file);
-    return this.apiService.post(`taxi-drivers/${driverId}/photo`, formData);
+    return from(this.imageCompression.compress(file)).pipe(
+      switchMap(compressed => {
+        const formData = new FormData();
+        formData.append('photo', compressed);
+        return this.apiService.post(`taxi-drivers/${driverId}/photo`, formData);
+      })
+    );
   }
-  
+
   uploadDriverDocuments(driverId: string, documents: { type: string; file: File }[]): Observable<ApiResponse<string[]>> {
-    const formData = new FormData();
-    documents.forEach(doc => {
-      formData.append(`documents[${doc.type}]`, doc.file);
-    });
-    return this.apiService.post(`taxi-drivers/${driverId}/documents`, formData);
+    return from(this.imageCompression.compressAll(documents.map(d => d.file))).pipe(
+      switchMap(compressed => {
+        const formData = new FormData();
+        documents.forEach((doc, i) => formData.append(`documents[${doc.type}]`, compressed[i]));
+        return this.apiService.post(`taxi-drivers/${driverId}/documents`, formData);
+      })
+    );
   }
   
   // Taxi Management
@@ -159,17 +166,23 @@ export class TaxiService {
   }
   
   uploadTaxiPhoto(taxiId: string, file: File): Observable<ApiResponse<string>> {
-    const formData = new FormData();
-    formData.append('photo', file);
-    return this.apiService.post(`taxis/${taxiId}/photo`, formData);
+    return from(this.imageCompression.compress(file)).pipe(
+      switchMap(compressed => {
+        const formData = new FormData();
+        formData.append('photo', compressed);
+        return this.apiService.post(`taxis/${taxiId}/photo`, formData);
+      })
+    );
   }
-  
+
   uploadTaxiDocuments(taxiId: string, documents: { type: string; file: File }[]): Observable<ApiResponse<string[]>> {
-    const formData = new FormData();
-    documents.forEach(doc => {
-      formData.append(`documents[${doc.type}]`, doc.file);
-    });
-    return this.apiService.post(`taxis/${taxiId}/documents`, formData);
+    return from(this.imageCompression.compressAll(documents.map(d => d.file))).pipe(
+      switchMap(compressed => {
+        const formData = new FormData();
+        documents.forEach((doc, i) => formData.append(`documents[${doc.type}]`, compressed[i]));
+        return this.apiService.post(`taxis/${taxiId}/documents`, formData);
+      })
+    );
   }
   
   // Taxi Assignment Management
