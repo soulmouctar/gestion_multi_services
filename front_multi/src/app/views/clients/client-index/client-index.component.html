@@ -1,0 +1,253 @@
+<div class="client-index">
+  <section class="page-hero">
+    <div class="hero-content">
+      <div class="hero-icon" aria-hidden="true">
+        <svg cIcon name="cilSpreadsheet"></svg>
+      </div>
+      <div>
+        <div class="eyebrow">Pilotage financier</div>
+        <h1>Situation consolidée des clients</h1>
+        <p>Suivez les montants facturés, les règlements, les avances et l’exposition de chaque compte.</p>
+        <div *ngIf="lastUpdated" class="updated-at">
+          <span class="status-dot"></span>
+          Données actualisées à {{ lastUpdated | date:'HH:mm' }}
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-actions no-print">
+      <button type="button" class="action-btn action-btn-light" (click)="loadOverview()" [disabled]="loading">
+        <svg cIcon name="cilReload"></svg>
+        Actualiser
+      </button>
+      <button type="button" class="action-btn action-btn-light" (click)="exportCsv()"
+              [disabled]="loading || !filteredRows.length">
+        <svg cIcon name="cilSpreadsheet"></svg>
+        Exporter
+      </button>
+      <button type="button" class="action-btn action-btn-primary" (click)="print()" [disabled]="loading">
+        <svg cIcon name="cilPrint"></svg>
+        Imprimer
+      </button>
+    </div>
+  </section>
+
+  <div *ngIf="error" class="error-banner no-print" role="alert">
+    <div class="error-icon"><svg cIcon name="cilWarning"></svg></div>
+    <div>
+      <strong>Impossible d’afficher les données</strong>
+      <span>{{ error }}</span>
+    </div>
+    <button type="button" (click)="loadOverview()">Réessayer</button>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="loading-spinner"><c-spinner color="primary"></c-spinner></div>
+    <strong>Préparation de la situation clients</strong>
+    <span>Consolidation des factures, paiements et intérêts en cours…</span>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <section class="kpi-grid" aria-label="Indicateurs clés">
+      <article class="kpi-card kpi-primary">
+        <div class="kpi-top">
+          <span class="kpi-icon"><svg cIcon name="cilPeople"></svg></span>
+          <span class="kpi-label">Portefeuille clients</span>
+        </div>
+        <div class="kpi-value">{{ summary.total_clients || 0 }}</div>
+        <div class="kpi-meta">{{ filteredRows.length }} compte(s) affiché(s)</div>
+      </article>
+
+      <article class="kpi-card kpi-danger">
+        <div class="kpi-top">
+          <span class="kpi-icon"><svg cIcon name="cilArrowThickToBottom"></svg></span>
+          <span class="kpi-label">Clients débiteurs</span>
+        </div>
+        <div class="kpi-value">{{ summary.debtor_clients || 0 }}</div>
+        <div class="kpi-meta">Comptes avec un solde à recouvrer</div>
+      </article>
+
+      <article class="kpi-card kpi-success">
+        <div class="kpi-top">
+          <span class="kpi-icon"><svg cIcon name="cilCheckCircle"></svg></span>
+          <span class="kpi-label">Comptes soldés</span>
+        </div>
+        <div class="kpi-value">{{ summary.settled_clients || 0 }}</div>
+        <div class="kpi-meta">Aucun montant restant dû</div>
+      </article>
+
+      <article class="kpi-card kpi-info">
+        <div class="kpi-top">
+          <span class="kpi-icon"><svg cIcon name="cilWallet"></svg></span>
+          <span class="kpi-label">Clients en avance</span>
+        </div>
+        <div class="kpi-value">{{ summary.credit_clients || 0 }}</div>
+        <div class="kpi-meta">{{ fmt(summary.total_advances_remaining) }} GNF disponibles</div>
+      </article>
+
+      <article class="kpi-card kpi-wide kpi-balance">
+        <div>
+          <div class="kpi-label">Exposition totale</div>
+          <div class="money-value">{{ fmt(summary.total_rest_to_pay) }} <small>GNF</small></div>
+          <div class="kpi-meta">Reste global à recouvrer</div>
+        </div>
+        <div class="interest-block">
+          <span>Intérêts dus</span>
+          <strong>{{ fmt(summary.total_interest_remaining) }}&nbsp;GNF</strong>
+        </div>
+      </article>
+    </section>
+
+    <section class="filter-panel no-print">
+      <div class="filter-heading">
+        <div>
+          <span class="section-kicker">Recherche et segmentation</span>
+          <h2>Filtrer les comptes clients</h2>
+        </div>
+        <button *ngIf="hasActiveFilters()" type="button" class="reset-btn" (click)="resetFilters()">
+          <svg cIcon name="cilX"></svg>
+          Effacer les filtres
+        </button>
+      </div>
+
+      <div class="filter-grid">
+        <label class="field field-search">
+          <span>Rechercher</span>
+          <div class="input-shell">
+            <svg cIcon name="cilMagnifyingGlass"></svg>
+            <input type="search" [(ngModel)]="filters.search" (input)="onSearchInput()"
+                   placeholder="Nom, téléphone ou adresse e-mail" />
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Catégorie</span>
+          <select [(ngModel)]="filters.client_type" (change)="loadOverview()">
+            <option *ngFor="let option of clientTypeOptions" [value]="option.v">{{ option.l }}</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Situation du compte</span>
+          <select [(ngModel)]="filters.status" (change)="applyClientSideFilters()">
+            <option value="">Tous les statuts</option>
+            <option value="DEBITEUR">Débiteur</option>
+            <option value="AVANCE">En avance</option>
+            <option value="SOLDE">Soldé</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="data-panel">
+      <header class="data-header">
+        <div>
+          <span class="section-kicker">Analyse détaillée</span>
+          <h2>Comptes clients</h2>
+          <p>{{ filteredRows.length }} résultat(s)<span *ngIf="hasActiveFilters()"> selon les filtres actifs</span></p>
+        </div>
+        <div class="legend">
+          <span><i class="legend-dot danger"></i> Débiteur</span>
+          <span><i class="legend-dot success"></i> Soldé</span>
+          <span><i class="legend-dot info"></i> Avance</span>
+        </div>
+      </header>
+
+      <div *ngIf="!filteredRows.length" class="empty-state">
+        <div class="empty-icon"><svg cIcon name="cilSearch"></svg></div>
+        <h3>Aucun compte ne correspond</h3>
+        <p>Modifiez vos critères de recherche ou réinitialisez les filtres.</p>
+        <button *ngIf="hasActiveFilters()" type="button" (click)="resetFilters()">Réinitialiser les filtres</button>
+      </div>
+
+      <div *ngIf="filteredRows.length" class="table-responsive">
+        <table class="index-table">
+          <thead>
+            <tr>
+              <th class="client-column sortable" (click)="sortBy('name')">
+                <span>Client</span><svg cIcon [name]="sortIcon('name')"></svg>
+              </th>
+              <th>Catégorie</th>
+              <th class="numeric sortable" (click)="sortBy('total_charged')">
+                <span>Total facturé</span><svg cIcon [name]="sortIcon('total_charged')"></svg>
+              </th>
+              <th class="numeric sortable" (click)="sortBy('total_paid')">
+                <span>Total payé</span><svg cIcon [name]="sortIcon('total_paid')"></svg>
+              </th>
+              <th class="numeric">Avance disponible</th>
+              <th class="numeric sortable" (click)="sortBy('interest_remaining')">
+                <span>Intérêts</span><svg cIcon [name]="sortIcon('interest_remaining')"></svg>
+              </th>
+              <th class="numeric sortable" (click)="sortBy('gross_debt_gnf')">
+                <span>Dette brute</span><svg cIcon [name]="sortIcon('gross_debt_gnf')"></svg>
+              </th>
+              <th class="numeric sortable amount-column" (click)="sortBy('rest_to_pay_gnf')">
+                <span>Reste à payer</span><svg cIcon [name]="sortIcon('rest_to_pay_gnf')"></svg>
+              </th>
+              <th class="center sortable" (click)="sortBy('status')">
+                <span>Statut</span><svg cIcon [name]="sortIcon('status')"></svg>
+              </th>
+              <th class="center no-print"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of filteredRows; trackBy: trackById">
+              <td class="client-column">
+                <div class="client-cell">
+                  <span class="client-avatar">{{ initials(row.name) }}</span>
+                  <div>
+                    <strong>{{ row.name }}</strong>
+                    <span>{{ row.phone1 || row.email || 'Coordonnées non renseignées' }}</span>
+                  </div>
+                </div>
+              </td>
+              <td><span class="type-badge">{{ clientTypeLabel(row.client_type) }}</span></td>
+              <td class="numeric">{{ fmt(row.total_charged) }}</td>
+              <td class="numeric paid">{{ fmt(row.total_paid) }}</td>
+              <td class="numeric advance">
+                <span *ngIf="row.advances_remaining > 0">{{ fmt(row.advances_remaining) }}</span>
+                <span *ngIf="!row.advances_remaining" class="muted-value">—</span>
+              </td>
+              <td class="numeric interest">
+                <span *ngIf="row.interest_remaining > 0">{{ fmt(row.interest_remaining) }}</span>
+                <span *ngIf="!row.interest_remaining" class="muted-value">—</span>
+              </td>
+              <td class="numeric debt">{{ fmt(row.gross_debt_gnf) }}</td>
+              <td class="numeric amount-column" [class.amount-due]="row.rest_to_pay_gnf > 0">
+                {{ fmt(row.rest_to_pay_gnf) }}
+              </td>
+              <td class="center">
+                <span class="status-badge" [class.status-debtor]="row.status === 'DEBITEUR'"
+                      [class.status-credit]="row.status === 'AVANCE'"
+                      [class.status-settled]="row.status === 'SOLDE'">
+                  <i></i>{{ statusLabel(row.status) }}
+                </span>
+              </td>
+              <td class="center no-print">
+                <a [routerLink]="['/clients/ledger', row.id]" class="ledger-link" title="Ouvrir le compte client"
+                   [attr.aria-label]="'Ouvrir le compte de ' + row.name">
+                  <svg cIcon name="cilArrowRight"></svg>
+                </a>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2">
+                <strong>Total de la sélection</strong>
+                <span>{{ filteredRows.length }} client(s)</span>
+              </td>
+              <td class="numeric">{{ fmt(filteredSummary.total_charged) }}</td>
+              <td class="numeric paid">{{ fmt(filteredSummary.total_paid) }}</td>
+              <td class="numeric advance">{{ fmt(filteredSummary.total_advances_remaining) }}</td>
+              <td class="numeric interest">{{ fmt(filteredSummary.total_interest_remaining) }}</td>
+              <td class="numeric debt">{{ fmt(filteredSummary.total_debt) }}</td>
+              <td class="numeric amount-column amount-due">{{ fmt(filteredSummary.total_rest_to_pay) }}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+</div>

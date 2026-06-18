@@ -1,0 +1,273 @@
+<div class="sales-summary container-fluid px-3 px-md-4 py-3">
+
+  <!-- HEADER -->
+  <div class="ss-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <div class="crumb">Finance <span class="mx-1 text-muted">›</span> Synthèse des ventes</div>
+      <h1 class="d-flex align-items-center gap-2">
+        <svg cIcon name="cilChartLine" class="text-primary"></svg>
+        Synthèse des ventes
+      </h1>
+      <div class="doc-sub">Marge brute (€ et %) de toutes les factures émises aux clients</div>
+    </div>
+    <div class="d-flex gap-2 no-print flex-wrap">
+      <button cButton color="light" size="sm" (click)="loadSummary(pagination.current_page)" [disabled]="loading"
+              style="border-radius:10px;">
+        <svg cIcon name="cilReload" size="sm" class="me-1"></svg> Actualiser
+      </button>
+      <button cButton color="light" size="sm" (click)="exportCsv()"
+              [disabled]="loading || !invoices.length" style="border-radius:10px;">
+        <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg> Excel
+      </button>
+      <button cButton color="primary" size="sm" (click)="print()" [disabled]="loading"
+              style="border-radius:10px;">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg> Imprimer
+      </button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid mb-3">
+    <div class="kpi k-revenue">
+      <div class="kpi-icon"><svg cIcon name="cilCart"></svg></div>
+      <div>
+        <div class="kpi-label">Chiffre d'affaires</div>
+        <div class="kpi-value">{{ fmt(summary.total_revenue_gnf) }}</div>
+        <div class="kpi-meta">{{ summary.invoices_count }} facture(s)</div>
+      </div>
+    </div>
+    <div class="kpi k-cost">
+      <div class="kpi-icon"><svg cIcon name="cilCart"></svg></div>
+      <div>
+        <div class="kpi-label">Coût d'achat</div>
+        <div class="kpi-value">{{ fmt(summary.total_cost_gnf) }}</div>
+        <div class="kpi-meta">{{ summary.items_count }} article(s)</div>
+      </div>
+    </div>
+    <div class="kpi k-margin">
+      <div class="kpi-icon"><svg cIcon name="cilDollar"></svg></div>
+      <div>
+        <div class="kpi-label">Marge brute</div>
+        <div class="kpi-value">{{ fmt(summary.total_margin_gnf) }}</div>
+        <div class="kpi-meta" *ngIf="summary.samples_count">dont {{ summary.samples_count }} échantillon(s) offerts</div>
+      </div>
+    </div>
+    <div class="kpi k-pct">
+      <div class="kpi-icon"><svg cIcon name="cilChartLine"></svg></div>
+      <div>
+        <div class="kpi-label">Marge moyenne</div>
+        <div class="kpi-value">{{ summary.margin_pct === null ? '—' : (summary.margin_pct + ' %') }}</div>
+        <div class="kpi-meta">Tous canaux confondus</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTRES -->
+  <div class="toolbar mb-3 no-print">
+    <span class="toolbar-label me-1">Période</span>
+    <div class="period-chips">
+      <button class="chip" (click)="setPeriod('all')">Tout</button>
+      <button class="chip" (click)="setPeriod('month')">Mois</button>
+      <button class="chip" (click)="setPeriod('3months')">3 mois</button>
+      <button class="chip" (click)="setPeriod('year')">Année</button>
+    </div>
+    <input type="date" class="input-mini" style="width:130px"
+           [(ngModel)]="filters.from" (change)="loadSummary(1)" />
+    <span class="text-muted small">→</span>
+    <input type="date" class="input-mini" style="width:130px"
+           [(ngModel)]="filters.to" (change)="loadSummary(1)" />
+
+    <select class="input-mini" style="width:170px"
+            [(ngModel)]="filters.client_id" (change)="loadSummary(1)">
+      <option [ngValue]="''">Tous clients</option>
+      <option *ngFor="let c of clients" [ngValue]="c.id">{{ c.name }}</option>
+    </select>
+
+    <select class="input-mini" style="width:110px"
+            [(ngModel)]="filters.currency" (change)="loadSummary(1)">
+      <option value="">Toutes devises</option>
+      <option value="GNF">GNF</option>
+      <option value="USD">USD</option>
+    </select>
+
+    <select class="input-mini" style="width:130px"
+            [(ngModel)]="filters.status" (change)="loadSummary(1)">
+      <option value="">Tous statuts</option>
+      <option value="PAYE">Payée</option>
+      <option value="PARTIEL">Partielle</option>
+      <option value="IMPAYE">Impayée</option>
+    </select>
+
+    <div class="search-wrap">
+      <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+      <input type="text" class="input-mini"
+             [(ngModel)]="filters.search" (ngModelChange)="onSearchChange()"
+             placeholder="N° facture ou client…" />
+    </div>
+
+    <button cButton color="light" size="sm" (click)="reset()" style="border-radius:8px;" title="Réinitialiser">
+      <svg cIcon name="cilX" size="sm"></svg>
+    </button>
+  </div>
+
+  <!-- ERROR -->
+  <div *ngIf="error" class="alert alert-danger small">{{ error }}</div>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <div class="text-muted small mt-2">Calcul des marges…</div>
+  </div>
+
+  <!-- TABLE -->
+  <div *ngIf="!loading" class="table-wrapper">
+    <div *ngIf="!invoices.length" class="empty-state">
+      <svg cIcon name="cilCart" size="xxl"></svg>
+      <div class="empty-text">Aucune vente sur la période sélectionnée</div>
+      <div class="empty-hint">Ajuste les filtres pour voir plus de résultats.</div>
+    </div>
+
+    <div *ngIf="invoices.length" class="table-responsive">
+      <table class="ss-table">
+        <thead>
+          <tr>
+            <th style="width:36px"></th>
+            <th>Date</th>
+            <th>N° Facture</th>
+            <th>Client</th>
+            <th class="text-center">Statut</th>
+            <th class="text-center">Articles</th>
+            <th class="text-end">CA</th>
+            <th class="text-end">Coût</th>
+            <th class="text-end">Marge</th>
+            <th class="text-end">Marge %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let inv of invoices; trackBy: trackInv">
+            <tr class="row-main" [class.expanded]="isExpanded(inv.id)">
+              <td>
+                <button class="expand-btn" (click)="toggleExpand(inv.id)"
+                        [attr.aria-expanded]="isExpanded(inv.id)" title="Voir détails articles">
+                  <svg cIcon [name]="isExpanded(inv.id) ? 'cilChevronBottom' : 'cilChevronRight'" size="sm"></svg>
+                </button>
+              </td>
+              <td class="nowrap">{{ inv.date | date:'dd/MM/yy' }}</td>
+              <td class="mono"><a [routerLink]="['/finance/invoices', inv.id]" class="link">{{ inv.invoice_number }}</a></td>
+              <td>
+                <div class="client-cell">
+                  <strong>{{ inv.client?.name || '—' }}</strong>
+                  <span *ngIf="inv.client?.client_type" class="client-meta">{{ inv.client?.client_type }}</span>
+                </div>
+              </td>
+              <td class="text-center">
+                <span class="status-pill" [ngClass]="'s-' + inv.status">
+                  {{ statusBadge(inv.status).label }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span class="art-count">{{ inv.items.length }}</span>
+                <span *ngIf="inv.samples_count" class="samples" title="Échantillons offerts">
+                  +{{ inv.samples_count }} ▣
+                </span>
+              </td>
+              <td class="text-end mono">{{ fmt(inv.revenue, inv.currency) }}</td>
+              <td class="text-end mono cost">{{ fmt(inv.cost, inv.currency) }}</td>
+              <td class="text-end mono margin" [ngClass]="marginClass(inv.margin_pct)">
+                {{ fmt(inv.margin, inv.currency) }}
+              </td>
+              <td class="text-end mono margin-pct" [ngClass]="marginClass(inv.margin_pct)">
+                {{ inv.margin_pct === null ? '—' : fmtPct(inv.margin_pct) }}
+              </td>
+            </tr>
+
+            <!-- DETAILS expandables -->
+            <tr *ngIf="isExpanded(inv.id)" class="row-detail">
+              <td colspan="10">
+                <div class="detail-wrapper">
+                  <div class="detail-meta">
+                    <span><b>Devise :</b> {{ inv.currency }}<span *ngIf="inv.exchange_rate !== 1"> · taux {{ inv.exchange_rate }}</span></span>
+                    <span><b>Total TTC :</b> {{ fmt(inv.total_amount, inv.currency) }}</span>
+                    <span><b>Payé :</b> {{ fmt(inv.paid_amount, inv.currency) }}</span>
+                    <span *ngIf="inv.previous_balance > 0"><b>Solde antérieur :</b> {{ fmt(inv.previous_balance, inv.currency) }}</span>
+                  </div>
+                  <table class="items-table">
+                    <thead>
+                      <tr>
+                        <th>Produit</th>
+                        <th>Fournisseur</th>
+                        <th class="text-center">Type</th>
+                        <th class="text-end">Qté</th>
+                        <th class="text-end">Prix vente</th>
+                        <th class="text-end">Prix achat</th>
+                        <th class="text-end">Total ligne</th>
+                        <th class="text-end">Coût ligne</th>
+                        <th class="text-end">Marge</th>
+                        <th class="text-end">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let it of inv.items; trackBy: trackItem"
+                          [class.sample-row]="it.is_sample">
+                        <td>
+                          <div class="p-name">{{ it.product_name }}</div>
+                          <div class="p-sku" *ngIf="it.sku">SKU {{ it.sku }}</div>
+                          <span *ngIf="it.is_sample" class="sample-tag">échantillon</span>
+                        </td>
+                        <td class="muted">{{ it.supplier || '—' }}</td>
+                        <td class="text-center"><span class="type-tag">{{ it.sale_type }}</span></td>
+                        <td class="text-end mono">{{ fmtNum(it.quantity) }}</td>
+                        <td class="text-end mono">{{ fmtNum(it.unit_price) }}</td>
+                        <td class="text-end mono muted">{{ fmtNum(it.unit_cost) }}</td>
+                        <td class="text-end mono">{{ fmtNum(it.line_total) }}</td>
+                        <td class="text-end mono muted">{{ fmtNum(it.line_cost) }}</td>
+                        <td class="text-end mono margin" [ngClass]="marginClass(it.margin_pct)">
+                          {{ it.is_sample ? '—' : fmtNum(it.margin) }}
+                        </td>
+                        <td class="text-end mono margin-pct" [ngClass]="marginClass(it.margin_pct)">
+                          {{ it.is_sample ? '—' : (it.margin_pct === null ? '—' : fmtPct(it.margin_pct)) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="6"><b>TOTAUX (page)</b></td>
+            <td class="text-end mono"><b>{{ fmt(summary.total_revenue_gnf) }}</b></td>
+            <td class="text-end mono cost"><b>{{ fmt(summary.total_cost_gnf) }}</b></td>
+            <td class="text-end mono margin"
+                [class.m-good]="summary.total_margin_gnf > 0"
+                [class.m-bad]="summary.total_margin_gnf < 0">
+              <b>{{ fmt(summary.total_margin_gnf) }}</b>
+            </td>
+            <td class="text-end mono margin-pct"
+                [ngClass]="marginClass(summary.margin_pct)">
+              <b>{{ summary.margin_pct === null ? '—' : fmtPct(summary.margin_pct) }}</b>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- PAGINATION -->
+    <div *ngIf="pagination.last_page > 1" class="pagination-bar no-print">
+      <button class="page-btn" [disabled]="pagination.current_page <= 1"
+              (click)="goPage(pagination.current_page - 1)">
+        <svg cIcon name="cilChevronLeft" size="sm"></svg> Précédent
+      </button>
+      <span class="page-info">
+        Page <b>{{ pagination.current_page }}</b> sur {{ pagination.last_page }}
+        <span class="text-muted">· {{ pagination.total }} factures au total</span>
+      </span>
+      <button class="page-btn" [disabled]="pagination.current_page >= pagination.last_page"
+              (click)="goPage(pagination.current_page + 1)">
+        Suivant <svg cIcon name="cilChevronRight" size="sm"></svg>
+      </button>
+    </div>
+  </div>
+</div>

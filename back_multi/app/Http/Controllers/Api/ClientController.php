@@ -9,6 +9,8 @@ use App\Models\Payment;
 use App\Models\ContainerSale;
 use App\Models\ContainerSalePayment;
 use App\Models\ClientAdvance;
+use App\Models\ProductReturn;
+use App\Models\ClientInterestCharge;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -480,6 +482,317 @@ class ClientController extends BaseController
         return (float) $query->sum('amount');
     }
 
+    /**
+     * Grand livre client style "feuille Excel T.B.SALL" — vue chronologique
+     * ASC avec solde courant ligne par ligne, en GNF (USD reconverti via taux).
+     *
+     * Fusionne : Factures, Paiements (finance), Ventes conteneurs, Versements
+     * conteneurs, Avances, Retours produits.
+     *
+     * Query params :
+     *   - from=YYYY-MM-DD     date min
+     *   - to=YYYY-MM-DD       date max
+     *   - type=invoice|payment|return|advance   filtre
+     */
+    public function getLedger(Request $request, $id)
+    {
+        $user   = Auth::user();
+        $client = Client::find($id);
+
+        if (!$client) {
+            return $this->sendError('Client not found', [], 404);
+        }
+        if (!$user->hasRole('SUPER_ADMIN') && $client->tenant_id !== $user->tenant_id) {
+            return $this->sendError('Accès refusé', [], 403);
+        }
+
+        $tid  = $client->tenant_id;
+        $from = $request->get('from');
+        $to   = $request->get('to');
+        $typeFilter = $request->get('type');
+
+        $applyDateRange = function ($query, string $column) use ($from, $to) {
+            if ($from) $query->whereDate($column, '>=', $from);
+            if ($to)   $query->whereDate($column, '<=', $to);
+            return $query;
+        };
+
+        // ── 1. Factures (DEBIT) ─────────────────────────────────────────────
+        $invoices = collect();
+        if (!$typeFilter || $typeFilter === 'invoice') {
+            $invoiceQuery = Invoice::where('client_id', $id)
+                ->where('tenant_id', $tid)
+                ->with(['items.product', 'items.supplier:id,name']);
+            $applyDateRange($invoiceQuery, 'created_at');
+
+            $invoices = $invoiceQuery->get()->map(function ($inv) {
+                $designation = "Facture #{$inv->invoice_number}";
+                $items = $inv->items;
+                if ($items->count() === 1) {
+                    $it = $items->first();
+                    $productName = $it->product->name ?? $it->description ?? 'Article';
+                    $supplierName = $it->supplier->name ?? null;
+                    $suffix = $supplierName ? " {$supplierName}" : '';
+                    $sampleTag = $it->is_sample ? ' [échantillon]' : '';
+                    $designation = "{$productName}{$suffix}{$sampleTag} (fact. #{$inv->invoice_number})";
+                } elseif ($items->count() > 1) {
+                    $sampleCount = $items->where('is_sample', true)->count();
+                    $sampleSuffix = $sampleCount > 0 ? ", dont {$sampleCount} échantillon(s)" : '';
+                    $designation = "Facture #{$inv->invoice_number} ({$items->count()} articles{$sampleSuffix})";
+                }
+                $currency = strtoupper($inv->currency ?? 'GNF');
+                // Montant dans la devise native de la facture (USD ou GNF)
+                $nativeAmount = $currency === 'USD'
+                    ? (float) $inv->total_amount
+                    : (float) ($inv->total_amount_gnf ?? $inv->total_amount);
+                $qty = (float) $items->sum('quantity');
+
+                return [
+                    'date'        => $inv->created_at->format('Y-m-d'),
+                    'sort_key'    => $inv->created_at->format('Y-m-d H:i:s') . '_a_' . $inv->id,
+                    'type'        => 'invoice',
+                    'type_label'  => 'Vente',
+                    'designation' => $designation,
+                    'quantity'    => $qty > 0 ? $qty : null,
+                    'currency'    => $currency,
+                    'debit'       => $nativeAmount,
+                    'credit'      => 0.0,
+                    'reference'   => $inv->invoice_number,
+                    'meta_id'     => $inv->id,
+                ];
+            });
+        }
+
+        // ── 2. Paiements finance (CREDIT) ───────────────────────────────────
+        $payments = collect();
+        if (!$typeFilter || $typeFilter === 'payment') {
+            $paymentQuery = Payment::where('client_id', $id)->where('tenant_id', $tid)
+                ->where('status', 'COMPLETED')
+                ->with('paidByClient:id,name');
+            $applyDateRange($paymentQuery, 'payment_date');
+
+            $payments = $paymentQuery->get()->map(function ($p) {
+                $baseLabel = $p->description ?: ($p->invoice_id
+                    ? "Paiement facture (rec. #{$p->receipt_number})"
+                    : "Versement compte (rec. #{$p->receipt_number})");
+                $thirdParty = $p->paidByClient->name ?? null;
+                $designation = $thirdParty
+                    ? "{$baseLabel} — par {$thirdParty}"
+                    : $baseLabel;
+                $cur = strtoupper($p->currency ?? 'GNF');
+                $nativeAmount = $cur === 'USD' ? (float) $p->amount : (float) ($p->amount_gnf ?? $p->amount);
+                return [
+                    'date'        => $p->payment_date->format('Y-m-d'),
+                    'sort_key'    => $p->payment_date->format('Y-m-d') . ' 23:59:59_p_' . $p->id,
+                    'type'        => 'payment',
+                    'type_label'  => $thirdParty ? 'Paiement (tiers)' : 'Paiement',
+                    'designation' => $designation,
+                    'quantity'    => null,
+                    'currency'    => $cur,
+                    'debit'       => 0.0,
+                    'credit'      => $nativeAmount,
+                    'reference'   => $p->receipt_number ?? $p->reference,
+                    'meta_id'     => $p->id,
+                ];
+            });
+        }
+
+        // ── 3. Ventes conteneurs (DEBIT) ────────────────────────────────────
+        $containerSales = collect();
+        if (!$typeFilter || $typeFilter === 'invoice') {
+            $containerSaleQuery = ContainerSale::where('client_id', $id)->where('tenant_id', $tid)
+                ->with('containerArrival:id,product_type,description');
+            $applyDateRange($containerSaleQuery, 'sale_date');
+
+            $containerSales = $containerSaleQuery->get()->map(function ($s) {
+                $arr = $s->containerArrival;
+                $label = $arr ? ($arr->product_type ?? $arr->description ?? "Arrivage #{$s->container_arrival_id}") : "Arrivage #{$s->container_arrival_id}";
+                return [
+                    'date'        => $s->sale_date,
+                    'sort_key'    => $s->sale_date . '_b_' . $s->id,
+                    'type'        => 'container_sale',
+                    'type_label'  => 'Vente conteneur',
+                    'designation' => $label,
+                    'quantity'    => (float) $s->quantity_sold,
+                    'currency'    => $s->currency ?? 'GNF',
+                    'debit'       => (float) ($s->quantity_sold * $s->sale_price),
+                    'credit'      => 0.0,
+                    'reference'   => null,
+                    'meta_id'     => $s->id,
+                ];
+            });
+        }
+
+        // ── 4. Versements conteneurs (CREDIT) ───────────────────────────────
+        $containerPayments = collect();
+        if (!$typeFilter || $typeFilter === 'payment') {
+            $cspQuery = ContainerSalePayment::where('client_id', $id)->where('tenant_id', $tid);
+            $applyDateRange($cspQuery, 'payment_date');
+
+            $containerPayments = $cspQuery->get()->map(fn ($p) => [
+                'date'        => $p->payment_date,
+                'sort_key'    => $p->payment_date . ' 23:59:58_p_' . $p->id,
+                'type'        => 'container_payment',
+                'type_label'  => 'Versement conteneur',
+                'designation' => $p->notes ?: 'Versement conteneur',
+                'quantity'    => null,
+                'currency'    => $p->currency ?? 'GNF',
+                'debit'       => 0.0,
+                'credit'      => (float) $p->amount,
+                'reference'   => $p->reference,
+                'meta_id'     => $p->id,
+            ]);
+        }
+
+        // ── 5. Avances (CREDIT — réduit la dette ou crée un crédit) ─────────
+        $advances = collect();
+        if (!$typeFilter || $typeFilter === 'advance') {
+            $advQuery = ClientAdvance::where('client_id', $id)->where('tenant_id', $tid);
+            $applyDateRange($advQuery, 'payment_date');
+
+            $advances = $advQuery->get()->map(fn ($a) => [
+                'date'        => $a->payment_date,
+                'sort_key'    => $a->payment_date . ' 23:59:57_p_' . $a->id,
+                'type'        => 'advance',
+                'type_label'  => 'Avance',
+                'designation' => $a->description ?: 'Avance client',
+                'quantity'    => null,
+                'currency'    => $a->currency ?? 'GNF',
+                'debit'       => 0.0,
+                'credit'      => (float) $a->amount,
+                'reference'   => $a->reference,
+                'meta_id'     => $a->id,
+            ]);
+        }
+
+        // ── 6bis. Frais d'intérêts (DEBIT — compte SALL) ────────────────────
+        $interestCharges = collect();
+        if (!$typeFilter || $typeFilter === 'interest') {
+            $intQuery = ClientInterestCharge::where('client_id', $id)->where('tenant_id', $tid)
+                ->whereIn('status', ['PENDING', 'PARTIAL', 'PAID']);
+            $applyDateRange($intQuery, 'charge_date');
+
+            $interestCharges = $intQuery->get()->map(function ($c) {
+                $rateLabel = $c->interest_rate > 0 ? " ({$c->interest_rate}%)" : '';
+                $designation = ($c->notes ?: 'Intérêts SALL') . $rateLabel;
+                return [
+                    'date'        => $c->charge_date->format('Y-m-d'),
+                    'sort_key'    => $c->charge_date->format('Y-m-d') . ' 12:00:00_i_' . $c->id,
+                    'type'        => 'interest',
+                    'type_label'  => 'Intérêts',
+                    'designation' => $designation,
+                    'quantity'    => null,
+                    'currency'    => $c->currency ?? 'GNF',
+                    'debit'       => (float) $c->amount,
+                    'credit'      => (float) ($c->paid_amount ?? 0),
+                    'reference'   => $c->reference,
+                    'meta_id'     => $c->id,
+                ];
+            });
+        }
+
+        // ── 6. Retours produits (CREDIT) ────────────────────────────────────
+        $returns = collect();
+        if (!$typeFilter || $typeFilter === 'return') {
+            $retQuery = ProductReturn::where('client_id', $id)->where('tenant_id', $tid)
+                ->where('status', 'APPROVED')
+                ->with('product:id,name');
+            $applyDateRange($retQuery, 'return_date');
+
+            $returns = $retQuery->get()->map(fn ($r) => [
+                'date'        => $r->return_date->format('Y-m-d'),
+                'sort_key'    => $r->return_date->format('Y-m-d') . ' 23:59:56_r_' . $r->id,
+                'type'        => 'return',
+                'type_label'  => 'Retour',
+                'designation' => 'Retour : ' . ($r->product->name ?? "Produit #{$r->product_id}"),
+                'quantity'    => (float) $r->quantity,
+                'currency'    => 'GNF',
+                'debit'       => 0.0,
+                'credit'      => (float) $r->total_amount,
+                'reference'   => null,
+                'meta_id'     => $r->id,
+            ]);
+        }
+
+        // ── Fusion ASC + calcul de DEUX soldes courants parallèles (GNF + USD) ──
+        // Chaque ligne contribue uniquement au solde de SA devise (fidèle au style
+        // T.B.SALL où les colonnes GNF et USD sont indépendantes).
+        $rows = $invoices
+            ->concat($payments)
+            ->concat($containerSales)
+            ->concat($containerPayments)
+            ->concat($advances)
+            ->concat($returns)
+            ->concat($interestCharges)
+            ->sortBy('sort_key')
+            ->values();
+
+        $runningGnf = 0.0;
+        $runningUsd = 0.0;
+        $rows = $rows->map(function ($row) use (&$runningGnf, &$runningUsd) {
+            $cur    = strtoupper($row['currency'] ?? 'GNF');
+            $debit  = (float) $row['debit'];
+            $credit = (float) $row['credit'];
+
+            if ($cur === 'USD') {
+                $runningUsd += $debit - $credit;
+                $row['debit_gnf']  = 0.0;
+                $row['credit_gnf'] = 0.0;
+                $row['debit_usd']  = $debit;
+                $row['credit_usd'] = $credit;
+            } else {
+                $runningGnf += $debit - $credit;
+                $row['debit_gnf']  = $debit;
+                $row['credit_gnf'] = $credit;
+                $row['debit_usd']  = 0.0;
+                $row['credit_usd'] = 0.0;
+            }
+
+            $row['balance_gnf'] = round($runningGnf, 2);
+            $row['balance_usd'] = round($runningUsd, 2);
+            // Solde dans la devise propre à la ligne (compat avec affichage existant)
+            $row['balance'] = $cur === 'USD' ? round($runningUsd, 2) : round($runningGnf, 2);
+            return $row;
+        });
+
+        // ── Totaux par devise ───────────────────────────────────────────────
+        $totalDebitGnf  = (float) $rows->sum('debit_gnf');
+        $totalCreditGnf = (float) $rows->sum('credit_gnf');
+        $totalDebitUsd  = (float) $rows->sum('debit_usd');
+        $totalCreditUsd = (float) $rows->sum('credit_usd');
+        $hasUsd = $rows->contains(fn ($r) => $r['debit_usd'] > 0 || $r['credit_usd'] > 0);
+
+        return $this->sendResponse([
+            'client' => [
+                'id'          => $client->id,
+                'name'        => $client->name,
+                'client_type' => $client->client_type,
+                'phone1'      => $client->phone1,
+                'phone2'      => $client->phone2,
+                'email'       => $client->email,
+                'address'     => $client->address,
+                'photo_url'   => $client->photo_url,
+            ],
+            'summary' => [
+                // Compat ancien format (GNF par défaut)
+                'total_debit'        => round($totalDebitGnf, 2),
+                'total_credit'       => round($totalCreditGnf, 2),
+                'final_balance'      => round($totalDebitGnf - $totalCreditGnf, 2),
+                // Nouveau : split par devise
+                'total_debit_gnf'    => round($totalDebitGnf, 2),
+                'total_credit_gnf'   => round($totalCreditGnf, 2),
+                'final_balance_gnf'  => round($totalDebitGnf - $totalCreditGnf, 2),
+                'total_debit_usd'    => round($totalDebitUsd, 2),
+                'total_credit_usd'   => round($totalCreditUsd, 2),
+                'final_balance_usd'  => round($totalDebitUsd - $totalCreditUsd, 2),
+                'has_usd'            => $hasUsd,
+                'rows_count'         => $rows->count(),
+            ],
+            'rows'   => $rows->values(),
+            'period' => ['from' => $from, 'to' => $to],
+        ], 'Ledger retrieved successfully');
+    }
+
     public function getStatistics(Request $request)
     {
         $tenantId = $this->tenantId($request);
@@ -569,12 +882,36 @@ class ClientController extends BaseController
             ->get()
             ->keyBy('client_id');
 
+        // Frais d'intérêts (compte SALL) — débit additionnel
+        $interestData = ClientInterestCharge::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', ['PENDING', 'PARTIAL', 'PAID'])
+            ->select(
+                'client_id',
+                DB::raw('COALESCE(SUM(amount), 0) as total_interest'),
+                DB::raw('COALESCE(SUM(paid_amount), 0) as paid_interest')
+            )
+            ->groupBy('client_id')
+            ->get()
+            ->keyBy('client_id');
+
+        // Retours produits — crédit additionnel
+        $returnCredits = ProductReturn::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'APPROVED')
+            ->whereNull('invoice_id')
+            ->select('client_id', DB::raw('COALESCE(SUM(client_credit_amount), 0) as total'))
+            ->groupBy('client_id')
+            ->pluck('total', 'client_id');
+
         $rows = $clients->map(function (Client $client) use (
             $invoiceTotals,
             $invoicePayments,
             $containerSales,
             $containerPayments,
-            $advances
+            $advances,
+            $interestData,
+            $returnCredits
         ) {
             $invoiceInvoiced = (float) ($invoiceTotals[$client->id] ?? 0);
             $invoicePaid = (float) ($invoicePayments[$client->id] ?? 0);
@@ -590,9 +927,19 @@ class ClientController extends BaseController
             $advanceTotal = (float) ($advanceData?->total_advances ?? 0);
             $advanceRemaining = (float) ($advanceData?->remaining_advances ?? 0);
 
-            $grossDebt = $invoiceRemaining + $containerRemaining;
-            $restToPay = max(0, $grossDebt - $advanceRemaining);
-            $creditBalance = max(0, $advanceRemaining - $grossDebt);
+            // Intérêts (compte SALL)
+            $interestRow = $interestData->get($client->id);
+            $interestCharged  = (float) ($interestRow?->total_interest ?? 0);
+            $interestPaid     = (float) ($interestRow?->paid_interest ?? 0);
+            $interestRemaining = max(0, $interestCharged - $interestPaid);
+
+            // Crédits issus des retours non rattachés à une facture
+            $returnCreditAmount = (float) ($returnCredits[$client->id] ?? 0);
+
+            $grossDebt    = $invoiceRemaining + $containerRemaining + $interestRemaining;
+            $totalCredits = $advanceRemaining + $returnCreditAmount;
+            $restToPay    = max(0, $grossDebt - $totalCredits);
+            $creditBalance = max(0, $totalCredits - $grossDebt);
             $status = $restToPay > 0.009 ? 'DEBITEUR' : ($creditBalance > 0.009 ? 'AVANCE' : 'SOLDE');
 
             return [
@@ -614,6 +961,10 @@ class ClientController extends BaseController
                 'total_paid' => round($invoicePaid + $containerPaid, 2),
                 'advances_total' => round($advanceTotal, 2),
                 'advances_remaining' => round($advanceRemaining, 2),
+                'interest_charged'  => round($interestCharged, 2),
+                'interest_paid'     => round($interestPaid, 2),
+                'interest_remaining'=> round($interestRemaining, 2),
+                'return_credit_gnf' => round($returnCreditAmount, 2),
                 'gross_debt_gnf' => round($grossDebt, 2),
                 'rest_to_pay_gnf' => round($restToPay, 2),
                 'credit_balance_gnf' => round($creditBalance, 2),
@@ -635,6 +986,8 @@ class ClientController extends BaseController
             'total_paid' => round((float) $rows->sum('total_paid'), 2),
             'total_advances' => round((float) $rows->sum('advances_total'), 2),
             'total_advances_remaining' => round((float) $rows->sum('advances_remaining'), 2),
+            'total_interest_charged'   => round((float) $rows->sum('interest_charged'), 2),
+            'total_interest_remaining' => round((float) $rows->sum('interest_remaining'), 2),
             'total_debt' => round((float) $rows->sum('gross_debt_gnf'), 2),
             'total_rest_to_pay' => round((float) $rows->sum('rest_to_pay_gnf'), 2),
             'total_credit_balance' => round((float) $rows->sum('credit_balance_gnf'), 2),

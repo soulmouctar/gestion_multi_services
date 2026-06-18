@@ -101,8 +101,11 @@ export class PdfService {
     mode: 'print' | 'download',
     filename?: string
   ): Promise<void> {
+    // Fallback : si pas de logo organisation, on utilise le logo MatKolla
+    const MATKOLLA_LOGO = 'assets/images/logo/mat_kolla_hd.png';
+    const orgLogo = await this.resolveImageData(invoiceData.organisation?.logoUrl);
     const [logo, signature, stamp] = await Promise.all([
-      this.resolveImageData(invoiceData.organisation?.logoUrl),
+      orgLogo ? Promise.resolve(orgLogo) : this.resolveImageData(MATKOLLA_LOGO),
       this.resolveImageData(invoiceData.organisation?.signatureUrl),
       this.resolveImageData(invoiceData.organisation?.stampUrl)
     ]);
@@ -375,7 +378,7 @@ export class PdfService {
 
     return {
       pageSize: 'A4',
-      pageMargins: [36, 118, 36, 54],
+      pageMargins: [36, 128, 36, 54],
       info: {
         title: `Facture ${invoiceData.invoiceNumber}`,
         subject: 'Facture professionnelle'
@@ -444,27 +447,45 @@ export class PdfService {
         stack: [
           {
             canvas: [
-              { type: 'rect', x: 0, y: 0, w: 595.28, h: 100, color: '#0F172A' },
-              { type: 'rect', x: 0, y: 100, w: 595.28, h: 8, color: '#0F3460' }
+              { type: 'rect', x: 0, y: 0, w: 595.28, h: 110, color: '#0F172A' },
+              { type: 'rect', x: 0, y: 110, w: 595.28, h: 4, color: statusColor }
             ]
           },
           {
-            margin: [36, -78, 36, 0],
+            margin: [36, -88, 36, 0],
             columns: [
               {
-                width: 92,
+                width: 110,
                 stack: assets.logo ? [
-                  { image: assets.logo, fit: [86, 62], alignment: 'left', margin: [0, 0, 0, 4] }
+                  {
+                    image: assets.logo,
+                    fit: [100, 72],
+                    alignment: 'left',
+                    margin: [0, 0, 0, 4]
+                  }
                 ] : [
-                  { text: invoiceData.organisation?.name || 'GESTION MULTI-MODULES', style: 'headerMeta', bold: true }
+                  {
+                    text: 'MK',
+                    fontSize: 28,
+                    bold: true,
+                    color: '#FFFFFF',
+                    margin: [0, 8, 0, 0]
+                  },
+                  {
+                    text: invoiceData.organisation?.name || 'MATKOLLA',
+                    style: 'headerMeta',
+                    bold: true,
+                    margin: [0, 4, 0, 0]
+                  }
                 ]
               },
               {
                 width: '*',
+                margin: [10, 4, 0, 0],
                 stack: [
                   { text: 'FACTURE PROFESSIONNELLE', style: 'titleSmall' },
-                  { text: invoiceData.organisation?.name || 'GESTION MULTI-MODULES', style: 'headerMeta', bold: true, margin: [0, 6, 0, 0] },
-                  { text: invoiceData.organisation?.motto || 'Facturation détaillée et transparente', style: 'headerMeta', margin: [0, 3, 0, 0] },
+                  { text: invoiceData.organisation?.name || 'MATKOLLA', fontSize: 14, bold: true, color: '#FFFFFF', margin: [0, 6, 0, 0] },
+                  { text: invoiceData.organisation?.motto || 'Facturation détaillée et transparente', style: 'headerMeta', margin: [0, 4, 0, 0] },
                   { text: invoiceData.organisation?.address || '', style: 'headerMeta', margin: [0, 3, 0, 0] },
                   {
                     text: `${invoiceData.organisation?.phone || ''}${invoiceData.organisation?.phone && invoiceData.organisation?.email ? ' • ' : ''}${invoiceData.organisation?.email || ''}`,
@@ -474,12 +495,34 @@ export class PdfService {
                 ]
               },
               {
-                width: 170,
+                width: 175,
                 alignment: 'right',
                 stack: [
                   { text: 'FACTURE', style: 'titleLarge', alignment: 'right' },
-                  { text: `N° ${invoiceData.invoiceNumber}`, style: 'headerMeta', alignment: 'right', margin: [0, 4, 0, 0] },
-                  { text: status, alignment: 'right', margin: [0, 8, 0, 0], color: '#FFFFFF', bold: true, fillColor: statusColor }
+                  { text: `N° ${invoiceData.invoiceNumber}`, style: 'headerMeta', alignment: 'right', margin: [0, 6, 0, 0] },
+                  {
+                    margin: [0, 10, 0, 0],
+                    alignment: 'right',
+                    table: {
+                      widths: ['auto'],
+                      body: [[{
+                        text: status,
+                        color: '#FFFFFF',
+                        bold: true,
+                        fontSize: 9,
+                        fillColor: statusColor,
+                        margin: [10, 4, 10, 4]
+                      }]]
+                    },
+                    layout: {
+                      hLineWidth: () => 0,
+                      vLineWidth: () => 0,
+                      paddingLeft: () => 0,
+                      paddingRight: () => 0,
+                      paddingTop: () => 0,
+                      paddingBottom: () => 0
+                    }
+                  }
                 ]
               }
             ]
@@ -557,19 +600,33 @@ export class PdfService {
                   table: {
                     widths: ['*', 'auto'],
                     body: [
-                      [{ text: 'Sous-total', bold: false, color: '#475569' }, { text: this.formatMoney(invoiceData.subtotal, invoiceData.currency), alignment: 'right', bold: true }],
-                      [{ text: 'Arriérés', bold: false, color: '#475569' }, { text: this.formatMoney(invoiceData.previousBalance || 0, invoiceData.currency), alignment: 'right', bold: true, color: '#F59E0B' }],
-                      [{ text: 'Total facture', bold: true, color: '#0F3460' }, { text: this.formatMoney(invoiceData.total, invoiceData.currency), alignment: 'right', bold: true, color: '#0F3460', fontSize: 12 }]
+                      [
+                        { text: 'Sous-total articles', bold: false, color: '#475569' },
+                        { text: this.formatMoney(invoiceData.subtotal, invoiceData.currency), alignment: 'right', bold: true }
+                      ],
+                      [
+                        {
+                          stack: [
+                            { text: 'Arriérés client', color: '#475569' },
+                            { text: `au ${this.formatDate(new Date())}`, fontSize: 7.6, color: '#94A3B8', italics: true, margin: [0, 1, 0, 0] }
+                          ]
+                        },
+                        { text: this.formatMoney(invoiceData.previousBalance || 0, invoiceData.currency), alignment: 'right', bold: true, color: '#F59E0B' }
+                      ],
+                      [
+                        { text: 'Total à régler', bold: true, color: '#0F3460', fontSize: 11 },
+                        { text: this.formatMoney(invoiceData.total, invoiceData.currency), alignment: 'right', bold: true, color: '#0F3460', fontSize: 13 }
+                      ]
                     ]
                   },
                   layout: {
                     hLineWidth: (i: number) => i === 0 ? 0 : 0.6,
                     vLineWidth: () => 0,
                     hLineColor: () => '#E5E7EB',
-                    paddingLeft: () => 10,
-                    paddingRight: () => 10,
-                    paddingTop: () => 8,
-                    paddingBottom: () => 8,
+                    paddingLeft: () => 12,
+                    paddingRight: () => 12,
+                    paddingTop: () => 9,
+                    paddingBottom: () => 9,
                     fillColor: (rowIndex: number) => rowIndex === 2 ? '#EFF6FF' : '#FFFFFF'
                   }
                 },
@@ -606,106 +663,96 @@ export class PdfService {
             paddingBottom: () => 7
           }
         },
-        {
-          columns: [
-            {
-              width: '*',
-              margin: [0, 16, 8, 0],
-              stack: [
-                { text: 'VALIDATION', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-                {
-                  table: {
-                    widths: ['*'],
-                    body: [[{
-                      stack: [
-                        { text: 'QR de validation', bold: true, color: '#0F3460', margin: [0, 0, 0, 6] },
-                        { text: 'Scannez pour vérifier la facture.', color: '#475569', fontSize: 8.8 },
-                        { text: `${invoiceData.invoiceNumber} | ${invoiceData.clientName} | ${this.formatMoney(invoiceData.total, invoiceData.currency)} | ${this.formatDate(invoiceData.date || new Date())}`, color: '#64748B', fontSize: 7.4, margin: [0, 6, 0, 0] }
-                      ],
-                      margin: [12, 12, 12, 12]
-                    }]]
-                  },
-                  layout: {
-                    hLineWidth: () => 0,
-                    vLineWidth: () => 0,
-                    fillColor: () => '#F8FAFC'
-                  }
-                }
-              ]
-            },
-            {
-              width: 120,
-              margin: [8, 16, 0, 0],
-              alignment: 'center',
-              stack: [
-                {
-                  qr: `${invoiceData.invoiceNumber} | ${invoiceData.clientName} | ${this.formatMoney(invoiceData.total, invoiceData.currency)} | ${this.formatDate(invoiceData.date || new Date())}`,
-                  fit: 92,
-                  alignment: 'center',
-                  margin: [0, 4, 0, 6]
-                },
-                { text: 'Vérification', fontSize: 8, color: '#64748B', alignment: 'center' }
-              ]
-            }
-          ]
-        },
-        {
-          columns: [
-            {
-              width: '50%',
-              margin: [0, 8, 6, 0],
-              stack: [
-                { text: 'Signature', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-                {
-                  table: {
-                    widths: ['*'],
-                    body: [[{
-                      stack: [
-                        assets.signature ? { image: assets.signature, fit: [160, 70], alignment: 'left' } : { text: 'Signature non fournie', color: '#94A3B8', italics: true },
-                        { text: invoiceData.organisation?.name || 'GESTION MULTI-MODULES', margin: [0, 8, 0, 0], bold: true, color: '#111827' }
-                      ],
-                      margin: [12, 12, 12, 12]
-                    }]]
-                  },
-                  layout: {
-                    hLineWidth: () => 0,
-                    vLineWidth: () => 0,
-                    fillColor: () => '#FFFFFF'
-                  }
-                }
-              ]
-            },
-            {
-              width: '50%',
-              margin: [6, 8, 0, 0],
-              stack: [
-                { text: 'Cachet', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-                {
-                  table: {
-                    widths: ['*'],
-                    body: [[{
-                      stack: [
-                        assets.stamp ? { image: assets.stamp, fit: [120, 120], alignment: 'center' } : { text: 'Cachet non fourni', color: '#94A3B8', italics: true, alignment: 'center' }
-                      ],
-                      margin: [12, 12, 12, 12]
-                    }]]
-                  },
-                  layout: {
-                    hLineWidth: () => 0,
-                    vLineWidth: () => 0,
-                    fillColor: () => '#FFFFFF'
-                  }
-                }
-              ]
-            }
-          ]
-        },
         ...(notesBox ? [notesBox] : []),
         {
-          margin: [0, 16, 0, 0],
-          text: 'Merci pour votre confiance. Cette facture peut être téléchargée, imprimée ou enregistrée en PDF depuis la boîte de dialogue du navigateur.',
-          fontSize: 8.8,
-          color: '#64748B'
+          columns: [
+            {
+              width: '50%',
+              margin: [0, 22, 8, 0],
+              stack: [
+                { text: 'SIGNATURE', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+                {
+                  table: {
+                    widths: ['*'],
+                    body: [[{
+                      stack: [
+                        assets.signature
+                          ? { image: assets.signature, fit: [170, 75], alignment: 'left' }
+                          : { text: ' ', color: '#FFFFFF', margin: [0, 22, 0, 22] },
+                        {
+                          canvas: [{ type: 'line', x1: 0, y1: 0, x2: 170, y2: 0, lineWidth: 0.5, lineColor: '#94A3B8' }],
+                          margin: [0, 8, 0, 4]
+                        },
+                        { text: invoiceData.organisation?.name || 'GESTION MULTI-MODULES', bold: true, color: '#0F3460', fontSize: 9.4 },
+                        { text: 'Représentant légal', color: '#94A3B8', fontSize: 8, italics: true, margin: [0, 1, 0, 0] }
+                      ],
+                      margin: [14, 16, 14, 14]
+                    }]]
+                  },
+                  layout: {
+                    hLineWidth: () => 1,
+                    vLineWidth: () => 1,
+                    hLineColor: () => '#E5E7EB',
+                    vLineColor: () => '#E5E7EB',
+                    fillColor: () => '#FFFFFF'
+                  }
+                }
+              ]
+            },
+            {
+              width: '50%',
+              margin: [8, 22, 0, 0],
+              stack: [
+                { text: 'CACHET', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+                {
+                  table: {
+                    widths: ['*'],
+                    body: [[{
+                      stack: [
+                        assets.stamp
+                          ? { image: assets.stamp, fit: [130, 130], alignment: 'center' }
+                          : {
+                              stack: [
+                                { text: ' ', color: '#FFFFFF', margin: [0, 12, 0, 0] },
+                                { text: 'Espace réservé', color: '#CBD5E1', italics: true, alignment: 'center', fontSize: 9 },
+                                { text: 'au cachet', color: '#CBD5E1', italics: true, alignment: 'center', fontSize: 9 },
+                                { text: ' ', color: '#FFFFFF', margin: [0, 12, 0, 0] }
+                              ]
+                            }
+                      ],
+                      margin: [14, 14, 14, 14],
+                      alignment: 'center'
+                    }]]
+                  },
+                  layout: {
+                    hLineWidth: () => 1,
+                    vLineWidth: () => 1,
+                    hLineColor: () => '#E5E7EB',
+                    vLineColor: () => '#E5E7EB',
+                    fillColor: () => '#FFFFFF'
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          margin: [0, 22, 0, 0],
+          columns: [
+            {
+              canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 0.5, lineColor: '#E5E7EB' }]
+            }
+          ]
+        },
+        {
+          margin: [0, 12, 0, 0],
+          text: invoiceData.organisation?.footerText
+            ? invoiceData.organisation.footerText
+            : 'Merci pour votre confiance. Cette facture peut être téléchargée, imprimée ou enregistrée en PDF.',
+          fontSize: 8.6,
+          color: '#94A3B8',
+          alignment: 'center',
+          italics: true
         }
       ]
     };

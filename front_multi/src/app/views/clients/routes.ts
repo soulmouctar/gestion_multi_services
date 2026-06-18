@@ -25,6 +25,24 @@ export const routes: Routes = [
     }
   },
   {
+    path: 'ledger/:id',
+    loadComponent: () => import('./client-ledger/client-ledger.component').then(m => m.ClientLedgerComponent),
+    title: 'Compte client',
+    data: {
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_clients_general'
+    }
+  },
+  {
+    path: 'index',
+    loadComponent: () => import('./client-index/client-index.component').then(m => m.ClientIndexComponent),
+    title: 'INDEX consolidé clients',
+    data: {
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_clients_general'
+    }
+  },
+  {
     path: 'pneus',
     loadComponent: () => import('./client-list/client-list.component').then(m => m.ClientListComponent),
     title: 'Clients Pneus',

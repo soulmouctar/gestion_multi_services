@@ -96,6 +96,7 @@ export class PaymentsListComponent implements OnInit {
     this.paymentForm = this.fb.group({
       type: ['CLIENT', Validators.required],
       client_id: [null],
+      paid_by_client_id: [null],
       invoice_id: [null],
       method: ['ESPECES', Validators.required],
       amount: [null, [Validators.required, Validators.min(0.01)]],
@@ -278,7 +279,7 @@ export class PaymentsListComponent implements OnInit {
     this.selectedClientBalance = null;
     this.invoices = [];
     this.paymentForm.reset({
-      type: 'CLIENT', client_id: null, invoice_id: null,
+      type: 'CLIENT', client_id: null, paid_by_client_id: null, invoice_id: null,
       method: 'ESPECES', amount: null, currency: 'GNF',
       exchange_rate: 1, amount_gnf: null, status: 'COMPLETED',
       payment_date: new Date().toISOString().split('T')[0],
@@ -295,6 +296,7 @@ export class PaymentsListComponent implements OnInit {
     this.editingPayment = payment;
     this.paymentForm.patchValue({
       type: payment.type, client_id: payment.client_id ?? null,
+      paid_by_client_id: payment.paid_by_client_id ?? null,
       invoice_id: payment.invoice_id ?? null, method: payment.method,
       amount: payment.amount, currency: payment.currency,
       exchange_rate: payment.exchange_rate ?? 1,
@@ -324,6 +326,10 @@ export class PaymentsListComponent implements OnInit {
       this.alertService.showError('Client requis', 'Sélectionnez le client concerné.');
       return;
     }
+    if (raw.paid_by_client_id && raw.paid_by_client_id === raw.client_id) {
+      this.alertService.showError('Tiers identique', 'Le tiers payeur doit être différent du client crédité.');
+      return;
+    }
 
     this.savingPayment = true;
     this.cdr.markForCheck();
@@ -333,6 +339,7 @@ export class PaymentsListComponent implements OnInit {
       amount_gnf: raw.currency === 'GNF' ? raw.amount : raw.amount_gnf,
       invoice_id: raw.invoice_id || null,
       client_id: raw.client_id || null,
+      paid_by_client_id: raw.paid_by_client_id || null,
     };
 
     const obs = this.editingPayment

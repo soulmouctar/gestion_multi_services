@@ -1,0 +1,435 @@
+<div class="client-ledger container-fluid px-3 px-md-4 py-3">
+
+  <!-- HEADER -->
+  <div class="ledger-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <a [routerLink]="['/clients/list']" cButton color="light" size="sm" class="no-print"
+         style="border-radius:10px;">
+        <svg cIcon name="cilArrowLeft" size="sm"></svg>
+      </a>
+      <div>
+        <div class="crumb">Clients <span class="mx-1 text-muted">›</span> Compte client</div>
+        <h1 class="d-flex align-items-center gap-2">
+          <svg cIcon name="cilNotes" class="text-primary"></svg>
+          Grand livre — {{ client?.name || '…' }}
+        </h1>
+        <div class="doc-sub">
+          Compte chronologique style feuille comptable
+          <span *ngIf="filters.from || filters.to">
+            · du <b>{{ filters.from || '—' }}</b> au <b>{{ filters.to || '—' }}</b>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 no-print flex-wrap">
+      <button cButton color="light" size="sm" (click)="loadLedger()" [disabled]="loading"
+              style="border-radius:10px;">
+        <svg cIcon name="cilReload" size="sm" class="me-1"></svg> Actualiser
+      </button>
+      <button cButton color="danger" variant="outline" size="sm" (click)="openInterestModal()"
+              [disabled]="loading" style="border-radius:10px;"
+              title="Appliquer un frais d'intérêt (compte SALL)">
+        <svg cIcon name="cilChartLine" size="sm" class="me-1"></svg> Intérêt
+      </button>
+      <button cButton color="light" size="sm" (click)="exportCsv()"
+              [disabled]="loading || !filteredRows.length" style="border-radius:10px;">
+        <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg> Excel
+      </button>
+      <button cButton color="primary" size="sm" (click)="print()" [disabled]="loading"
+              style="border-radius:10px;">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg> Imprimer
+      </button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <div class="text-muted small mt-2">Chargement du compte client...</div>
+  </div>
+
+  <div *ngIf="!loading && client">
+
+    <!-- BANNIÈRE SITUATION -->
+    <div class="status-banner mb-3"
+         [class.is-debt]="balanceStatusGnf === 'debt'"
+         [class.is-credit]="balanceStatusGnf === 'credit'"
+         [class.is-zero]="balanceStatusGnf === 'zero'">
+      <div class="row align-items-center g-3">
+        <div class="col-12 col-md-6">
+          <div class="banner-label">
+            <span *ngIf="balanceStatusGnf === 'debt'">⚠️ Le client doit</span>
+            <span *ngIf="balanceStatusGnf === 'credit'">✅ Avance en sa faveur</span>
+            <span *ngIf="balanceStatusGnf === 'zero'">✓ Compte soldé</span>
+          </div>
+          <div class="banner-value">{{ fmt(balanceGnfAbs) }}</div>
+          <div class="banner-sub" *ngIf="showUsdColumns">
+            +
+            <span *ngIf="summary.final_balance_usd > 0">
+              {{ fmt(summary.final_balance_usd, 'USD') }} dû en USD
+            </span>
+            <span *ngIf="summary.final_balance_usd < 0">
+              {{ fmt(-summary.final_balance_usd, 'USD') }} d'avance USD
+            </span>
+            <span *ngIf="summary.final_balance_usd === 0">
+              Solde USD nul
+            </span>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 banner-side">
+          <div class="d-flex justify-content-md-end gap-4 flex-wrap">
+            <div>
+              <div class="banner-label" style="opacity:.75;">Total débit GNF</div>
+              <div class="v">{{ fmt(summary.total_debit_gnf) }}</div>
+            </div>
+            <div>
+              <div class="banner-label" style="opacity:.75;">Total crédit GNF</div>
+              <div class="v">{{ fmt(summary.total_credit_gnf) }}</div>
+            </div>
+            <div>
+              <div class="banner-label" style="opacity:.75;">Opérations</div>
+              <div class="v">{{ summary.rows_count || 0 }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INFO CLIENT + KPI STRIP -->
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-lg-4">
+        <div class="client-card">
+          <div class="d-flex align-items-center gap-3">
+            <div class="avatar">
+              <img *ngIf="client.photo_url" [src]="client.photo_url" alt="Client" />
+              <span *ngIf="!client.photo_url">{{ (client.name || '?').charAt(0).toUpperCase() }}</span>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <h3 class="client-name text-truncate" [title]="client.name">{{ client.name }}</h3>
+              <div class="d-flex flex-wrap gap-2 mt-1 align-items-center">
+                <span *ngIf="client.client_type" class="type-pill">{{ client.client_type }}</span>
+                <span *ngIf="client.phone1" class="meta">
+                  <svg cIcon name="cilPhone" size="sm"></svg> {{ client.phone1 }}
+                </span>
+              </div>
+              <div *ngIf="client.email" class="meta text-truncate mt-1">
+                <svg cIcon name="cilEnvelopeClosed" size="sm"></svg> {{ client.email }}
+              </div>
+              <div *ngIf="client.address" class="meta text-truncate">
+                <svg cIcon name="cilLocationPin" size="sm"></svg> {{ client.address }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-8">
+        <div class="kpi-strip">
+          <div class="kpi k-sales">
+            <div class="icon-box"><svg cIcon name="cilCart" size="sm"></svg></div>
+            <div>
+              <div class="kpi-label">Ventes</div>
+              <div class="kpi-value">{{ fmt(totalsByType.ventes) }}</div>
+            </div>
+          </div>
+          <div class="kpi k-pay">
+            <div class="icon-box"><svg cIcon name="cilMoney" size="sm"></svg></div>
+            <div>
+              <div class="kpi-label">Paiements</div>
+              <div class="kpi-value">{{ fmt(totalsByType.paiements) }}</div>
+            </div>
+          </div>
+          <div class="kpi k-return" *ngIf="totalsByType.retours > 0">
+            <div class="icon-box"><svg cIcon name="cilActionUndo" size="sm"></svg></div>
+            <div>
+              <div class="kpi-label">Retours</div>
+              <div class="kpi-value">{{ fmt(totalsByType.retours) }}</div>
+            </div>
+          </div>
+          <div class="kpi k-interest" *ngIf="totalsByType.interets > 0">
+            <div class="icon-box"><svg cIcon name="cilChartLine" size="sm"></svg></div>
+            <div>
+              <div class="kpi-label">Intérêts (SALL)</div>
+              <div class="kpi-value">{{ fmt(totalsByType.interets) }}</div>
+            </div>
+          </div>
+          <div class="kpi k-advance" *ngIf="totalsByType.avances > 0">
+            <div class="icon-box"><svg cIcon name="cilWallet" size="sm"></svg></div>
+            <div>
+              <div class="kpi-label">Avances</div>
+              <div class="kpi-value">{{ fmt(totalsByType.avances) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR FILTRES -->
+    <div class="toolbar mb-3 no-print">
+      <span class="toolbar-label me-1">Période</span>
+      <div class="period-chips">
+        <button class="chip" (click)="setPeriod('all')">Tout</button>
+        <button class="chip" (click)="setPeriod('month')">Mois</button>
+        <button class="chip" (click)="setPeriod('3months')">3 mois</button>
+        <button class="chip" (click)="setPeriod('year')">Année</button>
+      </div>
+      <input type="date" class="input-mini" style="width:130px"
+             [(ngModel)]="filters.from" (change)="loadLedger()" placeholder="Du" />
+      <span class="text-muted small">→</span>
+      <input type="date" class="input-mini" style="width:130px"
+             [(ngModel)]="filters.to" (change)="loadLedger()" placeholder="Au" />
+
+      <select class="input-mini" style="width:180px"
+              [(ngModel)]="filters.type" (change)="loadLedger()">
+        <option *ngFor="let o of typeOptions" [value]="o.v">{{ o.l }}</option>
+      </select>
+
+      <div class="search-wrap">
+        <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+        <input type="text" class="input-mini"
+               [(ngModel)]="searchText" (ngModelChange)="applyLocalFilter()"
+               placeholder="Rechercher (désignation, type, réf.)…" />
+      </div>
+
+      <button class="chip" (click)="toggleGrouping()" [class.active]="groupByMonth"
+              title="Grouper par mois">
+        <svg cIcon name="cilCalendar" size="sm" class="me-1"></svg>
+        Mois
+      </button>
+
+      <button cButton color="light" size="sm" (click)="resetFilters()"
+              style="border-radius:8px;" title="Réinitialiser les filtres">
+        <svg cIcon name="cilX" size="sm"></svg>
+      </button>
+    </div>
+
+    <!-- LEDGER TABLE -->
+    <div class="ledger-wrapper">
+      <div *ngIf="!filteredRows.length" class="empty-state">
+        <svg cIcon name="cilNotes" size="xxl"></svg>
+        <div class="empty-text">Aucune opération à afficher</div>
+        <div class="empty-hint">Ajuste les filtres ou la recherche pour voir plus d'écritures.</div>
+      </div>
+
+      <div *ngIf="filteredRows.length" class="table-responsive">
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th class="col-date">Date</th>
+              <th class="col-type">Type</th>
+              <th>Désignation</th>
+              <th class="col-qty">Qté</th>
+              <th class="col-num">Débit GNF</th>
+              <th class="col-num">Crédit GNF</th>
+              <th class="col-num">Solde GNF</th>
+              <ng-container *ngIf="showUsdColumns">
+                <th class="col-num">Débit USD</th>
+                <th class="col-num">Crédit USD</th>
+                <th class="col-num">Solde USD</th>
+              </ng-container>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngIf="groupByMonth; else flatRows">
+              <ng-container *ngFor="let g of monthGroups; trackBy: trackByGroup">
+                <tr class="month-row">
+                  <td [attr.colspan]="showUsdColumns ? 10 : 7">
+                    <svg cIcon name="cilCalendar" size="sm" class="me-1"></svg>
+                    {{ g.label }}
+                    <span class="month-totals">
+                      D: {{ fmtNum(g.debit_gnf) }} · C: {{ fmtNum(g.credit_gnf) }}
+                      <span *ngIf="showUsdColumns">
+                        · D$ {{ fmtNum(g.debit_usd) }} · C$ {{ fmtNum(g.credit_usd) }}
+                      </span>
+                    </span>
+                  </td>
+                </tr>
+                <tr *ngFor="let r of g.rows; trackBy: trackByRow">
+                  <td class="col-date">{{ r.date | date:'dd/MM/yy' }}</td>
+                  <td class="col-type">
+                    <span class="type-pill" [ngClass]="'t-' + r.type">
+                      <svg cIcon [name]="typeIcon(r.type)" size="sm"></svg>
+                      {{ r.type_label }}
+                    </span>
+                  </td>
+                  <td class="designation">
+                    <div class="label">{{ r.designation }}</div>
+                    <div *ngIf="r.reference" class="ref">Réf. {{ r.reference }}</div>
+                  </td>
+                  <td class="col-qty">{{ r.quantity !== null ? r.quantity : '—' }}</td>
+                  <td class="col-num" [class.v-debit]="r.debit_gnf > 0" [class.v-zero]="!r.debit_gnf">
+                    {{ r.debit_gnf > 0 ? fmtNum(r.debit_gnf) : '—' }}
+                  </td>
+                  <td class="col-num" [class.v-credit]="r.credit_gnf > 0" [class.v-zero]="!r.credit_gnf">
+                    {{ r.credit_gnf > 0 ? fmtNum(r.credit_gnf) : '—' }}
+                  </td>
+                  <td class="col-num col-balance"
+                      [class.bal-debt]="r.balance_gnf > 0"
+                      [class.bal-credit]="r.balance_gnf < 0"
+                      [class.bal-zero]="r.balance_gnf === 0">
+                    {{ fmtNum(r.balance_gnf) }}
+                  </td>
+                  <ng-container *ngIf="showUsdColumns">
+                    <td class="col-num" [class.v-debit]="r.debit_usd > 0" [class.v-zero]="!r.debit_usd">
+                      {{ r.debit_usd > 0 ? fmtNum(r.debit_usd) : '—' }}
+                    </td>
+                    <td class="col-num" [class.v-credit]="r.credit_usd > 0" [class.v-zero]="!r.credit_usd">
+                      {{ r.credit_usd > 0 ? fmtNum(r.credit_usd) : '—' }}
+                    </td>
+                    <td class="col-num col-balance"
+                        [class.bal-debt]="r.balance_usd > 0"
+                        [class.bal-credit]="r.balance_usd < 0"
+                        [class.bal-zero]="r.balance_usd === 0">
+                      {{ fmtNum(r.balance_usd) }}
+                    </td>
+                  </ng-container>
+                </tr>
+              </ng-container>
+            </ng-container>
+
+            <ng-template #flatRows>
+              <tr *ngFor="let r of filteredRows; trackBy: trackByRow">
+                <td class="col-date">{{ r.date | date:'dd/MM/yy' }}</td>
+                <td class="col-type">
+                  <span class="type-pill" [ngClass]="'t-' + r.type">
+                    <svg cIcon [name]="typeIcon(r.type)" size="sm"></svg>
+                    {{ r.type_label }}
+                  </span>
+                </td>
+                <td class="designation">
+                  <div class="label">{{ r.designation }}</div>
+                  <div *ngIf="r.reference" class="ref">Réf. {{ r.reference }}</div>
+                </td>
+                <td class="col-qty">{{ r.quantity !== null ? r.quantity : '—' }}</td>
+                <td class="col-num" [class.v-debit]="r.debit_gnf > 0" [class.v-zero]="!r.debit_gnf">
+                  {{ r.debit_gnf > 0 ? fmtNum(r.debit_gnf) : '—' }}
+                </td>
+                <td class="col-num" [class.v-credit]="r.credit_gnf > 0" [class.v-zero]="!r.credit_gnf">
+                  {{ r.credit_gnf > 0 ? fmtNum(r.credit_gnf) : '—' }}
+                </td>
+                <td class="col-num col-balance"
+                    [class.bal-debt]="r.balance_gnf > 0"
+                    [class.bal-credit]="r.balance_gnf < 0"
+                    [class.bal-zero]="r.balance_gnf === 0">
+                  {{ fmtNum(r.balance_gnf) }}
+                </td>
+                <ng-container *ngIf="showUsdColumns">
+                  <td class="col-num" [class.v-debit]="r.debit_usd > 0" [class.v-zero]="!r.debit_usd">
+                    {{ r.debit_usd > 0 ? fmtNum(r.debit_usd) : '—' }}
+                  </td>
+                  <td class="col-num" [class.v-credit]="r.credit_usd > 0" [class.v-zero]="!r.credit_usd">
+                    {{ r.credit_usd > 0 ? fmtNum(r.credit_usd) : '—' }}
+                  </td>
+                  <td class="col-num col-balance"
+                      [class.bal-debt]="r.balance_usd > 0"
+                      [class.bal-credit]="r.balance_usd < 0"
+                      [class.bal-zero]="r.balance_usd === 0">
+                    {{ fmtNum(r.balance_usd) }}
+                  </td>
+                </ng-container>
+              </tr>
+            </ng-template>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4">TOTAUX</td>
+              <td class="col-num" style="color: var(--debit);">{{ fmtNum(summary.total_debit_gnf) }}</td>
+              <td class="col-num" style="color: var(--credit);">{{ fmtNum(summary.total_credit_gnf) }}</td>
+              <td class="col-num"
+                  [class.bal-debt]="summary.final_balance_gnf > 0"
+                  [class.bal-credit]="summary.final_balance_gnf < 0">
+                {{ fmtNum(summary.final_balance_gnf) }}
+              </td>
+              <ng-container *ngIf="showUsdColumns">
+                <td class="col-num" style="color: var(--debit);">{{ fmtNum(summary.total_debit_usd) }}</td>
+                <td class="col-num" style="color: var(--credit);">{{ fmtNum(summary.total_credit_usd) }}</td>
+                <td class="col-num"
+                    [class.bal-debt]="summary.final_balance_usd > 0"
+                    [class.bal-credit]="summary.final_balance_usd < 0">
+                  {{ fmtNum(summary.final_balance_usd) }}
+                </td>
+              </ng-container>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="text-muted small mt-2 d-flex justify-content-between flex-wrap gap-2">
+      <span>{{ filteredRows.length }} opération(s) affichée(s) sur {{ rows.length }}</span>
+      <span class="no-print">Astuce : clique sur "Mois" pour basculer le groupement mensuel.</span>
+    </div>
+  </div>
+
+  <!-- MODAL APPLIQUER INTÉRÊT -->
+  <div *ngIf="showInterestModal" class="modal-backdrop-custom no-print" (click)="showInterestModal = false">
+    <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+      <div class="modal-content shadow-lg">
+        <div class="modal-header d-flex justify-content-between align-items-center">
+          <h5 class="modal-title d-flex align-items-center gap-2 mb-0">
+            <svg cIcon name="cilChartLine"></svg> Appliquer un intérêt (compte SALL)
+          </h5>
+          <button type="button" class="btn-close" (click)="showInterestModal = false"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Inscrit un débit "intérêts" sur le compte de <b>{{ client?.name }}</b>.
+            Renseigne le capital + taux, le montant est calculé automatiquement.
+          </p>
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">Capital débiteur</label>
+              <div class="input-group input-group-sm">
+                <input type="number" class="form-control"
+                       [(ngModel)]="interestForm.principal_amount"
+                       (ngModelChange)="computeInterestAmount()"
+                       min="0" step="1000" />
+                <span class="input-group-text">{{ interestForm.currency }}</span>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">Taux d'intérêt (%)</label>
+              <input type="number" class="form-control form-control-sm"
+                     [(ngModel)]="interestForm.interest_rate"
+                     (ngModelChange)="computeInterestAmount()"
+                     min="0" max="100" step="0.5" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">Montant intérêt</label>
+              <div class="input-group input-group-sm">
+                <input type="number" class="form-control"
+                       [(ngModel)]="interestForm.amount"
+                       min="0" step="1000" />
+                <span class="input-group-text">{{ interestForm.currency }}</span>
+              </div>
+              <div class="text-muted x-small mt-1">Modifiable manuellement</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">Date</label>
+              <input type="date" class="form-control form-control-sm"
+                     [(ngModel)]="interestForm.charge_date" />
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Description</label>
+              <input type="text" class="form-control form-control-sm"
+                     [(ngModel)]="interestForm.notes"
+                     placeholder="ex. Intérêts mensuels — solde de mai" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-end gap-2">
+          <button cButton color="light" size="sm" (click)="showInterestModal = false">Annuler</button>
+          <button cButton color="danger" size="sm"
+                  [disabled]="savingInterest || !interestForm.amount || interestForm.amount <= 0"
+                  (click)="saveInterest()">
+            <span *ngIf="!savingInterest">
+              <svg cIcon name="cilCheck" size="sm" class="me-1"></svg> Enregistrer
+            </span>
+            <span *ngIf="savingInterest">Enregistrement...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

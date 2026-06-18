@@ -1,477 +1,533 @@
-<div class="container-fluid">
-  <!-- Header -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <h2 class="mb-0">{{ isEditMode ? 'Modifier le Produit' : 'Nouveau Produit' }}</h2>
-          <p class="text-muted mb-0">{{ isEditMode ? 'Modifiez les informations du produit' : 'Créez un nouveau produit' }}</p>
-        </div>
-        <div class="d-flex gap-2">
-          <button 
-            type="button" 
-            class="btn btn-outline-secondary"
-            (click)="cancel()"
-            [disabled]="saving">
-            <svg cIcon name="cilX" class="me-1"></svg>
-            Annuler
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-primary"
-            (click)="onSubmit()"
-            [disabled]="saving || productForm.invalid">
-            <c-spinner size="sm" class="me-2" *ngIf="saving"></c-spinner>
-            <svg cIcon name="cilCheckAlt" class="me-1" *ngIf="!saving"></svg>
-            {{ isEditMode ? 'Mettre à jour' : 'Créer' }}
-          </button>
-        </div>
-      </div>
+<div class="product-form container-fluid px-3 px-md-4 py-3">
+
+  <!-- HEADER -->
+  <div class="pf-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <div class="crumb">Produits <span class="mx-1 text-muted">›</span> {{ isEditMode ? 'Modifier' : 'Nouveau produit' }}</div>
+      <h1 class="d-flex align-items-center gap-2">
+        <svg cIcon name="cilTags" class="text-primary"></svg>
+        {{ isEditMode ? 'Modifier le produit' : 'Nouveau produit' }}
+      </h1>
+      <div class="doc-sub">Saisis les informations essentielles. La marge se calcule automatiquement.</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button type="button" class="btn btn-light btn-action" (click)="cancel()" [disabled]="saving">
+        <svg cIcon name="cilX" class="me-1"></svg> Annuler
+      </button>
+      <button type="button" class="btn btn-primary btn-action" (click)="onSubmit()"
+              [disabled]="saving || productForm.invalid">
+        <c-spinner size="sm" class="me-1" *ngIf="saving"></c-spinner>
+        <svg cIcon name="cilCheckAlt" class="me-1" *ngIf="!saving"></svg>
+        {{ isEditMode ? 'Mettre à jour' : 'Créer le produit' }}
+      </button>
     </div>
   </div>
 
-  <!-- Loading Spinner -->
-  <div class="text-center p-4" *ngIf="loading">
-    <c-spinner></c-spinner>
-    <p class="mt-2 mb-0">Chargement du produit...</p>
+  <!-- LOADING -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="mt-2 mb-0 text-muted small">Chargement…</p>
   </div>
 
-  <!-- Error Alert -->
-  <c-alert color="danger" *ngIf="error" [dismissible]="true" (dismissed)="error = null">
-    {{ error }}
-  </c-alert>
+  <!-- ERROR -->
+  <c-alert color="danger" *ngIf="error" [dismissible]="true" (dismissed)="error = null">{{ error }}</c-alert>
 
-  <!-- Form -->
+  <!-- FORM -->
   <form [formGroup]="productForm" (ngSubmit)="onSubmit()" *ngIf="!loading">
-    <div class="row">
-      <!-- Basic Information -->
-      <div class="col-lg-8">
-        <c-card class="mb-4">
-          <c-card-header>
-            <h5 class="mb-0">Informations de base</h5>
-          </c-card-header>
-          <c-card-body>
-            <div class="row g-3">
-              <!-- Name -->
-              <div class="col-md-8">
-                <label class="form-label">Nom du produit *</label>
-                <input 
-                  type="text" 
-                  class="form-control"
-                  formControlName="name"
-                  [class.is-invalid]="isFieldInvalid('name')"
-                  placeholder="Entrez le nom du produit">
-                <div class="invalid-feedback" *ngIf="isFieldInvalid('name')">
-                  {{ getFieldError('name') }}
-                </div>
-              </div>
+    <div class="row g-3">
 
-              <!-- SKU -->
+      <!-- COLONNE PRINCIPALE -->
+      <div class="col-lg-8">
+
+        <!-- IDENTITÉ -->
+        <div class="pf-card mb-3">
+          <div class="pf-card-head">
+            <svg cIcon name="cilDescription" class="pf-card-icon"></svg>
+            <h5>Identité du produit</h5>
+          </div>
+          <div class="pf-card-body">
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="pf-label">Nom du produit *</label>
+                <input type="text" class="pf-input"
+                       formControlName="name"
+                       [class.is-invalid]="isFieldInvalid('name')"
+                       placeholder="Ex : Phoenix Aïcha 30m" />
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('name')">{{ getFieldError('name') }}</div>
+              </div>
               <div class="col-md-4">
-                <label class="form-label">SKU</label>
-                <div class="input-group">
-                  <input 
-                    type="text" 
-                    class="form-control"
-                    formControlName="sku"
-                    [class.is-invalid]="isFieldInvalid('sku')"
-                    placeholder="SKU du produit">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary"
-                    (click)="generateSKU()"
-                    title="Générer automatiquement">
+                <label class="pf-label">SKU</label>
+                <div class="pf-input-group">
+                  <input type="text" class="pf-input"
+                         formControlName="sku" placeholder="Auto si vide" />
+                  <button type="button" class="pf-input-btn"
+                          (click)="generateSKU()" title="Générer automatiquement">
                     <svg cIcon name="cilReload"></svg>
                   </button>
                 </div>
-                <div class="invalid-feedback" *ngIf="isFieldInvalid('sku')">
-                  {{ getFieldError('sku') }}
-                </div>
               </div>
 
-              <!-- Description -->
-              <div class="col-12">
-                <label class="form-label">Description</label>
-                <textarea 
-                  class="form-control"
-                  formControlName="description"
-                  [class.is-invalid]="isFieldInvalid('description')"
-                  rows="3"
-                  placeholder="Description détaillée du produit"></textarea>
-                <div class="invalid-feedback" *ngIf="isFieldInvalid('description')">
-                  {{ getFieldError('description') }}
-                </div>
-              </div>
-
-              <!-- Category and Unit -->
               <div class="col-md-6">
-                <label class="form-label">Catégorie</label>
-                <select 
-                  class="form-select"
-                  formControlName="product_category_id"
-                  [class.is-invalid]="isFieldInvalid('product_category_id')"
-                  (change)="onCategoryChange()">
-                  <option value="">Sélectionner une catégorie</option>
-                  <option *ngFor="let category of categories; trackBy: trackById" [value]="category.id">
-                    {{ category.name }}
-                  </option>
+                <label class="pf-label">Catégorie</label>
+                <select class="pf-input" formControlName="product_category_id">
+                  <option value="">— Sélectionner —</option>
+                  <option *ngFor="let c of categories; trackBy: trackById" [value]="c.id">{{ c.name }}</option>
                 </select>
-                <div class="invalid-feedback" *ngIf="isFieldInvalid('product_category_id')">
-                  {{ getFieldError('product_category_id') }}
-                </div>
               </div>
-
               <div class="col-md-6">
-                <label class="form-label">Unité de mesure</label>
-                <select 
-                  class="form-select"
-                  formControlName="unit_id"
-                  [class.is-invalid]="isFieldInvalid('unit_id')">
-                  <option value="">Sélectionner une unité</option>
-                  <option *ngFor="let unit of units; trackBy: trackById" [value]="unit.id">
-                    {{ unit.name }} ({{ unit.symbol }})
-                  </option>
+                <label class="pf-label">Unité de mesure</label>
+                <select class="pf-input" formControlName="unit_id">
+                  <option value="">— Sélectionner —</option>
+                  <option *ngFor="let u of units; trackBy: trackById" [value]="u.id">{{ u.name }} ({{ u.symbol }})</option>
                 </select>
-                <div class="invalid-feedback" *ngIf="isFieldInvalid('unit_id')">
-                  {{ getFieldError('unit_id') }}
-                </div>
               </div>
 
-              <!-- Status -->
               <div class="col-md-6">
-                <label class="form-label">Statut *</label>
-                <select 
-                  class="form-select"
-                  formControlName="status"
-                  [class.is-invalid]="isFieldInvalid('status')">
+                <label class="pf-label">Statut *</label>
+                <select class="pf-input" formControlName="status">
                   <option value="ACTIVE">Actif</option>
                   <option value="INACTIVE">Inactif</option>
                   <option value="DISCONTINUED">Discontinué</option>
                 </select>
-                <div class="invalid-feedback" *ngIf="isFieldInvalid('status')">
-                  {{ getFieldError('status') }}
-                </div>
               </div>
-
-              <!-- Barcode -->
               <div class="col-md-6">
-                <label class="form-label">Code-barres</label>
-                <input 
-                  type="text" 
-                  class="form-control"
-                  formControlName="barcode"
-                  [class.is-invalid]="isFieldInvalid('barcode')"
-                  placeholder="Code-barres du produit">
-                <div class="invalid-feedback" *ngIf="isFieldInvalid('barcode')">
-                  {{ getFieldError('barcode') }}
+                <label class="pf-label">Code-barres</label>
+                <input type="text" class="pf-input" formControlName="barcode" placeholder="Optionnel" />
+              </div>
+
+              <div class="col-12">
+                <label class="pf-label">Description</label>
+                <textarea class="pf-input" formControlName="description"
+                          rows="2" placeholder="Description courte (optionnel)"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRIX UNITAIRE + MARGE -->
+        <div class="pf-card mb-3">
+          <div class="pf-card-head">
+            <svg cIcon name="cilDollar" class="pf-card-icon"></svg>
+            <h5>Prix à l'unité &amp; marge</h5>
+          </div>
+          <div class="pf-card-body">
+            <div class="row g-3 align-items-end">
+              <div class="col-md-3">
+                <label class="pf-label">Prix d'achat</label>
+                <div class="pf-input-group">
+                  <input type="number" class="pf-input pf-input-num"
+                         formControlName="purchase_price" step="100" min="0" placeholder="0" />
+                  <span class="pf-input-suffix">GNF</span>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label class="pf-label">Prix de vente</label>
+                <div class="pf-input-group">
+                  <input type="number" class="pf-input pf-input-num"
+                         formControlName="selling_price" step="100" min="0" placeholder="0" />
+                  <span class="pf-input-suffix">GNF</span>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label class="pf-label">Marge (montant)</label>
+                <div class="pf-input-group margin-amount">
+                  <input type="number" class="pf-input pf-input-num"
+                         formControlName="unit_margin_amount" step="100" placeholder="0" />
+                  <span class="pf-input-suffix">GNF</span>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label class="pf-label">Marge (%)</label>
+                <div class="pf-input-group margin-pct">
+                  <input type="number" class="pf-input pf-input-num"
+                         formControlName="unit_margin_pct" step="0.1" placeholder="0" />
+                  <span class="pf-input-suffix">%</span>
                 </div>
               </div>
             </div>
-          </c-card-body>
-        </c-card>
-
-        <!-- Pricing unitaire -->
-        <c-card class="mb-4">
-          <c-card-header>
-            <h5 class="mb-0">Prix à l'unité</h5>
-          </c-card-header>
-          <c-card-body>
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-label">Prix d'achat unitaire</label>
-                <div class="input-group">
-                  <input type="number" class="form-control" formControlName="purchase_price"
-                         [class.is-invalid]="isFieldInvalid('purchase_price')"
-                         placeholder="0" step="1" min="0">
-                  <span class="input-group-text">GNF</span>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Prix de vente unitaire <small class="text-muted">(manuel)</small></label>
-                <div class="input-group">
-                  <input type="number" class="form-control" formControlName="selling_price"
-                         [class.is-invalid]="isFieldInvalid('selling_price')"
-                         placeholder="auto" step="1" min="0">
-                  <span class="input-group-text">GNF</span>
-                </div>
-                <small class="text-muted">Laissez vide pour calculer depuis le carton</small>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Marge</label>
-                <div class="input-group">
-                  <input type="text" class="form-control" [value]="calculateMargin().toFixed(1)" readonly>
-                  <span class="input-group-text">%</span>
-                </div>
-              </div>
+            <div class="margin-hint mt-2">
+              <svg cIcon name="cilLightbulb" size="sm"></svg>
+              Saisis n'importe lequel des 4 champs — les autres se recalculent automatiquement
+              (Marge = Prix de vente − Prix d'achat).
             </div>
-          </c-card-body>
-        </c-card>
+          </div>
+        </div>
 
-        <!-- Section Carton (cosmétiques) -->
-        <c-card class="mb-4" style="border:2px solid #818CF8;">
-          <c-card-header style="background:linear-gradient(135deg,#EEF2FF,#E0E7FF);">
-            <div class="d-flex align-items-center gap-2">
-              <svg cIcon name="cilGrid" style="color:#4F46E5;width:18px;height:18px;"></svg>
-              <h5 class="mb-0" style="color:#4F46E5;">Vente en carton</h5>
-              <span class="badge ms-auto" style="background:#4F46E5;font-size:11px;">Cosmétiques</span>
-            </div>
-          </c-card-header>
-          <c-card-body>
-            <div class="row g-3">
-
-              <!-- Unités par carton -->
-              <div class="col-md-4">
-                <label class="form-label fw-semibold">Unités par carton</label>
-                <div class="input-group">
-                  <input type="number" class="form-control" formControlName="units_per_carton"
-                         placeholder="12" min="1" step="1">
-                  <span class="input-group-text">pcs</span>
-                </div>
-                <small class="text-muted">Ex : 12 = 1 douzaine</small>
-              </div>
-
-              <!-- Prix achat carton -->
-              <div class="col-md-4">
-                <label class="form-label fw-semibold">Prix achat carton complet</label>
-                <div class="input-group">
-                  <input type="number" class="form-control" formControlName="carton_purchase_price"
-                         placeholder="0" step="1" min="0">
-                  <span class="input-group-text">GNF</span>
+        <!-- VENTE EN CARTON -->
+        <div class="pf-card mb-3 carton-card">
+          <div class="pf-card-head">
+            <svg cIcon name="cilGrid" class="pf-card-icon"></svg>
+            <h5>Vente en carton / lot</h5>
+            <span class="ms-auto small text-muted">Optionnel — pour les conditionnements groupés</span>
+          </div>
+          <div class="pf-card-body">
+            <div class="row g-3 align-items-end">
+              <div class="col-md-3">
+                <label class="pf-label">Unités par carton</label>
+                <div class="pf-input-group">
+                  <input type="number" class="pf-input pf-input-num"
+                         formControlName="units_per_carton" min="1" step="1" placeholder="12" />
+                  <span class="pf-input-suffix">pcs</span>
                 </div>
               </div>
-
-              <!-- Prix vente carton -->
-              <div class="col-md-4">
-                <label class="form-label fw-semibold">Prix vente carton complet</label>
-                <div class="input-group">
-                  <input type="number" class="form-control" formControlName="carton_selling_price"
-                         placeholder="0" step="1" min="0">
-                  <span class="input-group-text">GNF</span>
+              <div class="col-md-3">
+                <label class="pf-label">Prix achat carton</label>
+                <div class="pf-input-group">
+                  <input type="number" class="pf-input pf-input-num"
+                         formControlName="carton_purchase_price" step="1000" min="0" placeholder="0" />
+                  <span class="pf-input-suffix">GNF</span>
                 </div>
               </div>
-
-              <!-- Tableau de calcul automatique -->
-              <div class="col-12" *ngIf="cartonSellingPrice > 0">
-                <div style="background:#F5F3FF;border-radius:10px;padding:16px;border:1px solid #DDD6FE;">
-                  <div class="fw-semibold mb-3" style="color:#4F46E5;font-size:0.85rem;">
-                    <svg cIcon name="cilCalculator" style="width:14px;height:14px;" class="me-1"></svg>
-                    Prix calculés automatiquement
+              <div class="col-md-3">
+                <label class="pf-label">Prix vente carton</label>
+                <div class="pf-input-group">
+                  <input type="number" class="pf-input pf-input-num"
+                         formControlName="carton_selling_price" step="1000" min="0" placeholder="0" />
+                  <span class="pf-input-suffix">GNF</span>
+                </div>
+              </div>
+              <div class="col-md-3 d-flex gap-2">
+                <div class="flex-grow-1">
+                  <label class="pf-label">Marge €</label>
+                  <div class="pf-input-group margin-amount">
+                    <input type="number" class="pf-input pf-input-num"
+                           formControlName="carton_margin_amount" step="1000" placeholder="0" />
+                    <span class="pf-input-suffix">GNF</span>
                   </div>
-                  <div class="row g-2">
-                    <div class="col-6 col-md-3">
-                      <div style="background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid #E0E7FF;">
-                        <div style="font-size:0.7rem;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Carton complet</div>
-                        <div class="fw-bold" style="font-size:1rem;color:#4F46E5;">{{ cartonSellingPrice | number:'1.0-0' }}</div>
-                        <div style="font-size:0.7rem;color:#9CA3AF;">{{ unitsPerCarton }} unités</div>
-                      </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                      <div style="background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid #E0E7FF;">
-                        <div style="font-size:0.7rem;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Demi-carton</div>
-                        <div class="fw-bold" style="font-size:1rem;color:#7C3AED;">{{ calcHalfCartonPrice | number:'1.0-0' }}</div>
-                        <div style="font-size:0.7rem;color:#9CA3AF;">{{ unitsPerCarton / 2 | number:'1.0-0' }} unités</div>
-                      </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                      <div style="background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid #E0E7FF;">
-                        <div style="font-size:0.7rem;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Douzaine</div>
-                        <div class="fw-bold" style="font-size:1rem;color:#2563EB;">{{ calcDozenPrice | number:'1.0-0' }}</div>
-                        <div style="font-size:0.7rem;color:#9CA3AF;">12 unités</div>
-                      </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                      <div style="background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid #E0E7FF;">
-                        <div style="font-size:0.7rem;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">À l'unité</div>
-                        <div class="fw-bold" style="font-size:1rem;color:#059669;">{{ calcUnitPrice | number:'1.0-0' }}</div>
-                        <div style="font-size:0.7rem;color:#9CA3AF;">1 unité</div>
-                      </div>
-                    </div>
+                </div>
+                <div class="flex-grow-1">
+                  <label class="pf-label">Marge %</label>
+                  <div class="pf-input-group margin-pct">
+                    <input type="number" class="pf-input pf-input-num"
+                           formControlName="carton_margin_pct" step="0.1" placeholder="0" />
+                    <span class="pf-input-suffix">%</span>
                   </div>
                 </div>
               </div>
-
             </div>
-          </c-card-body>
-        </c-card>
+
+            <!-- Prix calculés (résumé compact) -->
+            <div *ngIf="cartonSellingPrice > 0" class="calc-grid mt-3">
+              <div class="calc-cell">
+                <span class="calc-label">Carton complet</span>
+                <span class="calc-value primary">{{ cartonSellingPrice | number:'1.0-0' }}</span>
+                <span class="calc-sub">{{ unitsPerCarton }} unités</span>
+              </div>
+              <div class="calc-cell">
+                <span class="calc-label">Demi-carton</span>
+                <span class="calc-value violet">{{ calcHalfCartonPrice | number:'1.0-0' }}</span>
+                <span class="calc-sub">{{ unitsPerCarton / 2 | number:'1.0-0' }} unités</span>
+              </div>
+              <div class="calc-cell">
+                <span class="calc-label">Douzaine</span>
+                <span class="calc-value blue">{{ calcDozenPrice | number:'1.0-0' }}</span>
+                <span class="calc-sub">12 unités</span>
+              </div>
+              <div class="calc-cell">
+                <span class="calc-label">À l'unité</span>
+                <span class="calc-value green">{{ calcUnitPrice | number:'1.0-0' }}</span>
+                <span class="calc-sub">1 unité</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Colonne droite -->
+      <!-- COLONNE DROITE : Photo + Stock -->
       <div class="col-lg-4">
 
-        <!-- ── Photo du produit ── -->
-        <c-card class="mb-4">
-          <c-card-header>
-            <h5 class="mb-0">Photo du produit</h5>
-          </c-card-header>
-          <c-card-body>
-
-            <!-- Prévisualisation -->
+        <!-- PHOTO -->
+        <div class="pf-card mb-3">
+          <div class="pf-card-head">
+            <svg cIcon name="cilImage" class="pf-card-icon"></svg>
+            <h5>Photo du produit</h5>
+          </div>
+          <div class="pf-card-body">
             <div class="text-center mb-3">
-              <div *ngIf="displayedImageUrl; else noImage"
-                   class="position-relative d-inline-block">
-                <img [src]="displayedImageUrl" alt="Photo produit"
-                     style="width:100%;max-height:200px;object-fit:contain;
-                            border-radius:8px;border:1px solid #e2e8f0;">
-                <!-- Bouton supprimer la prévisualisation locale -->
+              <div *ngIf="displayedImageUrl; else noImage" class="position-relative d-inline-block w-100">
+                <img [src]="displayedImageUrl" alt="Photo produit" class="product-photo" />
                 <button *ngIf="imagePreview" type="button"
-                        class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
-                        style="border-radius:50%;width:26px;height:26px;padding:0;line-height:1"
-                        title="Annuler la sélection"
-                        (click)="clearSelectedImage()">
+                        class="btn btn-sm btn-danger photo-clear-btn"
+                        title="Annuler la sélection" (click)="clearSelectedImage()">
                   <svg cIcon name="cilX" size="sm"></svg>
                 </button>
               </div>
-
               <ng-template #noImage>
-                <div class="d-flex flex-column align-items-center justify-content-center"
-                     style="height:140px;background:#f8fafc;border-radius:8px;
-                            border:2px dashed #cbd5e1;color:#94a3b8">
-                  <svg cIcon name="cilImage" size="xl" class="mb-2" style="opacity:.4"></svg>
-                  <span style="font-size:.8rem">Aucune photo</span>
+                <div class="photo-empty">
+                  <svg cIcon name="cilImage" size="xl"></svg>
+                  <span>Aucune photo</span>
                 </div>
               </ng-template>
             </div>
 
-            <!-- Erreur image -->
-            <div *ngIf="imageError" class="alert alert-danger py-2 px-3 mb-3"
-                 style="font-size:.8rem">
-              {{ imageError }}
-            </div>
-
-            <!-- Message suppression en attente -->
-            <div *ngIf="pendingRemoveImage" class="alert alert-warning py-2 px-3 mb-3"
-                 style="font-size:.8rem">
+            <div *ngIf="imageError" class="alert alert-danger small py-2 mb-2">{{ imageError }}</div>
+            <div *ngIf="pendingRemoveImage" class="alert alert-warning small py-2 mb-2">
               L'image sera supprimée après enregistrement.
-              <button type="button" class="btn btn-link btn-sm p-0 ms-1"
-                      (click)="cancelRemoval()">Annuler</button>
+              <button type="button" class="btn btn-link btn-sm p-0 ms-1" (click)="cancelRemoval()">Annuler</button>
             </div>
 
-            <!-- Boutons -->
+            <input #fileInput type="file" accept="image/jpeg,image/png,image/jpg,image/webp"
+                   class="d-none" (change)="onImageSelected($event)" />
             <div class="d-grid gap-2">
-              <!-- Input fichier caché, déclenché par le bouton -->
-              <input #fileInput type="file" accept="image/jpeg,image/png,image/jpg,image/webp"
-                     class="d-none" (change)="onImageSelected($event)">
-
-              <button type="button" class="btn btn-outline-primary btn-sm"
-                      (click)="fileInput.click()">
+              <button type="button" class="btn btn-outline-primary btn-sm" (click)="fileInput.click()">
                 <svg cIcon name="cilCloudUpload" class="me-1"></svg>
                 {{ displayedImageUrl ? 'Changer la photo' : 'Choisir une photo' }}
               </button>
-
               <button *ngIf="currentImageUrl && !pendingRemoveImage && !imagePreview"
-                      type="button" class="btn btn-outline-danger btn-sm"
-                      (click)="markImageForRemoval()">
-                <svg cIcon name="cilTrash" class="me-1"></svg>
-                Supprimer la photo
+                      type="button" class="btn btn-outline-danger btn-sm" (click)="markImageForRemoval()">
+                <svg cIcon name="cilTrash" class="me-1"></svg> Supprimer la photo
               </button>
             </div>
+            <small class="d-block text-muted mt-2">JPG, PNG ou WebP · max 2 Mo</small>
+          </div>
+        </div>
 
-            <small class="text-muted d-block mt-2">
-              JPG, PNG ou WebP · max 2 Mo
-            </small>
-
-          </c-card-body>
-        </c-card>
-
-        <!-- ── Gestion du stock ── -->
-        <c-card class="mb-4">
-          <c-card-header>
-            <h5 class="mb-0">Gestion du stock</h5>
-          </c-card-header>
-          <c-card-body>
-            <div class="mb-3">
-              <label class="form-label">Quantité en stock</label>
-              <input 
-                type="number" 
-                class="form-control"
-                formControlName="stock_quantity"
-                [class.is-invalid]="isFieldInvalid('stock_quantity')"
-                placeholder="0"
-                min="0">
-              <div class="invalid-feedback" *ngIf="isFieldInvalid('stock_quantity')">
-                {{ getFieldError('stock_quantity') }}
+        <!-- STOCK -->
+        <div class="pf-card mb-3">
+          <div class="pf-card-head">
+            <svg cIcon name="cilStorage" class="pf-card-icon"></svg>
+            <h5>Stock</h5>
+          </div>
+          <div class="pf-card-body">
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="pf-label">Quantité</label>
+                <input type="number" class="pf-input pf-input-num"
+                       formControlName="stock_quantity" min="0" step="1" placeholder="0" />
+              </div>
+              <div class="col-6">
+                <label class="pf-label">Seuil bas</label>
+                <input type="number" class="pf-input pf-input-num"
+                       formControlName="low_stock_threshold" min="0" step="1" placeholder="10" />
               </div>
             </div>
-
-            <div class="mb-3">
-              <label class="form-label">Seuil de stock faible</label>
-              <input 
-                type="number" 
-                class="form-control"
-                formControlName="low_stock_threshold"
-                [class.is-invalid]="isFieldInvalid('low_stock_threshold')"
-                placeholder="10"
-                min="0">
-              <div class="invalid-feedback" *ngIf="isFieldInvalid('low_stock_threshold')">
-                {{ getFieldError('low_stock_threshold') }}
-              </div>
-              <small class="text-muted">Alerte quand le stock atteint ce niveau</small>
+            <div class="stock-status mt-3" *ngIf="productForm.get('stock_quantity')?.value !== null">
+              <span class="stock-pill"
+                    [class.s-out]="productForm.get('stock_quantity')?.value === 0"
+                    [class.s-low]="productForm.get('stock_quantity')?.value > 0 && productForm.get('stock_quantity')?.value <= productForm.get('low_stock_threshold')?.value"
+                    [class.s-ok]="productForm.get('stock_quantity')?.value > productForm.get('low_stock_threshold')?.value">
+                <i></i>
+                {{
+                  productForm.get('stock_quantity')?.value === 0 ? 'Rupture de stock' :
+                  productForm.get('stock_quantity')?.value <= productForm.get('low_stock_threshold')?.value ? 'Stock faible' :
+                  'Stock normal'
+                }}
+              </span>
             </div>
+          </div>
+        </div>
 
-            <!-- Stock Status -->
-            <div class="alert alert-info" *ngIf="productForm.get('stock_quantity')?.value !== null">
-              <div class="d-flex align-items-center">
-                <svg cIcon name="cilInfo" class="me-2"></svg>
-                <div>
-                  <strong>Statut du stock</strong>
-                  <div class="mt-1">
-                    <span 
-                      class="badge"
-                      [class.bg-danger]="productForm.get('stock_quantity')?.value === 0"
-                      [class.bg-warning]="productForm.get('stock_quantity')?.value > 0 && productForm.get('stock_quantity')?.value <= productForm.get('low_stock_threshold')?.value"
-                      [class.bg-success]="productForm.get('stock_quantity')?.value > productForm.get('low_stock_threshold')?.value">
-                      {{ 
-                        productForm.get('stock_quantity')?.value === 0 ? 'Rupture de stock' :
-                        productForm.get('stock_quantity')?.value <= productForm.get('low_stock_threshold')?.value ? 'Stock faible' :
-                        'Stock normal'
-                      }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </c-card-body>
-        </c-card>
-
-        <!-- Form Actions -->
-        <c-card>
-          <c-card-body>
-            <div class="d-grid gap-2">
-              <button 
-                type="submit" 
-                class="btn btn-primary"
-                [disabled]="saving || productForm.invalid">
-                <c-spinner size="sm" class="me-2" *ngIf="saving"></c-spinner>
-                <svg cIcon name="cilCheckAlt" class="me-1" *ngIf="!saving"></svg>
-                {{ isEditMode ? 'Mettre à jour le produit' : 'Créer le produit' }}
-              </button>
-              
-              <button 
-                type="button" 
-                class="btn btn-outline-secondary"
-                (click)="cancel()"
-                [disabled]="saving">
-                <svg cIcon name="cilX" class="me-1"></svg>
-                Annuler
-              </button>
-            </div>
-
-            <!-- Form Status -->
-            <div class="mt-3 pt-3 border-top">
-              <small class="text-muted">
-                <div class="d-flex justify-content-between">
-                  <span>Champs requis: *</span>
-                  <span 
-                    [class.text-success]="productForm.valid"
-                    [class.text-danger]="productForm.invalid">
-                    {{ productForm.valid ? 'Formulaire valide' : 'Formulaire invalide' }}
-                  </span>
-                </div>
-              </small>
-            </div>
-          </c-card-body>
-        </c-card>
       </div>
     </div>
   </form>
 </div>
+
+<style>
+.product-form {
+  --ink:        #0f172a;
+  --ink-soft:   #475569;
+  --muted:      #94a3b8;
+  --line:       #e2e8f0;
+  --line-soft:  #f1f5f9;
+  --bg-soft:    #f8fafc;
+  --primary:    #0f3460;
+  --accent:     #2563eb;
+}
+
+/* HEADER */
+.pf-header {
+  background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.pf-header .crumb { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+.pf-header h1 { font-size: 1.4rem; font-weight: 800; margin: 0; letter-spacing: -0.01em; color: var(--ink); }
+.pf-header .doc-sub { font-size: 0.82rem; color: var(--ink-soft); margin-top: 2px; }
+.btn-action { border-radius: 10px !important; font-weight: 600; }
+
+/* CARTES */
+.pf-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+.pf-card-head {
+  display: flex; align-items: center; gap: .55rem;
+  padding: .85rem 1.1rem;
+  background: linear-gradient(180deg, #f8fafc, #fff);
+  border-bottom: 1px solid var(--line);
+}
+.pf-card-head h5 { margin: 0; font-size: 0.98rem; font-weight: 700; color: var(--ink); }
+.pf-card-icon { width: 18px; height: 18px; color: var(--accent); }
+.pf-card-body { padding: 1.1rem; }
+.pf-card.carton-card { border-left: 4px solid #818CF8; }
+
+/* INPUTS */
+.pf-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: .25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+}
+.pf-input {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid #D1D5DB;
+  padding: .5rem .75rem;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.95rem;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.pf-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .14);
+}
+.pf-input:disabled { background: #F3F4F6; color: #9CA3AF; cursor: not-allowed; }
+textarea.pf-input { resize: vertical; min-height: 60px; }
+.pf-input-num { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.pf-input-group {
+  display: flex; align-items: stretch;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #D1D5DB;
+  background: #fff;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.pf-input-group:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .14);
+}
+.pf-input-group .pf-input {
+  border: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+.pf-input-group .pf-input:focus { box-shadow: none; }
+.pf-input-suffix, .pf-input-btn {
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 .85rem;
+  background: #F9FAFB;
+  border-left: 1px solid #E5E7EB;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.pf-input-btn {
+  border: none;
+  cursor: pointer;
+  transition: .15s ease;
+  color: var(--accent);
+}
+.pf-input-btn:hover { background: var(--accent); color: #fff; }
+.pf-input-btn svg { width: 16px; height: 16px; }
+
+/* MARGES — coloration */
+.pf-input-group.margin-amount {
+  background: #ECFDF5;
+  border-color: #A7F3D0;
+}
+.pf-input-group.margin-amount .pf-input { background: #ECFDF5; color: #047857; font-weight: 700; }
+.pf-input-group.margin-amount .pf-input-suffix { background: #D1FAE5; color: #047857; border-left-color: #A7F3D0; }
+
+.pf-input-group.margin-pct {
+  background: #FEF3C7;
+  border-color: #FDE68A;
+}
+.pf-input-group.margin-pct .pf-input { background: #FEF3C7; color: #B45309; font-weight: 700; }
+.pf-input-group.margin-pct .pf-input-suffix { background: #FCD34D; color: #92400E; border-left-color: #FDE68A; }
+
+.margin-hint {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  display: flex; align-items: center; gap: .4rem;
+  padding: .55rem .75rem;
+  background: #EFF6FF;
+  border: 1px dashed #BFDBFE;
+  border-radius: 8px;
+}
+.margin-hint svg { color: #2563eb; width: 14px; height: 14px; flex-shrink: 0; }
+
+/* PRIX CALCULÉS */
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: .65rem;
+  padding: .9rem;
+  background: #F5F3FF;
+  border: 1px solid #DDD6FE;
+  border-radius: 12px;
+}
+.calc-cell {
+  background: #fff;
+  padding: .65rem .5rem;
+  border-radius: 9px;
+  text-align: center;
+  border: 1px solid #E0E7FF;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.calc-label { font-size: 0.65rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+.calc-value { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.calc-value.primary { color: #4F46E5; }
+.calc-value.violet  { color: #7C3AED; }
+.calc-value.blue    { color: #2563EB; }
+.calc-value.green   { color: #059669; }
+.calc-sub { font-size: 0.65rem; color: #9CA3AF; }
+
+/* PHOTO */
+.product-photo {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+.photo-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 160px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 2px dashed #cbd5e1;
+  color: #94a3b8;
+  gap: .35rem;
+}
+.photo-empty svg { opacity: .4; }
+.photo-empty span { font-size: 0.82rem; }
+.photo-clear-btn {
+  position: absolute; top: 6px; right: 6px;
+  border-radius: 50%; width: 28px; height: 28px; padding: 0; line-height: 1;
+}
+
+/* STOCK PILL */
+.stock-status { padding-top: .5rem; border-top: 1px dashed var(--line); }
+.stock-pill {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .35rem .75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.stock-pill i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.stock-pill.s-out { background: #fee2e2; color: #b91c1c; }
+.stock-pill.s-low { background: #fef3c7; color: #b45309; }
+.stock-pill.s-ok  { background: #dcfce7; color: #15803d; }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .pf-header h1 { font-size: 1.2rem; }
+  .pf-input { font-size: 0.88rem; }
+  .calc-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>

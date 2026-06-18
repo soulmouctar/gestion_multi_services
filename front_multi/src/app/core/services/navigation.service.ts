@@ -140,6 +140,7 @@ export class NavigationService {
                 { name: 'Clients textile',          url: '/clients/textile',          icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_textile' },
                 { name: 'Clients cosmétiques',      url: '/clients/cosmetiques',      icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_cosmetiques' },
                 { name: 'Clients conteneurs pagne', url: '/clients/conteneurs-pagne', icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_conteneurs_pagne' },
+                { name: 'INDEX comptes clients',    url: '/clients/index',            icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general', badge: { color: 'success', text: 'NEW' } },
                 { name: 'Fournisseurs',             url: '/suppliers/list',           icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_suppliers' },
               ]
             });
@@ -169,6 +170,7 @@ export class NavigationService {
               { name: 'Devises',                      url: '/finance/currencies',        icon: 'nav-icon-bullet' },
               { name: 'Taux de Change',               url: '/finance/exchange-rates',    icon: 'nav-icon-bullet' },
               { name: 'Factures',                     url: '/finance/invoices',          icon: 'nav-icon-bullet' },
+              { name: 'Synthèse des ventes',          url: '/finance/sales-summary',     icon: 'nav-icon-bullet', badge: { color: 'success', text: 'NEW' } },
             ]
           });
           break;

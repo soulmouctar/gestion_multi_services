@@ -15,10 +15,13 @@ type SaleType = 'UNITE' | 'CARTON' | 'DEMI_CARTON' | 'DOUZAINE';
 
 interface InvoiceLineItem {
   product_id: number | null;
+  supplier_id: number | null;
   sale_type: SaleType;
+  is_sample: boolean;
   description: string;
   quantity: number;
   unit_price: number;
+  discount_amount: number;
 }
 
 @Component({
@@ -45,6 +48,7 @@ export class InvoicesComponent implements OnInit {
   clients: any[] = [];
   currencies: any[] = [];
   products: any[] = [];
+  suppliers: any[] = [];
   invoiceLineItems: InvoiceLineItem[] = [];
   clientBalance: any = null;
   invoiceHeader: InvoiceHeader | null = null;
@@ -114,6 +118,7 @@ export class InvoicesComponent implements OnInit {
     this.loadClients();
     this.loadCurrencies();
     this.loadProducts();
+    this.loadSuppliers();
     this.loadDefaultInvoiceHeader();
   }
 
@@ -161,6 +166,17 @@ export class InvoicesComponent implements OnInit {
       next: (r) => {
         if (r.success && r.data) {
           this.products = r.data.data || r.data || [];
+        }
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadSuppliers(): void {
+    this.apiService.get<any>('suppliers?per_page=300').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        if (r.success && r.data) {
+          this.suppliers = r.data.data || r.data || [];
         }
         this.cdr.detectChanges();
       }
@@ -255,11 +271,7 @@ export class InvoicesComponent implements OnInit {
   }
 
   get itemsSubtotal(): number {
-    return this.invoiceLineItems.reduce((sum, item) => {
-      const quantity = Number(item.quantity || 0);
-      const unitPrice = Number(item.unit_price || 0);
-      return sum + (quantity * unitPrice);
-    }, 0);
+    return this.invoiceLineItems.reduce((sum, item) => sum + this.getLineTotal(item), 0);
   }
 
   get previousBalanceApplied(): number {
@@ -327,10 +339,13 @@ export class InvoicesComponent implements OnInit {
     this.invoiceLineItems = Array.isArray(invoice.items) && invoice.items.length > 0
       ? invoice.items.map((item: any) => ({
           product_id: item.product_id ?? null,
+          supplier_id: item.supplier_id ?? null,
           sale_type:  (item.sale_type as SaleType) || 'UNITE',
+          is_sample: !!item.is_sample,
           description: item.description || '',
           quantity: Number(item.quantity || 1),
           unit_price: Number(item.unit_price || 0),
+          discount_amount: Number(item.discount_amount || 0),
         }))
       : [this.createFallbackLineItem(invoice)];
 
@@ -353,10 +368,13 @@ export class InvoicesComponent implements OnInit {
       .filter((item) => !!item.description?.trim())
       .map((item) => ({
         product_id: item.product_id || null,
+        supplier_id: item.supplier_id || null,
         sale_type:  item.sale_type || 'UNITE',
+        is_sample: !!item.is_sample,
         description: item.description.trim(),
         quantity: Number(item.quantity || 0),
         unit_price: Number(item.unit_price || 0),
+        discount_amount: Number(item.discount_amount || 0),
       }))
       .filter((item) => item.quantity > 0);
 
@@ -592,7 +610,10 @@ export class InvoicesComponent implements OnInit {
   }
 
   getLineTotal(item: InvoiceLineItem): number {
-    return Number(item.quantity || 0) * Number(item.unit_price || 0);
+    if (item.is_sample) return 0;
+    const gross    = Number(item.quantity || 0) * Number(item.unit_price || 0);
+    const discount = Number(item.discount_amount || 0);
+    return Math.max(0, gross - discount);
   }
 
   getClientName(id: number): string {
@@ -623,16 +644,28 @@ export class InvoicesComponent implements OnInit {
   }
 
   private createEmptyLineItem(): InvoiceLineItem {
-    return { product_id: null, sale_type: 'UNITE', description: '', quantity: 1, unit_price: 0 };
+    return {
+      product_id: null,
+      supplier_id: null,
+      sale_type: 'UNITE',
+      is_sample: false,
+      description: '',
+      quantity: 1,
+      unit_price: 0,
+      discount_amount: 0,
+    };
   }
 
   private createFallbackLineItem(invoice: any): InvoiceLineItem {
     return {
       product_id: null,
+      supplier_id: null,
       sale_type: 'UNITE',
+      is_sample: false,
       description: invoice.notes || 'Ligne de facturation',
       quantity: 1,
       unit_price: Number(invoice.items_subtotal_amount || invoice.total_amount || 0),
+      discount_amount: 0,
     };
   }
 

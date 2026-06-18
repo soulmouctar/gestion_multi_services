@@ -152,6 +152,11 @@
               <ng-container *ngIf="p.client; else noClient">
                 <div class="fw-semibold" style="color:#111827;">{{ p.client.name }}</div>
                 <div class="small text-muted" style="font-size:11px;">{{ p.client.phone }}</div>
+                <div *ngIf="p.paid_by_client?.name as payerName" class="small mt-1">
+                  <span class="badge bg-info-subtle text-info" style="font-size:0.65rem;">
+                    Réglé par {{ payerName }}
+                  </span>
+                </div>
               </ng-container>
               <ng-template #noClient><span class="text-muted">—</span></ng-template>
             </td>
@@ -301,11 +306,29 @@
             </div>
 
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">Client</label>
+              <label class="form-label small fw-semibold">Client (crédité)</label>
               <select cSelect formControlName="client_id" style="border-radius:8px;">
                 <option [ngValue]="null">-- Sélectionner un client --</option>
                 <option *ngFor="let c of clients; trackBy: trackById" [ngValue]="c.id">{{ c.name }}</option>
               </select>
+            </div>
+
+            <div class="col-md-6" *ngIf="paymentForm.get('client_id')?.value">
+              <label class="form-label small fw-semibold d-flex align-items-center gap-2">
+                Payé par (tiers)
+                <span class="text-muted" style="font-weight:400;font-size:0.7rem;">— optionnel</span>
+              </label>
+              <select cSelect formControlName="paid_by_client_id" style="border-radius:8px;">
+                <option [ngValue]="null">Le client lui-même</option>
+                <ng-container *ngFor="let c of clients; trackBy: trackById">
+                  <option *ngIf="c.id !== paymentForm.get('client_id')?.value" [ngValue]="c.id">
+                    {{ c.name }}
+                  </option>
+                </ng-container>
+              </select>
+              <div class="text-muted x-small mt-1" style="font-size:0.7rem;">
+                Utilisé quand un autre client règle au nom de celui-ci.
+              </div>
             </div>
 
             <div class="col-md-6" *ngIf="paymentForm.get('client_id')?.value">

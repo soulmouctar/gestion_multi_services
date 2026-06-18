@@ -1,8 +1,10 @@
 export const environment = {
   production: false,
+  // urlBase: 'http://localhost:8001',
+  // apiUrl: 'http://127.0.0.1:8001/api',
+  // production: false,
   urlBase: 'http://localhost:8001',
   apiUrl: 'http://127.0.0.1:8001/api',
-  // appUrl: 'http://localhost:4200',
 
   // urlBase: 'https://apimatkolla.ddevstock.com/',
   // apiUrl: 'https://apimatkolla.ddevstock.com/api',
@@ -74,7 +76,7 @@ export const environment = {
   upload: {
     maxFileSize: 5 * 1024 * 1024, // 5MB
     allowedTypes: ['image/jpeg', 'image/png', 'application/pdf'],
-    uploadUrl: 'http://127.0.0.1:8005/api/upload'
+    uploadUrl: 'http://127.0.0.1:8001/api/upload'
   },
   
   // PDF configuration

@@ -32,6 +32,8 @@ export class InvoiceDetailComponent implements OnInit {
   invoiceHeader: InvoiceHeader | null = null;
   loading = false;
   invoiceId: number | null = null;
+  // Arriéré client recalculé à la date du jour (hors facture courante)
+  currentArrears: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -61,6 +63,7 @@ export class InvoiceDetailComponent implements OnInit {
       next: (response) => {
         if (response.success && response.data) {
           this.invoice = response.data;
+          this.loadCurrentArrears();
         } else {
           this.invoice = null;
         }
@@ -73,6 +76,26 @@ export class InvoiceDetailComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  /**
+   * Rafraîchit le solde arriéré du client à la date du jour (hors facture courante).
+   * Utilisé pour afficher dans le PDF un montant à jour plutôt que la valeur stockée
+   * au moment de la création de la facture.
+   */
+  private loadCurrentArrears(): void {
+    const clientId = this.invoice?.client?.id || this.invoice?.client_id;
+    if (!clientId) return;
+    const params = { exclude_invoice_id: this.invoiceId };
+    this.apiService.get<any>(`clients/${clientId}/outstanding-balance`, { params })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          if (r?.success && r.data) this.currentArrears = Number(r.data.balance) || 0;
+          this.cdr.detectChanges();
+        },
+        error: () => { /* fallback silencieux : on garde la valeur historique */ }
+      });
   }
 
   private loadDefaultInvoiceHeader(): void {
@@ -132,6 +155,15 @@ export class InvoiceDetailComponent implements OnInit {
       total: this.getLineTotal(item)
     })) : [];
 
+    const subtotal = Number(this.invoice?.items_subtotal_amount || 0);
+    // Si on a un solde recalculé à aujourd'hui, on l'utilise ; sinon on retombe sur la valeur stockée.
+    const arrears = this.currentArrears !== null
+      ? this.currentArrears
+      : Number(this.invoice?.previous_balance_amount || 0);
+    const total = this.currentArrears !== null
+      ? subtotal + arrears
+      : Number(this.invoice?.total_amount || 0);
+
     return {
       invoiceNumber: this.invoice?.invoice_number || `INV-${this.invoice?.id}`,
       date: this.invoice?.created_at || new Date(),
@@ -141,7 +173,7 @@ export class InvoiceDetailComponent implements OnInit {
       clientPhone: this.invoice?.client?.phone1 || this.invoice?.client?.phone || '',
       clientEmail: this.invoice?.client?.email || '',
       organisation: {
-        name: header?.company_name || tenant?.name || 'GESTION MULTI-MODULES',
+        name: header?.company_name || tenant?.name || 'MATKOLLA',
         address: [header?.address, header?.city, header?.country].filter(Boolean).join(' - '),
         phone: header?.phone || tenant?.phone || '',
         email: header?.email || tenant?.email || '',
@@ -152,9 +184,9 @@ export class InvoiceDetailComponent implements OnInit {
         footerText: header?.footer_text || ''
       },
       items,
-      subtotal: Number(this.invoice?.items_subtotal_amount || 0),
-      previousBalance: Number(this.invoice?.previous_balance_amount || 0),
-      total: Number(this.invoice?.total_amount || 0),
+      subtotal,
+      previousBalance: arrears,
+      total,
       currency: this.invoice?.currency || 'GNF',
       exchangeRate: Number(this.invoice?.exchange_rate || 1),
       totalGnf: Number(this.invoice?.total_amount_gnf || 0),

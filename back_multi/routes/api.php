@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ContainerController;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\ClientInterestController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\ExchangeRateController;
@@ -237,6 +238,13 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::get('clients/statistics', [ClientController::class, 'getStatistics']);
         Route::get('clients/financial-overview', [ClientController::class, 'getFinancialOverview']);
         Route::get('clients/{id}/transactions', [ClientController::class, 'getTransactionHistory']);
+        Route::get('clients/{id}/ledger', [ClientController::class, 'getLedger']);
+
+        // Frais d'intérêts client (compte SALL)
+        Route::get('clients/{id}/interest-charges', [ClientInterestController::class, 'indexForClient']);
+        Route::post('client-interest-charges', [ClientInterestController::class, 'store']);
+        Route::put('client-interest-charges/{id}', [ClientInterestController::class, 'update']);
+        Route::delete('client-interest-charges/{id}', [ClientInterestController::class, 'destroy']);
         Route::post('clients/{id}/photo', [ClientController::class, 'uploadPhoto']);
         Route::delete('clients/{id}/photo', [ClientController::class, 'deletePhoto']);
         Route::apiResource('clients', ClientController::class);
@@ -283,6 +291,8 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::apiResource('vehicle-expenses', VehicleExpenseController::class);
 
         // Factures
+        Route::get('invoices/sales-summary', [InvoiceController::class, 'salesSummary']);
+        Route::get('clients/{id}/outstanding-balance', [InvoiceController::class, 'clientOutstandingBalance']);
         Route::apiResource('invoices', InvoiceController::class);
 
         // Module Immobilier

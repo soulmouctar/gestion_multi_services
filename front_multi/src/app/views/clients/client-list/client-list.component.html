@@ -8,6 +8,10 @@
       <p class="mb-0 opacity-75 small">{{ totalItems }} {{ pageDescription }}</p>
     </div>
     <div class="d-flex gap-2">
+      <a routerLink="/clients/index" cButton color="light" size="sm" style="border-radius:8px"
+         title="INDEX consolidé (style feuille Excel)">
+        <svg cIcon name="cilSpreadsheet" class="me-1" size="sm"></svg> INDEX
+      </a>
       <a routerLink="/clients/statistics" cButton color="light" size="sm" style="border-radius:8px">
         <svg cIcon name="cilChartPie" class="me-1" size="sm"></svg> Statistiques
       </a>
@@ -66,6 +70,10 @@
         <div class="d-flex align-items-center justify-content-between px-3 pt-3">
           <input *ngIf="canDeleteClients" type="checkbox" class="form-check-input" [checked]="isSelected(client.id)" (change)="toggleSelection(client.id)" />
           <div class="d-flex gap-1">
+            <a [routerLink]="['/clients/ledger', client.id]" class="btn btn-sm p-1" title="Compte client (grand livre)"
+                    style="border-radius:6px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;">
+              <svg cIcon name="cilNotes" style="width:14px;height:14px;"></svg>
+            </a>
             <button class="btn btn-sm p-1" title="Historique" (click)="openHistory(client)"
                     style="border-radius:6px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;">
               <svg cIcon name="cilHistory" style="width:14px;height:14px;"></svg>

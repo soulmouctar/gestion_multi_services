@@ -12,6 +12,7 @@ export interface Payment {
   id: number;
   tenant_id: number;
   client_id?: number;
+  paid_by_client_id?: number | null;
   invoice_id?: number;
   receipt_number?: string;
   type: PaymentType;
@@ -26,6 +27,7 @@ export interface Payment {
   status: PaymentStatus;
   payment_date: string;
   client?: { id: number; name: string; phone: string };
+  paid_by_client?: { id: number; name: string } | null;
   invoice?: { id: number; invoice_number: string; total_amount: number; paid_amount: number; remaining_balance: number; status: string };
   created_at?: string;
   updated_at?: string;

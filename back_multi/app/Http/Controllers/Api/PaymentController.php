@@ -27,7 +27,7 @@ class PaymentController extends BaseController
                 return $this->sendError('Tenant ID required', [], 400);
             }
 
-            $query = Payment::with(['tenant', 'client', 'invoice']);
+            $query = Payment::with(['tenant', 'client', 'paidByClient:id,name', 'invoice']);
 
             if ($tenantId) {
                 $query->where('tenant_id', $tenantId);
@@ -83,9 +83,10 @@ class PaymentController extends BaseController
             'reference'    => 'nullable|string|max:255',
             'description'  => 'nullable|string|max:1000',
             'status'       => 'nullable|in:PENDING,COMPLETED,FAILED,CANCELLED',
-            'payment_date' => 'required|date',
-            'client_id'    => 'nullable|exists:clients,id',
-            'invoice_id'   => 'nullable|exists:invoices,id',
+            'payment_date'      => 'required|date',
+            'client_id'         => 'nullable|exists:clients,id',
+            'paid_by_client_id' => 'nullable|exists:clients,id|different:client_id',
+            'invoice_id'        => 'nullable|exists:invoices,id',
         ]);
 
         if ($validator->fails()) {
@@ -102,21 +103,22 @@ class PaymentController extends BaseController
             $amountGnf = $this->resolveAmountGnf($request, $currency, $exchangeRate);
 
             $payment = Payment::create([
-                'tenant_id'      => $tenantId,
-                'client_id'      => $request->client_id,
-                'invoice_id'     => $request->invoice_id,
-                'receipt_number' => $this->generateReceiptNumber($tenantId),
-                'type'           => $request->type,
-                'method'         => $request->method,
-                'amount'         => $request->amount,
-                'currency'       => $currency,
-                'exchange_rate'  => $exchangeRate,
-                'amount_gnf'     => $amountGnf,
-                'proof'          => $request->proof,
-                'reference'      => $request->reference,
-                'description'    => $request->description,
-                'status'         => $request->status ?? 'COMPLETED',
-                'payment_date'   => $request->payment_date,
+                'tenant_id'         => $tenantId,
+                'client_id'         => $request->client_id,
+                'paid_by_client_id' => $request->paid_by_client_id,
+                'invoice_id'        => $request->invoice_id,
+                'receipt_number'    => $this->generateReceiptNumber($tenantId),
+                'type'              => $request->type,
+                'method'            => $request->method,
+                'amount'            => $request->amount,
+                'currency'          => $currency,
+                'exchange_rate'     => $exchangeRate,
+                'amount_gnf'        => $amountGnf,
+                'proof'             => $request->proof,
+                'reference'         => $request->reference,
+                'description'       => $request->description,
+                'status'            => $request->status ?? 'COMPLETED',
+                'payment_date'      => $request->payment_date,
             ]);
 
             // Update invoice paid_amount if linked
@@ -141,7 +143,7 @@ class PaymentController extends BaseController
 
     public function show($id)
     {
-        $payment = Payment::with(['tenant', 'client', 'invoice'])->find($id);
+        $payment = Payment::with(['tenant', 'client', 'paidByClient:id,name', 'invoice'])->find($id);
 
         if (!$payment) {
             return $this->sendError('Payment not found', [], 404);
@@ -258,7 +260,7 @@ class PaymentController extends BaseController
      */
     public function getReceipt($id)
     {
-        $payment = Payment::with(['tenant', 'client', 'invoice'])->find($id);
+        $payment = Payment::with(['tenant', 'client', 'paidByClient:id,name', 'invoice'])->find($id);
 
         if (!$payment) {
             return $this->sendError('Payment not found', [], 404);

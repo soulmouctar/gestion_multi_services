@@ -28,6 +28,7 @@ import {
   cilAlignRight,
   cilApplicationsSettings,
   cilArrowBottom,
+  cilArrowThickToBottom,
   cilArrowRight,
   cilArrowTop,
   cilBasket,
@@ -95,8 +96,10 @@ import {
   cilPlus,
   cilPrint,
   cilPuzzle,
+  cilReload,
   cilReportSlash,
   cilSave,
+  cilSearch,
   cilSettings,
 
   cilShare,
@@ -108,6 +111,7 @@ import {
   cilSpreadsheet,
   cilStar,
   cilSun,
+  cilSwapVertical,
   cilTags,
   cilTask,
   cilTrash,
@@ -118,7 +122,8 @@ import {
   cilUserFollow,
   cilUserUnfollow,
   cilWallet,
-  cilWarning
+  cilWarning,
+  cilX
 } from '@coreui/icons';
 
 import { signet } from './signet';
@@ -154,6 +159,7 @@ export const iconSubset = {
   cilAlignRight,
   cilApplicationsSettings,
   cilArrowBottom,
+  cilArrowThickToBottom,
   cilArrowRight,
   cilArrowTop,
   cilBasket,
@@ -221,8 +227,10 @@ export const iconSubset = {
   cilPlus,
   cilPrint,
   cilPuzzle,
+  cilReload,
   cilReportSlash,
   cilSave,
+  cilSearch,
   cilSettings,
 
   cilShare,
@@ -234,6 +242,7 @@ export const iconSubset = {
   cilSpreadsheet,
   cilStar,
   cilSun,
+  cilSwapVertical,
   cilTags,
   cilTask,
   cilTrash,
@@ -245,6 +254,7 @@ export const iconSubset = {
   cilUserUnfollow,
   cilWallet,
   cilWarning,
+  cilX,
   logo,
   signet
 };
@@ -373,4 +383,3 @@ export enum IconSubset {
   logo = 'logo',
   signet = 'signet'
 }
-

@@ -12,6 +12,7 @@ class Payment extends Model
     protected $fillable = [
         'tenant_id',
         'client_id',
+        'paid_by_client_id',
         'supplier_id',
         'invoice_id',
         'receipt_number',
@@ -57,6 +58,11 @@ class Payment extends Model
     public function client()
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function paidByClient()
+    {
+        return $this->belongsTo(Client::class, 'paid_by_client_id');
     }
 
     public function invoice()

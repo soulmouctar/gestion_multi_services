@@ -58,6 +58,9 @@ export class ProductFormComponent implements OnInit {
   uploadProgress = 0;
   imageError: string | null = null;
 
+  // Flag interne pour éviter les boucles infinies lors de la synchro marge ↔ prix
+  private syncingMargin = false;
+
   constructor(
     private fb: FormBuilder,
     private productService: ProductService,
@@ -72,18 +75,81 @@ export class ProductFormComponent implements OnInit {
       sku:                    ['', [Validators.maxLength(50)]],
       product_category_id:    [''],
       unit_id:                [''],
-      // Prix unité (override)
+      // Prix unité
       purchase_price:         ['', [Validators.min(0)]],
       selling_price:          ['', [Validators.min(0)]],
+      // Marges (non persistées, juste UI)
+      unit_margin_amount:     [''],
+      unit_margin_pct:        [''],
       // Section carton
       carton_purchase_price:  ['', [Validators.min(0)]],
       carton_selling_price:   ['', [Validators.min(0)]],
+      carton_margin_amount:   [''],
+      carton_margin_pct:      [''],
       units_per_carton:       [12, [Validators.min(1)]],
       stock_quantity:         [0,  [Validators.min(0)]],
       low_stock_threshold:    [10, [Validators.min(0)]],
       status:                 ['ACTIVE', [Validators.required]],
       barcode:                ['', [Validators.maxLength(100)]]
     });
+
+    this.wireMarginSync('purchase_price', 'selling_price', 'unit_margin_amount', 'unit_margin_pct');
+    this.wireMarginSync('carton_purchase_price', 'carton_selling_price', 'carton_margin_amount', 'carton_margin_pct');
+  }
+
+  /**
+   * Synchronise prix achat / prix vente / marge € / marge % de manière bidirectionnelle.
+   * - Changer achat ou vente → recalcule marge € et marge %
+   * - Changer marge € → recalcule vente, puis marge %
+   * - Changer marge % → recalcule vente, puis marge €
+   */
+  private wireMarginSync(buyKey: string, sellKey: string, amountKey: string, pctKey: string): void {
+    const buy    = () => Number(this.productForm.get(buyKey)?.value) || 0;
+    const sell   = () => Number(this.productForm.get(sellKey)?.value) || 0;
+    const amount = () => Number(this.productForm.get(amountKey)?.value) || 0;
+    const pct    = () => Number(this.productForm.get(pctKey)?.value) || 0;
+    const set = (key: string, v: number | string) =>
+      this.productForm.get(key)?.setValue(v, { emitEvent: false });
+
+    const recalcFromPrices = () => {
+      const b = buy(), s = sell();
+      const a = s - b;
+      const p = b > 0 ? +((a / b) * 100).toFixed(2) : 0;
+      set(amountKey, a ? Math.round(a) : '');
+      set(pctKey, b > 0 ? p : '');
+    };
+    const recalcFromAmount = () => {
+      const b = buy(), a = amount();
+      const s = b + a;
+      set(sellKey, s ? Math.round(s) : '');
+      set(pctKey, b > 0 ? +((a / b) * 100).toFixed(2) : '');
+    };
+    const recalcFromPct = () => {
+      const b = buy(), p = pct();
+      const a = +(b * p / 100).toFixed(2);
+      const s = b + a;
+      set(amountKey, b > 0 ? Math.round(a) : '');
+      set(sellKey, b > 0 && s ? Math.round(s) : '');
+    };
+
+    const wrap = (fn: () => void) => () => {
+      if (this.syncingMargin) return;
+      this.syncingMargin = true;
+      try { fn(); } finally { this.syncingMargin = false; }
+    };
+
+    this.productForm.get(buyKey)?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(wrap(recalcFromPrices));
+    this.productForm.get(sellKey)?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(wrap(recalcFromPrices));
+    this.productForm.get(amountKey)?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(wrap(recalcFromAmount));
+    this.productForm.get(pctKey)?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(wrap(recalcFromPct));
   }
 
   ngOnInit(): void {
@@ -265,6 +331,10 @@ export class ProductFormComponent implements OnInit {
     this.cdr.markForCheck();
 
     const formData: any = { ...this.productForm.value };
+
+    // Champs UI uniquement (calculés) — ne pas envoyer au backend
+    ['unit_margin_amount', 'unit_margin_pct', 'carton_margin_amount', 'carton_margin_pct']
+      .forEach(f => delete formData[f]);
 
     ['purchase_price', 'selling_price', 'carton_purchase_price', 'carton_selling_price', 'weight'].forEach(f => {
       if (formData[f] === '' || formData[f] === null) formData[f] = null;
