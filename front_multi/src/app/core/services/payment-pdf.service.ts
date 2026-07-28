@@ -19,25 +19,54 @@ export class PaymentPdfService {
   private async pm(): Promise<any> {
     if (this._pm) return this._pm;
     try {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const mod = await import('pdfmake/build/pdfmake');
+      const [mod, fontsMod] = await Promise.all([
+        import('pdfmake/build/pdfmake'),
+        import('pdfmake/build/vfs_fonts'),
+      ]);
       const pm = (mod as any).default ?? mod;
+      const vfs = this.extractVfs(fontsMod);
 
-      pm.fonts = {
-        Helvetica: {
-          normal: 'Helvetica',
-          bold: 'Helvetica-Bold',
-          italics: 'Helvetica-Oblique',
-          bolditalics: 'Helvetica-BoldOblique',
-        },
-      };
+      if (vfs) {
+        pm.vfs = vfs;
+        const fonts = {
+          Roboto: {
+            normal: 'Roboto-Regular.ttf',
+            bold: 'Roboto-Medium.ttf',
+            italics: 'Roboto-Italic.ttf',
+            bolditalics: 'Roboto-MediumItalic.ttf',
+          },
+        };
+        pm.fonts = { ...(pm.fonts || {}), ...fonts };
+        if (typeof pm.addVirtualFileSystem === 'function') {
+          pm.addVirtualFileSystem(vfs);
+        }
+        if (typeof pm.addFonts === 'function') {
+          pm.addFonts(fonts);
+        }
+      }
 
       this._pm = pm;
       return pm;
     } catch {
       return null;
     }
+  }
+
+  private extractVfs(moduleValue: any): Record<string, string> | null {
+    const candidates = [
+      moduleValue?.pdfMake?.vfs,
+      moduleValue?.default?.pdfMake?.vfs,
+      moduleValue?.vfs,
+      moduleValue?.default?.vfs,
+      moduleValue?.default,
+      moduleValue,
+    ];
+    for (const candidate of candidates) {
+      if (candidate?.['Roboto-Regular.ttf'] && candidate?.['Roboto-Medium.ttf']) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   // ─── 1. Reçu de paiement ─────────────────────────────────────────────────
@@ -208,7 +237,7 @@ export class PaymentPdfService {
     return {
       pageSize: 'A4',
       pageMargins: [36, 110, 36, 50] as [number, number, number, number],
-      defaultStyle: { font: 'Helvetica', fontSize: 9, color: '#111827' },
+      defaultStyle: { font: 'Roboto', fontSize: 9, color: '#111827' },
       info: { title },
       styles: {
         h1:  { fontSize: 22, bold: true, color: '#FFFFFF' },
@@ -937,7 +966,7 @@ export class PaymentPdfService {
     this.openWin(`Reçu ${r.receipt_number}`, `
       <div style="max-width:500px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;padding:32px 0;">
         <div style="text-align:center;margin-bottom:20px;">
-          <img src="/assets/images/logo/mat_kolla_hd.png" style="height:56px;" />
+          <img src="/assets/images/logo/logo_matkolla_2026.jpeg" style="height:56px;max-width:120px;object-fit:contain;" />
           <div style="font-size:1.1rem;font-weight:700;margin-top:8px;">${this.esc(r.organisation.name)}</div>
           <div style="font-size:.78rem;color:#6B7280;">${this.esc(r.organisation.address || '')} ${r.organisation.phone ? '· ' + this.esc(r.organisation.phone) : ''}</div>
           <div style="margin:14px 0;border-top:2px solid #0F3460;"></div>
@@ -1114,8 +1143,7 @@ export class PaymentPdfService {
     .page{max-width:900px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;box-shadow:0 18px 60px rgba(0,0,0,.12)}
     @media print{body{background:#fff;padding:0}.page{border-radius:0;box-shadow:none}.no-print{display:none!important}}</style></head>
     <body><div class="page"><div class="no-print" style="margin-bottom:16px;display:flex;gap:8px;">
-      <button onclick="window.print()" style="background:#0F3460;color:#fff;border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:14px;">🖨 Imprimer / Enregistrer PDF</button>
-      <button onclick="window.close()" style="background:#F3F4F6;color:#374151;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;">✕ Fermer</button>
+      <button onclick="window.close()" style="background:#F3F4F6;color:#374151;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;">Fermer</button>
     </div>${body}</div></body></html>`);
     w.document.close();
     w.focus();

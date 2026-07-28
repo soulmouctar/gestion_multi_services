@@ -51,30 +51,9 @@ export class SettingsComponent {
     {
       title: 'Informations société',
       description: 'Nom, identité visuelle, coordonnées et adresse principale.',
-      link: '/organisation/settings',
+      link: '/organisation/company-info',
       icon: 'cilBuilding',
       tone: 'primary'
-    },
-    {
-      title: 'Contacts & adresses',
-      description: 'Emails, téléphones, adresses et canaux officiels.',
-      link: '/organisation/contacts',
-      icon: 'cilAddressBook',
-      tone: 'info'
-    },
-    {
-      title: 'En-têtes de facture',
-      description: 'Logo, signature, cachet et mentions légales.',
-      link: '/organisation/invoice-headers',
-      icon: 'cilDescription',
-      tone: 'warning'
-    },
-    {
-      title: 'Devises',
-      description: 'GNF, USD, EUR et configuration du taux de référence.',
-      link: '/organisation/currencies',
-      icon: 'cilDollar',
-      tone: 'success'
     }
   ];
 
@@ -86,19 +65,8 @@ export class SettingsComponent {
       tone: 'primary',
       icon: 'cilBuilding',
       items: [
-        { label: 'Informations de base', note: 'Nom, email, téléphone et adresse', link: '/organisation/settings' },
+        { label: 'Informations de base', note: 'Nom, email, téléphone et adresse', link: '/organisation/company-info' },
         { label: 'Paramètres avancés', note: 'Préférences métier et numérotation', link: '/organisation/settings-advanced' }
-      ]
-    },
-    {
-      title: 'Communication',
-      subtitle: 'Canaux officiels et documents sortants.',
-      badge: 'Opérationnel',
-      tone: 'info',
-      icon: 'cilEnvelopeOpen',
-      items: [
-        { label: 'Contacts officiels', note: 'Emails, téléphones, adresses', link: '/organisation/contacts' },
-        { label: 'En-têtes facture', note: 'Logo, signature et cachet', link: '/organisation/invoice-headers' }
       ]
     },
     {
@@ -119,7 +87,6 @@ export class SettingsComponent {
       tone: 'success',
       icon: 'cilDollar',
       items: [
-        { label: 'Devises', note: 'GNF, USD, EUR et équivalences', link: '/organisation/currencies' },
         { label: 'Modules système', note: 'Activation des modules autorisés', link: '/admin/modules' }
       ]
     }

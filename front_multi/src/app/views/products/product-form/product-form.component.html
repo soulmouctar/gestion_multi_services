@@ -162,7 +162,7 @@
           </div>
           <div class="pf-card-body">
             <div class="row g-3 align-items-end">
-              <div class="col-md-3">
+              <div class="col-6 col-md-2">
                 <label class="pf-label">Unités par carton</label>
                 <div class="pf-input-group">
                   <input type="number" class="pf-input pf-input-num"
@@ -170,7 +170,7 @@
                   <span class="pf-input-suffix">pcs</span>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-6 col-md-3">
                 <label class="pf-label">Prix achat carton</label>
                 <div class="pf-input-group">
                   <input type="number" class="pf-input pf-input-num"
@@ -178,7 +178,7 @@
                   <span class="pf-input-suffix">GNF</span>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-6 col-md-3">
                 <label class="pf-label">Prix vente carton</label>
                 <div class="pf-input-group">
                   <input type="number" class="pf-input pf-input-num"
@@ -186,22 +186,20 @@
                   <span class="pf-input-suffix">GNF</span>
                 </div>
               </div>
-              <div class="col-md-3 d-flex gap-2">
-                <div class="flex-grow-1">
-                  <label class="pf-label">Marge €</label>
-                  <div class="pf-input-group margin-amount">
-                    <input type="number" class="pf-input pf-input-num"
-                           formControlName="carton_margin_amount" step="1000" placeholder="0" />
-                    <span class="pf-input-suffix">GNF</span>
-                  </div>
+              <div class="col-6 col-md-2">
+                <label class="pf-label">Marge (montant)</label>
+                <div class="pf-input-group margin-amount">
+                  <input type="number" class="pf-input pf-input-num"
+                         formControlName="carton_margin_amount" step="1000" placeholder="0" />
+                  <span class="pf-input-suffix">GNF</span>
                 </div>
-                <div class="flex-grow-1">
-                  <label class="pf-label">Marge %</label>
-                  <div class="pf-input-group margin-pct">
-                    <input type="number" class="pf-input pf-input-num"
-                           formControlName="carton_margin_pct" step="0.1" placeholder="0" />
-                    <span class="pf-input-suffix">%</span>
-                  </div>
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="pf-label">Marge (%)</label>
+                <div class="pf-input-group margin-pct">
+                  <input type="number" class="pf-input pf-input-num"
+                         formControlName="carton_margin_pct" step="0.1" placeholder="0" />
+                  <span class="pf-input-suffix">%</span>
                 </div>
               </div>
             </div>
@@ -394,7 +392,19 @@
 }
 .pf-input:disabled { background: #F3F4F6; color: #9CA3AF; cursor: not-allowed; }
 textarea.pf-input { resize: vertical; min-height: 60px; }
-.pf-input-num { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pf-input-num {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  min-width: 60px;
+}
+/* Masque le spinner natif des inputs number pour libérer de la largeur. */
+.pf-input-num::-webkit-outer-spin-button,
+.pf-input-num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
 .pf-input-group {
   display: flex; align-items: stretch;
@@ -417,13 +427,14 @@ textarea.pf-input { resize: vertical; min-height: 60px; }
 .pf-input-group .pf-input:focus { box-shadow: none; }
 .pf-input-suffix, .pf-input-btn {
   display: flex; align-items: center; justify-content: center;
-  padding: 0 .85rem;
+  padding: 0 .6rem;
   background: #F9FAFB;
   border-left: 1px solid #E5E7EB;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--ink-soft);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .pf-input-btn {
   border: none;

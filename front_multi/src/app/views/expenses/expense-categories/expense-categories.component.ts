@@ -47,6 +47,10 @@ export class ExpenseCategoriesComponent implements OnInit {
     'cilBriefcase','cilCash','cilGift','cilGamepad','cilMusic'
   ];
 
+  get canCreateExpenseCategory(): boolean { return this.authService.hasModulePermission('EXPENSES', 'create'); }
+  get canEditExpenseCategory(): boolean   { return this.authService.hasModulePermission('EXPENSES', 'edit'); }
+  get canDeleteExpenseCategory(): boolean { return this.authService.hasModulePermission('EXPENSES', 'delete'); }
+
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,

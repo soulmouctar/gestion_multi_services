@@ -3,17 +3,22 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BankTransaction extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'tenant_id', 'bank_account_id', 'user_id', 'transaction_type',
-        'amount', 'currency', 'transaction_date', 'reference', 'description',
+        'amount', 'currency', 'exchange_rate', 'amount_gnf', 'transaction_date', 'reference', 'description',
         'proof_file', 'proof_type', 'status', 'balance_after',
     ];
 
     protected $casts = [
         'amount'           => 'float',
+        'exchange_rate'    => 'float',
+        'amount_gnf'       => 'float',
         'balance_after'    => 'float',
         'transaction_date' => 'date:Y-m-d',
     ];

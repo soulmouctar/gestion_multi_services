@@ -68,11 +68,10 @@ export class ClientListComponent implements OnInit {
 
   clientTypes = [
     { value: '', label: 'Tous les types' },
-    { value: 'GENERAL', label: 'Clients généraux' },
-    { value: 'PNEUS', label: 'Clients pneus' },
-    { value: 'TEXTILE', label: 'Clients textile' },
-    { value: 'COSMETIQUES', label: 'Clients cosmétiques' },
-    { value: 'CONTAINER_PAGNE', label: 'Clients conteneurs pagne' },
+    { value: 'TEXTILE', label: 'Client textile' },
+    { value: 'PNEUS', label: 'Client pneus' },
+    { value: 'COSMETIQUES', label: 'Client cosmétique' },
+    { value: 'MACHINE_A_COUDRE', label: 'Client machine à coudre' },
   ];
 
   pageTitle = 'Gestion des Clients';
@@ -98,7 +97,7 @@ export class ClientListComponent implements OnInit {
       email:     ['', [Validators.email]],
       address:   [''],
       notes:     [''],
-      client_type: ['GENERAL', Validators.required],
+      client_type: ['TEXTILE', Validators.required],
       tenant_id: [null],
     });
   }
@@ -226,7 +225,7 @@ export class ClientListComponent implements OnInit {
       email: '',
       address: '',
       notes: '',
-      client_type: this.clientTypeFilter || 'GENERAL',
+      client_type: this.clientTypeFilter || 'TEXTILE',
       tenant_id: null
     });
     this.showFormModal = true;
@@ -246,7 +245,7 @@ export class ClientListComponent implements OnInit {
       email:     client.email     || '',
       address:   client.address   || '',
       notes:     client.notes     || '',
-      client_type: client.client_type || 'GENERAL',
+      client_type: client.client_type || 'TEXTILE',
       tenant_id: client.tenant_id || null,
     });
     this.showFormModal = true;
@@ -270,7 +269,7 @@ export class ClientListComponent implements OnInit {
       email:   raw.email   || null,
       address: raw.address || null,
       notes:   raw.notes   || null,
-      client_type: raw.client_type || 'GENERAL',
+      client_type: raw.client_type || 'TEXTILE',
     };
     // Inclure tenant_id seulement si SUPER_ADMIN et valeur sélectionnée
     if (this.isSuperAdmin && raw.tenant_id) {
@@ -490,6 +489,26 @@ export class ClientListComponent implements OnInit {
 
   getFinancialRow(clientId: number): any {
     return this.financialOverview?.clients?.find((item: any) => item.id === clientId) || null;
+  }
+
+  balanceDiff(finance: any): number {
+    if (!finance) return 0;
+    return Number(finance.total_charged || 0) - Number(finance.total_paid || 0);
+  }
+
+  balanceStatus(finance: any): 'DEBITEUR' | 'AVANCE' | 'SOLDE' {
+    const d = this.balanceDiff(finance);
+    if (d > 0) return 'DEBITEUR';
+    if (d < 0) return 'AVANCE';
+    return 'SOLDE';
+  }
+
+  balanceStatusLabel(finance: any): string {
+    switch (this.balanceStatus(finance)) {
+      case 'DEBITEUR': return 'Débiteur';
+      case 'AVANCE':   return 'Avance';
+      default:         return 'Soldé';
+    }
   }
 
   getFinancialStatusStyle(status: string | undefined): { bg: string; color: string } {

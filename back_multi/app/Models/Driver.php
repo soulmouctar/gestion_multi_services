@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Driver extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'tenant_id',
@@ -48,8 +49,10 @@ class Driver extends Model
     public function activeAssignment()
     {
         return $this->hasOne(TaxiAssignment::class)
-            ->whereNull('end_date')
-            ->orWhere('end_date', '>=', now());
+            ->where(function ($query) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now());
+            });
     }
 
     public function dailyPayments()

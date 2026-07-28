@@ -32,6 +32,7 @@ class UserController extends BaseController
         }
 
         $users = $query->paginate($perPage);
+        $this->attachModulePermissions($users);
 
         return $this->sendResponse($users, 'Users retrieved successfully');
     }
@@ -51,7 +52,35 @@ class UserController extends BaseController
         }
 
         $users = $query->paginate($perPage);
+        $this->attachModulePermissions($users);
         return $this->sendResponse($users, 'Users retrieved successfully');
+    }
+
+    /**
+     * Attache module_permissions (code, name, permissions[], is_active) à chaque user paginé
+     * en une seule requête sur user_module_permissions.
+     */
+    private function attachModulePermissions($paginator): void
+    {
+        $userIds = collect($paginator->items())->pluck('id')->all();
+        if (empty($userIds)) return;
+
+        $rows = DB::table('user_module_permissions')
+            ->whereIn('user_id', $userIds)
+            ->get()
+            ->groupBy('user_id');
+
+        foreach ($paginator->items() as $user) {
+            $perms = ($rows[$user->id] ?? collect())->map(function ($r) {
+                return [
+                    'module_code' => $r->module_code,
+                    'module_name' => $r->module_name,
+                    'permissions' => json_decode($r->permissions, true) ?: [],
+                    'is_active'   => (bool) $r->is_active,
+                ];
+            })->values()->toArray();
+            $user->setAttribute('module_permissions', $perms);
+        }
     }
 
     public function store(Request $request)
@@ -411,15 +440,37 @@ class UserController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
+        // ── Restriction hierarchique : un user ne peut recevoir que les modules
+        //    actifs pour SON tenant (tenant.subscribed_modules).
+        //    SUPER_ADMIN bypass cette regle.
+        $allowedCodes = [];
+        if (!$currentUser->hasRole('SUPER_ADMIN') && $user->tenant_id) {
+            $allowedCodes = DB::table('tenant_modules')
+                ->join('modules', 'tenant_modules.module_id', '=', 'modules.id')
+                ->where('tenant_modules.tenant_id', $user->tenant_id)
+                ->where('tenant_modules.is_active', true)
+                ->pluck('modules.code')
+                ->toArray();
+        }
+
+        $rejected = [];
         DB::beginTransaction();
         try {
             DB::table('user_module_permissions')->where('user_id', $user->id)->delete();
 
             foreach ($request->module_permissions as $modulePermission) {
+                $code = $modulePermission['module_code'] ?? null;
+
+                // Filtrage : seul un module actif chez le tenant passe
+                if (!$currentUser->hasRole('SUPER_ADMIN') && $allowedCodes && !in_array($code, $allowedCodes, true)) {
+                    $rejected[] = $code;
+                    continue;
+                }
+
                 if ($modulePermission['is_active']) {
                     DB::table('user_module_permissions')->insert([
                         'user_id'     => $user->id,
-                        'module_code' => $modulePermission['module_code'],
+                        'module_code' => $code,
                         'module_name' => $modulePermission['module_name'],
                         'permissions' => json_encode($modulePermission['permissions'] ?? []),
                         'is_active'   => $modulePermission['is_active'],
@@ -431,7 +482,11 @@ class UserController extends BaseController
 
             DB::commit();
 
-            return $this->sendResponse([], 'Module permissions updated successfully');
+            $msg = 'Module permissions updated successfully';
+            if (!empty($rejected)) {
+                $msg .= ' (modules ignorés car inactifs pour ce tenant : ' . implode(', ', $rejected) . ')';
+            }
+            return $this->sendResponse(['rejected_modules' => $rejected], $msg);
         } catch (\Exception $e) {
             DB::rollback();
             \Log::error('Error updating module permissions', [

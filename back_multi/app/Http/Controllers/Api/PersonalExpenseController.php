@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\PersonalExpense;
 use App\Models\PersonalExpenseCategory;
+use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -39,6 +40,53 @@ class PersonalExpenseController extends BaseController
         }
 
         return $tenantId;
+    }
+
+    private function validateCategoryTenant(?int $categoryId, int $tenantId)
+    {
+        if (!$categoryId) {
+            return null;
+        }
+
+        if (!PersonalExpenseCategory::where('tenant_id', $tenantId)->whereKey($categoryId)->exists()) {
+            return $this->sendError('Catégorie introuvable pour ce tenant.', [
+                'category_id' => ['La catégorie sélectionnée n’appartient pas au tenant courant.'],
+            ], 422);
+        }
+
+        return null;
+    }
+
+    private function resolveExchangeRate(Request $request, int $tenantId, string $currency, float $fallback = 1): float
+    {
+        if ($currency === 'GNF') {
+            return 1;
+        }
+
+        if ($request->filled('exchange_rate')) {
+            return round((float) $request->exchange_rate, 4);
+        }
+
+        $currencyModel = Currency::where('tenant_id', $tenantId)
+            ->where('code', $currency)
+            ->first();
+
+        return round((float) ($currencyModel?->exchange_rate ?? $fallback ?: 1), 4);
+    }
+
+    private function resolveAmountGnf(Request $request, string $currency, float $exchangeRate, ?float $fallbackAmount = null): float
+    {
+        $amount = (float) ($request->amount ?? $fallbackAmount ?? 0);
+
+        if ($currency === 'GNF') {
+            return round($amount, 2);
+        }
+
+        if ($request->filled('amount_gnf')) {
+            return round((float) $request->amount_gnf, 2);
+        }
+
+        return round($amount * $exchangeRate, 2);
     }
 
     // ==================== CATÉGORIES ====================
@@ -142,6 +190,8 @@ class PersonalExpenseController extends BaseController
             'title'             => 'required|string|max:200',
             'amount'            => 'required|numeric|min:0',
             'currency'          => 'required|string|max:10',
+            'exchange_rate'     => 'nullable|numeric|min:0.0001',
+            'amount_gnf'        => 'nullable|numeric|min:0',
             'expense_date'      => 'required|date',
             'category_id'       => 'nullable|exists:personal_expense_categories,id',
             'description'       => 'nullable|string|max:1000',
@@ -155,7 +205,32 @@ class PersonalExpenseController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $data                 = $request->all();
+        $categoryError = $this->validateCategoryTenant($request->category_id, $tenantId);
+        if ($categoryError) {
+            return $categoryError;
+        }
+
+        $currency = strtoupper($request->currency ?? 'GNF');
+        $exchangeRate = $this->resolveExchangeRate($request, $tenantId, $currency);
+
+        $data = $request->only([
+            'title',
+            'amount',
+            'currency',
+            'exchange_rate',
+            'amount_gnf',
+            'expense_date',
+            'category_id',
+            'description',
+            'payment_method',
+            'reference',
+            'status',
+            'is_recurring',
+            'recurrence_period',
+        ]);
+        $data['currency']     = $currency;
+        $data['exchange_rate']= $exchangeRate;
+        $data['amount_gnf']   = $this->resolveAmountGnf($request, $currency, $exchangeRate);
         $data['tenant_id']    = $tenantId;
         $data['user_id']      = auth()->id();
         $data['status']       = $data['status'] ?? 'PAID';
@@ -175,6 +250,8 @@ class PersonalExpenseController extends BaseController
             'title'             => 'sometimes|string|max:200',
             'amount'            => 'sometimes|numeric|min:0',
             'currency'          => 'sometimes|string|max:10',
+            'exchange_rate'     => 'nullable|numeric|min:0.0001',
+            'amount_gnf'        => 'nullable|numeric|min:0',
             'expense_date'      => 'sometimes|date',
             'category_id'       => 'nullable|exists:personal_expense_categories,id',
             'description'       => 'nullable|string|max:1000',
@@ -188,7 +265,39 @@ class PersonalExpenseController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $expense->update($request->all());
+        $categoryError = $this->validateCategoryTenant($request->category_id, $tenantId);
+        if ($categoryError) {
+            return $categoryError;
+        }
+
+        $currency = strtoupper($request->currency ?? $expense->currency ?? 'GNF');
+        $exchangeRate = $this->resolveExchangeRate($request, $tenantId, $currency, (float) ($expense->exchange_rate ?? 1));
+
+        $payload = $request->only([
+            'title',
+            'amount',
+            'currency',
+            'exchange_rate',
+            'amount_gnf',
+            'expense_date',
+            'category_id',
+            'description',
+            'payment_method',
+            'reference',
+            'status',
+            'is_recurring',
+            'recurrence_period',
+        ]);
+        $payload['currency'] = $currency;
+        $payload['exchange_rate'] = $exchangeRate;
+        $payload['amount_gnf'] = $this->resolveAmountGnf(
+            $request,
+            $currency,
+            $exchangeRate,
+            (float) ($request->amount ?? $expense->amount)
+        );
+
+        $expense->update($payload);
         return $this->sendResponse($expense->load('category'), 'Expense updated');
     }
 
@@ -225,12 +334,12 @@ class PersonalExpenseController extends BaseController
             // Summary
             $summary = $base()->selectRaw('
                 COUNT(*) as total_count,
-                COALESCE(SUM(amount), 0) as total_amount,
-                COALESCE(AVG(amount), 0) as avg_amount,
-                COALESCE(MAX(amount), 0) as max_amount,
-                COALESCE(MIN(amount), 0) as min_amount,
-                COALESCE(SUM(CASE WHEN status = "PAID" THEN amount ELSE 0 END), 0) as paid_amount,
-                COALESCE(SUM(CASE WHEN status = "PENDING" THEN amount ELSE 0 END), 0) as pending_amount
+                COALESCE(SUM(amount_gnf), 0) as total_amount,
+                COALESCE(AVG(amount_gnf), 0) as avg_amount,
+                COALESCE(MAX(amount_gnf), 0) as max_amount,
+                COALESCE(MIN(amount_gnf), 0) as min_amount,
+                COALESCE(SUM(CASE WHEN status = "PAID" THEN amount_gnf ELSE 0 END), 0) as paid_amount,
+                COALESCE(SUM(CASE WHEN status = "PENDING" THEN amount_gnf ELSE 0 END), 0) as pending_amount
             ')->first();
 
             // By category (separate query with explicit join)
@@ -243,7 +352,7 @@ class PersonalExpenseController extends BaseController
                 ->selectRaw('
                     COALESCE(pc.name, "Sans catégorie") as category_name,
                     COALESCE(pc.color, "#6c757d") as color,
-                    COALESCE(SUM(personal_expenses.amount), 0) as total,
+                    COALESCE(SUM(personal_expenses.amount_gnf), 0) as total,
                     COUNT(*) as count
                 ')
                 ->orderByDesc('total')
@@ -255,14 +364,14 @@ class PersonalExpenseController extends BaseController
                 ->where('personal_expenses.status', '!=', 'CANCELLED')
                 ->where('personal_expenses.expense_date', '>=', now()->subMonths(11)->startOfMonth()->format('Y-m-d'))
                 ->groupByRaw('DATE_FORMAT(personal_expenses.expense_date, "%Y-%m")')
-                ->selectRaw('DATE_FORMAT(personal_expenses.expense_date, "%Y-%m") as month, COALESCE(SUM(personal_expenses.amount), 0) as total, COUNT(*) as count')
+                ->selectRaw('DATE_FORMAT(personal_expenses.expense_date, "%Y-%m") as month, COALESCE(SUM(personal_expenses.amount_gnf), 0) as total, COUNT(*) as count')
                 ->orderBy('month')
                 ->get();
 
             // By payment method
             $byMethod = $base()
                 ->groupBy('personal_expenses.payment_method')
-                ->selectRaw('personal_expenses.payment_method, COALESCE(SUM(personal_expenses.amount), 0) as total, COUNT(*) as count')
+                ->selectRaw('personal_expenses.payment_method, COALESCE(SUM(personal_expenses.amount_gnf), 0) as total, COUNT(*) as count')
                 ->orderByDesc('total')
                 ->get();
 
@@ -276,6 +385,8 @@ class PersonalExpenseController extends BaseController
                     'personal_expenses.id',
                     'personal_expenses.title',
                     'personal_expenses.amount',
+                    'personal_expenses.amount_gnf',
+                    'personal_expenses.exchange_rate',
                     'personal_expenses.currency',
                     'personal_expenses.expense_date',
                     'personal_expenses.payment_method',
@@ -283,7 +394,7 @@ class PersonalExpenseController extends BaseController
                 )
                 ->selectRaw('COALESCE(c.name, "Sans catégorie") as category_name, COALESCE(c.color, "#6c757d") as category_color')
                 ->when($categoryId, fn($q) => $q->where('personal_expenses.category_id', $categoryId))
-                ->orderByDesc('personal_expenses.amount')
+                ->orderByDesc('personal_expenses.amount_gnf')
                 ->limit(10)
                 ->get();
 
@@ -295,13 +406,13 @@ class PersonalExpenseController extends BaseController
                 ->where('tenant_id', $tenantId)
                 ->where('status', '!=', 'CANCELLED')
                 ->whereRaw('DATE_FORMAT(expense_date, "%Y-%m") = ?', [$currentMonth])
-                ->sum('amount');
+                ->sum('amount_gnf');
 
             $previousMonthTotal = DB::table('personal_expenses')
                 ->where('tenant_id', $tenantId)
                 ->where('status', '!=', 'CANCELLED')
                 ->whereRaw('DATE_FORMAT(expense_date, "%Y-%m") = ?', [$previousMonth])
-                ->sum('amount');
+                ->sum('amount_gnf');
 
             $evolution = ($previousMonthTotal > 0)
                 ? round((($currentMonthTotal - $previousMonthTotal) / $previousMonthTotal) * 100, 1)

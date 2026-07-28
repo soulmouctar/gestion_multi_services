@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\Payment;
 use App\Models\ProductReturn;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +62,11 @@ class InvoiceController extends BaseController
 
         if (!$tenantId) {
             return $this->sendError('Tenant ID introuvable. Veuillez sélectionner un client valide.', [], 400);
+        }
+
+        $businessError = $this->validateInvoiceBusinessScope($request, (int) $tenantId);
+        if ($businessError) {
+            return $this->sendError(...$businessError);
         }
 
         $validator = $this->validator($request, null);
@@ -137,6 +143,11 @@ class InvoiceController extends BaseController
         $validator = $this->validator($request, $id);
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        $businessError = $this->validateInvoiceBusinessScope($request, (int) $invoice->tenant_id);
+        if ($businessError) {
+            return $this->sendError(...$businessError);
         }
 
         DB::beginTransaction();
@@ -420,6 +431,34 @@ class InvoiceController extends BaseController
             'line_items.*.unit_price'       => 'nullable|numeric|min:0',
             'line_items.*.discount_amount'  => 'nullable|numeric|min:0',
         ]);
+    }
+
+    private function validateInvoiceBusinessScope(Request $request, int $tenantId): ?array
+    {
+        if ($request->filled('client_id')) {
+            $clientExists = Client::where('tenant_id', $tenantId)->whereKey($request->client_id)->exists();
+            if (!$clientExists) {
+                return ['Client introuvable pour ce tenant.', [], 422];
+            }
+        }
+
+        foreach ($request->get('line_items', []) as $index => $item) {
+            if (!empty($item['product_id'])) {
+                $productExists = Product::where('tenant_id', $tenantId)->whereKey($item['product_id'])->exists();
+                if (!$productExists) {
+                    return ["Produit invalide sur la ligne " . ($index + 1) . '.', [], 422];
+                }
+            }
+
+            if (!empty($item['supplier_id'])) {
+                $supplierExists = Supplier::where('tenant_id', $tenantId)->whereKey($item['supplier_id'])->exists();
+                if (!$supplierExists) {
+                    return ["Fournisseur invalide sur la ligne " . ($index + 1) . '.', [], 422];
+                }
+            }
+        }
+
+        return null;
     }
 
     private function buildInvoicePayload(Request $request, int $tenantId, ?int $invoiceId = null): array

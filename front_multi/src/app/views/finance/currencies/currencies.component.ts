@@ -9,6 +9,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-finance-currencies',
@@ -41,7 +42,11 @@ export class FinanceCurrenciesComponent implements OnInit {
   currencyToDelete: any = null;
   Math = Math;
 
-  constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
+  get canCreateCurrency(): boolean { return this.authService.hasModulePermission('FINANCE', 'create'); }
+  get canEditCurrency(): boolean   { return this.authService.hasModulePermission('FINANCE', 'edit'); }
+  get canDeleteCurrency(): boolean { return this.authService.hasModulePermission('FINANCE', 'delete'); }
+
+  constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.currencyForm = this.fb.group({
       code: ['', [Validators.required, Validators.maxLength(10)]],
       name: ['', [Validators.required, Validators.maxLength(100)]],

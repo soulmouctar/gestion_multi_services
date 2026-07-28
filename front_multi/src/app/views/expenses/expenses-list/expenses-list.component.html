@@ -11,7 +11,7 @@
       <a routerLink="/expenses/statistics" cButton color="light" size="sm" style="border-radius:8px">
         <svg cIcon name="cilChartPie" class="me-1" size="sm"></svg> Statistiques
       </a>
-      <button cButton color="success" size="sm" (click)="openNew()" style="border-radius:8px">
+      <button *ngIf="canCreateExpense" cButton color="success" size="sm" (click)="openNew()" style="border-radius:8px">
         <svg cIcon name="cilPlus" class="me-1" size="sm"></svg> Nouvelle dépense
       </button>
     </div>
@@ -160,11 +160,11 @@
             </td>
             <td class="px-3 text-end">
               <div class="d-flex gap-1 justify-content-end">
-                <button cButton color="warning" variant="outline" size="sm" (click)="openEdit(exp)"
+                <button *ngIf="canEditExpense" cButton color="warning" variant="outline" size="sm" (click)="openEdit(exp)"
                         title="Modifier" style="border-radius:8px">
                   <svg cIcon name="cilPencil" size="sm"></svg>
                 </button>
-                <button cButton color="danger" variant="outline" size="sm" (click)="delete(exp)"
+                <button *ngIf="canDeleteExpense" cButton color="danger" variant="outline" size="sm" (click)="delete(exp)"
                         title="Supprimer" style="border-radius:8px">
                   <svg cIcon name="cilTrash" size="sm"></svg>
                 </button>

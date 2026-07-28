@@ -1,0 +1,89 @@
+<div class="trash-page container-fluid px-3 px-md-4 py-3">
+
+  <!-- HEADER -->
+  <div class="th-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <div class="crumb">Système <span class="mx-1 text-muted">›</span> Corbeille</div>
+      <h1 class="d-flex align-items-center gap-2">
+        <svg cIcon name="cilTrash" class="text-danger"></svg>
+        Corbeille
+      </h1>
+      <div class="doc-sub">Restaure ou supprime définitivement les éléments supprimés.</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button cButton color="light" size="sm" (click)="loadEntity(activeEntity); loadSummary()"
+              style="border-radius:10px;">
+        <svg cIcon name="cilReload" class="me-1"></svg> Actualiser
+      </button>
+      <button cButton color="danger" size="sm" (click)="emptyTrash()"
+              [disabled]="!items.length" style="border-radius:10px;">
+        <svg cIcon name="cilTrash" class="me-1"></svg> Vider cette corbeille
+      </button>
+    </div>
+  </div>
+
+  <!-- ONGLETS PAR ENTITÉ -->
+  <div class="entity-tabs mb-3">
+    <button *ngFor="let s of summaries; trackBy: trackBySummary"
+            class="entity-tab"
+            [class.active]="activeEntity === s.key"
+            (click)="loadEntity(s.key)">
+      <svg cIcon [name]="entityIcon(s.key)" size="sm"></svg>
+      <span>{{ s.label }}</span>
+      <c-badge [color]="s.count > 0 ? 'danger' : 'secondary'">{{ s.count }}</c-badge>
+    </button>
+  </div>
+
+  <!-- RECHERCHE -->
+  <div class="search-bar mb-3">
+    <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+    <input type="text" [(ngModel)]="search" (ngModelChange)="onSearchChange()"
+           placeholder="Rechercher dans la corbeille…" />
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="text-muted small mt-2">Chargement…</p>
+  </div>
+
+  <!-- LISTE -->
+  <div *ngIf="!loading" class="trash-list">
+    <div *ngIf="!items.length" class="empty-state">
+      <svg cIcon name="cilCheckCircle" size="xxl"></svg>
+      <div class="empty-text">Corbeille vide</div>
+      <div class="empty-hint">Tous les éléments supprimés s'affichent ici avant suppression définitive.</div>
+    </div>
+
+    <div *ngFor="let it of items; trackBy: trackByItem" class="trash-item">
+      <div class="ti-left">
+        <div class="ti-icon"><svg cIcon [name]="entityIcon(it.entity)"></svg></div>
+        <div class="ti-content">
+          <div class="ti-title">{{ it.title }}</div>
+          <div *ngIf="it.subtitle" class="ti-subtitle">{{ it.subtitle }}</div>
+          <div class="ti-meta">
+            <span class="ti-type-pill">{{ it.label }}</span>
+            <span *ngIf="it.deleted_at" class="ti-date">
+              <svg cIcon name="cilClock" size="sm"></svg>
+              supprimé le {{ it.deleted_at | date:'dd/MM/yyyy à HH:mm' }}
+            </span>
+          </div>
+          <!-- Badges détaillés (extras) -->
+          <div *ngIf="extrasOf(it).length" class="ti-extras">
+            <span *ngFor="let ex of extrasOf(it)" class="ti-extra">
+              <strong>{{ ex.k }} :</strong> {{ ex.v }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="ti-actions">
+        <button class="btn-restore" (click)="restore(it)">
+          <svg cIcon name="cilActionUndo" size="sm"></svg> Restaurer
+        </button>
+        <button class="btn-force" (click)="forceDelete(it)">
+          <svg cIcon name="cilTrash" size="sm"></svg> Définitif
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

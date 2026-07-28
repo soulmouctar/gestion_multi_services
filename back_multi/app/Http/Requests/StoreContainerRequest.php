@@ -12,6 +12,7 @@ class StoreContainerRequest extends FormRequest
             'shipping_number' => 'required|string|max:100',
             'bl_number' => 'nullable|string|max:100',
             'capacity' => 'nullable|integer|min:0',
+            'expected_product_category_id' => 'nullable|exists:product_categories,id',
             'delivery_status' => 'nullable|in:LIVRE,NON_LIVRE',
             'entry_port' => 'nullable|string|max:100',
             'entry_date' => 'nullable|date',

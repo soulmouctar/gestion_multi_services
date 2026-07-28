@@ -7,7 +7,7 @@
       <h4 class="fw-bold mb-1">Comptes Bancaires</h4>
       <p class="mb-0 opacity-75 small">Gérez vos comptes UBA, ECOBANK et autres banques</p>
     </div>
-    <button cButton color="success" (click)="openNew()" style="border-radius:10px">
+    <button *ngIf="canCreateAccount" cButton color="success" (click)="openNew()" style="border-radius:10px">
       <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau Compte
     </button>
   </div>
@@ -129,17 +129,17 @@
                style="border-radius:8px;">
               <svg cIcon name="cilList" class="me-1" size="sm"></svg> Transactions
             </a>
-            <button cButton size="sm" color="light" (click)="openEdit(account)" title="Modifier"
+            <button *ngIf="canEditAccount" cButton size="sm" color="light" (click)="openEdit(account)" title="Modifier"
                     style="border-radius:8px;">
               <svg cIcon name="cilPencil" size="sm"></svg>
             </button>
-            <button cButton size="sm" [color]="account.is_active ? 'warning' : 'success'"
+            <button *ngIf="canEditAccount" cButton size="sm" [color]="account.is_active ? 'warning' : 'success'"
                     (click)="toggleStatus(account)"
                     [title]="account.is_active ? 'Désactiver' : 'Activer'"
                     style="border-radius:8px;">
               <svg cIcon [name]="account.is_active ? 'cilMinus' : 'cilCheck'" size="sm"></svg>
             </button>
-            <button cButton size="sm" color="danger" (click)="delete(account)" title="Supprimer"
+            <button *ngIf="canDeleteAccount" cButton size="sm" color="danger" (click)="delete(account)" title="Supprimer"
                     style="border-radius:8px;">
               <svg cIcon name="cilTrash" size="sm"></svg>
             </button>

@@ -27,14 +27,21 @@
               style="border-radius:10px;">
         <svg cIcon name="cilReload" size="sm" class="me-1"></svg> Actualiser
       </button>
+      <button cButton color="success" size="sm" (click)="openPaymentModal()"
+              [disabled]="loading || !client" style="border-radius:10px;">
+        <svg cIcon name="cilMoney" size="sm" class="me-1"></svg> Nouveau versement
+      </button>
       <button cButton color="danger" variant="outline" size="sm" (click)="openInterestModal()"
-              [disabled]="loading" style="border-radius:10px;"
-              title="Appliquer un frais d'intérêt (compte SALL)">
+              [disabled]="loading" style="border-radius:10px;">
         <svg cIcon name="cilChartLine" size="sm" class="me-1"></svg> Intérêt
       </button>
       <button cButton color="light" size="sm" (click)="exportCsv()"
               [disabled]="loading || !filteredRows.length" style="border-radius:10px;">
         <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg> Excel
+      </button>
+      <button cButton color="danger" size="sm" (click)="downloadPdf()"
+              [disabled]="loading || !filteredRows.length" style="border-radius:10px;">
+        <svg cIcon name="cilFile" size="sm" class="me-1"></svg> PDF
       </button>
       <button cButton color="primary" size="sm" (click)="print()" [disabled]="loading"
               style="border-radius:10px;">
@@ -64,16 +71,16 @@
             <span *ngIf="balanceStatusGnf === 'zero'">✓ Compte soldé</span>
           </div>
           <div class="banner-value">{{ fmt(balanceGnfAbs) }}</div>
-          <div class="banner-sub" *ngIf="showUsdColumns">
+          <div class="banner-sub" *ngFor="let c of secondaryCurrencies; trackBy: trackByCurrency">
             +
-            <span *ngIf="summary.final_balance_usd > 0">
-              {{ fmt(summary.final_balance_usd, 'USD') }} dû en USD
+            <span *ngIf="balanceFor(c) > 0">
+              {{ fmt(balanceFor(c), c) }} dû en {{ c }}
             </span>
-            <span *ngIf="summary.final_balance_usd < 0">
-              {{ fmt(-summary.final_balance_usd, 'USD') }} d'avance USD
+            <span *ngIf="balanceFor(c) < 0">
+              {{ fmt(-balanceFor(c), c) }} d'avance {{ c }}
             </span>
-            <span *ngIf="summary.final_balance_usd === 0">
-              Solde USD nul
+            <span *ngIf="balanceFor(c) === 0">
+              Solde {{ c }} nul
             </span>
           </div>
         </div>
@@ -130,35 +137,35 @@
             <div class="icon-box"><svg cIcon name="cilCart" size="sm"></svg></div>
             <div>
               <div class="kpi-label">Ventes</div>
-              <div class="kpi-value">{{ fmt(totalsByType.ventes) }}</div>
+              <div class="kpi-value">{{ formatTotalsByType('ventes') }}</div>
             </div>
           </div>
           <div class="kpi k-pay">
             <div class="icon-box"><svg cIcon name="cilMoney" size="sm"></svg></div>
             <div>
               <div class="kpi-label">Paiements</div>
-              <div class="kpi-value">{{ fmt(totalsByType.paiements) }}</div>
+              <div class="kpi-value">{{ formatTotalsByType('paiements') }}</div>
             </div>
           </div>
-          <div class="kpi k-return" *ngIf="totalsByType.retours > 0">
+          <div class="kpi k-return" *ngIf="totalByType('retours') > 0">
             <div class="icon-box"><svg cIcon name="cilActionUndo" size="sm"></svg></div>
             <div>
               <div class="kpi-label">Retours</div>
-              <div class="kpi-value">{{ fmt(totalsByType.retours) }}</div>
+              <div class="kpi-value">{{ formatTotalsByType('retours') }}</div>
             </div>
           </div>
-          <div class="kpi k-interest" *ngIf="totalsByType.interets > 0">
+          <div class="kpi k-interest" *ngIf="totalByType('interets') > 0">
             <div class="icon-box"><svg cIcon name="cilChartLine" size="sm"></svg></div>
             <div>
               <div class="kpi-label">Intérêts (SALL)</div>
-              <div class="kpi-value">{{ fmt(totalsByType.interets) }}</div>
+              <div class="kpi-value">{{ formatTotalsByType('interets') }}</div>
             </div>
           </div>
-          <div class="kpi k-advance" *ngIf="totalsByType.avances > 0">
+          <div class="kpi k-advance" *ngIf="totalByType('avances') > 0">
             <div class="icon-box"><svg cIcon name="cilWallet" size="sm"></svg></div>
             <div>
               <div class="kpi-label">Avances</div>
-              <div class="kpi-value">{{ fmt(totalsByType.avances) }}</div>
+              <div class="kpi-value">{{ formatTotalsByType('avances') }}</div>
             </div>
           </div>
         </div>
@@ -220,13 +227,10 @@
               <th class="col-type">Type</th>
               <th>Désignation</th>
               <th class="col-qty">Qté</th>
-              <th class="col-num">Débit GNF</th>
-              <th class="col-num">Crédit GNF</th>
-              <th class="col-num">Solde GNF</th>
-              <ng-container *ngIf="showUsdColumns">
-                <th class="col-num">Débit USD</th>
-                <th class="col-num">Crédit USD</th>
-                <th class="col-num">Solde USD</th>
+              <ng-container *ngFor="let c of ledgerCurrencies; trackBy: trackByCurrency">
+                <th class="col-num">Débit {{ c }}</th>
+                <th class="col-num">Crédit {{ c }}</th>
+                <th class="col-num">Solde {{ c }}</th>
               </ng-container>
             </tr>
           </thead>
@@ -234,14 +238,14 @@
             <ng-container *ngIf="groupByMonth; else flatRows">
               <ng-container *ngFor="let g of monthGroups; trackBy: trackByGroup">
                 <tr class="month-row">
-                  <td [attr.colspan]="showUsdColumns ? 10 : 7">
+                  <td [attr.colspan]="4 + ledgerCurrencies.length * 3">
                     <svg cIcon name="cilCalendar" size="sm" class="me-1"></svg>
                     {{ g.label }}
                     <span class="month-totals">
-                      D: {{ fmtNum(g.debit_gnf) }} · C: {{ fmtNum(g.credit_gnf) }}
-                      <span *ngIf="showUsdColumns">
-                        · D$ {{ fmtNum(g.debit_usd) }} · C$ {{ fmtNum(g.credit_usd) }}
-                      </span>
+                      <ng-container *ngFor="let c of ledgerCurrencies; trackBy: trackByCurrency">
+                        · D {{ c }}: {{ fmtNum(g.totals_by_currency[c]?.debit) }} ·
+                        C {{ c }}: {{ fmtNum(g.totals_by_currency[c]?.credit) }}
+                      </ng-container>
                     </span>
                   </td>
                 </tr>
@@ -256,32 +260,29 @@
                   <td class="designation">
                     <div class="label">{{ r.designation }}</div>
                     <div *ngIf="r.reference" class="ref">Réf. {{ r.reference }}</div>
+                    <div *ngIf="r.exchange_rate && r.target_currency && r.native_currency && r.native_currency !== r.target_currency"
+                         class="fx-proof" title="Preuve de conversion enregistrée">
+                      <svg cIcon name="cilArrowRight" size="sm" class="me-1"></svg>
+                      {{ fmtNum(r.native_amount) }} {{ r.native_currency }}
+                      <span class="mx-1">→</span>
+                      {{ fmtNum(r.converted_amount) }} {{ r.target_currency }}
+                      <span class="mx-1">·</span>
+                      Taux&nbsp;: <b>{{ r.exchange_rate }}</b>
+                    </div>
                   </td>
                   <td class="col-qty">{{ r.quantity !== null ? r.quantity : '—' }}</td>
-                  <td class="col-num" [class.v-debit]="r.debit_gnf > 0" [class.v-zero]="!r.debit_gnf">
-                    {{ r.debit_gnf > 0 ? fmtNum(r.debit_gnf) : '—' }}
-                  </td>
-                  <td class="col-num" [class.v-credit]="r.credit_gnf > 0" [class.v-zero]="!r.credit_gnf">
-                    {{ r.credit_gnf > 0 ? fmtNum(r.credit_gnf) : '—' }}
-                  </td>
-                  <td class="col-num col-balance"
-                      [class.bal-debt]="r.balance_gnf > 0"
-                      [class.bal-credit]="r.balance_gnf < 0"
-                      [class.bal-zero]="r.balance_gnf === 0">
-                    {{ fmtNum(r.balance_gnf) }}
-                  </td>
-                  <ng-container *ngIf="showUsdColumns">
-                    <td class="col-num" [class.v-debit]="r.debit_usd > 0" [class.v-zero]="!r.debit_usd">
-                      {{ r.debit_usd > 0 ? fmtNum(r.debit_usd) : '—' }}
+                  <ng-container *ngFor="let c of ledgerCurrencies; trackBy: trackByCurrency">
+                    <td class="col-num" [class.v-debit]="cellFor(r, c).debit > 0" [class.v-zero]="!cellFor(r, c).debit">
+                      {{ cellFor(r, c).debit > 0 ? fmtNum(cellFor(r, c).debit) : '—' }}
                     </td>
-                    <td class="col-num" [class.v-credit]="r.credit_usd > 0" [class.v-zero]="!r.credit_usd">
-                      {{ r.credit_usd > 0 ? fmtNum(r.credit_usd) : '—' }}
+                    <td class="col-num" [class.v-credit]="cellFor(r, c).credit > 0" [class.v-zero]="!cellFor(r, c).credit">
+                      {{ cellFor(r, c).credit > 0 ? fmtNum(cellFor(r, c).credit) : '—' }}
                     </td>
                     <td class="col-num col-balance"
-                        [class.bal-debt]="r.balance_usd > 0"
-                        [class.bal-credit]="r.balance_usd < 0"
-                        [class.bal-zero]="r.balance_usd === 0">
-                      {{ fmtNum(r.balance_usd) }}
+                        [class.bal-debt]="cellFor(r, c).balance > 0"
+                        [class.bal-credit]="cellFor(r, c).balance < 0"
+                        [class.bal-zero]="cellFor(r, c).balance === 0">
+                      {{ fmtNum(cellFor(r, c).balance) }}
                     </td>
                   </ng-container>
                 </tr>
@@ -300,32 +301,29 @@
                 <td class="designation">
                   <div class="label">{{ r.designation }}</div>
                   <div *ngIf="r.reference" class="ref">Réf. {{ r.reference }}</div>
+                  <div *ngIf="r.exchange_rate && r.target_currency && r.native_currency && r.native_currency !== r.target_currency"
+                       class="fx-proof" title="Preuve de conversion enregistrée">
+                    <svg cIcon name="cilArrowRight" size="sm" class="me-1"></svg>
+                    {{ fmtNum(r.native_amount) }} {{ r.native_currency }}
+                    <span class="mx-1">→</span>
+                    {{ fmtNum(r.converted_amount) }} {{ r.target_currency }}
+                    <span class="mx-1">·</span>
+                    Taux&nbsp;: <b>{{ r.exchange_rate }}</b>
+                  </div>
                 </td>
                 <td class="col-qty">{{ r.quantity !== null ? r.quantity : '—' }}</td>
-                <td class="col-num" [class.v-debit]="r.debit_gnf > 0" [class.v-zero]="!r.debit_gnf">
-                  {{ r.debit_gnf > 0 ? fmtNum(r.debit_gnf) : '—' }}
-                </td>
-                <td class="col-num" [class.v-credit]="r.credit_gnf > 0" [class.v-zero]="!r.credit_gnf">
-                  {{ r.credit_gnf > 0 ? fmtNum(r.credit_gnf) : '—' }}
-                </td>
-                <td class="col-num col-balance"
-                    [class.bal-debt]="r.balance_gnf > 0"
-                    [class.bal-credit]="r.balance_gnf < 0"
-                    [class.bal-zero]="r.balance_gnf === 0">
-                  {{ fmtNum(r.balance_gnf) }}
-                </td>
-                <ng-container *ngIf="showUsdColumns">
-                  <td class="col-num" [class.v-debit]="r.debit_usd > 0" [class.v-zero]="!r.debit_usd">
-                    {{ r.debit_usd > 0 ? fmtNum(r.debit_usd) : '—' }}
+                <ng-container *ngFor="let c of ledgerCurrencies; trackBy: trackByCurrency">
+                  <td class="col-num" [class.v-debit]="cellFor(r, c).debit > 0" [class.v-zero]="!cellFor(r, c).debit">
+                    {{ cellFor(r, c).debit > 0 ? fmtNum(cellFor(r, c).debit) : '—' }}
                   </td>
-                  <td class="col-num" [class.v-credit]="r.credit_usd > 0" [class.v-zero]="!r.credit_usd">
-                    {{ r.credit_usd > 0 ? fmtNum(r.credit_usd) : '—' }}
+                  <td class="col-num" [class.v-credit]="cellFor(r, c).credit > 0" [class.v-zero]="!cellFor(r, c).credit">
+                    {{ cellFor(r, c).credit > 0 ? fmtNum(cellFor(r, c).credit) : '—' }}
                   </td>
                   <td class="col-num col-balance"
-                      [class.bal-debt]="r.balance_usd > 0"
-                      [class.bal-credit]="r.balance_usd < 0"
-                      [class.bal-zero]="r.balance_usd === 0">
-                    {{ fmtNum(r.balance_usd) }}
+                      [class.bal-debt]="cellFor(r, c).balance > 0"
+                      [class.bal-credit]="cellFor(r, c).balance < 0"
+                      [class.bal-zero]="cellFor(r, c).balance === 0">
+                    {{ fmtNum(cellFor(r, c).balance) }}
                   </td>
                 </ng-container>
               </tr>
@@ -334,20 +332,13 @@
           <tfoot>
             <tr>
               <td colspan="4">TOTAUX</td>
-              <td class="col-num" style="color: var(--debit);">{{ fmtNum(summary.total_debit_gnf) }}</td>
-              <td class="col-num" style="color: var(--credit);">{{ fmtNum(summary.total_credit_gnf) }}</td>
-              <td class="col-num"
-                  [class.bal-debt]="summary.final_balance_gnf > 0"
-                  [class.bal-credit]="summary.final_balance_gnf < 0">
-                {{ fmtNum(summary.final_balance_gnf) }}
-              </td>
-              <ng-container *ngIf="showUsdColumns">
-                <td class="col-num" style="color: var(--debit);">{{ fmtNum(summary.total_debit_usd) }}</td>
-                <td class="col-num" style="color: var(--credit);">{{ fmtNum(summary.total_credit_usd) }}</td>
+              <ng-container *ngFor="let c of ledgerCurrencies; trackBy: trackByCurrency">
+                <td class="col-num" style="color: var(--debit);">{{ fmtNum(totalDebitFor(c)) }}</td>
+                <td class="col-num" style="color: var(--credit);">{{ fmtNum(totalCreditFor(c)) }}</td>
                 <td class="col-num"
-                    [class.bal-debt]="summary.final_balance_usd > 0"
-                    [class.bal-credit]="summary.final_balance_usd < 0">
-                  {{ fmtNum(summary.final_balance_usd) }}
+                    [class.bal-debt]="balanceFor(c) > 0"
+                    [class.bal-credit]="balanceFor(c) < 0">
+                  {{ fmtNum(balanceFor(c)) }}
                 </td>
               </ng-container>
             </tr>
@@ -432,4 +423,13 @@
       </div>
     </div>
   </div>
+
+  <!-- MODAL VERSEMENT -->
+  <app-payment-batch-form
+    [visible]="showPaymentModal"
+    [clientId]="clientId"
+    [clientName]="client?.name || null"
+    (visibleChange)="showPaymentModal = $event"
+    (saved)="onPaymentSaved($event)">
+  </app-payment-batch-form>
 </div>

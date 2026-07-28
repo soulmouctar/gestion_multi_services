@@ -9,6 +9,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { PdfService } from '../../../core/services/pdf.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -19,7 +20,8 @@ import Swal from 'sweetalert2';
     ButtonModule, CardModule, FormModule, BadgeModule, SpinnerModule, ProgressModule
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './expense-statistics.component.html'
+  templateUrl: './expense-statistics.component.html',
+  styleUrl: './expense-statistics.component.scss'
 })
 export class ExpenseStatisticsComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
@@ -39,8 +41,28 @@ export class ExpenseStatisticsComponent implements OnInit {
   constructor(
     private apiService: ApiService,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private pdfService: PdfService,
   ) {}
+
+  downloadPdf(): void {
+    if (!this.stats) return;
+    const tenant = this.authService.currentTenant as any;
+    void this.pdfService.downloadExpenseStatsPdf({
+      summary: this.stats.summary,
+      by_category: this.stats.by_category,
+      top_expenses: this.stats.top_expenses,
+      period: { from: this.dateFrom, to: this.dateTo },
+      organisation: {
+        name: tenant?.name || 'MATKOLLA',
+        address: tenant?.address || '',
+        phone: tenant?.phone || '',
+        email: tenant?.email || '',
+        logoUrl: tenant?.logo_url || '',
+        footerText: 'Statistiques des dépenses',
+      },
+    });
+  }
 
   ngOnInit(): void {
     this.isSuperAdmin = this.authService.isSuperAdmin;

@@ -96,7 +96,8 @@ export class SuppliersListComponent implements OnInit {
   get canManageSupplierPhotos(): boolean { return this.canEditSuppliers || this.canCreateSuppliers; }
 
   get showExchangeRate(): boolean {
-    return this.paymentForm.get('currency')?.value !== 'GNF';
+    return this.paymentForm.get('currency')?.value !== this.paymentForm.get('target_currency')?.value
+      || this.paymentForm.get('currency')?.value !== 'GNF';
   }
 
   get estimatedAmountGnf(): number {
@@ -107,8 +108,33 @@ export class SuppliersListComponent implements OnInit {
     return rate > 0 ? amount * rate : 0;
   }
 
+  get estimatedConvertedAmount(): number {
+    const amount = parseFloat(this.paymentForm.get('amount')?.value) || 0;
+    const rate = parseFloat(this.paymentForm.get('exchange_rate')?.value) || 0;
+    const cur = this.paymentForm.get('currency')?.value || 'GNF';
+    const target = this.paymentForm.get('target_currency')?.value || cur;
+    if (!amount) return 0;
+    if (cur === target) return amount;
+    if (!rate) return 0;
+    if (cur === 'GNF') return amount / rate;
+    if (target === 'GNF') return amount * rate;
+    return amount;
+  }
+
   get outstandingDebt(): number {
     return this.supplierHistory?.summary?.balance_gnf ?? 0;
+  }
+
+  supplierCurrencyBalances(): Array<{ currency: string; balance: number; balanceGnf: number }> {
+    const byCurrency = this.supplierHistory?.summary?.by_currency || {};
+    return Object.keys(byCurrency)
+      .sort((a, b) => a === 'GNF' ? -1 : b === 'GNF' ? 1 : a.localeCompare(b))
+      .map(currency => ({
+        currency,
+        balance: Number(byCurrency[currency]?.final_balance || 0),
+        balanceGnf: Number(byCurrency[currency]?.final_balance_gnf || 0),
+      }))
+      .filter(item => Math.abs(item.balance) > 0.009);
   }
 
   constructor(
@@ -135,6 +161,7 @@ export class SuppliersListComponent implements OnInit {
     this.paymentForm = this.fb.group({
       amount:         ['', [Validators.required, Validators.min(0.01)]],
       currency:       ['GNF', Validators.required],
+      target_currency:['GNF', Validators.required],
       exchange_rate:  [''],
       payment_method: ['ESPECES', Validators.required],
       payment_date:   [new Date().toISOString().split('T')[0], Validators.required],
@@ -339,6 +366,7 @@ export class SuppliersListComponent implements OnInit {
     this.paymentForm.reset({
       amount:         '',
       currency:       currency,
+      target_currency: currency,
       exchange_rate:  '',
       payment_method: 'ESPECES',
       payment_date:   new Date().toISOString().split('T')[0],
@@ -356,12 +384,17 @@ export class SuppliersListComponent implements OnInit {
     this.paymentSubmitted = true;
     if (this.paymentForm.invalid) return;
     if (!this.canRegisterPayments) return;
+    if (this.showExchangeRate && !Number(this.paymentForm.get('exchange_rate')?.value || 0)) {
+      this.alertService.showWarning('Taux de change requis', 'Renseignez le taux pour calculer l’équivalent GNF ou convertir la devise imputée.');
+      return;
+    }
     this.savingPayment = true;
 
     const v    = this.paymentForm.value;
     const data: any = {
       amount:         parseFloat(v.amount),
       currency:       v.currency,
+      target_currency:v.target_currency,
       payment_method: v.payment_method,
       payment_date:   v.payment_date,
       reference:      v.reference || null,

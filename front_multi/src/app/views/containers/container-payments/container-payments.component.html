@@ -30,7 +30,7 @@
     <div class="col-md-3 col-sm-6">
       <div class="p-4 h-100"
            style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #3B82F6;">
-        <p class="text-muted small text-uppercase fw-semibold mb-1">Encaissé</p>
+        <p class="text-muted small text-uppercase fw-semibold mb-1">Versements</p>
         <div class="fw-bold" style="font-size:1.15rem;color:#3B82F6;">{{ formatAmount(stats.totalCollected) }}</div>
         <small class="text-muted">Versements reçus</small>
       </div>
@@ -126,7 +126,7 @@
       <div *ngIf="!loading && activeTab === 'arrivals'">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h6 class="fw-bold mb-0" style="color:#1a1a2e;">Arrivages de Conteneurs</h6>
-          <button cButton color="primary" size="sm" (click)="openArrivalModal()"
+          <button *ngIf="canCreateContainer" cButton color="primary" size="sm" (click)="openArrivalModal()"
                   style="border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;">
             <svg cIcon name="cilPlus" class="me-1"></svg> Nouvel Arrivage
           </button>
@@ -182,11 +182,11 @@
                             title="Vendre" style="border-radius:8px;">
                       <svg cIcon name="cilCart"></svg>
                     </button>
-                    <button cButton color="warning" variant="outline" size="sm"
+                    <button *ngIf="canEditContainer" cButton color="warning" variant="outline" size="sm"
                             (click)="openArrivalModal(arrival)" title="Modifier" style="border-radius:8px;">
                       <svg cIcon name="cilPencil"></svg>
                     </button>
-                    <button cButton color="danger" variant="outline" size="sm"
+                    <button *ngIf="canDeleteContainer" cButton color="danger" variant="outline" size="sm"
                             (click)="deleteArrival(arrival)" title="Supprimer" style="border-radius:8px;">
                       <svg cIcon name="cilTrash"></svg>
                     </button>
@@ -274,7 +274,7 @@
                   <c-badge [color]="getStatusColor(sale.status)">{{ getStatusLabel(sale.status) }}</c-badge>
                 </td>
                 <td class="py-3 text-end">
-                  <button cButton color="success" variant="outline" size="sm"
+                  <button *ngIf="canCreateContainer" cButton color="success" variant="outline" size="sm"
                           (click)="openPaymentModal(sale)"
                           [disabled]="sale.remaining_amount <= 0"
                           title="Enregistrer versement" style="border-radius:8px;">
@@ -313,7 +313,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
             <h6 class="fw-bold mb-1" style="color:#1a1a2e;">Répartition des conteneurs par client</h6>
-            <p class="text-muted mb-0 small">Suivi des quantités attribuées et des encaissements par arrivage.</p>
+            <p class="text-muted mb-0 small">Suivi des quantités attribuées et des versements par arrivage.</p>
           </div>
         </div>
 
@@ -358,7 +358,7 @@
                     <th>Qté attribuée</th>
                     <th>Nb ventes</th>
                     <th>Montant vendu</th>
-                    <th>Montant encaissé</th>
+                    <th>Montant versé</th>
                     <th>Reste client</th>
                   </tr>
                 </thead>

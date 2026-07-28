@@ -8,6 +8,8 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { PdfService } from '../../../core/services/pdf.service';
 
 type SortField = 'name' | 'total_charged' | 'total_paid' | 'gross_debt_gnf'
                | 'rest_to_pay_gnf' | 'interest_remaining' | 'status';
@@ -56,14 +58,18 @@ export class ClientIndexComponent implements OnInit {
     { v: 'TEXTILE', l: 'Textile' },
     { v: 'PNEUS', l: 'Pneus' },
     { v: 'COSMETIQUES', l: 'Cosmétiques' },
-    { v: 'CONTAINER_PAGNE', l: 'Conteneurs pagne' },
-    { v: 'GENERAL', l: 'Général' },
+    { v: 'MACHINE_A_COUDRE', l: 'Machine à coudre' },
   ];
 
   sortField: SortField = 'rest_to_pay_gnf';
   sortDir: SortDir = 'desc';
 
-  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private apiService: ApiService,
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService,
+    private pdfService: PdfService,
+  ) {}
 
   ngOnInit(): void {
     this.loadOverview();
@@ -159,6 +165,25 @@ export class ClientIndexComponent implements OnInit {
     return this.clientTypeOptions.find(option => option.v === type)?.l || type || 'Non classé';
   }
 
+  currencyBalances(row: any): Array<{ currency: string; balance: number; balanceGnf: number }> {
+    const byCurrency = row?.by_currency || {};
+    return Object.keys(byCurrency)
+      .sort((a, b) => a === 'GNF' ? -1 : b === 'GNF' ? 1 : a.localeCompare(b))
+      .map(currency => ({
+        currency,
+        balance: Number(byCurrency[currency]?.final_balance || 0),
+        balanceGnf: Number(byCurrency[currency]?.final_balance_gnf || 0),
+      }))
+      .filter(item => Math.abs(item.balance) > 0.009);
+  }
+
+  currencySummaryText(row: any): string {
+    const balances = this.currencyBalances(row);
+    return balances.length
+      ? balances.map(b => `${this.fmt(b.balance)} ${b.currency}`).join(' | ')
+      : 'Soldé';
+  }
+
   initials(name: string): string {
     return (name || '?')
       .trim()
@@ -175,14 +200,17 @@ export class ClientIndexComponent implements OnInit {
   }
 
   exportCsv(): void {
-    const headers = ['Nom', 'Type', 'Téléphone', 'Total facturé', 'Total payé',
-                     'Avances dispo', 'Intérêts dus', 'Dette brute', 'Reste à payer', 'Statut'];
+    const headers = ['Nom', 'Type', 'Téléphone', 'Soldes par devise', 'Solde équiv. GNF',
+                     'Total facturé GNF', 'Total payé GNF', 'Avances dispo GNF', 'Intérêts dus GNF',
+                     'Dette brute GNF', 'Reste à payer GNF', 'Statut'];
     const lines = [headers.join(';')];
     for (const r of this.filteredRows) {
       lines.push([
         `"${(r.name || '').replace(/"/g, '""')}"`,
         r.client_type || '',
         r.phone1 || '',
+        `"${this.currencySummaryText(r).replace(/"/g, '""')}"`,
+        r.balance_gnf_equivalent || 0,
         r.total_charged || 0,
         r.total_paid || 0,
         r.advances_remaining || 0,
@@ -200,7 +228,22 @@ export class ClientIndexComponent implements OnInit {
     URL.revokeObjectURL(a.href);
   }
 
-  print(): void { window.print(); }
+  print(): void {
+    const tenant = this.authService.currentTenant as any;
+    void this.pdfService.printClientFinancialOverviewPdf({
+      summary: this.summary,
+      rows: this.filteredRows,
+      filters: this.filters,
+      organisation: {
+        name: tenant?.name || 'MATKOLLA',
+        address: tenant?.address || '',
+        phone: tenant?.phone || '',
+        email: tenant?.email || '',
+        logoUrl: tenant?.logo_url || '',
+        footerText: 'Index financier clients',
+      },
+    });
+  }
 
   trackById(_i: number, r: any): number { return r?.id; }
 

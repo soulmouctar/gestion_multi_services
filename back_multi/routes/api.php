@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ContainerController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientInterestController;
+use App\Http\Controllers\Api\ClientCurrencyAccountController;
+use App\Http\Controllers\Api\TrashController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\ExchangeRateController;
@@ -55,12 +57,18 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
 
     // Routes publiques - authentification
     Route::post('/register', [AuthController::class, 'register']);
+    Route::get('/login', fn () => response()->json([
+        'success' => false,
+        'message' => 'Cette route API attend une requête POST avec email et password.',
+        'method' => 'POST',
+        'endpoint' => '/api/login',
+    ], 405));
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
     // Routes protégées
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'tenant.active'])->group(function () {
 
         // Auth
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -245,6 +253,19 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::post('client-interest-charges', [ClientInterestController::class, 'store']);
         Route::put('client-interest-charges/{id}', [ClientInterestController::class, 'update']);
         Route::delete('client-interest-charges/{id}', [ClientInterestController::class, 'destroy']);
+
+        // ── CORBEILLE (SoftDeletes) ────────────────────────────────
+        Route::get('trash',                        [TrashController::class, 'summary']);
+        Route::get('trash/{entity}',               [TrashController::class, 'index']);
+        Route::post('trash/{entity}/{id}/restore', [TrashController::class, 'restore']);
+        Route::delete('trash/{entity}/{id}/force', [TrashController::class, 'forceDestroy']);
+        Route::delete('trash/{entity}/empty',      [TrashController::class, 'emptyAll']);
+
+        // Comptes-devises par client (GNF principal + USD/EUR/etc.)
+        Route::get('clients/{id}/currency-accounts', [ClientCurrencyAccountController::class, 'indexForClient']);
+        Route::post('client-currency-accounts', [ClientCurrencyAccountController::class, 'store']);
+        Route::put('client-currency-accounts/{id}', [ClientCurrencyAccountController::class, 'update']);
+        Route::delete('client-currency-accounts/{id}', [ClientCurrencyAccountController::class, 'destroy']);
         Route::post('clients/{id}/photo', [ClientController::class, 'uploadPhoto']);
         Route::delete('clients/{id}/photo', [ClientController::class, 'deletePhoto']);
         Route::apiResource('clients', ClientController::class);
@@ -266,7 +287,11 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         // Finance dashboard (optimisé : 5 requêtes au lieu de 18+)
         Route::get('finance/dashboard', [PaymentController::class, 'financeDashboard']);
 
+        // Rapport marges bénéficiaires (factures + conteneurs)
+        Route::get('finance/margins', [PaymentController::class, 'marginsReport']);
+
         // Paiements
+        Route::post('payments/batch', [PaymentController::class, 'storeBatch']);
         Route::get('payments/statistics', [PaymentController::class, 'getStatistics']);
         Route::get('payments/date-range', [PaymentController::class, 'getByDateRange']);
         Route::post('payments/bulk-delete', [PaymentController::class, 'bulkDelete']);

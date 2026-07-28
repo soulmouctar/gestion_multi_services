@@ -75,7 +75,7 @@ export const environment = {
   
   // PDF configuration
   pdf: {
-    logoUrl: '/assets/images/logo/mat_kolla_hd.png',
+    logoUrl: '/assets/images/logo/logo_matkolla_2026.jpeg',
     companyName: 'Mat Kolla',
     companyAddress: 'Conakry, Guinée',
     companyPhone: '+224 XXX XXX XXX',

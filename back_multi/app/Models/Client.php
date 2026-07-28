@@ -4,22 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 class Client extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    public const TYPE_GENERAL = 'GENERAL';
-    public const TYPE_PNEUS = 'PNEUS';
     public const TYPE_TEXTILE = 'TEXTILE';
+    public const TYPE_PNEUS = 'PNEUS';
     public const TYPE_COSMETIQUES = 'COSMETIQUES';
-    public const TYPE_CONTAINER_PAGNE = 'CONTAINER_PAGNE';
+    public const TYPE_MACHINE_A_COUDRE = 'MACHINE_A_COUDRE';
 
     public const TYPES = [
-        self::TYPE_GENERAL,
-        self::TYPE_PNEUS,
         self::TYPE_TEXTILE,
+        self::TYPE_PNEUS,
         self::TYPE_COSMETIQUES,
-        self::TYPE_CONTAINER_PAGNE,
+        self::TYPE_MACHINE_A_COUDRE,
     ];
 
     protected $fillable = [
@@ -37,7 +36,7 @@ class Client extends Model
     protected $appends = ['photo_url'];
 
     protected $attributes = [
-        'client_type' => self::TYPE_GENERAL,
+        'client_type' => self::TYPE_TEXTILE,
     ];
 
     public function getPhotoUrlAttribute(): ?string
@@ -74,6 +73,19 @@ class Client extends Model
     public function productReturns()
     {
         return $this->hasMany(ProductReturn::class);
+    }
+
+    public function currencyAccounts()
+    {
+        return $this->hasMany(ClientCurrencyAccount::class);
+    }
+
+    /**
+     * Retourne le compte d'un client dans une devise donnee, en le creant si necessaire.
+     */
+    public function getAccount(string $currency): ClientCurrencyAccount
+    {
+        return ClientCurrencyAccount::getOrCreate($this->id, $this->tenant_id, $currency);
     }
 
     public function getTotalDebtAttribute(): float

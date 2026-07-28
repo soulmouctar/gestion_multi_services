@@ -12,6 +12,11 @@ export const routes: Routes = [
     title: 'Tableau de Bord Financier'
   },
   {
+    path: 'payments',
+    loadComponent: () => import('./payments/payments.component').then(m => m.FinancePaymentsComponent),
+    title: 'Versements clients'
+  },
+  {
     path: 'currencies',
     loadComponent: () => import('./currencies/currencies.component').then(m => m.FinanceCurrenciesComponent),
     title: 'Gestion des Devises'
@@ -35,5 +40,10 @@ export const routes: Routes = [
     path: 'sales-summary',
     loadComponent: () => import('./sales-summary/sales-summary.component').then(m => m.SalesSummaryComponent),
     title: 'Synthèse des ventes'
+  },
+  {
+    path: 'margins',
+    loadComponent: () => import('./margins/margins.component').then(m => m.FinanceMarginsComponent),
+    title: 'Marges bénéficiaires'
   }
 ];

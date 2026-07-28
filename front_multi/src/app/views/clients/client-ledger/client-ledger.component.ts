@@ -8,6 +8,17 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { PdfService } from '../../../core/services/pdf.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { PaymentBatchFormComponent } from '../../finance/payments/payment-batch-form/payment-batch-form.component';
+import { PrintableLedgerData, PrintableVersementReceiptData } from '../../../core/services/pdf.service';
+import Swal from 'sweetalert2';
+
+interface CurrencyCell {
+  debit: number;
+  credit: number;
+  balance: number;
+}
 
 interface LedgerRow {
   date: string;
@@ -25,26 +36,35 @@ interface LedgerRow {
   debit_usd: number;
   credit_usd: number;
   balance_usd: number;
+  by_currency?: Record<string, CurrencyCell>;
   reference: string | null;
   meta_id: number;
+  // Preuve de conversion multi-devises (payments)
+  exchange_rate?: number | null;
+  target_currency?: string | null;
+  converted_amount?: number | null;
+  native_amount?: number | null;
+  native_currency?: string | null;
+  amount_gnf?: number | null;
+  payment_method?: string | null;
 }
 
 interface MonthGroup {
   key: string;
   label: string;
   rows: LedgerRow[];
-  debit_gnf: number;
-  credit_gnf: number;
-  debit_usd: number;
-  credit_usd: number;
+  totals_by_currency: Record<string, { debit: number; credit: number }>;
 }
+
+type LedgerTypeTotals = Record<string, { ventes: number; paiements: number; retours: number; interets: number; avances: number }>;
 
 @Component({
   selector: 'app-client-ledger',
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterModule, IconDirective,
-    ButtonModule, CardModule, BadgeModule, SpinnerModule, TooltipModule
+    ButtonModule, CardModule, BadgeModule, SpinnerModule, TooltipModule,
+    PaymentBatchFormComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './client-ledger.component.html',
@@ -61,6 +81,8 @@ export class ClientLedgerComponent implements OnInit {
     total_debit_usd: 0, total_credit_usd: 0, final_balance_usd: 0,
     has_usd: false, rows_count: 0,
     total_debit: 0, total_credit: 0, final_balance: 0,
+    currencies: ['GNF'] as string[],
+    by_currency: {} as Record<string, { total_debit: number; total_credit: number; final_balance: number }>,
   };
   rows: LedgerRow[] = [];
   filteredRows: LedgerRow[] = [];
@@ -78,18 +100,66 @@ export class ClientLedgerComponent implements OnInit {
   }
   get balanceGnfAbs(): number { return Math.abs(Number(this.summary.final_balance_gnf || 0)); }
   get balanceUsdAbs(): number { return Math.abs(Number(this.summary.final_balance_usd || 0)); }
-  get totalsByType(): { ventes: number; paiements: number; retours: number; interets: number; avances: number } {
-    let ventes = 0, paiements = 0, retours = 0, interets = 0, avances = 0;
-    for (const r of this.rows) {
-      const isUsd = (r.currency || 'GNF').toUpperCase() === 'USD';
-      const amount = isUsd ? (r.debit_usd + r.credit_usd) : (r.debit_gnf + r.credit_gnf);
-      if (r.type === 'invoice' || r.type === 'container_sale') ventes += amount;
-      else if (r.type === 'payment' || r.type === 'container_payment') paiements += amount;
-      else if (r.type === 'return') retours += amount;
-      else if (r.type === 'interest') interets += amount;
-      else if (r.type === 'advance') avances += amount;
+
+  // Devises effectivement mouvementées, GNF toujours en premier.
+  get ledgerCurrencies(): string[] {
+    const list: string[] = Array.isArray(this.summary?.currencies) && this.summary.currencies.length
+      ? [...this.summary.currencies]
+      : ['GNF'];
+    list.sort((a, b) => a === 'GNF' ? -1 : b === 'GNF' ? 1 : a.localeCompare(b));
+    return list;
+  }
+  // Devises non-GNF pour la bannière de solde
+  get secondaryCurrencies(): string[] {
+    return this.ledgerCurrencies.filter(c => c !== 'GNF');
+  }
+  balanceStatusFor(currency: string): 'debt' | 'credit' | 'zero' {
+    const v = Number(this.summary?.by_currency?.[currency]?.final_balance ?? 0);
+    if (v > 0) return 'debt';
+    if (v < 0) return 'credit';
+    return 'zero';
+  }
+  balanceFor(currency: string): number {
+    return Number(this.summary?.by_currency?.[currency]?.final_balance ?? 0);
+  }
+  totalDebitFor(currency: string): number {
+    return Number(this.summary?.by_currency?.[currency]?.total_debit ?? 0);
+  }
+  totalCreditFor(currency: string): number {
+    return Number(this.summary?.by_currency?.[currency]?.total_credit ?? 0);
+  }
+  cellFor(row: LedgerRow, currency: string): CurrencyCell {
+    return row.by_currency?.[currency] ?? { debit: 0, credit: 0, balance: 0 };
+  }
+  trackByCurrency(_i: number, c: string): string { return c; }
+  get totalsByType(): LedgerTypeTotals {
+    const totals: LedgerTypeTotals = {};
+    for (const c of this.ledgerCurrencies) {
+      totals[c] = { ventes: 0, paiements: 0, retours: 0, interets: 0, avances: 0 };
     }
-    return { ventes, paiements, retours, interets, avances };
+    for (const r of this.filteredRows) {
+      const cur = String(r.currency || 'GNF').toUpperCase();
+      totals[cur] ??= { ventes: 0, paiements: 0, retours: 0, interets: 0, avances: 0 };
+      const cell = this.cellFor(r, cur);
+      if (r.type === 'invoice' || r.type === 'container_sale') totals[cur].ventes += Number(cell.debit || 0);
+      else if (r.type === 'payment' || r.type === 'container_payment') totals[cur].paiements += Number(cell.credit || 0);
+      else if (r.type === 'return') totals[cur].retours += Number(cell.credit || 0);
+      else if (r.type === 'interest') totals[cur].interets += Number(cell.debit || 0);
+      else if (r.type === 'advance') totals[cur].avances += Number(cell.credit || 0);
+    }
+    return totals;
+  }
+
+  totalByType(kind: keyof LedgerTypeTotals[string]): number {
+    return this.ledgerCurrencies.reduce((sum, c) => sum + Number(this.totalsByType[c]?.[kind] || 0), 0);
+  }
+
+  formatTotalsByType(kind: keyof LedgerTypeTotals[string]): string {
+    const parts = this.ledgerCurrencies
+      .map(c => ({ currency: c, value: Number(this.totalsByType[c]?.[kind] || 0) }))
+      .filter(x => x.value > 0)
+      .map(x => this.fmt(x.value, x.currency));
+    return parts.length ? parts.join(' + ') : this.fmt(0, this.ledgerCurrencies[0] || 'GNF');
   }
 
   filters = {
@@ -107,6 +177,7 @@ export class ClientLedgerComponent implements OnInit {
     { v: 'interest', l: 'Intérêts (SALL)' },
   ];
 
+  showPaymentModal = false;
   showInterestModal = false;
   interestForm = {
     amount: 0,
@@ -121,8 +192,98 @@ export class ClientLedgerComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private apiService: ApiService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private pdfService: PdfService,
+    private authService: AuthService,
   ) {}
+
+  downloadPdf(): void {
+    void this.pdfService.downloadProfessionalLedgerPdf(
+      this.buildPrintableLedgerData(),
+      `compte_${(this.client?.name || 'client').replace(/\s+/g, '_')}.pdf`
+    );
+  }
+
+  private buildPrintableLedgerData(): PrintableLedgerData {
+    const tenant = this.authService.currentTenant as any;
+    return {
+      client: {
+        id: this.client?.id,
+        name: this.client?.name || 'Client',
+        client_type: this.client?.client_type,
+        phone1: this.client?.phone1,
+        email: this.client?.email,
+        address: this.client?.address,
+      },
+      summary: this.buildSummaryFromRows(this.filteredRows),
+      rows: this.filteredRows.map(r => ({
+        date: r.date,
+        type: r.type, type_label: r.type_label,
+        designation: r.designation,
+        quantity: r.quantity, currency: r.currency,
+        debit_gnf: r.debit_gnf, credit_gnf: r.credit_gnf, balance_gnf: r.balance_gnf,
+        debit_usd: r.debit_usd, credit_usd: r.credit_usd, balance_usd: r.balance_usd,
+        by_currency: r.by_currency,
+        reference: r.reference,
+        exchange_rate: r.exchange_rate ?? null,
+        target_currency: r.target_currency ?? null,
+        converted_amount: r.converted_amount ?? null,
+        native_amount: r.native_amount ?? null,
+        native_currency: r.native_currency ?? null,
+      })),
+      period: this.filters,
+      organisation: {
+        name: tenant?.name || 'MATKOLLA',
+        address: tenant?.address || '',
+        phone: tenant?.phone || '',
+        email: tenant?.email || '',
+        logoUrl: tenant?.logo_url || '',
+        footerText: `Compte client — ${this.client?.name || ''}`,
+      },
+    };
+  }
+
+  private buildSummaryFromRows(rows: LedgerRow[]): any {
+    const currencies = this.ledgerCurrencies;
+    const byCurrency: Record<string, { total_debit: number; total_credit: number; final_balance: number }> = {};
+    for (const c of currencies) {
+      byCurrency[c] = { total_debit: 0, total_credit: 0, final_balance: 0 };
+    }
+    for (const row of rows) {
+      for (const c of currencies) {
+        const cell = this.cellFor(row, c);
+        byCurrency[c].total_debit += Number(cell.debit || 0);
+        byCurrency[c].total_credit += Number(cell.credit || 0);
+      }
+    }
+    for (const c of currencies) {
+      byCurrency[c].total_debit = this.round2(byCurrency[c].total_debit);
+      byCurrency[c].total_credit = this.round2(byCurrency[c].total_credit);
+      byCurrency[c].final_balance = this.round2(byCurrency[c].total_debit - byCurrency[c].total_credit);
+    }
+    const gnf = byCurrency['GNF'] || { total_debit: 0, total_credit: 0, final_balance: 0 };
+    const usd = byCurrency['USD'] || { total_debit: 0, total_credit: 0, final_balance: 0 };
+    return {
+      ...this.summary,
+      total_debit: gnf.total_debit,
+      total_credit: gnf.total_credit,
+      final_balance: gnf.final_balance,
+      total_debit_gnf: gnf.total_debit,
+      total_credit_gnf: gnf.total_credit,
+      final_balance_gnf: gnf.final_balance,
+      total_debit_usd: usd.total_debit,
+      total_credit_usd: usd.total_credit,
+      final_balance_usd: usd.final_balance,
+      has_usd: currencies.includes('USD'),
+      rows_count: rows.length,
+      currencies,
+      by_currency: byCurrency,
+    };
+  }
+
+  private round2(value: number): number {
+    return Math.round((Number(value) || 0) * 100) / 100;
+  }
 
   ngOnInit(): void {
     this.clientId = Number(this.route.snapshot.paramMap.get('id'));
@@ -171,6 +332,7 @@ export class ClientLedgerComponent implements OnInit {
       return;
     }
     const map = new Map<string, MonthGroup>();
+    const currencies = this.ledgerCurrencies;
     for (const r of this.filteredRows) {
       const d = new Date(r.date);
       if (isNaN(d.getTime())) continue;
@@ -178,14 +340,19 @@ export class ClientLedgerComponent implements OnInit {
       let g = map.get(key);
       if (!g) {
         const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-        g = { key, label: label.charAt(0).toUpperCase() + label.slice(1), rows: [], debit_gnf: 0, credit_gnf: 0, debit_usd: 0, credit_usd: 0 };
+        const totals: Record<string, { debit: number; credit: number }> = {};
+        for (const c of currencies) totals[c] = { debit: 0, credit: 0 };
+        g = { key, label: label.charAt(0).toUpperCase() + label.slice(1), rows: [], totals_by_currency: totals };
         map.set(key, g);
       }
       g.rows.push(r);
-      g.debit_gnf  += r.debit_gnf  || 0;
-      g.credit_gnf += r.credit_gnf || 0;
-      g.debit_usd  += r.debit_usd  || 0;
-      g.credit_usd += r.credit_usd || 0;
+      for (const c of currencies) {
+        const cell = r.by_currency?.[c];
+        if (cell) {
+          g.totals_by_currency[c].debit  += Number(cell.debit  || 0);
+          g.totals_by_currency[c].credit += Number(cell.credit || 0);
+        }
+      }
     }
     this.monthGroups = Array.from(map.values());
   }
@@ -238,6 +405,107 @@ export class ClientLedgerComponent implements OnInit {
       advance: 'cilWallet', return: 'cilActionUndo', interest: 'cilChartLine',
     };
     return map[type] || 'cilCircle';
+  }
+
+  openPaymentModal(): void { this.showPaymentModal = true; }
+
+  async onPaymentSaved(batch: any): Promise<void> {
+    this.loadLedger();
+    const result = await Swal.fire({
+      title: 'Versement enregistré',
+      text: 'Voulez-vous imprimer le reçu maintenant ?',
+      icon: 'success',
+      showCancelButton: true,
+      confirmButtonText: 'Imprimer',
+      cancelButtonText: 'Plus tard',
+      confirmButtonColor: '#10B981',
+    });
+    if (result.isConfirmed) {
+      await this.printBatchReceipt(batch);
+    }
+  }
+
+  private async printBatchReceipt(batch: any): Promise<void> {
+    const payments: any[] = batch?.payments || [];
+    if (!payments.length) return;
+    const first = payments[0];
+    const totalGnf = payments.reduce((s, p) => s + Number(p.amount_gnf || p.amount || 0), 0);
+    const totalsMap = new Map<string, number>();
+    for (const p of payments) {
+      totalsMap.set(p.currency, (totalsMap.get(p.currency) || 0) + Number(p.amount || 0));
+    }
+
+    // Devise principale : mono-devise sans conversion → devise native, sinon GNF
+    const hasAnyConversion = payments.some((p: any) => p.target_currency && p.target_currency !== p.currency);
+    const currencies = new Set(payments.map((p: any) => String(p.currency || 'GNF').toUpperCase()));
+    const primaryCurrency = (!hasAnyConversion && currencies.size === 1) ? Array.from(currencies)[0] : 'GNF';
+    const totalPrimary = primaryCurrency === 'GNF'
+      ? totalGnf
+      : payments.filter((p: any) => p.currency === primaryCurrency).reduce((s, p) => s + Number(p.amount || 0), 0);
+
+    let arrears: PrintableVersementReceiptData['arrears'] = null;
+    if (primaryCurrency === 'GNF') {
+      const totalRemaining = Math.max(0, Number(this.summary.final_balance_gnf || 0));
+      arrears = {
+        currency: 'GNF',
+        previous_balance: totalRemaining + totalPrimary,
+        payment_amount: totalPrimary,
+        remaining_balance: totalRemaining,
+      };
+    } else if (this.client?.id) {
+      try {
+        const res: any = await this.apiService.get<any>(`clients/${this.client.id}/currency-accounts`).toPromise();
+        const accounts: any[] = res?.data || [];
+        const acc = accounts.find(a => String(a.currency).toUpperCase() === primaryCurrency);
+        if (acc) {
+          const currentBalance = Number(acc.current_balance || 0);
+          arrears = {
+            currency: primaryCurrency,
+            previous_balance: currentBalance + totalPrimary,
+            payment_amount: totalPrimary,
+            remaining_balance: currentBalance,
+          };
+        }
+      } catch { arrears = null; }
+    }
+
+    const tenant: any = this.authService.currentTenant || {};
+    const data: PrintableVersementReceiptData = {
+      receipt_number: batch?.payment_group_id ? `GRP-${String(batch.payment_group_id).slice(0, 8)}` : first.receipt_number,
+      payment_date: first.payment_date,
+      method: first.method,
+      reference: first.reference || null,
+      description: first.description || null,
+      client: {
+        id: this.client?.id,
+        name: this.client?.name || 'Client',
+        phone: this.client?.phone1,
+        address: this.client?.address,
+      },
+      entries: payments.map((p: any) => ({
+        amount: Number(p.amount || 0),
+        currency: p.currency,
+        target_currency: p.target_currency,
+        converted_amount: p.converted_amount,
+        exchange_rate: p.exchange_rate,
+        amount_gnf: Number(p.amount_gnf || p.amount || 0),
+      })),
+      totals_by_currency: Array.from(totalsMap.entries()).map(([currency, total]) => ({ currency, total })),
+      primary_currency: primaryCurrency,
+      total_amount: totalPrimary,
+      total_gnf: totalGnf,
+      arrears,
+      organisation: {
+        name: tenant?.name || 'MATKOLLA',
+        address: tenant?.address || '',
+        phone: tenant?.phone || '',
+        email: tenant?.email || '',
+        logoUrl: tenant?.logo_url || '',
+        footer_text: `Reçu de versement — ${this.client?.name || ''}`,
+      },
+      generated_at: new Date().toLocaleString('fr-FR'),
+    };
+    await this.pdfService.printVersementReceiptPdf(data);
   }
 
   openInterestModal(): void {
@@ -296,24 +564,23 @@ export class ClientLedgerComponent implements OnInit {
   }
 
   exportCsv(): void {
-    const usd = this.showUsdColumns;
-    const headers = usd
-      ? ['Date', 'Type', 'Désignation', 'Qté',
-         'Débit GNF', 'Crédit GNF', 'Solde GNF',
-         'Débit USD', 'Crédit USD', 'Solde USD', 'Réf.']
-      : ['Date', 'Type', 'Désignation', 'Qté', 'Débit', 'Crédit', 'Solde', 'Réf.'];
+    const currencies = this.ledgerCurrencies;
+    const headers = ['Date', 'Type', 'Désignation', 'Qté'];
+    for (const c of currencies) headers.push(`Débit ${c}`, `Crédit ${c}`, `Solde ${c}`);
+    headers.push('Réf.');
     const lines = [headers.join(';')];
     for (const r of this.filteredRows) {
-      const cols = usd
-        ? [r.date, `"${r.type_label}"`, `"${(r.designation || '').replace(/"/g, '""')}"`,
-           r.quantity !== null ? String(r.quantity) : '',
-           String(r.debit_gnf || 0), String(r.credit_gnf || 0), String(r.balance_gnf || 0),
-           String(r.debit_usd || 0), String(r.credit_usd || 0), String(r.balance_usd || 0),
-           `"${r.reference || ''}"`]
-        : [r.date, `"${r.type_label}"`, `"${(r.designation || '').replace(/"/g, '""')}"`,
-           r.quantity !== null ? String(r.quantity) : '',
-           String(r.debit || 0), String(r.credit || 0), String(r.balance || 0),
-           `"${r.reference || ''}"`];
+      const cols = [
+        r.date,
+        `"${r.type_label}"`,
+        `"${(r.designation || '').replace(/"/g, '""')}"`,
+        r.quantity !== null ? String(r.quantity) : '',
+      ];
+      for (const c of currencies) {
+        const cell = this.cellFor(r, c);
+        cols.push(String(cell.debit || 0), String(cell.credit || 0), String(cell.balance || 0));
+      }
+      cols.push(`"${r.reference || ''}"`);
       lines.push(cols.join(';'));
     }
     const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
@@ -325,7 +592,9 @@ export class ClientLedgerComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  print(): void { window.print(); }
+  print(): void {
+    void this.pdfService.printProfessionalLedgerPdf(this.buildPrintableLedgerData());
+  }
 
   trackByRow(_i: number, r: LedgerRow): string {
     return `${r.type}_${r.meta_id}_${r.date}`;

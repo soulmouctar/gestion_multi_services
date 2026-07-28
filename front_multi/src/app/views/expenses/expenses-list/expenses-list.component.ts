@@ -64,6 +64,10 @@ export class ExpensesListComponent implements OnInit {
     { value: 'EUR', label: 'EUR' }
   ];
 
+  get canCreateExpense(): boolean { return this.authService.hasModulePermission('EXPENSES', 'create'); }
+  get canEditExpense(): boolean   { return this.authService.hasModulePermission('EXPENSES', 'edit'); }
+  get canDeleteExpense(): boolean { return this.authService.hasModulePermission('EXPENSES', 'delete'); }
+
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,

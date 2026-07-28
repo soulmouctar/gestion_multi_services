@@ -13,8 +13,26 @@ class Tenant extends Model
         'name',
         'email',
         'phone',
+        'address',
+        'logo',
         'subscription_status',
     ];
+
+    protected $appends = ['logo_url'];
+
+    /**
+     * URL absolue du logo du tenant (utilise pour les PDFs et l'UI).
+     */
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (!$this->logo) return null;
+        if (str_starts_with($this->logo, 'http')) return $this->logo;
+        $path = ltrim($this->logo, '/');
+        if (!str_starts_with($path, 'uploads/')) {
+            $path = 'uploads/' . $path;
+        }
+        return url($path);
+    }
 
     public function users()
     {

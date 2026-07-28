@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DailyPayment extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'tenant_id',
@@ -60,13 +61,18 @@ class DailyPayment extends Model
         parent::boot();
 
         static::saving(function ($model) {
-            $model->balance = $model->expected_amount - $model->paid_amount;
-            
+            if ($model->status === 'EXCUSED') {
+                $model->balance = 0;
+                return;
+            }
+
+            $model->balance = max(0, $model->expected_amount - $model->paid_amount);
+
             if ($model->paid_amount >= $model->expected_amount) {
                 $model->status = 'PAID';
             } elseif ($model->paid_amount > 0) {
                 $model->status = 'PARTIAL';
-            } elseif ($model->status !== 'EXCUSED') {
+            } else {
                 $model->status = 'UNPAID';
             }
         });

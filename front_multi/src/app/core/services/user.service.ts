@@ -219,7 +219,7 @@ export class UserService {
       {
         module_code: 'FINANCE',
         module_name: 'Gestion Financière',
-        permissions: ['view', 'create', 'edit', 'delete', 'approve'],
+        permissions: ['view', 'create', 'edit', 'delete'],
         is_active: false
       },
       {
@@ -242,37 +242,37 @@ export class UserService {
       {
         module_code: 'USERS',
         module_name: 'Utilisateurs',
-        permissions: ['view', 'create', 'edit', 'delete', 'view_users', 'manage_permissions', 'change_password', 'toggle_status'],
+        permissions: ['view', 'create', 'edit', 'delete', 'manage_permissions', 'change_password', 'toggle_status'],
         is_active: false
       },
       {
         module_code: 'PRODUCTS_STOCK',
         module_name: 'Produits & Stock',
-        permissions: ['view', 'create', 'edit', 'delete', 'manage_stock'],
+        permissions: ['view', 'create', 'edit', 'delete'],
         is_active: false
       },
       {
         module_code: 'CONTAINERS',
         module_name: 'Conteneurs',
-        permissions: ['view', 'create', 'edit', 'delete', 'track'],
+        permissions: ['view', 'create', 'edit', 'delete'],
         is_active: false
       },
       {
         module_code: 'RENTAL',
         module_name: 'Location Immobilière',
-        permissions: ['view', 'create', 'edit', 'delete', 'manage_contracts'],
+        permissions: ['view', 'create', 'edit', 'delete'],
         is_active: false
       },
       {
         module_code: 'TAXI',
         module_name: 'Gestion Taxi',
-        permissions: ['view', 'create', 'edit', 'delete', 'assign_drivers'],
+        permissions: ['view', 'create', 'edit', 'delete'],
         is_active: false
       },
       {
         module_code: 'STATISTICS',
         module_name: 'Statistiques',
-        permissions: ['view', 'export'],
+        permissions: ['view'],
         is_active: false
       },
       {
@@ -311,19 +311,12 @@ export class UserService {
       'create': 'Créer',
       'edit': 'Modifier',
       'delete': 'Supprimer',
-      'approve': 'Approuver',
-      'manage_stock': 'Gérer Stock',
-      'track': 'Suivre',
-      'manage_contracts': 'Gérer Contrats',
-      'assign_drivers': 'Assigner Chauffeurs',
-      'export': 'Exporter',
       'view_clients_general': 'Clients généraux',
       'view_clients_pneus': 'Clients pneus',
       'view_clients_textile': 'Clients textile',
       'view_clients_cosmetiques': 'Clients cosmétiques',
       'view_clients_conteneurs_pagne': 'Clients conteneurs pagne',
       'view_suppliers': 'Fournisseurs',
-      'view_users': 'Voir utilisateurs',
       'manage_permissions': 'Permissions',
       'change_password': 'Mot de passe',
       'toggle_status': 'Statut'

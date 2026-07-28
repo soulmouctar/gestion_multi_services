@@ -1,19 +1,20 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { TenantService } from '../../../core/services/tenant.service';
 import { Tenant, Module, ApiResponse } from '../../../core/models/tenant.model';
 import { IconDirective } from '@coreui/icons-angular';
-import { 
-  ButtonModule, 
-  ButtonGroupModule, 
-  CardModule, 
-  FormModule, 
-  TableModule, 
-  BadgeModule, 
+import {
+  ButtonModule,
+  ButtonGroupModule,
+  CardModule,
+  FormModule,
+  TableModule,
+  BadgeModule,
   ModalModule,
-  AlertModule 
+  AlertModule,
+  SpinnerModule
 } from '@coreui/angular';
 
 @Component({
@@ -22,6 +23,7 @@ import {
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     IconDirective,
     ButtonModule,
     ButtonGroupModule,
@@ -30,7 +32,8 @@ import {
     TableModule,
     BadgeModule,
     ModalModule,
-    AlertModule
+    AlertModule,
+    SpinnerModule
     ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tenants.component.html',
@@ -50,8 +53,55 @@ export class TenantsComponent implements OnInit {
   moduleModalOpen = false;
   selectedOrganisationForModules: Tenant | null = null;
 
+  // UI moderne : panneau lateral d'edition + recherche
+  showFormDrawer = false;
+  searchText = '';
+  statusFilter: 'ALL' | 'ACTIVE' | 'SUSPENDED' = 'ALL';
+
   organisationForm: FormGroup;
   filterForm: FormGroup;
+
+  // ── KPIs computed ──────────────────────────────────────────────
+  get kpiTotal(): number   { return Array.isArray(this.organisations) ? this.organisations.length : 0; }
+  get kpiActive(): number  { return (this.organisations || []).filter(o => (o.subscription_status || '').toUpperCase() === 'ACTIVE').length; }
+  get kpiSuspended(): number { return (this.organisations || []).filter(o => (o.subscription_status || '').toUpperCase() === 'SUSPENDED').length; }
+  get kpiWithModules(): number {
+    return (this.organisations || []).filter(o => Array.isArray((o as any).modules) && (o as any).modules.length > 0).length;
+  }
+
+  get filteredOrganisations(): Tenant[] {
+    const list = Array.isArray(this.organisations) ? this.organisations : [];
+    const q = this.searchText.trim().toLowerCase();
+    return list.filter(o => {
+      const statusOk = this.statusFilter === 'ALL'
+        || (o.subscription_status || '').toUpperCase() === this.statusFilter;
+      if (!statusOk) return false;
+      if (!q) return true;
+      return (o.name || '').toLowerCase().includes(q)
+          || (o.email || '').toLowerCase().includes(q)
+          || (o.phone || '').toLowerCase().includes(q);
+    });
+  }
+
+  countActiveModules(org: any): number {
+    if (!Array.isArray(org?.modules)) return 0;
+    return org.modules.filter((m: any) => m?.pivot?.is_active || m?.is_active).length;
+  }
+
+  openCreateDrawer(): void {
+    this.resetForm();
+    this.showFormDrawer = true;
+    this.cdr.detectChanges();
+  }
+  openEditDrawer(org: Tenant): void {
+    this.editOrganisation(org);
+    this.showFormDrawer = true;
+    this.cdr.detectChanges();
+  }
+  closeDrawer(): void {
+    this.showFormDrawer = false;
+    this.resetForm();
+  }
 
   
   constructor(
@@ -63,6 +113,7 @@ export class TenantsComponent implements OnInit {
       name: ['', [Validators.required, Validators.maxLength(150)]],
       email: ['', [Validators.email, Validators.maxLength(150)]],
       phone: ['', [Validators.maxLength(50)]],
+      address: ['', [Validators.maxLength(255)]],
       subscription_status: ['ACTIVE', Validators.required]
     });
 
@@ -179,9 +230,23 @@ export class TenantsComponent implements OnInit {
     }
   }
 
+  /**
+   * Construit un FormData avec les champs + le logo (si selectionne).
+   * Le service envoie automatiquement en multipart si on detecte FormData.
+   */
+  private buildPayload(): FormData | any {
+    if (!this.logoFile) return this.organisationForm.value;
+    const fd = new FormData();
+    Object.entries(this.organisationForm.value).forEach(([k, v]) => {
+      if (v !== null && v !== undefined && v !== '') fd.append(k, String(v));
+    });
+    fd.append('logo', this.logoFile);
+    return fd;
+  }
+
   private createOrganisation(): void {
     // Utiliser le vrai backend pour créer le tenant dans la base de données
-    this.tenantService.createTenant(this.organisationForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.tenantService.createTenant(this.buildPayload()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         // S'assurer que this.organisations est un tableau avant d'utiliser push
         if (!Array.isArray(this.organisations)) {
@@ -204,7 +269,9 @@ export class TenantsComponent implements OnInit {
     if (!this.selectedOrganisation) return;
 
     // Utiliser le vrai backend pour mettre à jour le tenant dans la base de données
-    this.tenantService.updateTenant(this.selectedOrganisation.id, this.organisationForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    // (FormData si logo selectionne, sinon JSON classique)
+    const payload = this.buildPayload();
+    this.tenantService.updateTenant(this.selectedOrganisation.id, payload as any).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         const index = this.organisations.findIndex(t => t.id === this.selectedOrganisation!.id);
         if (index !== -1) {
@@ -225,12 +292,42 @@ export class TenantsComponent implements OnInit {
   editOrganisation(organisation: Tenant): void {
     this.editMode = true;
     this.selectedOrganisation = organisation;
+    this.currentLogoUrl = (organisation as any).logo_url || null;
+    this.logoPreview = null;
+    this.logoFile = null;
     this.organisationForm.patchValue({
       name: organisation.name,
       email: organisation.email,
       phone: organisation.phone,
+      address: (organisation as any).address || '',
       subscription_status: organisation.subscription_status
     });
+  }
+
+  // ── Gestion du logo ────────────────────────────────────────────────
+  logoFile: File | null = null;
+  logoPreview: string | null = null;
+  currentLogoUrl: string | null = null;
+
+  onLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) return;
+    if (file.size > 2 * 1024 * 1024) return;
+    this.logoFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => { this.logoPreview = e.target?.result as string; this.cdr.detectChanges(); };
+    reader.readAsDataURL(file);
+  }
+
+  clearLogo(): void {
+    this.logoFile = null;
+    this.logoPreview = null;
+  }
+
+  get displayedLogo(): string | null {
+    return this.logoPreview || this.currentLogoUrl;
   }
 
   deleteOrganisation(organisation: Tenant): void {
@@ -274,11 +371,15 @@ export class TenantsComponent implements OnInit {
       name: '',
       email: '',
       phone: '',
+      address: '',
       subscription_status: 'ACTIVE'
     });
     this.editMode = false;
     this.selectedOrganisation = null;
     this.submitted = false;
+    this.logoFile = null;
+    this.logoPreview = null;
+    this.currentLogoUrl = null;
     this.cdr.detectChanges();
   }
 
@@ -291,49 +392,6 @@ export class TenantsComponent implements OnInit {
   closeModuleModal(): void {
     this.moduleModalOpen = false;
     this.selectedOrganisationForModules = null;
-  }
-
-  toggleModule(organisation: Tenant, module: Module): void {
-    // Simuler la gestion des modules dans la base de données
-    const organisationIndex = this.organisations.findIndex(t => t.id === organisation.id);
-    if (organisationIndex === -1) return;
-
-    const updatedOrganisation = { ...this.organisations[organisationIndex] };
-    
-    // S'assurer que modules est défini
-    if (!updatedOrganisation.modules) {
-      updatedOrganisation.modules = [];
-    }
-    
-    // Vérifier si le module est déjà assigné
-    const moduleIndex = updatedOrganisation.modules.findIndex(m => m.id === module.id);
-    
-    if (moduleIndex > -1) {
-      // Toggle le statut du module existant
-      const currentModule = updatedOrganisation.modules[moduleIndex];
-      if (currentModule && currentModule.pivot) {
-        updatedOrganisation.modules[moduleIndex] = {
-          ...currentModule,
-          pivot: {
-            tenant_id: currentModule.pivot.tenant_id || organisation.id,
-            module_id: currentModule.pivot.module_id || module.id,
-            is_active: !currentModule.pivot.is_active
-          }
-        };
-      }
-    } else {
-      // Ajouter le nouveau module
-      updatedOrganisation.modules.push({
-        ...module,
-        pivot: {
-          tenant_id: organisation.id,
-          module_id: module.id,
-          is_active: true
-        }
-      });
-    }
-
-    this.organisations[organisationIndex] = updatedOrganisation;
   }
 
   isModuleAssigned(organisation: Tenant | null, module: Module): boolean {
@@ -456,6 +514,9 @@ export class TenantsComponent implements OnInit {
     });
     this.loadOrganisations();
   }
+  trackByOrg(_i: number, o: any): any { return o?.id ?? _i; }
+  trackByModule(_i: number, m: any): any { return m?.id ?? _i; }
+
   trackById(_index: number, item: any): any {
     return item?.id ?? _index;
   }

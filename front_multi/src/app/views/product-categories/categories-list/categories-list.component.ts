@@ -18,6 +18,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-categories-list',
@@ -72,9 +73,14 @@ export class CategoriesListComponent implements OnInit {
 
   Math = Math;
 
+  get canCreateCategory(): boolean { return this.authService.hasModulePermission('COMMERCIAL', 'create'); }
+  get canEditCategory(): boolean   { return this.authService.hasModulePermission('COMMERCIAL', 'edit'); }
+  get canDeleteCategory(): boolean { return this.authService.hasModulePermission('COMMERCIAL', 'delete'); }
+
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {
     this.categoryForm = this.fb.group({

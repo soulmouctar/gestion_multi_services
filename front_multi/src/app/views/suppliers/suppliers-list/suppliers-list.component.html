@@ -316,7 +316,7 @@
             </div>
 
             <div class="col-md-6">
-              <label cLabel class="small fw-semibold mb-1">Devise <span class="text-danger">*</span></label>
+              <label cLabel class="small fw-semibold mb-1">Devise reçue <span class="text-danger">*</span></label>
               <select cSelect formControlName="currency">
                 <option value="GNF">GNF (Franc Guinéen)</option>
                 <option value="USD">USD (Dollar)</option>
@@ -324,7 +324,16 @@
               </select>
             </div>
 
-            <!-- Taux de change visible seulement si devise ≠ GNF -->
+            <div class="col-md-6">
+              <label cLabel class="small fw-semibold mb-1">Devise imputée <span class="text-danger">*</span></label>
+              <select cSelect formControlName="target_currency">
+                <option value="GNF">GNF (Franc Guinéen)</option>
+                <option value="USD">USD (Dollar)</option>
+                <option value="EUR">EUR (Euro)</option>
+              </select>
+            </div>
+
+            <!-- Taux de change visible si conversion ou équivalent GNF requis -->
             <div class="col-12" *ngIf="showExchangeRate">
               <div class="p-3 rounded-3" style="background:#FFFBEB;border:1px solid #FDE68A;">
                 <label cLabel class="small fw-semibold mb-1">
@@ -336,7 +345,11 @@
                        placeholder="Ex : 10 500 pour 1 USD = 10 500 GNF" />
                 <div class="mt-2 small fw-semibold" *ngIf="estimatedAmountGnf > 0"
                      style="color:#92400E;">
-                  ≈ {{ estimatedAmountGnf | number:'1.0-0' }} GNF seront imputés sur la dette
+                  Équivalent comptable : ≈ {{ estimatedAmountGnf | number:'1.0-0' }} GNF
+                </div>
+                <div class="mt-1 small fw-semibold" *ngIf="estimatedConvertedAmount > 0"
+                     style="color:#1D4ED8;">
+                  Imputation : {{ estimatedConvertedAmount | number:'1.0-2' }} {{ paymentForm.get('target_currency')?.value }}
                 </div>
               </div>
             </div>
@@ -533,6 +546,19 @@
             </div>
           </div>
 
+          <div *ngIf="supplierCurrencyBalances().length" class="px-4 py-2"
+               style="background:#F8FAFC;border-bottom:1px solid #f3f4f6;">
+            <div class="small fw-semibold text-muted mb-1">Soldes par devise</div>
+            <div class="d-flex flex-wrap gap-2">
+              <span *ngFor="let b of supplierCurrencyBalances()" class="badge"
+                    [style.background]="b.balance > 0 ? '#FEE2E2' : '#DCFCE7'"
+                    [style.color]="b.balance > 0 ? '#991B1B' : '#166534'">
+                {{ b.balance | number:'1.0-2' }} {{ b.currency }}
+                <span *ngIf="b.currency !== 'GNF'"> · ≈ {{ b.balanceGnf | number:'1.0-0' }} GNF</span>
+              </span>
+            </div>
+          </div>
+
           <!-- ── Bouton nouveau versement ── -->
           <div class="px-4 py-3 d-flex align-items-center gap-3" style="border-bottom:1px solid #f3f4f6;">
             <button cButton color="success" size="sm" (click)="openPaymentModal(currentSupplierForPayment)"
@@ -712,6 +738,9 @@
                     <div class="text-end">
                       <div class="fw-bold" style="color:#059669;font-size:1rem;">
                         {{ p.amount | number:'1.0-0' }} {{ p.currency }}
+                      </div>
+                      <div *ngIf="p.target_currency && p.target_currency !== p.currency" class="small" style="color:#1D4ED8;">
+                        → {{ p.converted_amount | number:'1.0-2' }} {{ p.target_currency }}
                       </div>
                       <div *ngIf="p.currency !== 'GNF' && p.amount_gnf" class="small text-muted">
                         ≈ {{ p.amount_gnf | number:'1.0-0' }} GNF

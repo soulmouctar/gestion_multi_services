@@ -82,16 +82,16 @@ export const routes: Routes = [
     }
   },
   {
-    path: 'conteneurs-pagne',
+    path: 'machine-a-coudre',
     loadComponent: () => import('./client-list/client-list.component').then(m => m.ClientListComponent),
-    title: 'Clients Conteneurs Pagne',
+    title: 'Clients Machine à coudre',
     data: {
       module: 'CLIENTS_SUPPLIERS',
-      permission: 'view_clients_conteneurs_pagne',
-      clientType: 'CONTAINER_PAGNE',
-      pageTitle: 'Clients Conteneurs Pagne',
-      pageDescription: 'client(s) conteneurs pagne enregistré(s)',
-      createButtonLabel: 'Nouveau client conteneur'
+      permission: 'view_clients_general',
+      clientType: 'MACHINE_A_COUDRE',
+      pageTitle: 'Clients Machine à coudre',
+      pageDescription: 'client(s) machine à coudre enregistré(s)',
+      createButtonLabel: 'Nouveau client machine à coudre'
     }
   }
 ];

@@ -290,14 +290,16 @@ export class AuthService {
     const user = this.currentUser;
     if (!user) return false;
 
+    const acceptedCodes = this.getModuleCodeAliases(moduleCode);
+
     const tenantHasModule = user.tenant_active_modules?.some(
-      (module: { code: string; is_active: boolean }) => module.code === moduleCode && module.is_active
+      (module: { code: string; is_active: boolean }) => acceptedCodes.includes(module.code) && module.is_active
     );
 
     if (!tenantHasModule) return false;
 
     const userHasPermission = user.module_permissions?.some(
-      (permission: { module_code: string; is_active: boolean }) => permission.module_code === moduleCode && permission.is_active
+      (permission: { module_code: string; is_active: boolean }) => acceptedCodes.includes(permission.module_code) && permission.is_active
     );
 
     return !!userHasPermission;
@@ -309,8 +311,10 @@ export class AuthService {
     const user = this.currentUser;
     if (!user) return false;
 
+    const acceptedCodes = this.getModuleCodeAliases(moduleCode);
+
     const modulePermission = user.module_permissions?.find(
-      (item: { module_code: string; is_active: boolean }) => item.module_code === moduleCode && item.is_active
+      (item: { module_code: string; is_active: boolean }) => acceptedCodes.includes(item.module_code) && item.is_active
     );
 
     if (!modulePermission) return false;
@@ -335,7 +339,7 @@ export class AuthService {
         { code: 'CLIENTS_SUPPLIERS', name: 'Clients & Fournisseurs', is_active: true },
         { code: 'USERS',             name: 'Utilisateurs',           is_active: true },
         { code: 'PRODUCTS_STOCK',    name: 'Produits & Stock',       is_active: true },
-        { code: 'CONTAINER',         name: 'Gestion Conteneurs',     is_active: true },
+        { code: 'CONTAINERS',        name: 'Gestion Conteneurs',     is_active: true },
         { code: 'RENTAL',            name: 'Location Immobilière',   is_active: true },
         { code: 'TAXI',              name: 'Gestion Taxi',           is_active: true },
         { code: 'STATISTICS',        name: 'Statistiques',           is_active: true },
@@ -358,8 +362,20 @@ export class AuthService {
     const userPermissions: { module_code: string; is_active: boolean }[] = user.module_permissions || [];
 
     return tenantModules.filter(module =>
-      userPermissions.some(perm => perm.module_code === module.code && perm.is_active)
+      userPermissions.some(perm => this.getModuleCodeAliases(module.code).includes(perm.module_code) && perm.is_active)
     );
+  }
+
+  private getModuleCodeAliases(moduleCode: string): string[] {
+    const aliases: Record<string, string[]> = {
+      CONTAINER: ['CONTAINER', 'CONTAINERS'],
+      CONTAINERS: ['CONTAINERS', 'CONTAINER'],
+      COMMERCE: ['COMMERCE', 'COMMERCIAL', 'PRODUCTS_STOCK'],
+      COMMERCIAL: ['COMMERCIAL', 'COMMERCE', 'PRODUCTS_STOCK'],
+      PRODUCTS_STOCK: ['PRODUCTS_STOCK', 'COMMERCE', 'COMMERCIAL'],
+    };
+
+    return aliases[moduleCode] || [moduleCode];
   }
 
   private normalizeModuleAccess(user: any): any {

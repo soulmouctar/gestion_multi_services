@@ -10,6 +10,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -82,17 +83,22 @@ export class ContainerPaymentsComponent implements OnInit {
   clientStats: any = null;
 
   productTypes = [
-    { value: 'HABITS', label: 'Habits / Vêtements' },
-    { value: 'PNEUS', label: 'Pneus' },
+    { value: 'TEXTILE',      label: 'Textile (pagnes, tissus)' },
+    { value: 'HABITS',       label: 'Habits / Vêtements' },
+    { value: 'COSMETIQUES',  label: 'Cosmétiques (parfums, crèmes)' },
+    { value: 'PNEUS',        label: 'Pneus' },
     { value: 'ELECTRONIQUE', label: 'Électronique' },
-    { value: 'DIVERS', label: 'Divers' },
-    { value: 'MIXTE', label: 'Mixte' }
+    { value: 'MACHINE_A_COUDRE', label: 'Machine à coudre' },
+    { value: 'DIVERS',       label: 'Divers' },
+    { value: 'MIXTE',        label: 'Mixte' },
   ];
 
   saleTypes = [
-    { value: 'TOTAL', label: 'Vente Totale' },
-    { value: 'PARTIEL', label: 'Vente Partielle' },
-    { value: 'DETAIL', label: 'Vente au Détail' }
+    { value: 'TOTAL',   label: 'Vente totale (conteneur entier)' },
+    { value: 'BALLE',   label: 'Vente par balle (textile)' },
+    { value: 'CARTON',  label: 'Vente par carton' },
+    { value: 'PARTIEL', label: 'Vente partielle' },
+    { value: 'DETAIL',  label: 'Vente au détail (unité)' },
   ];
 
   paymentMethods = [
@@ -116,9 +122,14 @@ export class ContainerPaymentsComponent implements OnInit {
     'EUR': 9300   // 1 EUR = 9300 GNF (à ajuster selon le taux réel)
   };
 
+  get canCreateContainer(): boolean { return this.authService.hasModulePermission('CONTAINERS', 'create'); }
+  get canEditContainer(): boolean   { return this.authService.hasModulePermission('CONTAINERS', 'edit'); }
+  get canDeleteContainer(): boolean { return this.authService.hasModulePermission('CONTAINERS', 'delete'); }
+
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef,
     private router: Router
   ) {
@@ -205,7 +216,7 @@ export class ContainerPaymentsComponent implements OnInit {
   }
 
   loadClients(): void {
-    this.apiService.get<any>('clients?per_page=200&client_type=CONTAINER_PAGNE').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.get<any>('clients?per_page=200&client_type=TEXTILE').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success && r.data) {
           this.clients = Array.isArray(r.data) ? r.data : (r.data.data || []);

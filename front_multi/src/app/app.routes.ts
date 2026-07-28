@@ -148,6 +148,11 @@ export const routes: Routes = [
         path: 'organisation',
         loadChildren: () => import('./views/organisation/routes').then(m => m.routes),
         title: 'Organisation'
+      },
+      {
+        path: 'trash',
+        loadComponent: () => import('./views/trash/trash.component').then(m => m.TrashComponent),
+        title: 'Corbeille'
       }
     ]
   },

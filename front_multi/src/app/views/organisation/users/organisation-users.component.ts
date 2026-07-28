@@ -123,6 +123,186 @@ import { AlertService } from '../../../core/services/alert.service';
     .perm-pill { padding: 3px 10px; border-radius: 50px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid; }
     .perm-pill.active { background: #cfe2ff; color: #0a58ca; border-color: #0a58ca; }
     .perm-pill.inactive { background: white; color: #adb5bd; border-color: #dee2e6; }
+
+    /* ─── Modal Permissions (V2) ─── */
+    .modal-box.perm-modal { max-width: 900px; }
+    .perm-hero {
+      padding: 18px 24px;
+      background: linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%);
+      color: #fff;
+    }
+    .perm-hero .user-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.15);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .perm-hero .stats-line {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      opacity: .85;
+    }
+    .perm-toolbar {
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      border-bottom: 1px solid #f0f0f0;
+      background: #fafbfc;
+    }
+    .perm-toolbar .search-wrap {
+      position: relative; flex: 1; min-width: 200px;
+    }
+    .perm-toolbar .search-wrap input {
+      width: 100%;
+      padding: 8px 12px 8px 34px;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      background: #fff;
+    }
+    .perm-toolbar .search-wrap .icon {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: #94a3b8;
+    }
+    .perm-toolbar .bulk-btn {
+      background: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      transition: .15s ease;
+    }
+    .perm-toolbar .bulk-btn:hover { border-color: #0f3460; color: #0f3460; }
+    .perm-toolbar .bulk-btn.danger { color: #dc3545; border-color: #fecaca; }
+    .perm-toolbar .bulk-btn.danger:hover { background: #fef2f2; }
+
+    .perm-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 16px 20px;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+    @media (min-width: 900px) {
+      .perm-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .mod-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fff;
+      overflow: hidden;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .mod-card.is-active {
+      border-color: transparent;
+      box-shadow: 0 0 0 2px rgba(79,70,229,0.15);
+    }
+    .mod-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+    }
+    .mod-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .mod-info { flex: 1; min-width: 0; }
+    .mod-name {
+      font-weight: 700; color: #0f172a;
+      font-size: 0.92rem;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .mod-code {
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .mod-desc {
+      font-size: 0.75rem; color: #64748b; margin-top: 2px;
+    }
+    .mod-body {
+      padding: 12px 14px 14px;
+      background: #fafbfc;
+      border-top: 1px solid #f0f2f5;
+    }
+    .perm-group + .perm-group { margin-top: 10px; }
+    .perm-group-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .perm-group-title {
+      font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+      font-weight: 700; color: #475569;
+    }
+    .perm-group-actions {
+      display: flex; gap: 4px;
+    }
+    .perm-mini-btn {
+      background: transparent; border: none; padding: 2px 6px;
+      font-size: 10px; font-weight: 600; color: #4f46e5; cursor: pointer;
+    }
+    .perm-mini-btn:hover { text-decoration: underline; }
+    .perm-mini-btn.danger { color: #dc3545; }
+
+    .perm-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid;
+      transition: .15s ease;
+      margin: 3px 4px 3px 0;
+    }
+    .perm-chip.active {
+      background: #EEF2FF;
+      color: #4338CA;
+      border-color: #C7D2FE;
+    }
+    .perm-chip.active:hover { background: #E0E7FF; }
+    .perm-chip.inactive {
+      background: #fff;
+      color: #94a3b8;
+      border-color: #e2e8f0;
+    }
+    .perm-chip.inactive:hover { color: #475569; border-color: #cbd5e1; }
+    .perm-chip .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #cbd5e1;
+    }
+    .perm-chip.active .dot { background: #4338CA; }
+
+    .perm-empty {
+      text-align: center;
+      padding: 40px 12px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+    .perm-footer-summary {
+      display: flex; align-items: center; gap: 12px; flex: 1;
+      font-size: 0.82rem; color: #475569;
+    }
+    .perm-footer-summary .badge-count {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #EEF2FF;
+      color: #4338CA;
+      font-weight: 700;
+      font-size: 0.78rem;
+    }
   `],
   template: `
     <div class="p-3 p-md-4">
@@ -383,40 +563,119 @@ import { AlertService } from '../../../core/services/alert.service';
       </div>
     </div>
 
-    <!-- Permissions Modal -->
+    <!-- Permissions Modal (V2 : gestion pro) -->
     <div class="modal-overlay" *ngIf="showPermModal" (click)="closePermModal()">
-      <div class="modal-box" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h5>Permissions Modules</h5>
-          <button class="btn-icon" (click)="closePermModal()" style="font-size:1rem;font-weight:700;">&times;</button>
+      <div class="modal-box perm-modal" (click)="$event.stopPropagation()">
+        <div class="perm-hero">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div>
+              <div style="font-size:1.1rem;font-weight:700;letter-spacing:.02em;">Modules & permissions</div>
+              <div style="opacity:.75;font-size:.82rem;margin-top:3px;">Active les modules dont a besoin l'employé, puis affine ses actions autorisées.</div>
+            </div>
+            <button class="btn-icon" (click)="closePermModal()"
+                    style="background:rgba(255,255,255,0.15);border-color:transparent;color:#fff;font-size:1rem;font-weight:700;">&times;</button>
+          </div>
+          <div style="margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span class="user-pill">
+              <span style="width:22px;height:22px;border-radius:50%;background:#fff;color:#0f3460;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">
+                {{ initials(permUser?.name || '') }}
+              </span>
+              {{ permUser?.name }}
+            </span>
+            <div class="stats-line" style="margin-top:0;">
+              <b>{{ activeModulesCount }}</b> module(s) actif(s) ·
+              <b>{{ totalPermsCount }}</b> permission(s) au total
+            </div>
+          </div>
         </div>
-        <div class="modal-body">
-          <p style="color:#6c757d;margin-bottom:4px;font-size:0.875rem;">
-            Utilisateur: <strong>{{ permUser?.name }}</strong>
-          </p>
-          <p style="color:#adb5bd;font-size:0.8rem;margin-bottom:16px;">Activez les modules et permissions pour cet utilisateur</p>
 
-          <div *ngIf="loadingPerms" style="text-align:center;padding:20px;color:#6c757d;">Chargement des modules...</div>
+        <div class="perm-toolbar">
+          <div class="search-wrap">
+            <span class="icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <input type="text" placeholder="Rechercher un module..." [(ngModel)]="permSearchQuery" [ngModelOptions]="{standalone:true}" />
+          </div>
+          <button class="bulk-btn" (click)="toggleAllModules(true)" [disabled]="loadingPerms">✓ Tout activer</button>
+          <button class="bulk-btn danger" (click)="toggleAllModules(false)" [disabled]="loadingPerms">✕ Tout désactiver</button>
+        </div>
 
-          <div *ngIf="!loadingPerms">
-            <div *ngFor="let module of editableModules" class="module-row">
-              <div class="module-name">{{ module.module_name }}</div>
+        <div *ngIf="loadingPerms" class="perm-empty">Chargement des modules…</div>
+
+        <div *ngIf="!loadingPerms && filteredModules.length === 0" class="perm-empty">
+          Aucun module ne correspond à la recherche.
+        </div>
+
+        <div *ngIf="!loadingPerms && filteredModules.length > 0" class="perm-grid">
+          <div *ngFor="let module of filteredModules; trackBy: trackById"
+               class="mod-card" [class.is-active]="module.is_active"
+               [style.border-color]="module.is_active ? moduleColor(module.module_code) : ''">
+            <div class="mod-head">
+              <div class="mod-icon" [style.background]="moduleColor(module.module_code)">
+                {{ moduleIcon(module.module_code) }}
+              </div>
+              <div class="mod-info">
+                <div class="mod-name">
+                  {{ module.module_name }}
+                  <span class="mod-code">{{ module.module_code }}</span>
+                </div>
+                <div class="mod-desc">{{ moduleDescription(module.module_code) }}</div>
+              </div>
               <label class="toggle-switch">
                 <input type="checkbox" [checked]="module.is_active" (change)="toggleModule(module)" />
                 <span class="toggle-slider"></span>
               </label>
-              <div class="perm-pills" *ngIf="module.is_active">
-                <span *ngFor="let perm of availablePerms(module.module_code)"
-                  class="perm-pill"
-                  [ngClass]="module.permissions.includes(perm) ? 'active' : 'inactive'"
-                  (click)="togglePerm(module, perm)">
-                  {{ permLabel(perm) }}
-                </span>
+            </div>
+
+            <div class="mod-body" *ngIf="module.is_active">
+              <!-- Actions de base -->
+              <div class="perm-group" *ngIf="basicPermsFor(module.module_code).length > 0">
+                <div class="perm-group-head">
+                  <span class="perm-group-title">Actions de base</span>
+                  <div class="perm-group-actions">
+                    <button class="perm-mini-btn"
+                            *ngIf="!isAllPermsSelected(module)"
+                            (click)="selectAllPermsFor(module)">Tout cocher</button>
+                    <button class="perm-mini-btn danger"
+                            *ngIf="module.permissions.length"
+                            (click)="clearPermsFor(module)">Tout décocher</button>
+                  </div>
+                </div>
+                <div>
+                  <span *ngFor="let perm of basicPermsFor(module.module_code)"
+                        class="perm-chip"
+                        [ngClass]="module.permissions.includes(perm) ? 'active' : 'inactive'"
+                        (click)="togglePerm(module, perm)">
+                    <span class="dot"></span>
+                    {{ permLabel(perm) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Actions spécialisées -->
+              <div class="perm-group" *ngIf="advancedPermsFor(module.module_code).length > 0">
+                <div class="perm-group-head">
+                  <span class="perm-group-title">Actions spécialisées</span>
+                </div>
+                <div>
+                  <span *ngFor="let perm of advancedPermsFor(module.module_code)"
+                        class="perm-chip"
+                        [ngClass]="module.permissions.includes(perm) ? 'active' : 'inactive'"
+                        (click)="togglePerm(module, perm)">
+                    <span class="dot"></span>
+                    {{ permLabel(perm) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
         <div class="modal-footer">
+          <div class="perm-footer-summary">
+            <span class="badge-count">{{ activeModulesCount }} module(s)</span>
+            <span class="badge-count" style="background:#ECFDF5;color:#065F46;">{{ totalPermsCount }} permission(s)</span>
+          </div>
           <button class="btn-cancel" (click)="closePermModal()">Annuler</button>
           <button class="btn-save" (click)="savePermissions()" [disabled]="saving">
             {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
@@ -457,6 +716,7 @@ export class OrganisationUsersComponent implements OnInit {
   showPermModal = false;
   permUser: UserProfile | null = null;
   editableModules: ModulePermission[] = [];
+  permSearchQuery = '';
 
   get f() { return this.userForm.controls; }
   get pf() { return this.passwordForm.controls; }
@@ -794,9 +1054,23 @@ export class OrganisationUsersComponent implements OnInit {
     if (!this.permUser || this.saving) return;
     if (!this.canManagePermissions) return;
     this.saving = true;
-    this.userService.updateUserModulePermissions(this.permUser.id, this.editableModules).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    const userId = this.permUser.id;
+    // Snapshot local pour rafraîchir la colonne "Modules" immédiatement,
+    // sans attendre un rechargement complet de la liste.
+    const snapshot = this.editableModules.map(m => ({
+      module_code: m.module_code,
+      module_name: m.module_name,
+      permissions: [...(m.permissions || [])],
+      is_active:   !!m.is_active,
+    }));
+    this.userService.updateUserModulePermissions(userId, this.editableModules).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
+        const idx = this.users.findIndex(u => u.id === userId);
+        if (idx !== -1) {
+          this.users[idx] = { ...this.users[idx], module_permissions: snapshot as any };
+        }
+        this.filterUsers();
         this.closePermModal();
         this.alertService.showSuccess('Succès', 'Permissions mises à jour');
         this.cdr.detectChanges();
@@ -831,6 +1105,9 @@ export class OrganisationUsersComponent implements OnInit {
 
   availablePerms(moduleCode: string): string[] {
     const base = ['view', 'create', 'edit', 'delete'];
+    // Seules les permissions réellement branchées sur l'UI sont exposées.
+    // Les autres (approve, track, manage_contracts, assign_drivers, export, view_users)
+    // ont été retirées car elles étaient déclaratives sans effet.
     const extra: Record<string, string[]> = {
       CLIENTS_SUPPLIERS: [
         'view_clients_general',
@@ -840,29 +1117,124 @@ export class OrganisationUsersComponent implements OnInit {
         'view_clients_conteneurs_pagne',
         'view_suppliers'
       ],
-      USERS: ['view_users', 'manage_permissions', 'change_password', 'toggle_status'],
-      FINANCE: ['approve'],
-      PRODUCTS_STOCK: ['manage_stock'],
-      CONTAINERS: ['track'],
-      RENTAL: ['manage_contracts'],
-      TAXI: ['assign_drivers'],
-      STATISTICS: ['export']
+      USERS: ['manage_permissions', 'change_password', 'toggle_status'],
     };
     return [...base, ...(extra[moduleCode] ?? [])];
+  }
+
+  // ── Nouvelles helpers pour le modal Permissions pro ───────────────
+  get filteredModules(): ModulePermission[] {
+    const q = (this.permSearchQuery || '').trim().toLowerCase();
+    if (!q) return this.editableModules;
+    return this.editableModules.filter(m =>
+      String(m.module_name || '').toLowerCase().includes(q) ||
+      String(m.module_code || '').toLowerCase().includes(q)
+    );
+  }
+
+  get activeModulesCount(): number {
+    return this.editableModules.filter(m => m.is_active).length;
+  }
+
+  get totalPermsCount(): number {
+    return this.editableModules.reduce((s, m) => s + (m.is_active ? (m.permissions?.length || 0) : 0), 0);
+  }
+
+  moduleIcon(code: string): string {
+    const map: Record<string, string> = {
+      COMMERCIAL: '🛒',
+      FINANCE: '💰',
+      CLIENTS_SUPPLIERS: '👥',
+      PRODUCTS_STOCK: '📦',
+      CONTAINERS: '🚚',
+      RENTAL: '🏠',
+      TAXI: '🚕',
+      STATISTICS: '📊',
+      USERS: '👤',
+      BANKING: '🏦',
+      EXPENSES: '💳',
+    };
+    return map[code] || '⚙️';
+  }
+
+  moduleColor(code: string): string {
+    const map: Record<string, string> = {
+      COMMERCIAL: '#2563EB',
+      FINANCE: '#10B981',
+      CLIENTS_SUPPLIERS: '#8B5CF6',
+      PRODUCTS_STOCK: '#F59E0B',
+      CONTAINERS: '#EA580C',
+      RENTAL: '#0891B2',
+      TAXI: '#DC2626',
+      STATISTICS: '#7C3AED',
+      USERS: '#4F46E5',
+      BANKING: '#059669',
+      EXPENSES: '#D97706',
+    };
+    return map[code] || '#6B7280';
+  }
+
+  moduleDescription(code: string): string {
+    const map: Record<string, string> = {
+      COMMERCIAL: 'Ventes, produits, catégories, unités',
+      FINANCE: 'Versements, factures, devises, marges',
+      CLIENTS_SUPPLIERS: 'Fiches clients & fournisseurs',
+      PRODUCTS_STOCK: 'Gestion des stocks & inventaire',
+      CONTAINERS: 'Arrivages, ventes conteneurs, avances',
+      RENTAL: 'Locations, contrats, unités',
+      TAXI: 'Véhicules, chauffeurs, versements',
+      STATISTICS: 'Rapports et tableaux de bord',
+      USERS: 'Utilisateurs de l\'organisation',
+      BANKING: 'Comptes bancaires & mouvements',
+      EXPENSES: 'Dépenses personnelles',
+    };
+    return map[code] || 'Module métier';
+  }
+
+  private static readonly BASIC_PERMS = ['view', 'create', 'edit', 'delete'];
+
+  basicPermsFor(code: string): string[] {
+    const all = this.availablePerms(code);
+    return OrganisationUsersComponent.BASIC_PERMS.filter(p => all.includes(p));
+  }
+
+  advancedPermsFor(code: string): string[] {
+    const all = this.availablePerms(code);
+    return all.filter(p => !OrganisationUsersComponent.BASIC_PERMS.includes(p));
+  }
+
+  toggleAllModules(activate: boolean): void {
+    for (const m of this.editableModules) {
+      m.is_active = activate;
+      if (!activate) m.permissions = [];
+    }
+    this.cdr.detectChanges();
+  }
+
+  selectAllPermsFor(module: ModulePermission): void {
+    module.permissions = [...this.availablePerms(module.module_code)];
+    this.cdr.detectChanges();
+  }
+
+  clearPermsFor(module: ModulePermission): void {
+    module.permissions = [];
+    this.cdr.detectChanges();
+  }
+
+  isAllPermsSelected(module: ModulePermission): boolean {
+    const all = this.availablePerms(module.module_code);
+    return all.length > 0 && all.every(p => module.permissions?.includes(p));
   }
 
   permLabel(perm: string): string {
     const labels: Record<string, string> = {
       view: 'Voir', create: 'Créer', edit: 'Modifier', delete: 'Supprimer',
-      approve: 'Approuver', manage_stock: 'Stock', track: 'Suivre',
-      manage_contracts: 'Contrats', assign_drivers: 'Chauffeurs', export: 'Exporter',
       view_clients_general: 'Clients généraux',
       view_clients_pneus: 'Clients pneus',
       view_clients_textile: 'Clients textile',
       view_clients_cosmetiques: 'Clients cosmétiques',
       view_clients_conteneurs_pagne: 'Clients pagne',
       view_suppliers: 'Fournisseurs',
-      view_users: 'Voir utilisateurs',
       manage_permissions: 'Permissions',
       change_password: 'Mot de passe',
       toggle_status: 'Statut'

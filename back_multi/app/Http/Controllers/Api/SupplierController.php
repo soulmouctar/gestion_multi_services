@@ -5,12 +5,104 @@ namespace App\Http\Controllers\Api;
 use App\Models\Supplier;
 use App\Models\SupplierPayment;
 use App\Models\ContainerArrival;
+use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class SupplierController extends BaseController
 {
+    private function normalizeCurrency(?string $currency): string
+    {
+        return strtoupper($currency ?: 'GNF');
+    }
+
+    private function resolveGnf(float $amount, string $currency, ?float $storedGnf, ?float $rate): float
+    {
+        $currency = $this->normalizeCurrency($currency);
+        if ($storedGnf !== null && $storedGnf > 0) {
+            return round($storedGnf, 2);
+        }
+        if ($currency === 'GNF') {
+            return round($amount, 2);
+        }
+        if ($rate && $rate > 0) {
+            return round($amount * $rate, 2);
+        }
+        return 0.0;
+    }
+
+    private function resolveExchangeRateForTenant(int $tenantId, string $currency, ?float $providedRate): ?float
+    {
+        $currency = $this->normalizeCurrency($currency);
+
+        if ($currency === 'GNF') {
+            return 1.0;
+        }
+
+        if ($providedRate && $providedRate > 0) {
+            return (float) $providedRate;
+        }
+
+        $rate = Currency::where('tenant_id', $tenantId)
+            ->where('code', $currency)
+            ->value('exchange_rate');
+
+        return $rate && (float) $rate > 0 ? (float) $rate : null;
+    }
+
+    private function convertBetweenCurrencies(float $amount, string $fromCurrency, string $toCurrency, ?float $rate): array
+    {
+        $fromCurrency = $this->normalizeCurrency($fromCurrency);
+        $toCurrency = $this->normalizeCurrency($toCurrency);
+        $rate = $rate && $rate > 0 ? (float) $rate : 1.0;
+
+        if ($fromCurrency === $toCurrency) {
+            return ['amount' => round($amount, 2), 'rate' => 1.0];
+        }
+        if ($fromCurrency === 'GNF') {
+            return ['amount' => round($amount / $rate, 2), 'rate' => $rate];
+        }
+        if ($toCurrency === 'GNF') {
+            return ['amount' => round($amount * $rate, 2), 'rate' => $rate];
+        }
+
+        return ['amount' => round($amount, 2), 'rate' => 1.0];
+    }
+
+    private function addCurrencyMovement(array &$bucket, string $currency, float $debit, float $credit, float $debitGnf = 0.0, float $creditGnf = 0.0): void
+    {
+        $currency = $this->normalizeCurrency($currency);
+        if (!isset($bucket[$currency])) {
+            $bucket[$currency] = [
+                'total_debit' => 0.0,
+                'total_credit' => 0.0,
+                'final_balance' => 0.0,
+                'total_debit_gnf' => 0.0,
+                'total_credit_gnf' => 0.0,
+                'final_balance_gnf' => 0.0,
+            ];
+        }
+        $bucket[$currency]['total_debit'] += $debit;
+        $bucket[$currency]['total_credit'] += $credit;
+        $bucket[$currency]['total_debit_gnf'] += $debitGnf;
+        $bucket[$currency]['total_credit_gnf'] += $creditGnf;
+    }
+
+    private function finalizeCurrencyBucket(array $bucket): array
+    {
+        ksort($bucket);
+        foreach ($bucket as $currency => $row) {
+            $bucket[$currency]['total_debit'] = round((float) $row['total_debit'], 2);
+            $bucket[$currency]['total_credit'] = round((float) $row['total_credit'], 2);
+            $bucket[$currency]['final_balance'] = round((float) $row['total_debit'] - (float) $row['total_credit'], 2);
+            $bucket[$currency]['total_debit_gnf'] = round((float) $row['total_debit_gnf'], 2);
+            $bucket[$currency]['total_credit_gnf'] = round((float) $row['total_credit_gnf'], 2);
+            $bucket[$currency]['final_balance_gnf'] = round((float) $row['total_debit_gnf'] - (float) $row['total_credit_gnf'], 2);
+        }
+        return $bucket;
+    }
+
     // ─────────────────────────────────────────────────────── CRUD fournisseurs ──
 
     public function index(Request $request)
@@ -240,7 +332,8 @@ class SupplierController extends BaseController
         $validator = Validator::make($request->all(), [
             'amount'         => 'required|numeric|min:0.01',
             'currency'       => 'required|string|max:10',
-            'exchange_rate'  => 'nullable|numeric|min:0',
+            'target_currency'=> 'nullable|string|max:10',
+            'exchange_rate'  => 'nullable|numeric|min:0.0001',
             'payment_method' => 'required|string|max:50',
             'payment_date'   => 'required|date',
             'reference'      => 'nullable|string|max:100',
@@ -252,23 +345,35 @@ class SupplierController extends BaseController
         }
 
         $amount       = (float) $request->amount;
-        $currency     = $request->currency;
-        $exchangeRate = $request->exchange_rate ? (float) $request->exchange_rate : null;
+        $currency     = $this->normalizeCurrency($request->currency);
+        $targetCurrency = $this->normalizeCurrency($request->target_currency ?: $currency);
+        $exchangeRate = $this->resolveExchangeRateForTenant($supplier->tenant_id, $currency, $request->exchange_rate ? (float) $request->exchange_rate : null);
 
-        $amountGnf = null;
-        if ($currency === 'GNF') {
-            $amountGnf = $amount;
-        } elseif ($exchangeRate) {
-            $amountGnf = round($amount * $exchangeRate, 2);
+        if ($currency !== 'GNF' && !$exchangeRate) {
+            return $this->sendError('Taux de change introuvable pour ce versement fournisseur.', [
+                'exchange_rate' => ['Renseignez un taux de change ou configurez la devise du tenant.'],
+            ], 422);
         }
+
+        if ($currency !== $targetCurrency && !$exchangeRate) {
+            return $this->sendError('Taux de change requis pour convertir le versement fournisseur.', [
+                'exchange_rate' => ['Le taux de change est requis lorsque la devise reçue diffère de la devise imputée.'],
+            ], 422);
+        }
+        $converted = $this->convertBetweenCurrencies($amount, $currency, $targetCurrency, $exchangeRate);
+
+        $amountGnf = $this->resolveGnf($amount, $currency, null, $exchangeRate);
 
         $payment = SupplierPayment::create([
             'tenant_id'      => $supplier->tenant_id,
             'supplier_id'    => $id,
             'amount'         => $amount,
             'currency'       => $currency,
+            'target_currency'=> $targetCurrency,
             'exchange_rate'  => $exchangeRate,
             'amount_gnf'     => $amountGnf,
+            'converted_amount' => $converted['amount'],
+            'conversion_rate'  => $converted['rate'],
             'payment_method' => $request->payment_method,
             'payment_date'   => $request->payment_date,
             'reference'      => $request->reference,
@@ -351,6 +456,37 @@ class SupplierController extends BaseController
 
         $totalDebtGnf = $arrivalsWithCost->sum('cost_gnf');
 
+        $byCurrency = [];
+        foreach ($arrivals as $arrival) {
+            $currency = $this->normalizeCurrency($arrival->currency ?? 'GNF');
+            $amount = (float) $arrival->purchase_price;
+            $this->addCurrencyMovement(
+                $byCurrency,
+                $currency,
+                $amount,
+                0.0,
+                $this->resolveGnf($amount, $currency, $arrival->purchase_price_gnf, $arrival->exchange_rate),
+                0.0
+            );
+        }
+        foreach ($payments as $payment) {
+            $paymentCurrency = $this->normalizeCurrency($payment->currency ?? 'GNF');
+            $targetCurrency = $this->normalizeCurrency($payment->target_currency ?: $paymentCurrency);
+            $credit = $payment->converted_amount !== null
+                ? (float) $payment->converted_amount
+                : (float) $payment->amount;
+            $this->addCurrencyMovement(
+                $byCurrency,
+                $targetCurrency,
+                0.0,
+                $credit,
+                0.0,
+                $this->resolveGnf($credit, $targetCurrency, $payment->amount_gnf, $payment->exchange_rate)
+            );
+        }
+        $byCurrency = $this->finalizeCurrencyBucket($byCurrency);
+        $balanceGnfEquivalent = round(array_sum(array_map(fn ($row) => (float) $row['final_balance_gnf'], $byCurrency)), 2);
+
         // ── Algorithme FIFO : imputer les versements sur les arrivages les plus anciens
         $remainingPool = $totalPaidGnf;
         $arrivalsFormatted = $arrivalsWithCost->map(function ($item) use (&$remainingPool) {
@@ -412,6 +548,9 @@ class SupplierController extends BaseController
                 'date'           => $p->payment_date->format('Y-m-d'),
                 'amount'         => $p->amount,
                 'currency'       => $p->currency,
+                'target_currency'=> $p->target_currency ?: $p->currency,
+                'converted_amount' => $p->converted_amount,
+                'conversion_rate'=> $p->conversion_rate,
                 'exchange_rate'  => $p->exchange_rate,
                 'amount_gnf'     => round($paidGnf, 2),
                 'payment_method' => $p->payment_method,
@@ -451,6 +590,9 @@ class SupplierController extends BaseController
                 'nb_impaye'         => $nbImpaye,
                 'is_fully_settled'  => $balanceGnf <= 0 && $arrivals->count() > 0,
                 'currency'          => 'GNF',
+                'by_currency'       => $byCurrency,
+                'currencies'        => array_keys($byCurrency),
+                'balance_gnf_equivalent' => $balanceGnfEquivalent,
             ],
             'arrivals' => $arrivalsFormatted->sortByDesc('arrival_date')->values(),
             'payments' => $paymentsFormatted,
@@ -459,36 +601,48 @@ class SupplierController extends BaseController
 
     // ────────────────────────────────────────────────────── Helpers privés ──────
 
-    /**
-     * Résoudre le montant GNF : utilise la valeur stockée si disponible,
-     * sinon calcule via le taux, sinon retourne le montant brut si déjà en GNF.
-     */
-    private function resolveGnf(float $amount, string $currency, ?float $storedGnf, ?float $rate): float
-    {
-        if ($storedGnf !== null && $storedGnf > 0) {
-            return $storedGnf;
-        }
-        if ($currency === 'GNF') {
-            return $amount;
-        }
-        if ($rate && $rate > 0) {
-            return $amount * $rate;
-        }
-        // Devise étrangère sans taux : on retourne le montant brut (à corriger par l'utilisateur)
-        return $amount;
-    }
-
     private function computeBalance(int $supplierId, int $tenantId): array
     {
-        $totalDebt = ContainerArrival::where('supplier_id', $supplierId)
+        $arrivals = ContainerArrival::where('supplier_id', $supplierId)
             ->where('tenant_id', $tenantId)
-            ->get()
-            ->sum(fn ($a) => $this->resolveGnf($a->purchase_price, $a->currency, $a->purchase_price_gnf, $a->exchange_rate));
+            ->get();
 
-        $totalPaid = SupplierPayment::where('supplier_id', $supplierId)
+        $payments = SupplierPayment::where('supplier_id', $supplierId)
             ->where('tenant_id', $tenantId)
-            ->get()
-            ->sum(fn ($p) => $this->resolveGnf($p->amount, $p->currency, $p->amount_gnf, $p->exchange_rate));
+            ->get();
+
+        $totalDebt = $arrivals->sum(fn ($a) => $this->resolveGnf($a->purchase_price, $a->currency, $a->purchase_price_gnf, $a->exchange_rate));
+        $totalPaid = $payments->sum(fn ($p) => $this->resolveGnf($p->amount, $p->currency, $p->amount_gnf, $p->exchange_rate));
+
+        $byCurrency = [];
+        foreach ($arrivals as $arrival) {
+            $currency = $this->normalizeCurrency($arrival->currency ?? 'GNF');
+            $amount = (float) $arrival->purchase_price;
+            $this->addCurrencyMovement(
+                $byCurrency,
+                $currency,
+                $amount,
+                0.0,
+                $this->resolveGnf($amount, $currency, $arrival->purchase_price_gnf, $arrival->exchange_rate),
+                0.0
+            );
+        }
+        foreach ($payments as $payment) {
+            $paymentCurrency = $this->normalizeCurrency($payment->currency ?? 'GNF');
+            $targetCurrency = $this->normalizeCurrency($payment->target_currency ?: $paymentCurrency);
+            $credit = $payment->converted_amount !== null
+                ? (float) $payment->converted_amount
+                : (float) $payment->amount;
+            $this->addCurrencyMovement(
+                $byCurrency,
+                $targetCurrency,
+                0.0,
+                $credit,
+                0.0,
+                $this->resolveGnf($credit, $targetCurrency, $payment->amount_gnf, $payment->exchange_rate)
+            );
+        }
+        $byCurrency = $this->finalizeCurrencyBucket($byCurrency);
 
         $balance = max(0, $totalDebt - $totalPaid);
 
@@ -496,6 +650,9 @@ class SupplierController extends BaseController
             'total_debt_gnf'   => round($totalDebt, 2),
             'total_paid_gnf'   => round($totalPaid, 2),
             'balance_gnf'      => round($balance, 2),
+            'by_currency'      => $byCurrency,
+            'currencies'       => array_keys($byCurrency),
+            'balance_gnf_equivalent' => round(array_sum(array_map(fn ($row) => (float) $row['final_balance_gnf'], $byCurrency)), 2),
             'settle_pct'       => $totalDebt > 0 ? min(100, round($totalPaid / $totalDebt * 100)) : 100,
             'is_fully_settled' => $balance <= 0 && $totalDebt > 0,
         ];
@@ -531,10 +688,28 @@ class SupplierController extends BaseController
                 'total_debt_gnf'   => $b['total_debt_gnf'],
                 'total_paid_gnf'   => $b['total_paid_gnf'],
                 'balance_gnf'      => $b['balance_gnf'],
+                'by_currency'      => $b['by_currency'],
+                'currencies'       => $b['currencies'],
+                'balance_gnf_equivalent' => $b['balance_gnf_equivalent'],
                 'settle_pct'       => $b['settle_pct'],
                 'is_fully_settled' => $b['is_fully_settled'],
             ];
         });
+
+        $summaryByCurrency = [];
+        foreach ($rows as $row) {
+            foreach (($row['by_currency'] ?? []) as $currency => $values) {
+                $this->addCurrencyMovement(
+                    $summaryByCurrency,
+                    $currency,
+                    (float) ($values['total_debit'] ?? 0),
+                    (float) ($values['total_credit'] ?? 0),
+                    (float) ($values['total_debit_gnf'] ?? 0),
+                    (float) ($values['total_credit_gnf'] ?? 0)
+                );
+            }
+        }
+        $summaryByCurrency = $this->finalizeCurrencyBucket($summaryByCurrency);
 
         return $this->sendResponse([
             'suppliers' => $rows,
@@ -542,6 +717,9 @@ class SupplierController extends BaseController
                 'total_debt_gnf' => round($rows->sum('total_debt_gnf'), 2),
                 'total_paid_gnf' => round($rows->sum('total_paid_gnf'), 2),
                 'balance_gnf'    => round($rows->sum('balance_gnf'), 2),
+                'balance_gnf_equivalent' => round($rows->sum('balance_gnf_equivalent'), 2),
+                'by_currency'    => $summaryByCurrency,
+                'currencies'     => array_keys($summaryByCurrency),
                 'supplier_count' => $rows->count(),
             ],
         ], 'Balance summary retrieved successfully');

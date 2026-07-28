@@ -10,6 +10,7 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { PdfService } from '../../../core/services/pdf.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -108,6 +109,7 @@ export class LeasesComponent implements OnInit {
     private fb: FormBuilder,
     private apiService: ApiService,
     private authService: AuthService,
+    private pdfService: PdfService,
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute,
     private router: Router
@@ -471,7 +473,18 @@ export class LeasesComponent implements OnInit {
       next: (r) => {
         this.receiptLoading = false;
         if (r.success && r.data) {
-          this.openReceiptWindow(r.data);
+          const tenant = this.authService.currentTenant as any;
+          void this.pdfService.printRentalPaymentReceiptPdf({
+            ...r.data,
+            organisation: {
+              name: tenant?.name || 'MATKOLLA',
+              address: tenant?.address || '',
+              phone: tenant?.phone || '',
+              email: tenant?.email || '',
+              logoUrl: tenant?.logo_url || '',
+              footerText: 'Reçu de paiement locataire',
+            },
+          });
         }
         this.cdr.detectChanges();
       },
@@ -554,48 +567,6 @@ export class LeasesComponent implements OnInit {
 
   private today(): string { return new Date().toISOString().split('T')[0]; }
   private currentMonth(): string { return new Date().toISOString().substring(0, 7); }
-  private openReceiptWindow(receipt: any): void {
-    const popup = window.open('', '_blank', 'width=900,height=760');
-    if (!popup) {
-      Swal.fire({ icon: 'info', title: 'Popup bloqué', text: 'Autorisez les popups pour afficher le reçu.' });
-      return;
-    }
-
-    const amount = this.formatAmount(receipt.amount, receipt.currency);
-    const monthlyRent = this.formatAmount(receipt.lease?.monthly_rent || 0, receipt.lease?.currency || receipt.currency);
-    const paymentDate = receipt.payment_date ? new Date(receipt.payment_date).toLocaleDateString('fr-FR') : '—';
-    const generatedAt = receipt.generated_at ? new Date(receipt.generated_at).toLocaleString('fr-FR') : '';
-
-    popup.document.write(`
-      <html><head><title>Reçu ${receipt.receipt_number}</title>
-      <style>
-        body{font-family:Arial,sans-serif;padding:28px;color:#0f172a}
-        .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
-        .title{font-size:28px;font-weight:700;color:#0f3460}
-        .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-weight:600;font-size:12px}
-        .card{border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:18px}
-        .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-        .label{font-size:12px;color:#64748b;text-transform:uppercase;margin-bottom:4px}
-        .value{font-size:16px;font-weight:600}.amount{font-size:30px;font-weight:800;color:#059669}
-        .footer{margin-top:26px;font-size:12px;color:#64748b}
-      </style></head><body>
-        <div class="header">
-          <div><div class="title">Reçu de paiement locataire</div><div style="margin-top:6px;color:#64748b;">Généré le ${generatedAt}</div></div>
-          <div class="badge">${receipt.receipt_number}</div>
-        </div>
-        <div class="card"><div class="label">Montant encaissé</div><div class="amount">${amount}</div></div>
-        <div class="grid">
-          <div class="card"><div class="label">Locataire</div><div class="value">${receipt.lease?.renter_name || '—'}</div><div style="margin-top:8px;color:#475569;">${receipt.lease?.renter_phone || '—'}${receipt.lease?.renter_email ? ' • ' + receipt.lease.renter_email : ''}</div></div>
-          <div class="card"><div class="label">Période réglée</div><div class="value">${this.formatPeriod(receipt.period_month)}</div><div style="margin-top:8px;color:#475569;">Paiement du ${paymentDate}</div></div>
-          <div class="card"><div class="label">Unité / emplacement</div><div class="value">${receipt.lease?.housing_unit_label || '—'}</div><div style="margin-top:8px;color:#475569;">${receipt.lease?.building_name || ''}${receipt.lease?.location_name ? ' • ' + receipt.lease.location_name : ''}</div></div>
-          <div class="card"><div class="label">Détails de paiement</div><div class="value">${receipt.payment_method || '—'}</div><div style="margin-top:8px;color:#475569;">Référence: ${receipt.reference || '—'} • Loyer mensuel: ${monthlyRent}</div></div>
-        </div>
-        <div class="footer">Statut: ${receipt.status || 'PAID'}${receipt.notes ? ' • Notes: ' + receipt.notes : ''}</div>
-        <script>window.onload=()=>window.print();</script>
-      </body></html>
-    `);
-    popup.document.close();
-  }
   trackById(_index: number, item: any): any {
     return item?.id ?? _index;
   }

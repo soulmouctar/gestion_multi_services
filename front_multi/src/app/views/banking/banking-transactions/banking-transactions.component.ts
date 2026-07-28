@@ -83,11 +83,16 @@ export class BankingTransactionsComponent implements OnInit {
     { value: 'CANCELLED', label: 'Annulé',     color: 'secondary' },
   ];
 
+  get canCreateTransaction(): boolean { return this.authService.hasModulePermission('BANKING', 'create'); }
+  get canEditTransaction(): boolean   { return this.authService.hasModulePermission('BANKING', 'edit'); }
+  get canDeleteTransaction(): boolean { return this.authService.hasModulePermission('BANKING', 'delete'); }
+
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
     private http: HttpClient,
     private route: ActivatedRoute,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {
     this.form = this.fb.group({

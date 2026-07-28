@@ -17,7 +17,12 @@ export class TenantService {
     return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`);
   }
 
-  updateMyTenant(data: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
+  updateMyTenant(data: Partial<Tenant> | FormData): Observable<ApiResponse<Tenant>> {
+    // Laravel ne lit pas les fichiers sur PUT multipart : POST + _method=PUT
+    if (data instanceof FormData) {
+      data.append('_method', 'PUT');
+      return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, data);
+    }
     return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, data);
   }
 
@@ -30,11 +35,16 @@ export class TenantService {
     return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`);
   }
 
-  createTenant(tenant: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
+  createTenant(tenant: Partial<Tenant> | FormData): Observable<ApiResponse<Tenant>> {
     return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants`, tenant);
   }
 
-  updateTenant(id: number, tenant: Partial<Tenant>): Observable<ApiResponse<Tenant>> {
+  updateTenant(id: number, tenant: Partial<Tenant> | FormData): Observable<ApiResponse<Tenant>> {
+    // Laravel ne lit pas les fichiers sur PUT multipart : on POST avec _method=PUT override.
+    if (tenant instanceof FormData) {
+      tenant.append('_method', 'PUT');
+      return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`, tenant);
+    }
     return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`, tenant);
   }
 

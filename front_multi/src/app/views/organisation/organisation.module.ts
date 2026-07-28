@@ -43,8 +43,6 @@ import { CompanyInfoComponent } from './company-info/company-info.component';
 import { ContactsComponent } from './contacts/contacts.component';
 import { OrganisationUsersComponent } from './users/organisation-users.component';
 import { CurrenciesComponent } from './currencies/currencies.component';
-import { InvoiceHeadersComponent } from './invoice-headers/invoice-headers.component';
-import { OrganisationSettingsComponent } from './settings/organisation-settings.component';
 
 @NgModule({
   declarations: [

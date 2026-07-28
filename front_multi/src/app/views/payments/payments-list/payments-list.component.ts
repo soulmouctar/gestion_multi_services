@@ -101,6 +101,9 @@ export class PaymentsListComponent implements OnInit {
       method: ['ESPECES', Validators.required],
       amount: [null, [Validators.required, Validators.min(0.01)]],
       currency: ['GNF', Validators.required],
+      // Compte-devise du client a crediter (peut differer de la devise de paiement)
+      target_account_id: [null],
+      target_currency: ['GNF'],
       exchange_rate: [{ value: 1, disabled: true }],
       amount_gnf: [{ value: null, disabled: true }],
       payment_date: ['', Validators.required],
@@ -124,6 +127,60 @@ export class PaymentsListComponent implements OnInit {
     this.paymentForm.get('client_id')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((clientId) => this.onClientChanged(clientId));
+  }
+
+  // Comptes-devises disponibles pour le client courant
+  clientCurrencyAccounts: Array<{ id: number; currency: string; current_balance: number; is_primary: boolean; label?: string }> = [];
+
+  private loadClientAccounts(clientId: number | null): void {
+    this.clientCurrencyAccounts = [];
+    if (!clientId) return;
+    this.apiService.get<any>(`clients/${clientId}/currency-accounts`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          if (r.success) {
+            this.clientCurrencyAccounts = r.data || [];
+            // Pre-selectionne le compte de la devise courante
+            const cur = this.paymentForm.get('currency')?.value || 'GNF';
+            const match = this.clientCurrencyAccounts.find(a => a.currency === cur)
+                       || this.clientCurrencyAccounts.find(a => a.is_primary);
+            if (match) {
+              this.paymentForm.patchValue({
+                target_account_id: match.id,
+                target_currency: match.currency,
+              }, { emitEvent: false });
+            }
+            this.cdr.detectChanges();
+          }
+        },
+        error: () => {}
+      });
+  }
+
+  onTargetAccountChange(): void {
+    const id = Number(this.paymentForm.get('target_account_id')?.value);
+    const acc = this.clientCurrencyAccounts.find(a => a.id === id);
+    if (acc) {
+      this.paymentForm.patchValue({ target_currency: acc.currency }, { emitEvent: false });
+    }
+  }
+
+  // Apercu du montant qui sera credite sur le compte cible
+  get conversionPreview(): { converted: number; rate: number; sameCurrency: boolean } | null {
+    const amount = Number(this.paymentForm.get('amount')?.value) || 0;
+    const paymentCur = String(this.paymentForm.get('currency')?.value || 'GNF');
+    const targetCur  = String(this.paymentForm.get('target_currency')?.value || paymentCur);
+    const rate = Number(this.paymentForm.get('exchange_rate')?.value) || 1;
+    if (!amount) return null;
+    if (paymentCur === targetCur) return { converted: amount, rate: 1, sameCurrency: true };
+    if (paymentCur === 'GNF' && targetCur !== 'GNF') {
+      return { converted: rate > 0 ? amount / rate : 0, rate, sameCurrency: false };
+    }
+    if (paymentCur !== 'GNF' && targetCur === 'GNF') {
+      return { converted: amount * rate, rate, sameCurrency: false };
+    }
+    return { converted: amount, rate, sameCurrency: false };
   }
 
   ngOnInit(): void {
@@ -318,6 +375,33 @@ export class PaymentsListComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  // ── Entrees devises additionnelles (versement multi-devise type Excel) ──
+  extraEntries: Array<{ amount: number | null; currency: string; target_account_id: number | null; exchange_rate: number; }> = [];
+
+  addExtraEntry(): void {
+    this.extraEntries.push({
+      amount: null,
+      currency: 'USD',
+      target_account_id: null,
+      exchange_rate: 8500,
+    });
+    this.cdr.markForCheck();
+  }
+
+  removeExtraEntry(i: number): void {
+    this.extraEntries.splice(i, 1);
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Trouve / pre-selectionne le compte du client correspondant a la devise saisie.
+   */
+  onExtraEntryCurrencyChange(entry: { currency: string; target_account_id: number | null }): void {
+    const match = this.clientCurrencyAccounts.find(a => a.currency === entry.currency);
+    entry.target_account_id = match?.id || null;
+    this.cdr.markForCheck();
+  }
+
   savePayment(): void {
     if (this.paymentForm.invalid) { this.paymentForm.markAllAsTouched(); return; }
 
@@ -333,6 +417,59 @@ export class PaymentsListComponent implements OnInit {
 
     this.savingPayment = true;
     this.cdr.markForCheck();
+
+    // Mode multi-devise : si entrees additionnelles, on bascule sur l'endpoint batch
+    const hasExtras = this.extraEntries.length > 0 && !this.editingPayment;
+    if (hasExtras) {
+      const entries = [
+        {
+          amount: Number(raw.amount),
+          currency: raw.currency,
+          target_account_id: raw.target_account_id || null,
+          target_currency: raw.target_currency || raw.currency,
+          exchange_rate: raw.currency === 'GNF' ? 1 : Number(raw.exchange_rate || 1),
+        },
+        ...this.extraEntries
+          .filter(e => Number(e.amount) > 0)
+          .map(e => ({
+            amount: Number(e.amount),
+            currency: e.currency,
+            target_account_id: e.target_account_id || null,
+            target_currency: e.currency,
+            exchange_rate: e.currency === 'GNF' ? 1 : Number(e.exchange_rate || 1),
+          })),
+      ];
+      const batchPayload = {
+        type: raw.type,
+        method: raw.method,
+        payment_date: raw.payment_date,
+        client_id: raw.client_id,
+        paid_by_client_id: raw.paid_by_client_id || null,
+        invoice_id: raw.invoice_id || null,
+        reference: raw.reference,
+        description: raw.description,
+        status: raw.status,
+        entries,
+      };
+      this.apiService.post<any>('payments/batch', batchPayload)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (r) => {
+            this.alertService.showSuccess(`Versement multi-devise enregistré (${entries.length} entrées)`);
+            this.showPaymentModal = false;
+            this.savingPayment = false;
+            this.extraEntries = [];
+            this.loadPayments();
+          },
+          error: (err: any) => {
+            this.alertService.showError('Erreur', err?.error?.message || err?.message || 'Erreur batch');
+            this.savingPayment = false;
+            this.cdr.markForCheck();
+          },
+        });
+      return;
+    }
+
     const payload = {
       ...raw,
       exchange_rate: raw.currency === 'GNF' ? 1 : raw.exchange_rate,
@@ -351,6 +488,7 @@ export class PaymentsListComponent implements OnInit {
         this.alertService.showSuccess(this.editingPayment ? 'Paiement modifié' : 'Paiement enregistré');
         this.showPaymentModal = false;
         this.savingPayment = false;
+        this.extraEntries = [];
         this.loadPayments();
       },
       error: (err: Error) => {
@@ -549,6 +687,7 @@ export class PaymentsListComponent implements OnInit {
 
   private onClientChanged(clientId: number | null): void {
     this.loadInvoices(clientId);
+    this.loadClientAccounts(clientId);
     if (!clientId) { this.selectedClientBalance = null; return; }
     this.fetchSelectedClientBalance(clientId);
   }

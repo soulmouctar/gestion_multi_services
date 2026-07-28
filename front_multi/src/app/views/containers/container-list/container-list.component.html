@@ -53,6 +53,7 @@
             <th class="py-3" style="font-weight:600">Réf. interne</th>
             <th class="py-3" style="font-weight:600">BL</th>
             <th class="py-3" style="font-weight:600">Capacité</th>
+            <th class="py-3" style="font-weight:600">Type attendu</th>
             <th class="py-3" style="font-weight:600">Port d'entrée</th>
             <th class="py-3" style="font-weight:600">Livraison prévue</th>
             <th class="py-3" style="font-weight:600">Statut</th>
@@ -84,6 +85,16 @@
             </td>
             <td class="py-3">
               <span style="font-size:0.85rem;color:#475569">{{ container.capacity ?? '—' }}</span>
+            </td>
+            <td class="py-3">
+              <span *ngIf="container.expected_category?.name; else noCat"
+                    class="px-2 py-1 rounded-pill fw-semibold"
+                    style="font-size:0.72rem;background:#EEF2FF;color:#4338CA;">
+                {{ container.expected_category.name }}
+              </span>
+              <ng-template #noCat>
+                <span style="font-size:0.82rem;color:#94a3b8">—</span>
+              </ng-template>
             </td>
             <td class="py-3">
               <span style="font-size:0.85rem;color:#475569">{{ container.entry_port || '—' }}</span>
@@ -258,6 +269,21 @@
         <div class="col-md-6">
           <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem">Date de livraison prévue à Conakry</label>
           <input cFormControl type="date" formControlName="expected_delivery_date" style="border-radius:8px" />
+        </div>
+        <div class="col-12">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem;color:#0F3460;">
+            <svg cIcon name="cilTags" size="sm" class="me-1"></svg>
+            Type de produit attendu (catégorie)
+          </label>
+          <select cSelect formControlName="expected_product_category_id" style="border-radius:8px">
+            <option [ngValue]="null">— À définir plus tard —</option>
+            <option *ngFor="let cat of productCategories; trackBy: trackById" [ngValue]="cat.id">
+              {{ cat.name }}
+            </option>
+          </select>
+          <small class="text-muted" style="font-size:0.78rem">
+            Pré-typage du contenu attendu (parfums, textile, pneus, etc.). Modifiable à l'arrivage.
+          </small>
         </div>
       </div>
 

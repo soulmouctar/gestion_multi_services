@@ -423,14 +423,18 @@ class CurrencyController extends BaseController
 
     private function resolveTenantId(Request $request): ?int
     {
-        $requestedTenantId = $request->input('tenant_id');
-        if ($requestedTenantId) {
-            return (int) $requestedTenantId;
-        }
-
         $user = Auth::user();
         if (!$user) {
             return null;
+        }
+
+        if (!$user->hasRole('SUPER_ADMIN')) {
+            return $user->tenant_id ? (int) $user->tenant_id : null;
+        }
+
+        $requestedTenantId = $request->input('tenant_id') ?? $request->query('tenant_id');
+        if ($requestedTenantId) {
+            return (int) $requestedTenantId;
         }
 
         return $user->tenant_id ? (int) $user->tenant_id : null;

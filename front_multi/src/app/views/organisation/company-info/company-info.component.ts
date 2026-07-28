@@ -49,10 +49,54 @@ export class CompanyInfoComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {
     this.companyForm = this.fb.group({
-      name:  ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.email]],
-      phone: ['']
+      name:    ['', [Validators.required, Validators.minLength(2)]],
+      email:   ['', [Validators.email]],
+      phone:   [''],
+      address: [''],
     });
+  }
+
+  // ── Logo handling ─────────────────────────────────────────────────────
+  logoFile: File | null = null;
+  logoPreview: string | null = null;
+  logoError: string | null = null;
+
+  get currentLogoUrl(): string | null {
+    return (this.currentOrganisation as any)?.logo_url || null;
+  }
+  get displayedLogo(): string | null {
+    return this.logoPreview || this.currentLogoUrl;
+  }
+
+  onLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
+      this.logoError = 'Format non supporté (JPG, PNG, WebP uniquement).';
+      this.cdr.detectChanges();
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      this.logoError = 'Le logo ne doit pas dépasser 2 Mo.';
+      this.cdr.detectChanges();
+      return;
+    }
+    this.logoError = null;
+    this.logoFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.logoPreview = e.target?.result as string;
+      this.cdr.detectChanges();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  clearLogoSelection(): void {
+    this.logoFile = null;
+    this.logoPreview = null;
+    this.logoError = null;
+    this.cdr.detectChanges();
   }
 
   ngOnInit(): void {
@@ -70,9 +114,10 @@ export class CompanyInfoComponent implements OnInit {
         this.currentOrganisation = response.data;
         if (this.currentOrganisation) {
           this.companyForm.patchValue({
-            name:  this.currentOrganisation.name  || '',
-            email: this.currentOrganisation.email || '',
-            phone: this.currentOrganisation.phone || ''
+            name:    this.currentOrganisation.name  || '',
+            email:   this.currentOrganisation.email || '',
+            phone:   this.currentOrganisation.phone || '',
+            address: (this.currentOrganisation as any).address || '',
           });
         }
         this.loading = false;
@@ -94,13 +139,25 @@ export class CompanyInfoComponent implements OnInit {
     this.error = null;
     this.cdr.detectChanges();
 
-    const formData = this.companyForm.value;
+    // Construit le payload : FormData si logo selectionne, sinon JSON
+    let payload: any = this.companyForm.value;
+    if (this.logoFile) {
+      const fd = new FormData();
+      Object.entries(this.companyForm.value).forEach(([k, v]) => {
+        if (v !== null && v !== undefined && v !== '') fd.append(k, String(v));
+      });
+      fd.append('logo', this.logoFile);
+      payload = fd;
+    }
 
-    this.tenantService.updateMyTenant(formData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.tenantService.updateMyTenant(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         this.currentOrganisation = response.data;
         this.successMessage = 'Informations mises à jour avec succès.';
         this.saving = false;
+        // On reset la selection logo : la nouvelle URL persistee s'affiche desormais
+        this.logoFile = null;
+        this.logoPreview = null;
         this.cdr.detectChanges();
       },
       error: (err) => {

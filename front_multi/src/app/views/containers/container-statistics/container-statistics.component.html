@@ -11,7 +11,7 @@
           <h4 class="fw-bold mb-0" style="color:#fff">Statistiques des Conteneurs</h4>
         </div>
         <p class="mb-0 ms-1" style="color:rgba(255,255,255,.7);font-size:.875rem">
-          Vue consolidée des conteneurs, ventes et encaissements.
+          Vue consolidée des conteneurs, ventes et versements.
         </p>
       </div>
       <div class="d-flex gap-2">
@@ -137,7 +137,7 @@
           </div>
           <div class="d-flex flex-wrap gap-3">
             <div class="px-3 py-2 rounded-3" style="background:rgba(255,255,255,.1);min-width:170px">
-              <div class="small text-uppercase fw-semibold" style="color:rgba(255,255,255,.65)">Intérêt encaissé</div>
+              <div class="small text-uppercase fw-semibold" style="color:rgba(255,255,255,.65)">Intérêt versé</div>
               <div class="fw-bold mt-1" style="font-size:1.2rem;color:#D1FAE5">{{ formatAmount(salesStats.realized_interest) }}</div>
             </div>
             <div class="px-3 py-2 rounded-3" style="background:rgba(255,255,255,.1);min-width:170px">
@@ -516,7 +516,7 @@
           <div class="col-md-3 col-6">
             <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5)">
               <div class="fw-bold mb-1" style="font-size:1.5rem;color:#10B981">{{ collectionRate }}%</div>
-              <small class="text-muted fw-semibold" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Taux d'encaissement</small>
+              <small class="text-muted fw-semibold" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Taux de versement</small>
             </div>
           </div>
           <div class="col-md-3 col-6">
@@ -555,7 +555,7 @@
             <div class="col-md-6">
               <div class="d-flex align-items-start gap-2 mb-2">
                 <svg cIcon name="cilDollar" style="color:#F59E0B;flex-shrink:0;width:16px;height:16px"></svg>
-                <span style="font-size:.85rem;color:#475569">L'intérêt encaissé montre ce que les ventes ont déjà réellement rapporté.</span>
+                <span style="font-size:.85rem;color:#475569">L'intérêt versé montre ce que les ventes ont déjà réellement rapporté.</span>
               </div>
               <div class="d-flex align-items-start gap-2">
                 <svg cIcon name="cilSpeedometer" style="color:#6366F1;flex-shrink:0;width:16px;height:16px"></svg>

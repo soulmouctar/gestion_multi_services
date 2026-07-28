@@ -71,11 +71,15 @@ export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'USER';
 export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED' | 'SUSPENDED';
 export type ModuleCode = 
   | 'COMMERCIAL'
+  | 'COMMERCE'
   | 'FINANCE' 
   | 'CLIENTS_SUPPLIERS'
   | 'USERS'
   | 'PRODUCTS_STOCK'
+  | 'CONTAINER'
   | 'CONTAINERS'
+  | 'BANKING'
+  | 'EXPENSES'
   | 'RENTAL'
   | 'TAXI'
   | 'STATISTICS';

@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invoice extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'tenant_id',
@@ -74,9 +75,29 @@ class Invoice extends Model
 
     public function recalculatePaidAmount(): void
     {
+        $invoiceCurrency = strtoupper((string) ($this->currency ?? 'GNF'));
+
         $paid = $this->payments()
             ->where('status', 'COMPLETED')
-            ->sum('amount');
+            ->get()
+            ->sum(function (Payment $payment) use ($invoiceCurrency) {
+                $paymentCurrency = strtoupper((string) ($payment->currency ?? 'GNF'));
+                $targetCurrency = strtoupper((string) ($payment->target_currency ?: $paymentCurrency));
+
+                if ($targetCurrency === $invoiceCurrency && $payment->converted_amount !== null) {
+                    return (float) $payment->converted_amount;
+                }
+
+                if ($invoiceCurrency === 'GNF' && $payment->amount_gnf !== null) {
+                    return (float) $payment->amount_gnf;
+                }
+
+                if ($paymentCurrency === $invoiceCurrency) {
+                    return (float) $payment->amount;
+                }
+
+                return 0.0;
+            });
 
         $this->paid_amount = $paid;
 

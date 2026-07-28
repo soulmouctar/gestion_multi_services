@@ -6,7 +6,7 @@ import { forkJoin } from 'rxjs';
 import { catchError, of } from 'rxjs';
 import {
   CardModule, ButtonModule, BadgeModule, SpinnerModule, ProgressModule,
-  RowComponent, ColComponent, TableModule, FormModule
+  TableModule, FormModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -17,9 +17,10 @@ import { ApiService } from '../../../core/services/api.service';
   imports: [
     CommonModule, FormsModule, IconDirective,
     CardModule, ButtonModule, BadgeModule, SpinnerModule, ProgressModule, FormModule,
-    RowComponent, ColComponent, TableModule
+    TableModule
   ],
-  templateUrl: './statistics-sales.component.html'
+  templateUrl: './statistics-sales.component.html',
+  styleUrl: './statistics-sales.component.scss',
 })
 export class StatisticsSalesComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
@@ -159,6 +160,18 @@ export class StatisticsSalesComponent implements OnInit, OnDestroy {
   methodColor(index: number): string {
     const colors = ['primary', 'success', 'warning', 'info', 'danger', 'secondary'];
     return colors[index % colors.length];
+  }
+
+  methodBarColor(index: number): string {
+    const gradients = [
+      'linear-gradient(90deg,#6366F1,#4F46E5)',
+      'linear-gradient(90deg,#10B981,#059669)',
+      'linear-gradient(90deg,#F59E0B,#D97706)',
+      'linear-gradient(90deg,#3B82F6,#2563EB)',
+      'linear-gradient(90deg,#EF4444,#DC2626)',
+      'linear-gradient(90deg,#8B5CF6,#7C3AED)',
+    ];
+    return gradients[index % gradients.length];
   }
 
   trendPeak(): number {

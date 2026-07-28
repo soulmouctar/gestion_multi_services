@@ -1,39 +1,9 @@
-<div class="p-3 p-md-4">
+<div class="client-account-page" style="background:#f5f7fb;min-height:100vh;padding:24px 20px">
 
-  <!-- ===== HEADER ===== -->
-  <div class="mb-4 p-4" style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;color:#fff">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-      <div class="d-flex align-items-center gap-3">
-        <button cButton color="light" variant="ghost" size="sm" (click)="goBack()"
-          style="color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.25);border-radius:8px">
-          <svg cIcon name="cilArrowLeft" class="me-1"></svg> Retour
-        </button>
-        <div>
-          <h4 class="fw-bold mb-0" style="color:#fff">
-            Situation Client: <span style="color:#93c5fd">{{ client?.name || 'Chargement...' }}</span>
-          </h4>
-          <p class="mb-0 mt-1" style="color:rgba(255,255,255,0.6);font-size:0.82rem" *ngIf="client">
-            {{ client.phone || '—' }} &nbsp;|&nbsp; {{ client.email || '—' }}
-          </p>
-        </div>
-      </div>
-      <div *ngIf="clientStats" class="d-flex flex-wrap gap-3">
-        <div class="text-center px-3" style="border-left:1px solid rgba(255,255,255,0.2)">
-          <div style="font-size:1rem;font-weight:700;color:#34d399">{{ formatAmount(clientStats.total_paid, 'GNF') }}</div>
-          <div style="font-size:0.7rem;color:rgba(255,255,255,0.6)">Total payé</div>
-        </div>
-        <div class="text-center px-3" style="border-left:1px solid rgba(255,255,255,0.2)">
-          <div style="font-size:1rem;font-weight:700;color:#f87171">{{ formatAmount(clientStats.total_debt, 'GNF') }}</div>
-          <div style="font-size:0.7rem;color:rgba(255,255,255,0.6)">Dette</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== LOADING ===== -->
-  <div *ngIf="loading" class="text-center py-5">
-    <c-spinner color="primary"></c-spinner>
-    <p class="mt-3 text-muted small">Chargement des données...</p>
+  <!-- ===== LOADING (initial) ===== -->
+  <div *ngIf="loading && !client" class="d-flex flex-column align-items-center justify-content-center" style="min-height:60vh">
+    <c-spinner color="primary" style="width:2.5rem;height:2.5rem"></c-spinner>
+    <p class="mt-3 mb-0" style="color:#64748b;font-size:0.9rem">Chargement de la situation client…</p>
   </div>
 
   <!-- ===== ERROR ===== -->
@@ -41,261 +11,340 @@
     {{ error }}
   </c-alert>
 
-  <!-- ===== KPI CARDS ===== -->
-  <div *ngIf="clientStats && !loading" class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-      <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-        <div class="d-flex align-items-center gap-3">
+  <div *ngIf="!loading || client" style="max-width:1400px;margin:0 auto">
+
+    <!-- ===== HERO ===== -->
+    <section class="hero-card" style="position:relative;overflow:hidden;border-radius:20px;padding:28px 32px;margin-bottom:24px;
+      background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#312e81 100%);color:#fff;
+      box-shadow:0 10px 30px -12px rgba(15,23,42,0.35)">
+
+      <!-- decorative blobs -->
+      <div style="position:absolute;top:-60px;right:-40px;width:220px;height:220px;border-radius:50%;
+        background:radial-gradient(circle,rgba(99,102,241,0.35),transparent 70%);pointer-events:none"></div>
+      <div style="position:absolute;bottom:-80px;left:30%;width:280px;height:280px;border-radius:50%;
+        background:radial-gradient(circle,rgba(16,185,129,0.18),transparent 70%);pointer-events:none"></div>
+
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-4" style="position:relative;z-index:1">
+
+        <!-- Client identity -->
+        <div class="d-flex align-items-center gap-3 flex-wrap">
           <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-            style="width:40px;height:40px;border-radius:10px;background:#EEF2FF">
-            <svg cIcon name="cilCart" style="color:#6366F1"></svg>
+            style="width:64px;height:64px;border-radius:18px;font-weight:700;font-size:1.5rem;color:#fff;
+            border:2px solid rgba(255,255,255,0.25);box-shadow:0 6px 16px rgba(0,0,0,0.25)"
+            [style.background]="getAvatarColor(client?.name)">
+            {{ getInitials(client?.name) }}
           </div>
           <div>
-            <div class="fw-bold" style="font-size:0.95rem;color:#1e293b;line-height:1.2">{{ formatAmount(clientStats.total_sales, 'GNF') }}</div>
-            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Total Achats</div>
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,0.55);margin-bottom:4px">
+              Situation client
+            </div>
+            <h3 class="mb-1 fw-bold" style="color:#fff;font-size:1.5rem;line-height:1.2">
+              {{ client?.name || '—' }}
+            </h3>
+            <div class="d-flex flex-wrap gap-2 mt-2" *ngIf="client">
+              <span class="chip">
+                <svg cIcon name="cilPhone" style="width:12px;height:12px"></svg>
+                {{ client.phone || 'Aucun téléphone' }}
+              </span>
+              <span class="chip">
+                <svg cIcon name="cilEnvelopeClosed" style="width:12px;height:12px"></svg>
+                {{ client.email || 'Aucun email' }}
+              </span>
+              <span class="chip" *ngIf="client.address">
+                <svg cIcon name="cilLocationPin" style="width:12px;height:12px"></svg>
+                {{ client.address }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="button" class="btn-hero-ghost" (click)="goBack()">
+            <svg cIcon name="cilArrowLeft"></svg> Retour
+          </button>
+          <button type="button" class="btn-hero-primary" (click)="printPage()">
+            <svg cIcon name="cilPrint"></svg> Imprimer
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== KPI STRIP ===== -->
+    <section *ngIf="clientStats" class="row g-3 mb-4">
+
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#EEF2FF;color:#6366F1">
+            <svg cIcon name="cilCart"></svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Total Achats</div>
+            <div class="kpi-value" style="color:#0f172a">{{ formatAmount(clientStats.total_sales, 'GNF') }}</div>
+            <div class="kpi-sub">{{ sales.length }} vente(s) au total</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="col-6 col-md-3">
-      <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-        <div class="d-flex align-items-center gap-3">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-            style="width:40px;height:40px;border-radius:10px;background:#ECFDF5">
-            <svg cIcon name="cilCash" style="color:#10B981"></svg>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#ECFDF5;color:#10B981">
+            <svg cIcon name="cilCash"></svg>
           </div>
-          <div>
-            <div class="fw-bold" style="font-size:0.95rem;color:#10B981;line-height:1.2">{{ formatAmount(clientStats.total_paid, 'GNF') }}</div>
-            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Total Payé</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Total Payé</div>
+            <div class="kpi-value" style="color:#10B981">{{ formatAmount(clientStats.total_paid, 'GNF') }}</div>
+            <div class="kpi-sub">{{ payments.length }} versement(s)</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="col-6 col-md-3">
-      <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-        <div class="d-flex align-items-center gap-3">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-            style="width:40px;height:40px;border-radius:10px;background:#FEE2E2">
-            <svg cIcon name="cilWarning" style="color:#EF4444"></svg>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#FEE2E2;color:#EF4444">
+            <svg cIcon name="cilWarning"></svg>
           </div>
-          <div>
-            <div class="fw-bold" style="font-size:0.95rem;color:#EF4444;line-height:1.2">{{ formatAmount(clientStats.total_debt, 'GNF') }}</div>
-            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Dette</div>
-            <div style="font-size:0.68rem;color:#94a3b8">{{ clientStats.pending_sales_count }} vente(s) en cours</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Dette en cours</div>
+            <div class="kpi-value" style="color:#EF4444">{{ formatAmount(clientStats.total_debt, 'GNF') }}</div>
+            <div class="kpi-sub">{{ clientStats.pending_sales_count }} vente(s) impayée(s)</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="col-6 col-md-3">
-      <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-        <div class="d-flex align-items-center gap-3">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-            style="width:40px;height:40px;border-radius:10px;background:#FFFBEB">
-            <svg cIcon name="cilWallet" style="color:#F59E0B"></svg>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#FFFBEB;color:#F59E0B">
+            <svg cIcon name="cilWallet"></svg>
           </div>
-          <div>
-            <div class="fw-bold" style="font-size:0.95rem;color:#F59E0B;line-height:1.2">{{ formatAmount(clientStats.total_advances, 'GNF') }}</div>
-            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Avances dispo.</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Avances disponibles</div>
+            <div class="kpi-value" style="color:#F59E0B">{{ formatAmount(clientStats.total_advances, 'GNF') }}</div>
+            <div class="kpi-sub">{{ advances.length }} avance(s)</div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ===== BALANCE ===== -->
-  <div *ngIf="clientStats && !loading" class="mb-4">
-    <div class="p-4 text-center"
-      [style.background]="clientStats.balance >= 0 ? 'linear-gradient(135deg,#059669,#10b981)' : 'linear-gradient(135deg,#dc2626,#ef4444)'"
-      style="border-radius:12px;color:#fff">
-      <div style="font-size:0.82rem;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">
-        Balance (Avances - Dettes)
-      </div>
-      <div style="font-size:2rem;font-weight:800">{{ formatAmount(clientStats.balance, 'GNF') }}</div>
-      <div class="mt-2">
-        <span class="px-3 py-1 rounded-pill" style="background:rgba(255,255,255,0.2);font-size:0.82rem;font-weight:600">
-          {{ clientStats.balance >= 0 ? 'Le client dispose d\'un crédit' : 'Le client a une dette en cours' }}
+    <!-- ===== BALANCE BANNER ===== -->
+    <section *ngIf="clientStats" class="mb-4">
+      <div class="balance-banner"
+        [style.background]="clientStats.balance >= 0
+          ? 'linear-gradient(120deg,#065f46 0%,#10b981 100%)'
+          : 'linear-gradient(120deg,#991b1b 0%,#ef4444 100%)'">
+        <div class="d-flex align-items-center gap-3">
+          <div class="balance-icon">
+            <svg cIcon [name]="clientStats.balance >= 0 ? 'cilCheckCircle' : 'cilWarning'"></svg>
+          </div>
+          <div>
+            <div class="balance-label">Balance nette (Avances − Dettes)</div>
+            <div class="balance-value">{{ formatAmount(clientStats.balance, 'GNF') }}</div>
+          </div>
+        </div>
+        <span class="balance-pill">
+          {{ clientStats.balance >= 0 ? 'Crédit disponible pour le client' : 'Dette en cours à régler' }}
         </span>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ===== HISTORIQUE DES ACHATS ===== -->
-  <c-card *ngIf="!loading" class="mb-4" style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-    <c-card-header class="d-flex justify-content-between align-items-center" style="background:#f8fafc;border-radius:12px 12px 0 0">
-      <span class="fw-semibold" style="color:#1e293b">
-        <svg cIcon name="cilCart" class="me-1" style="color:#6366F1"></svg>
-        Historique des Achats
-      </span>
-      <span class="px-2 py-1 rounded-pill" style="font-size:0.72rem;font-weight:600;background:#EEF2FF;color:#6366F1">{{ sales.length }}</span>
-    </c-card-header>
-    <c-card-body class="p-0">
+    <!-- ===== HISTORIQUE ACHATS ===== -->
+    <section class="section-card mb-4">
+      <header class="section-header">
+        <div class="section-title">
+          <span class="section-badge" style="background:#EEF2FF;color:#6366F1">
+            <svg cIcon name="cilCart"></svg>
+          </span>
+          <div>
+            <h6 class="mb-0 fw-semibold" style="color:#0f172a">Historique des Achats</h6>
+            <small style="color:#94a3b8">Toutes les ventes conteneur pour ce client</small>
+          </div>
+        </div>
+        <span class="count-chip" style="background:#EEF2FF;color:#6366F1">{{ sales.length }}</span>
+      </header>
+
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead style="background:#f8fafc">
+        <table class="table modern-table align-middle mb-0">
+          <thead>
             <tr>
-              <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Date</th>
-              <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Arrivage</th>
-              <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Type</th>
-              <th class="text-center" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Qté</th>
-              <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Prix vente</th>
-              <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Payé</th>
-              <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Reste</th>
-              <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Conversion GNF</th>
-              <th class="text-center" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Statut</th>
-              <th style="min-width:120px;font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Progression</th>
+              <th>Date</th>
+              <th>Arrivage</th>
+              <th>Type</th>
+              <th class="text-center">Qté</th>
+              <th class="text-end">Prix vente</th>
+              <th class="text-end">Payé</th>
+              <th class="text-end">Reste</th>
+              <th>Conversion GNF</th>
+              <th class="text-center">Statut</th>
+              <th style="min-width:140px">Progression</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let sale of sales; trackBy: trackById">
-              <td style="font-size:0.82rem;color:#94a3b8">{{ sale.sale_date | date:'dd/MM/yyyy' }}</td>
-              <td><code style="font-size:0.78rem;background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#475569">#{{ sale.container_arrival_id }}</code></td>
+              <td class="cell-muted">{{ sale.sale_date | date:'dd/MM/yyyy' }}</td>
+              <td><code class="ref-code">#{{ sale.container_arrival_id }}</code></td>
               <td>
-                <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem;background:#EEF2FF;color:#6366F1">{{ sale.sale_type }}</span>
+                <span class="tag" style="background:#EEF2FF;color:#6366F1">{{ sale.sale_type }}</span>
               </td>
-              <td class="text-center" style="font-size:0.85rem;color:#1e293b">{{ sale.quantity_sold }}</td>
-              <td class="text-end fw-semibold" style="font-size:0.85rem;color:#1e293b">{{ formatAmountWithConversion(sale.sale_price, sale.currency || 'GNF') }}</td>
-              <td class="text-end fw-semibold" style="font-size:0.85rem;color:#10B981">{{ formatAmountWithConversion(sale.amount_paid || 0, sale.currency || 'GNF') }}</td>
-              <td class="text-end fw-semibold" style="font-size:0.85rem"
+              <td class="text-center fw-semibold" style="color:#0f172a">{{ sale.quantity_sold }}</td>
+              <td class="text-end fw-semibold" style="color:#0f172a">
+                {{ formatAmountWithConversion(sale.sale_price, sale.currency || 'GNF') }}
+              </td>
+              <td class="text-end fw-semibold" style="color:#10B981">
+                {{ formatAmountWithConversion(sale.amount_paid || 0, sale.currency || 'GNF') }}
+              </td>
+              <td class="text-end fw-semibold"
                 [style.color]="(sale.remaining_amount || 0) > 0 ? '#EF4444' : '#10B981'">
                 {{ formatAmountWithConversion(sale.remaining_amount || 0, sale.currency || 'GNF') }}
               </td>
-              <td style="font-size:0.78rem;color:#64748b">
+              <td class="cell-muted" style="font-size:0.75rem">
                 {{ getConversionLabel(sale.sale_price, sale.currency || 'GNF', sale.sale_price_gnf, sale.exchange_rate) }}
               </td>
               <td class="text-center">
-                <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem"
-                  [style.background]="getStatusColor(sale.status) === 'success' ? '#ECFDF5' : getStatusColor(sale.status) === 'warning' ? '#FFFBEB' : getStatusColor(sale.status) === 'danger' ? '#FEE2E2' : '#EEF2FF'"
-                  [style.color]="getStatusColor(sale.status) === 'success' ? '#10B981' : getStatusColor(sale.status) === 'warning' ? '#F59E0B' : getStatusColor(sale.status) === 'danger' ? '#EF4444' : '#6366F1'">
+                <span class="status-pill"
+                  [style.background]="getStatusColor(sale.status) === 'success' ? '#ECFDF5' : getStatusColor(sale.status) === 'warning' ? '#FFFBEB' : getStatusColor(sale.status) === 'danger' ? '#FEE2E2' : getStatusColor(sale.status) === 'info' ? '#EFF6FF' : '#F1F5F9'"
+                  [style.color]="getStatusColor(sale.status) === 'success' ? '#10B981' : getStatusColor(sale.status) === 'warning' ? '#F59E0B' : getStatusColor(sale.status) === 'danger' ? '#EF4444' : getStatusColor(sale.status) === 'info' ? '#3B82F6' : '#64748b'">
                   {{ getStatusLabel(sale.status) }}
                 </span>
               </td>
               <td>
-                <div style="height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
-                  <div style="height:100%;border-radius:3px;transition:width .3s"
+                <div class="progress-track">
+                  <div class="progress-fill"
                     [style.width.%]="getPaymentProgress(sale)"
-                    [style.background]="getPaymentProgress(sale) === 100 ? '#10B981' : '#3B82F6'">
+                    [style.background]="getPaymentProgress(sale) === 100 ? '#10B981' : 'linear-gradient(90deg,#3B82F6,#6366F1)'">
                   </div>
                 </div>
-                <div style="font-size:0.68rem;color:#94a3b8;margin-top:2px">{{ getPaymentProgress(sale) }}%</div>
+                <div class="progress-label">{{ getPaymentProgress(sale) }}%</div>
               </td>
             </tr>
             <tr *ngIf="sales.length === 0">
-              <td colspan="10" class="text-center py-4" style="color:#94a3b8;font-size:0.85rem">Aucun achat enregistré</td>
+              <td colspan="10" class="empty-row">
+                <svg cIcon name="cilInbox" style="width:32px;height:32px;color:#cbd5e1"></svg>
+                <div>Aucun achat enregistré</div>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </c-card-body>
-  </c-card>
+    </section>
 
-  <!-- ===== VERSEMENTS & AVANCES ===== -->
-  <div *ngIf="!loading" class="row g-3">
+    <!-- ===== VERSEMENTS & AVANCES ===== -->
+    <div class="row g-3">
 
-    <!-- Versements -->
-    <div class="col-12 col-lg-6">
-      <c-card style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-        <c-card-header class="d-flex justify-content-between align-items-center" style="background:#f8fafc;border-radius:12px 12px 0 0">
-          <span class="fw-semibold" style="color:#1e293b">
-            <svg cIcon name="cilDollar" class="me-1" style="color:#10B981"></svg>
-            Historique des Versements
-          </span>
-          <span class="px-2 py-1 rounded-pill" style="font-size:0.72rem;font-weight:600;background:#ECFDF5;color:#10B981">{{ payments.length }}</span>
-        </c-card-header>
-        <c-card-body class="p-0">
+      <!-- Versements -->
+      <div class="col-12 col-lg-6">
+        <section class="section-card">
+          <header class="section-header">
+            <div class="section-title">
+              <span class="section-badge" style="background:#ECFDF5;color:#10B981">
+                <svg cIcon name="cilDollar"></svg>
+              </span>
+              <div>
+                <h6 class="mb-0 fw-semibold" style="color:#0f172a">Versements</h6>
+                <small style="color:#94a3b8">Paiements reçus du client</small>
+              </div>
+            </div>
+            <span class="count-chip" style="background:#ECFDF5;color:#10B981">{{ payments.length }}</span>
+          </header>
+
           <div class="table-responsive">
-            <table class="table table-hover align-middle table-sm mb-0">
-              <thead style="background:#f8fafc">
+            <table class="table modern-table align-middle table-sm mb-0">
+              <thead>
                 <tr>
-                  <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Date</th>
-                  <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Vente</th>
-                  <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Montant</th>
-                  <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Conversion GNF</th>
-                  <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Méthode</th>
-                  <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Réf.</th>
+                  <th>Date</th>
+                  <th>Vente</th>
+                  <th class="text-end">Montant</th>
+                  <th>Méthode</th>
+                  <th>Réf.</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let payment of payments; trackBy: trackById">
-                  <td style="font-size:0.82rem;color:#94a3b8">{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
-                  <td><code style="font-size:0.75rem;background:#f1f5f9;padding:2px 5px;border-radius:4px;color:#475569">#{{ payment.container_sale_id }}</code></td>
-                  <td class="text-end fw-semibold" style="font-size:0.85rem;color:#10B981">
-                    {{ formatAmountWithConversion(payment.amount, payment.currency || 'GNF') }}
-                  </td>
-                  <td style="font-size:0.78rem;color:#64748b">
-                    {{ getConversionLabel(payment.amount, payment.currency || 'GNF', payment.amount_gnf, payment.exchange_rate) }}
+                  <td class="cell-muted">{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
+                  <td><code class="ref-code">#{{ payment.container_sale_id }}</code></td>
+                  <td class="text-end fw-semibold" style="color:#10B981">
+                    <div>{{ formatAmountWithConversion(payment.amount, payment.currency || 'GNF') }}</div>
+                    <div style="font-size:0.68rem;color:#94a3b8;font-weight:400">
+                      {{ getConversionLabel(payment.amount, payment.currency || 'GNF', payment.amount_gnf, payment.exchange_rate) }}
+                    </div>
                   </td>
                   <td>
-                    <span class="px-2 py-1 rounded-pill" style="font-size:0.72rem;background:#EFF6FF;color:#3B82F6;font-weight:600">
-                      {{ payment.payment_method }}
-                    </span>
+                    <span class="tag" style="background:#EFF6FF;color:#3B82F6">{{ payment.payment_method }}</span>
                   </td>
-                  <td style="font-size:0.78rem;color:#94a3b8">{{ payment.reference || '—' }}</td>
+                  <td class="cell-muted">{{ payment.reference || '—' }}</td>
                 </tr>
                 <tr *ngIf="payments.length === 0">
-                  <td colspan="6" class="text-center py-3" style="color:#94a3b8;font-size:0.85rem">Aucun versement enregistré</td>
+                  <td colspan="5" class="empty-row">
+                    <svg cIcon name="cilInbox" style="width:28px;height:28px;color:#cbd5e1"></svg>
+                    <div>Aucun versement enregistré</div>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </c-card-body>
-      </c-card>
-    </div>
+        </section>
+      </div>
 
-    <!-- Avances -->
-    <div class="col-12 col-lg-6">
-      <c-card style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-        <c-card-header class="d-flex justify-content-between align-items-center" style="background:#f8fafc;border-radius:12px 12px 0 0">
-          <span class="fw-semibold" style="color:#1e293b">
-            <svg cIcon name="cilWallet" class="me-1" style="color:#F59E0B"></svg>
-            Avances Clients
-          </span>
-          <span class="px-2 py-1 rounded-pill" style="font-size:0.72rem;font-weight:600;background:#FFFBEB;color:#F59E0B">{{ advances.length }}</span>
-        </c-card-header>
-        <c-card-body class="p-0">
+      <!-- Avances -->
+      <div class="col-12 col-lg-6">
+        <section class="section-card">
+          <header class="section-header">
+            <div class="section-title">
+              <span class="section-badge" style="background:#FFFBEB;color:#F59E0B">
+                <svg cIcon name="cilWallet"></svg>
+              </span>
+              <div>
+                <h6 class="mb-0 fw-semibold" style="color:#0f172a">Avances client</h6>
+                <small style="color:#94a3b8">Crédits versés d'avance</small>
+              </div>
+            </div>
+            <span class="count-chip" style="background:#FFFBEB;color:#F59E0B">{{ advances.length }}</span>
+          </header>
+
           <div class="table-responsive">
-            <table class="table table-hover align-middle table-sm mb-0">
-              <thead style="background:#f8fafc">
+            <table class="table modern-table align-middle table-sm mb-0">
+              <thead>
                 <tr>
-                  <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Date</th>
-                  <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Montant</th>
-                  <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Utilisé</th>
-                  <th class="text-end" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Reste</th>
-                  <th class="text-center" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase">Statut</th>
+                  <th>Date</th>
+                  <th class="text-end">Montant</th>
+                  <th class="text-end">Utilisé</th>
+                  <th class="text-end">Reste</th>
+                  <th class="text-center">Statut</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let advance of advances; trackBy: trackById">
-                  <td style="font-size:0.82rem;color:#94a3b8">{{ advance.payment_date | date:'dd/MM/yyyy' }}</td>
-                  <td class="text-end fw-semibold" style="font-size:0.85rem;color:#6366F1">
+                  <td class="cell-muted">{{ advance.payment_date | date:'dd/MM/yyyy' }}</td>
+                  <td class="text-end fw-semibold" style="color:#6366F1">
                     {{ formatAmountWithConversion(advance.amount, advance.currency || 'GNF') }}
                   </td>
-                  <td class="text-end" style="font-size:0.82rem;color:#94a3b8">
+                  <td class="text-end cell-muted">
                     {{ formatAmountWithConversion(advance.used_amount || 0, advance.currency || 'GNF') }}
                   </td>
-                  <td class="text-end fw-semibold" style="font-size:0.85rem;color:#10B981">
+                  <td class="text-end fw-semibold" style="color:#10B981">
                     {{ formatAmountWithConversion(advance.remaining_amount || 0, advance.currency || 'GNF') }}
                   </td>
                   <td class="text-center">
-                    <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem"
-                      [style.background]="getStatusColor(advance.status) === 'success' ? '#ECFDF5' : getStatusColor(advance.status) === 'warning' ? '#FFFBEB' : getStatusColor(advance.status) === 'danger' ? '#FEE2E2' : '#EEF2FF'"
-                      [style.color]="getStatusColor(advance.status) === 'success' ? '#10B981' : getStatusColor(advance.status) === 'warning' ? '#F59E0B' : getStatusColor(advance.status) === 'danger' ? '#EF4444' : '#6366F1'">
+                    <span class="status-pill"
+                      [style.background]="getStatusColor(advance.status) === 'success' ? '#ECFDF5' : getStatusColor(advance.status) === 'warning' ? '#FFFBEB' : getStatusColor(advance.status) === 'danger' ? '#FEE2E2' : getStatusColor(advance.status) === 'info' ? '#EFF6FF' : '#F1F5F9'"
+                      [style.color]="getStatusColor(advance.status) === 'success' ? '#10B981' : getStatusColor(advance.status) === 'warning' ? '#F59E0B' : getStatusColor(advance.status) === 'danger' ? '#EF4444' : getStatusColor(advance.status) === 'info' ? '#3B82F6' : '#64748b'">
                       {{ getStatusLabel(advance.status) }}
                     </span>
                   </td>
                 </tr>
                 <tr *ngIf="advances.length === 0">
-                  <td colspan="5" class="text-center py-3" style="color:#94a3b8;font-size:0.85rem">Aucune avance enregistrée</td>
+                  <td colspan="5" class="empty-row">
+                    <svg cIcon name="cilInbox" style="width:28px;height:28px;color:#cbd5e1"></svg>
+                    <div>Aucune avance enregistrée</div>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </c-card-body>
-      </c-card>
-    </div>
+        </section>
+      </div>
 
+    </div>
   </div>
 
 </div>
+

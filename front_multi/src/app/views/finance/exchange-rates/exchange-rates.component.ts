@@ -9,6 +9,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-exchange-rates',
@@ -42,7 +43,11 @@ export class ExchangeRatesComponent implements OnInit {
   rateToDelete: any = null;
   Math = Math;
 
-  constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
+  get canCreateRate(): boolean { return this.authService.hasModulePermission('FINANCE', 'create'); }
+  get canEditRate(): boolean   { return this.authService.hasModulePermission('FINANCE', 'edit'); }
+  get canDeleteRate(): boolean { return this.authService.hasModulePermission('FINANCE', 'delete'); }
+
+  constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.rateForm = this.fb.group({
       currency_id: [null, Validators.required],
       rate: [null, [Validators.required, Validators.min(0)]],

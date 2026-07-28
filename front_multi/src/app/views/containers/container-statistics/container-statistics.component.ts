@@ -282,7 +282,7 @@ export class ContainerStatisticsComponent implements OnInit {
         ['Ventes', 'Panier moyen', String(this.salesStats.average_sale_value || 0)],
         ['Ventes', 'Prix moyen par unité', String(this.salesStats.average_unit_sale_price || 0)],
         ['Ventes', 'Intérêt généré', String(this.salesStats.generated_interest || 0)],
-        ['Ventes', 'Intérêt encaissé', String(this.salesStats.realized_interest || 0)],
+        ['Ventes', 'Intérêt versé', String(this.salesStats.realized_interest || 0)],
         ['Ventes', 'Intérêt restant', String(this.salesStats.outstanding_interest || 0)]
       );
 
@@ -377,7 +377,7 @@ export class ContainerStatisticsComponent implements OnInit {
     const arrivals = this.topProfitableArrivals;
 
     this.interestBreakdownChartData = {
-      labels: ['Intérêt encaissé', 'Intérêt restant', 'Coût des ventes'],
+      labels: ['Intérêt versé', 'Intérêt restant', 'Coût des ventes'],
       datasets: [
         {
           data: [
@@ -404,7 +404,7 @@ export class ContainerStatisticsComponent implements OnInit {
           maxBarThickness: 36
         },
         {
-          label: 'Montant encaissé',
+          label: 'Montant versé',
           data: arrivals.map((arrival) => arrival.total_collected || 0),
           backgroundColor: '#60A5FA',
           borderRadius: 8,

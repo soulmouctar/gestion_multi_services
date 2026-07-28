@@ -10,6 +10,23 @@ use Illuminate\Support\Facades\Auth;
 
 class BuildingController extends BaseController
 {
+    private function tenantId(Request $request): ?int
+    {
+        $user = Auth::user();
+        return $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+    }
+
+    private function locationBelongsToTenant(int $locationId, ?int $tenantId): bool
+    {
+        $query = \App\Models\Location::whereKey($locationId);
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        return $query->exists();
+    }
+
     public function index(Request $request)
     {
         $user     = Auth::user();
@@ -33,17 +50,10 @@ class BuildingController extends BaseController
 
     public function store(StoreBuildingRequest $request)
     {
-        $user = Auth::user();
+        $tenantId = $this->tenantId($request);
 
-        // Vérifier que la location appartient bien au tenant de l'utilisateur
-        if (!$user->hasRole('SUPER_ADMIN')) {
-            $locationBelongsToTenant = \App\Models\Location::where('id', $request->location_id)
-                ->where('tenant_id', $user->tenant_id)
-                ->exists();
-
-            if (!$locationBelongsToTenant) {
-                return $this->sendError('Accès refusé : location invalide', [], 403);
-            }
+        if (!$this->locationBelongsToTenant((int) $request->location_id, $tenantId)) {
+            return $this->sendError('Accès refusé : location invalide', [], 403);
         }
 
         $building = Building::create($request->only(['location_id', 'name', 'type', 'total_floors']));
@@ -78,6 +88,12 @@ class BuildingController extends BaseController
 
         if (!$user->hasRole('SUPER_ADMIN') && $building->location->tenant_id !== $user->tenant_id) {
             return $this->sendError('Accès refusé', [], 403);
+        }
+
+        $targetLocationId = (int) $request->get('location_id', $building->location_id);
+        $tenantId = $this->tenantId($request);
+        if (!$this->locationBelongsToTenant($targetLocationId, $tenantId)) {
+            return $this->sendError('Accès refusé : location invalide', [], 403);
         }
 
         $building->update($request->only(['location_id', 'name', 'type', 'total_floors']));

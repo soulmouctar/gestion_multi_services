@@ -4,7 +4,7 @@
   <div class="rounded-4 mb-4 px-4 py-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
        style="background:linear-gradient(135deg,#111827 0%,#0f3460 60%,#1d4ed8 100%);">
     <div class="d-flex align-items-center gap-3">
-      <img src="/assets/images/logo/mat_kolla_hd.png" alt="Logo" style="height:40px;width:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.12);padding:4px;" />
+      <img src="/assets/images/logo/logo_matkolla_2026.jpeg" alt="Logo" style="height:40px;width:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.12);padding:4px;" />
       <div>
         <h4 class="mb-0 fw-bold text-white">Paiements &amp; Reçus</h4>
         <p class="mb-0 small" style="color:rgba(255,255,255,.65);">Suivi des paiements, reçus et soldes clients</p>
@@ -379,6 +379,115 @@
               <input cFormControl type="number" formControlName="amount_gnf" style="border-radius:8px;" />
             </div>
 
+            <!-- COMPTE-DEVISE CIBLE (sur quel compte client le paiement est applique) -->
+            <div class="col-12"
+                 *ngIf="paymentForm.get('type')?.value === 'CLIENT' && clientCurrencyAccounts.length">
+              <div class="p-3 rounded-3"
+                   style="background:#F0F9FF;border:1px solid #BAE6FD;">
+                <div class="d-flex flex-wrap align-items-end gap-3">
+                  <div class="flex-grow-1" style="min-width:220px;">
+                    <label class="form-label small fw-semibold d-flex align-items-center gap-1"
+                           style="color:#0369A1;">
+                      <svg cIcon name="cilWallet" size="sm"></svg>
+                      Compte-devise du client à créditer
+                    </label>
+                    <select cSelect formControlName="target_account_id"
+                            (change)="onTargetAccountChange()" style="border-radius:8px;">
+                      <option *ngFor="let acc of clientCurrencyAccounts; trackBy: trackById"
+                              [ngValue]="acc.id">
+                        Compte {{ acc.currency }}{{ acc.is_primary ? ' (principal)' : '' }}
+                        — solde : {{ acc.current_balance | number:'1.0-0' }} {{ acc.currency }}
+                      </option>
+                    </select>
+                  </div>
+                  <div *ngIf="conversionPreview as cp" class="small" style="min-width:200px;">
+                    <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;">
+                      Sera crédité
+                    </div>
+                    <div class="fw-bold" style="color:#0369A1;font-size:1.05rem;">
+                      {{ cp.converted | number:'1.0-2' }} {{ paymentForm.get('target_currency')?.value }}
+                    </div>
+                    <div *ngIf="!cp.sameCurrency" class="text-muted" style="font-size:.7rem;">
+                      Taux : 1 {{ paymentForm.get('target_currency')?.value === 'GNF' ? paymentForm.get('currency')?.value : paymentForm.get('target_currency')?.value }}
+                      = {{ cp.rate | number:'1.0-4' }} GNF
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- VERSEMENT MULTI-DEVISE : entrées additionnelles -->
+            <div class="col-12"
+                 *ngIf="paymentForm.get('type')?.value === 'CLIENT' && !editingPayment && clientCurrencyAccounts.length">
+              <div class="p-3 rounded-3" style="background:#FEF9E7;border:1px solid #FCD34D;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div>
+                    <div class="fw-bold small d-flex align-items-center gap-1" style="color:#92400E;">
+                      <svg cIcon name="cilLayers" size="sm"></svg>
+                      Versement multi-devise
+                    </div>
+                    <div class="small text-muted">
+                      Ajoute un autre montant dans une devise différente (ex. 200 000 GNF + 500 USD en une seule opération).
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm fw-semibold"
+                          style="background:#F59E0B;color:#fff;border:none;border-radius:8px;"
+                          (click)="addExtraEntry()">
+                    <svg cIcon name="cilPlus" size="sm" class="me-1"></svg> Ajouter une devise
+                  </button>
+                </div>
+
+                <div *ngFor="let entry of extraEntries; let i = index"
+                     class="d-flex flex-wrap gap-2 align-items-end p-2 mt-2"
+                     style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;">
+                  <div style="min-width:130px;">
+                    <label class="small fw-semibold mb-1 d-block">Devise</label>
+                    <select [(ngModel)]="entry.currency"
+                            [ngModelOptions]="{ standalone: true }"
+                            (ngModelChange)="onExtraEntryCurrencyChange(entry)"
+                            class="form-select form-select-sm" style="border-radius:8px;">
+                      <option value="GNF">GNF</option>
+                      <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.code">{{ c.code }}</option>
+                    </select>
+                  </div>
+                  <div style="min-width:130px;flex:1;">
+                    <label class="small fw-semibold mb-1 d-block">Montant</label>
+                    <input type="number" min="0.01" step="0.01"
+                           [(ngModel)]="entry.amount"
+                           [ngModelOptions]="{ standalone: true }"
+                           class="form-control form-control-sm" style="border-radius:8px;text-align:right;" />
+                  </div>
+                  <div style="min-width:130px;" *ngIf="entry.currency !== 'GNF'">
+                    <label class="small fw-semibold mb-1 d-block">Taux GNF</label>
+                    <input type="number" min="0.0001" step="0.0001"
+                           [(ngModel)]="entry.exchange_rate"
+                           [ngModelOptions]="{ standalone: true }"
+                           class="form-control form-control-sm" style="border-radius:8px;" />
+                  </div>
+                  <div style="min-width:180px;flex:1;">
+                    <label class="small fw-semibold mb-1 d-block">Compte client cible</label>
+                    <select [(ngModel)]="entry.target_account_id"
+                            [ngModelOptions]="{ standalone: true }"
+                            class="form-select form-select-sm" style="border-radius:8px;">
+                      <option [ngValue]="null">Auto (créera le compte si besoin)</option>
+                      <option *ngFor="let acc of clientCurrencyAccounts; trackBy: trackById" [ngValue]="acc.id">
+                        Compte {{ acc.currency }}
+                      </option>
+                    </select>
+                  </div>
+                  <button type="button" class="btn btn-sm"
+                          style="background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:8px;"
+                          (click)="removeExtraEntry(i)" title="Supprimer cette entrée">
+                    <svg cIcon name="cilTrash" size="sm"></svg>
+                  </button>
+                </div>
+
+                <div *ngIf="extraEntries.length" class="small mt-2" style="color:#92400E;">
+                  <strong>{{ extraEntries.length + 1 }}</strong> entrée(s) seront enregistrées comme un seul versement groupé (même reçu).
+                </div>
+              </div>
+            </div>
+
             <div class="col-md-4">
               <label class="form-label small fw-semibold">Date *</label>
               <input cFormControl type="date" formControlName="payment_date" style="border-radius:8px;" />
@@ -454,8 +563,8 @@
 
             <!-- En-tête : logo + nom organisation -->
             <div class="text-center" style="margin-bottom:20px;">
-              <img src="/assets/images/logo/mat_kolla_hd.png" alt="Logo"
-                   style="height:56px;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;" />
+              <img src="/assets/images/logo/logo_matkolla_2026.jpeg" alt="Logo"
+                   style="height:56px;max-width:120px;object-fit:contain;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;" />
               <div style="font-size:1.1rem;font-weight:700;color:#111827;letter-spacing:.3px;">
                 {{ currentReceipt.organisation.name || 'Gestion Multi-Modules' }}
               </div>

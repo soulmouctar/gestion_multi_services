@@ -27,15 +27,6 @@ const routes: Routes = [
         }
       },
       {
-        path: 'contacts',
-        loadComponent: () => import('./contacts/contacts.component').then(m => m.ContactsComponent),
-        canActivate: [RoleGuard],
-        data: {
-          title: 'Contacts & Adresses',
-          roles: ['SUPER_ADMIN', 'ADMIN']
-        }
-      },
-      {
         path: 'users',
         loadComponent: () => import('./users/organisation-users.component').then(m => m.OrganisationUsersComponent),
         data: {
@@ -44,33 +35,6 @@ const routes: Routes = [
           roles: ['SUPER_ADMIN', 'ADMIN', 'USER']
         }
       },
-      {
-        path: 'currencies',
-        loadComponent: () => import('./currencies/currencies.component').then(m => m.CurrenciesComponent),
-        canActivate: [RoleGuard],
-        data: {
-          title: 'Devises',
-          roles: ['SUPER_ADMIN', 'ADMIN']
-        }
-      },
-      {
-        path: 'invoice-headers',
-        loadComponent: () => import('./invoice-headers/invoice-headers.component').then(m => m.InvoiceHeadersComponent),
-        canActivate: [RoleGuard],
-        data: {
-          title: 'En-têtes Factures',
-          roles: ['SUPER_ADMIN', 'ADMIN']
-        }
-      },
-      {
-        path: 'settings',
-        loadComponent: () => import('./settings/organisation-settings.component').then(m => m.OrganisationSettingsComponent),
-        canActivate: [RoleGuard],
-        data: {
-          title: 'Configuration',
-          roles: ['SUPER_ADMIN', 'ADMIN']
-        }
-      }
     ]
   }
 ];

@@ -105,7 +105,7 @@ export class PaymentDetailComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/payments/list']);
+    this.router.navigate(['/finance/dashboard']);
   }
 
   printReceipt(): void {
@@ -155,11 +155,14 @@ export class PaymentDetailComponent implements OnInit {
       client: this.receipt?.client || (this.payment?.client ? { id: this.payment.client.id, name: this.payment.client.name, phone: this.payment.client.phone } : undefined),
       invoice: this.receipt?.invoice || (this.payment?.invoice ? this.payment.invoice : null),
       organisation: {
-        name: header?.company_name || tenant?.name || 'GESTION MULTI-MODULES',
-        address: [header?.address, header?.city, header?.country].filter(Boolean).join(' - '),
+        name: header?.company_name || tenant?.name || 'MATKOLLA',
+        address: [header?.address, header?.city, header?.country].filter(Boolean).join(' - ')
+                 || (tenant as any)?.address || '',
         phone: header?.phone || tenant?.phone || '',
         email: header?.email || tenant?.email || '',
-        footer_text: header?.footer_text || 'Document valable comme justificatif de paiement'
+        footer_text: header?.footer_text || 'Document valable comme justificatif de paiement',
+        // Priorite : logo invoice_header > logo tenant > fallback MatKolla
+        logoUrl: header?.logo_url || (tenant as any)?.logo_url || ''
       },
       generated_at: this.receipt?.generated_at || new Date().toISOString()
     };

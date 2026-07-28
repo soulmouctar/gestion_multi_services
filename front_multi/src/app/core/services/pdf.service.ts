@@ -43,6 +43,130 @@ interface PrintableInvoiceData {
   notes?: string;
 }
 
+export interface PrintableSalesSummary {
+  summary: {
+    invoices_count: number;
+    items_count?: number;
+    samples_count?: number;
+    total_revenue_gnf: number;
+    total_cost_gnf: number;
+    total_margin_gnf: number;
+    margin_pct: number | null;
+    total_revenue_native?: number;
+    total_cost_native?: number;
+  };
+  invoices: Array<{
+    id: number; invoice_number: string; date: string;
+    client: { name: string } | null;
+    currency: string; status: string;
+    revenue: number; cost: number; margin: number; margin_pct: number | null;
+  }>;
+  period?: { from?: string; to?: string };
+  organisation?: PrintableOrganisation;
+}
+
+export interface PrintableExpenseStats {
+  summary?: { total_count?: number; total_amount?: number; avg_amount?: number };
+  by_category?: Array<{ category_name: string; count: number; total: number }>;
+  top_expenses?: Array<{ title: string; expense_date: string; amount: number; currency?: string; category_name?: string }>;
+  period?: { from?: string; to?: string };
+  organisation?: PrintableOrganisation;
+}
+
+export interface PrintableClientFinancialOverview {
+  summary?: any;
+  rows: any[];
+  filters?: { search?: string; client_type?: string; status?: string };
+  organisation?: PrintableOrganisation;
+}
+
+export interface PrintableContainerClientAccount {
+  client?: any;
+  stats?: any;
+  sales: any[];
+  payments: any[];
+  advances: any[];
+  organisation?: PrintableOrganisation;
+}
+
+export interface PrintableRentalPaymentReceipt {
+  receipt_number: string;
+  payment_date?: string | Date;
+  period_month?: string;
+  amount: number;
+  currency: string;
+  payment_method?: string;
+  reference?: string | null;
+  status?: string;
+  notes?: string | null;
+  generated_at?: string | Date;
+  lease?: any;
+  organisation?: PrintableOrganisation;
+}
+
+export interface PrintableLedgerData {
+  client: { id: number; name: string; client_type?: string; phone1?: string; email?: string; address?: string };
+  summary: {
+    total_debit_gnf: number; total_credit_gnf: number; final_balance_gnf: number;
+    total_debit_usd: number; total_credit_usd: number; final_balance_usd: number;
+    has_usd: boolean; rows_count: number;
+    // Dynamique multi-devises
+    currencies?: string[];
+    by_currency?: Record<string, { total_debit: number; total_credit: number; final_balance: number }>;
+  };
+  rows: Array<{
+    date: string; type: string; type_label: string; designation: string;
+    quantity: number | null; currency: string;
+    debit_gnf: number; credit_gnf: number; balance_gnf: number;
+    debit_usd: number; credit_usd: number; balance_usd: number;
+    by_currency?: Record<string, { debit: number; credit: number; balance: number }>;
+    reference: string | null;
+    // Preuve de conversion multi-devises (paiements)
+    exchange_rate?: number | null;
+    target_currency?: string | null;
+    converted_amount?: number | null;
+    native_amount?: number | null;
+    native_currency?: string | null;
+  }>;
+  period?: { from?: string; to?: string };
+  organisation?: PrintableOrganisation;
+}
+
+export interface VersementEntry {
+  amount: number;
+  currency: string;
+  target_currency?: string | null;
+  converted_amount?: number | null;
+  exchange_rate?: number | null;
+  amount_gnf?: number | null;
+  target_account_label?: string | null;
+}
+
+export interface PrintableVersementReceiptData {
+  receipt_number: string;
+  payment_date: string | Date;
+  method: string;
+  reference?: string | null;
+  description?: string | null;
+  client: { id: number; name: string; phone?: string | null; address?: string | null };
+  entries: VersementEntry[];
+  totals_by_currency: Array<{ currency: string; total: number }>;
+  // Devise principale du versement : la devise unique si mono-devise sans conversion, sinon GNF
+  primary_currency: string;
+  // Montant total exprimé dans la devise principale
+  total_amount: number;
+  // Équivalent GNF (utile pour affichage secondaire uniquement si conversion réelle)
+  total_gnf: number;
+  arrears?: {
+    currency: string;
+    previous_balance: number;
+    payment_amount: number;
+    remaining_balance: number;
+  } | null;
+  organisation: PrintableOrganisation & { footer_text?: string };
+  generated_at?: string;
+}
+
 interface PrintableReceiptData {
   receipt_number: string;
   payment_date: string;
@@ -64,7 +188,7 @@ interface PrintableReceiptData {
     remaining_balance: number;
     status: string;
   } | null;
-  organisation: { name: string; address?: string; phone?: string; email?: string; footer_text?: string };
+  organisation: { name: string; address?: string; phone?: string; email?: string; footer_text?: string; logoUrl?: string };
   generated_at: string;
 }
 
@@ -73,6 +197,7 @@ interface PrintableReceiptData {
 })
 export class PdfService {
   private readonly API_URL = environment.apiUrl;
+  private bundledPdfMake: any | null = null;
 
   constructor(private http: HttpClient) {}
 
@@ -102,14 +227,14 @@ export class PdfService {
     filename?: string
   ): Promise<void> {
     // Fallback : si pas de logo organisation, on utilise le logo MatKolla
-    const MATKOLLA_LOGO = 'assets/images/logo/mat_kolla_hd.png';
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
     const orgLogo = await this.resolveImageData(invoiceData.organisation?.logoUrl);
     const [logo, signature, stamp] = await Promise.all([
       orgLogo ? Promise.resolve(orgLogo) : this.resolveImageData(MATKOLLA_LOGO),
       this.resolveImageData(invoiceData.organisation?.signatureUrl),
       this.resolveImageData(invoiceData.organisation?.stampUrl)
     ]);
-    const pdfMake = this.getPdfMake();
+    const pdfMake = await this.getPdfMake();
     if (pdfMake?.createPdf) {
       const docDefinition = this.buildProfessionalInvoiceDocDefinition(invoiceData, { logo, signature, stamp });
       const pdf = pdfMake.createPdf(docDefinition);
@@ -121,10 +246,7 @@ export class PdfService {
       return;
     }
 
-    this.openPrintWindow(
-      `Facture ${invoiceData.invoiceNumber}`,
-      this.buildProfessionalInvoiceHtml(invoiceData)
-    );
+    throw new Error('pdfmake non initialisé: polices Roboto indisponibles');
   }
 
   async generateProfessionalReceiptPdf(receiptData: PrintableReceiptData): Promise<void> {
@@ -140,7 +262,7 @@ export class PdfService {
     mode: 'print' | 'download',
     filename?: string
   ): Promise<void> {
-    const pdfMake = this.getPdfMake();
+    const pdfMake = await this.getPdfMake();
     if (!pdfMake?.createPdf) {
       this.openPrintWindow(`Reçu ${receiptData.receipt_number}`, this.buildSimpleReceiptHtml({
         title: 'Reçu de paiement',
@@ -155,7 +277,12 @@ export class PdfService {
       return;
     }
 
-    const docDefinition = this.buildProfessionalReceiptDocDefinition(receiptData);
+    // Logo tenant en fallback MatKolla
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const orgLogo = await this.resolveImageData((receiptData.organisation as any)?.logoUrl);
+    const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
+
+    const docDefinition = this.buildProfessionalReceiptDocDefinition(receiptData, { logo });
     const pdf = pdfMake.createPdf(docDefinition);
     if (mode === 'download') {
       pdf.download(filename || `recu-${receiptData.receipt_number}.pdf`);
@@ -166,6 +293,1158 @@ export class PdfService {
 
   generateReceiptPdf(receiptData: any): Observable<Blob> {
     return this.generatePdfFromApi('pdf/receipt', receiptData);
+  }
+
+  async printVersementReceiptPdf(data: PrintableVersementReceiptData): Promise<void> {
+    await this.generateVersementReceiptPdfWithMode(data, 'print');
+  }
+
+  async downloadVersementReceiptPdf(data: PrintableVersementReceiptData, filename?: string): Promise<void> {
+    await this.generateVersementReceiptPdfWithMode(data, 'download', filename);
+  }
+
+  private async generateVersementReceiptPdfWithMode(
+    data: PrintableVersementReceiptData,
+    mode: 'print' | 'download',
+    filename?: string,
+  ): Promise<void> {
+    const pdfMake = await this.getPdfMake();
+    if (!pdfMake?.createPdf) {
+      this.openPrintWindow(`Reçu ${data.receipt_number}`, this.buildSimpleReceiptHtml({
+        title: 'Reçu de versement',
+        receiptNumber: data.receipt_number,
+        date: new Date(data.payment_date as any),
+        amount: data.total_gnf,
+        currency: 'GNF',
+        paymentMethod: data.method,
+        clientName: data.client?.name,
+        description: data.description || undefined,
+      }));
+      return;
+    }
+
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const orgLogo = await this.resolveImageData(data.organisation?.logoUrl);
+    const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
+
+    const docDefinition = this.buildVersementReceiptDocDefinition(data, { logo });
+    const pdf = pdfMake.createPdf(docDefinition);
+    if (mode === 'download') {
+      pdf.download(filename || `recu-versement-${data.receipt_number}.pdf`);
+    } else {
+      pdf.print();
+    }
+  }
+
+  private buildVersementReceiptDocDefinition(
+    data: PrintableVersementReceiptData,
+    assets: { logo?: string | null } = {},
+  ): any {
+    const primaryCurrency = (data.primary_currency || 'GNF').toUpperCase();
+    const isNativeMode = primaryCurrency !== 'GNF';
+    const totalPrimary = Number(data.total_amount ?? data.total_gnf ?? 0);
+    const totalGnf = Number(data.total_gnf || 0);
+
+    const hasArrears = !!data.arrears;
+    const arrearsCurrency = (data.arrears?.currency || primaryCurrency || 'GNF').toUpperCase();
+    const previousBalance = Number(data.arrears?.previous_balance || 0);
+    const remainingBalance = Number(data.arrears?.remaining_balance || 0);
+    const paymentAmount = Number(data.arrears?.payment_amount || totalPrimary || 0);
+
+    const equivHeader = isNativeMode ? `Équiv. ${primaryCurrency}` : 'Équiv. GNF';
+    const entriesHeader = [
+      { text: 'Montant reçu', style: 'thCell' },
+      { text: 'Devise', style: 'thCell', alignment: 'center' },
+      { text: 'Vers', style: 'thCell', alignment: 'center' },
+      { text: 'Taux', style: 'thCell', alignment: 'right' },
+      { text: 'Converti', style: 'thCell', alignment: 'right' },
+      { text: equivHeader, style: 'thCell', alignment: 'right' },
+    ];
+    const entriesBody = [entriesHeader as any];
+    for (const e of data.entries || []) {
+      const noConversion = !e.target_currency || e.target_currency === e.currency;
+      const equivalent = noConversion
+        ? (e.currency === primaryCurrency
+            ? this.formatMoney(e.amount, primaryCurrency)
+            : '—')
+        : (isNativeMode
+            ? '—'
+            : (e.amount_gnf != null ? this.formatMoney(e.amount_gnf, 'GNF') : '—'));
+      entriesBody.push([
+        { text: this.formatMoney(e.amount, e.currency), style: 'tdCell' },
+        { text: e.currency, style: 'tdCell', alignment: 'center' },
+        { text: noConversion ? '—' : (e.target_currency as string), style: 'tdCell', alignment: 'center' },
+        { text: e.exchange_rate ? String(e.exchange_rate) : '—', style: 'tdCell', alignment: 'right' },
+        { text: (!noConversion && e.converted_amount != null && e.target_currency)
+            ? this.formatMoney(e.converted_amount, e.target_currency)
+            : '—', style: 'tdCell', alignment: 'right' },
+        { text: equivalent, style: 'tdCell', alignment: 'right', bold: true },
+      ] as any);
+    }
+
+    const totalsRow = [
+      { text: 'TOTAL', style: 'totalCell', colSpan: 5 }, {}, {}, {}, {},
+      { text: this.formatMoney(totalPrimary, primaryCurrency), style: 'totalCell', alignment: 'right' },
+    ];
+    entriesBody.push(totalsRow as any);
+
+    const totalsByCurrencyText = (data.totals_by_currency || [])
+      .map(t => `${this.formatMoney(t.total, t.currency)} ${t.currency}`)
+      .join('   ·   ');
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [36, 128, 36, 60],
+      defaultStyle: { font: 'Roboto', fontSize: 9, color: '#111827' },
+      styles: {
+        titleSmall: { fontSize: 10, color: '#BFDBFE', bold: true, characterSpacing: 1.4 },
+        titleLarge: { fontSize: 26, bold: true, color: '#FFFFFF' },
+        headerMeta: { fontSize: 11, color: '#DCE7F5' },
+        sectionTitle: { fontSize: 11, bold: true, color: '#0F3460', characterSpacing: 0.6 },
+        thCell: { fontSize: 9, bold: true, color: '#0F3460', fillColor: '#EFF6FF', margin: [6, 6, 6, 6] },
+        tdCell: { fontSize: 9, color: '#111827', margin: [6, 5, 6, 5] },
+        totalCell: { fontSize: 10, bold: true, color: '#065F46', fillColor: '#ECFDF5', margin: [6, 7, 6, 7] },
+      },
+      header: () => ({
+        margin: [0, 0, 0, 0],
+        stack: [
+          {
+            canvas: [
+              { type: 'rect', x: 0, y: 0, w: 595.28, h: 110, color: '#0F172A' },
+              { type: 'rect', x: 0, y: 110, w: 595.28, h: 4, color: '#10B981' },
+            ],
+          },
+          {
+            margin: [36, -88, 36, 0],
+            columns: [
+              {
+                width: 110,
+                stack: assets.logo ? [
+                  { image: assets.logo, fit: [100, 72], alignment: 'left', margin: [0, 0, 0, 4] },
+                ] : [
+                  { text: 'MK', fontSize: 28, bold: true, color: '#FFFFFF', margin: [0, 8, 0, 0] },
+                ],
+              },
+              {
+                width: '*',
+                margin: [10, 4, 0, 0],
+                stack: [
+                  { text: 'REÇU DE VERSEMENT', style: 'titleSmall' },
+                  { text: data.organisation?.name || 'MATKOLLA', fontSize: 14, bold: true, color: '#FFFFFF', margin: [0, 6, 0, 0] },
+                  { text: data.organisation?.address || '', style: 'headerMeta', margin: [0, 4, 0, 0] },
+                  {
+                    text: `${data.organisation?.phone || ''}${data.organisation?.phone && data.organisation?.email ? ' • ' : ''}${data.organisation?.email || ''}`,
+                    style: 'headerMeta',
+                    margin: [0, 3, 0, 0],
+                  },
+                ],
+              },
+              {
+                width: 175,
+                alignment: 'right',
+                stack: [
+                  { text: 'REÇU', style: 'titleLarge', alignment: 'right' },
+                  { text: `N° ${data.receipt_number}`, style: 'headerMeta', alignment: 'right', margin: [0, 6, 0, 0] },
+                  { text: `Date: ${this.formatDate(data.payment_date)}`, style: 'headerMeta', alignment: 'right', margin: [0, 4, 0, 0] },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+      footer: (currentPage: number, pageCount: number) => ({
+        margin: [36, 0, 36, 18],
+        columns: [
+          {
+            width: '*',
+            text: data.organisation?.footer_text || 'Document valable comme justificatif de versement',
+            fontSize: 8.5,
+            color: '#64748B',
+          },
+          { width: 'auto', text: `Page ${currentPage} / ${pageCount}`, fontSize: 8.5, color: '#64748B' },
+        ],
+      }),
+      content: [
+        {
+          columns: [
+            {
+              width: '58%',
+              stack: [
+                { text: 'CLIENT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+                {
+                  table: { widths: ['*'], body: [[{
+                    stack: [
+                      { text: data.client?.name || '—', bold: true, fontSize: 13, color: '#111827' },
+                      { text: data.client?.phone || '', margin: [0, 4, 0, 0], color: '#475569' },
+                      { text: data.client?.address || '', margin: [0, 2, 0, 0], color: '#475569' },
+                    ],
+                    margin: [12, 12, 12, 12],
+                  }]] },
+                  layout: { hLineWidth: () => 1, vLineWidth: () => 1, hLineColor: () => '#E5E7EB', vLineColor: () => '#E5E7EB' },
+                },
+              ],
+            },
+            {
+              width: '42%',
+              stack: [
+                { text: 'VERSEMENT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+                {
+                  table: { widths: ['*'], body: [[{
+                    stack: [
+                      { text: this.formatMoney(totalPrimary, primaryCurrency), bold: true, fontSize: 20, color: '#10B981', alignment: 'center' },
+                      isNativeMode && Math.abs(totalGnf - totalPrimary) > 0.5
+                        ? { text: `≈ ${this.formatMoney(totalGnf, 'GNF')}`, alignment: 'center', color: '#94A3B8', fontSize: 8, margin: [0, 2, 0, 0] }
+                        : { text: '' },
+                      { text: totalsByCurrencyText || '', alignment: 'center', color: '#475569', fontSize: 8.5, margin: [0, 4, 0, 0] },
+                      { text: `Mode: ${data.method}`, alignment: 'center', color: '#475569', margin: [0, 6, 0, 0] },
+                      data.reference ? { text: `Réf.: ${data.reference}`, alignment: 'center', color: '#475569', margin: [0, 2, 0, 0] } : { text: '' },
+                    ],
+                    margin: [12, 14, 12, 14],
+                  }]] },
+                  layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => '#F8FAFC' },
+                },
+              ],
+            },
+          ],
+        },
+
+        { text: 'DÉTAIL DES LIGNES DE VERSEMENT', style: 'sectionTitle', margin: [0, 18, 0, 6] },
+        {
+          table: {
+            headerRows: 1,
+            widths: ['*', 'auto', 'auto', 'auto', '*', '*'],
+            body: entriesBody,
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0,
+            hLineColor: () => '#E5E7EB',
+          },
+        },
+
+        hasArrears ? { text: `SITUATION CLIENT — Compte ${arrearsCurrency}`, style: 'sectionTitle', margin: [0, 18, 0, 6] } : { text: '' },
+        hasArrears ? {
+          table: {
+            widths: ['*', 'auto'],
+            body: [
+              [
+                { text: 'Ancien solde (arriéré)', color: '#475569', margin: [10, 8, 10, 8] },
+                { text: this.formatMoney(previousBalance, arrearsCurrency), alignment: 'right', bold: true, color: previousBalance > 0 ? '#EF4444' : '#10B981', margin: [10, 8, 10, 8] },
+              ],
+              [
+                { text: 'Ce versement', color: '#475569', margin: [10, 8, 10, 8] },
+                { text: `− ${this.formatMoney(paymentAmount, arrearsCurrency)}`, alignment: 'right', bold: true, color: '#10B981', margin: [10, 8, 10, 8] },
+              ],
+              [
+                { text: 'Nouveau solde restant', color: '#0F3460', bold: true, margin: [10, 10, 10, 10], fillColor: '#F0F9FF' },
+                { text: this.formatMoney(remainingBalance, arrearsCurrency), alignment: 'right', bold: true, color: remainingBalance > 0 ? '#EF4444' : '#10B981', fontSize: 12, margin: [10, 10, 10, 10], fillColor: '#F0F9FF' },
+              ],
+            ],
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+            hLineColor: () => '#E5E7EB',
+            vLineColor: () => '#E5E7EB',
+          },
+        } : { text: '' },
+
+        data.description ? {
+          margin: [0, 14, 0, 0],
+          table: { widths: ['*'], body: [[{
+            stack: [
+              { text: 'NOTE', style: 'sectionTitle', margin: [0, 0, 0, 4] },
+              { text: data.description, color: '#374151' },
+            ],
+            margin: [12, 10, 12, 10],
+          }]] },
+          layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => '#FFFBEB' },
+        } : { text: '' },
+
+        {
+          margin: [0, 24, 0, 0],
+          columns: [
+            {
+              width: '50%',
+              stack: [
+                { text: 'SIGNATURE CLIENT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+                {
+                  table: { widths: ['*'], body: [[{
+                    stack: [
+                      { text: ' ', color: '#FFFFFF', margin: [0, 18, 0, 18] },
+                      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 170, y2: 0, lineWidth: 0.5, lineColor: '#94A3B8' }], margin: [0, 8, 0, 4] },
+                      { text: data.client?.name || '—', bold: true, color: '#0F3460', fontSize: 9.4 },
+                    ],
+                    margin: [14, 16, 14, 14],
+                  }]] },
+                  layout: { hLineWidth: () => 1, vLineWidth: () => 1, hLineColor: () => '#E5E7EB', vLineColor: () => '#E5E7EB', fillColor: () => '#FFFFFF' },
+                },
+              ],
+            },
+            {
+              width: '50%',
+              margin: [8, 0, 0, 0],
+              stack: [
+                { text: 'CACHET / CAISSE', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+                {
+                  table: { widths: ['*'], body: [[{
+                    stack: [
+                      { text: ' ', color: '#FFFFFF', margin: [0, 18, 0, 18] },
+                      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 170, y2: 0, lineWidth: 0.5, lineColor: '#94A3B8' }], margin: [0, 8, 0, 4] },
+                      { text: data.organisation?.name || 'MATKOLLA', bold: true, color: '#0F3460', fontSize: 9.4 },
+                    ],
+                    margin: [14, 16, 14, 14],
+                  }]] },
+                  layout: { hLineWidth: () => 1, vLineWidth: () => 1, hLineColor: () => '#E5E7EB', vLineColor: () => '#E5E7EB', fillColor: () => '#FFFFFF' },
+                },
+              ],
+            },
+          ],
+        },
+
+        {
+          margin: [0, 18, 0, 0],
+          text: data.organisation?.footer_text || 'Merci pour votre confiance. Ce reçu fait foi de versement.',
+          fontSize: 8.6,
+          color: '#94A3B8',
+          alignment: 'center',
+          italics: true,
+        },
+        {
+          margin: [0, 4, 0, 0],
+          text: `Généré le ${data.generated_at || this.formatDate(new Date())}`,
+          fontSize: 7.5,
+          color: '#94A3B8',
+          alignment: 'center',
+        },
+      ],
+    };
+  }
+
+  // ── Grand livre client (compte client) ────────────────────────────────────
+  async downloadProfessionalLedgerPdf(ledgerData: PrintableLedgerData, filename?: string): Promise<void> {
+    await this.generateLedgerPdfWithMode(ledgerData, 'download', filename);
+  }
+  async printProfessionalLedgerPdf(ledgerData: PrintableLedgerData): Promise<void> {
+    await this.generateLedgerPdfWithMode(ledgerData, 'print');
+  }
+
+  private async generateLedgerPdfWithMode(
+    ledgerData: PrintableLedgerData,
+    mode: 'print' | 'download',
+    filename?: string
+  ): Promise<void> {
+    const pdfMake = await this.getPdfMake();
+    if (!pdfMake?.createPdf) {
+      console.warn('pdfmake non disponible');
+      return;
+    }
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const orgLogo = await this.resolveImageData(ledgerData.organisation?.logoUrl);
+    const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
+
+    const docDefinition = this.buildProfessionalLedgerDocDefinition(ledgerData, { logo });
+    const pdf = pdfMake.createPdf(docDefinition);
+    if (mode === 'download') {
+      pdf.download(filename || `compte-client-${ledgerData.client.name.replace(/\s+/g, '_')}.pdf`);
+    } else {
+      pdf.print();
+    }
+  }
+
+  private buildProfessionalLedgerDocDefinition(
+    data: PrintableLedgerData,
+    assets: { logo?: string | null } = {}
+  ): any {
+    const fmtNum = (v: number | null | undefined) =>
+      v === null || v === undefined ? '—'
+      : this.normalizeSpaces(new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0 }).format(Number(v) || 0));
+
+    // Devises effectivement présentes (GNF toujours en premier).
+    const rawCurrencies: string[] = (data.summary.currencies && data.summary.currencies.length)
+      ? [...data.summary.currencies]
+      : (data.summary.has_usd ? ['GNF', 'USD'] : ['GNF']);
+    const currencies = rawCurrencies.slice().sort((a, b) => a === 'GNF' ? -1 : b === 'GNF' ? 1 : a.localeCompare(b));
+    const hasMultipleCurrencies = currencies.length > 1;
+    const summaryRows = currencies.map(c => {
+      const total = totalFor(c);
+      return [
+        { text: c, style: 'tableCell', bold: true, color: '#0F3460' },
+        { text: fmtNum(total.debit), style: 'tableCell', alignment: 'right', color: '#DC2626' },
+        { text: fmtNum(total.credit), style: 'tableCell', alignment: 'right', color: '#16A34A' },
+        { text: fmtNum(total.balance), style: 'tableCell', alignment: 'right', bold: true, color: this.balanceColor(total.balance) },
+      ];
+    });
+
+    const cellFor = (r: any, c: string): { debit: number; credit: number; balance: number } => {
+      if (r.by_currency && r.by_currency[c]) return r.by_currency[c];
+      // Fallback : anciens champs GNF/USD explicites.
+      if (c === 'GNF') return { debit: r.debit_gnf || 0, credit: r.credit_gnf || 0, balance: r.balance_gnf || 0 };
+      if (c === 'USD') return { debit: r.debit_usd || 0, credit: r.credit_usd || 0, balance: r.balance_usd || 0 };
+      return { debit: 0, credit: 0, balance: 0 };
+    };
+    const totalFor = (c: string): { debit: number; credit: number; balance: number } => {
+      const bc = data.summary.by_currency?.[c];
+      if (bc) return { debit: bc.total_debit, credit: bc.total_credit, balance: bc.final_balance };
+      if (c === 'GNF') return { debit: data.summary.total_debit_gnf || 0, credit: data.summary.total_credit_gnf || 0, balance: data.summary.final_balance_gnf || 0 };
+      if (c === 'USD') return { debit: data.summary.total_debit_usd || 0, credit: data.summary.total_credit_usd || 0, balance: data.summary.final_balance_usd || 0 };
+      return { debit: 0, credit: 0, balance: 0 };
+    };
+
+    const headerRow: any[] = [
+      { text: 'Date', style: 'tableHeader' },
+      { text: 'Type', style: 'tableHeader' },
+      { text: 'Désignation', style: 'tableHeader' },
+      { text: 'Qté', style: 'tableHeader', alignment: 'center' },
+    ];
+    for (const c of currencies) {
+      headerRow.push(
+        { text: `Débit ${c}`, style: 'tableHeader', alignment: 'right' },
+        { text: `Crédit ${c}`, style: 'tableHeader', alignment: 'right' },
+        { text: `Solde ${c}`, style: 'tableHeader', alignment: 'right' },
+      );
+    }
+
+    const bodyRows = data.rows.map((r) => {
+      const hasFx = !!r.exchange_rate && !!r.target_currency && r.currency !== r.target_currency;
+      const designationCell = hasFx
+        ? {
+            style: 'tableCell',
+            stack: [
+              { text: r.designation || '' },
+              {
+                text: `${fmtNum(r.native_amount)} ${r.currency}  →  ${fmtNum(r.converted_amount)} ${r.target_currency}   ·   Taux : ${r.exchange_rate}`,
+                fontSize: 7.4,
+                color: '#1D4ED8',
+                margin: [0, 2, 0, 0],
+              },
+            ],
+          }
+        : { text: r.designation || '', style: 'tableCell' };
+      const row: any[] = [
+        { text: this.formatDate(r.date), style: 'tableCell' },
+        { text: r.type_label || r.type, style: 'tableCell' },
+        designationCell,
+        { text: r.quantity != null ? String(r.quantity) : '—', style: 'tableCell', alignment: 'center' },
+      ];
+      for (const c of currencies) {
+        const cell = cellFor(r, c);
+        row.push(
+          { text: cell.debit > 0 ? fmtNum(cell.debit) : '—', style: 'tableCell', alignment: 'right', color: cell.debit > 0 ? '#DC2626' : '#9CA3AF' },
+          { text: cell.credit > 0 ? fmtNum(cell.credit) : '—', style: 'tableCell', alignment: 'right', color: cell.credit > 0 ? '#16A34A' : '#9CA3AF' },
+          { text: fmtNum(cell.balance), style: 'tableCell', alignment: 'right', bold: true,
+            color: cell.balance > 0 ? '#DC2626' : cell.balance < 0 ? '#16A34A' : '#0F3460' },
+        );
+      }
+      return row;
+    });
+
+    // Largeurs : plus la table a de colonnes, plus on privilégie le format paysage.
+    const useLandscape = hasMultipleCurrencies;
+    const currencyCols = currencies.length * 3;
+    const widths: any[] = useLandscape
+      ? [54, 52, '*', 24, ...Array(currencyCols).fill(52)]
+      : [60, 60, '*', 30, ...Array(currencyCols).fill(75)];
+
+    return {
+      pageSize: 'A4',
+      pageOrientation: useLandscape ? 'landscape' : 'portrait',
+      pageMargins: [30, 128, 30, 48],
+      defaultStyle: { font: 'Roboto', fontSize: 8.5, color: '#111827' },
+      styles: {
+        titleSmall: { fontSize: 10, color: '#BFDBFE', bold: true, characterSpacing: 1.4 },
+        titleLarge: { fontSize: 22, bold: true, color: '#FFFFFF' },
+        headerMeta: { fontSize: 10.5, color: '#DCE7F5' },
+        sectionTitle: { fontSize: 11, bold: true, color: '#0F3460', characterSpacing: 0.5 },
+        tableHeader: { fontSize: 8.6, bold: true, color: '#FFFFFF' },
+        tableCell: { fontSize: 8.2, color: '#111827' },
+      },
+      header: () => ({
+        stack: [
+          {
+            canvas: [
+              { type: 'rect', x: 0, y: 0, w: useLandscape ? 842 : 595.28, h: 110, color: '#0F172A' },
+              { type: 'rect', x: 0, y: 110, w: useLandscape ? 842 : 595.28, h: 4, color: '#0F3460' },
+            ],
+          },
+          {
+            margin: [30, -88, 30, 0],
+            columns: [
+              {
+                width: 110,
+                stack: assets.logo
+                  ? [{ image: assets.logo, fit: [100, 72], alignment: 'left', margin: [0, 0, 0, 4] }]
+                  : [{ text: 'MK', fontSize: 28, bold: true, color: '#FFFFFF', margin: [0, 8, 0, 0] }],
+              },
+              {
+                width: '*',
+                margin: [10, 4, 0, 0],
+                stack: [
+                  { text: 'GRAND LIVRE CLIENT', style: 'titleSmall' },
+                  { text: data.organisation?.name || 'MATKOLLA', fontSize: 14, bold: true, color: '#FFFFFF', margin: [0, 6, 0, 0] },
+                  { text: data.organisation?.address || '', style: 'headerMeta', margin: [0, 4, 0, 0] },
+                  {
+                    text: `${data.organisation?.phone || ''}${data.organisation?.phone && data.organisation?.email ? ' • ' : ''}${data.organisation?.email || ''}`,
+                    style: 'headerMeta', margin: [0, 3, 0, 0],
+                  },
+                ],
+              },
+              {
+                width: 200, alignment: 'right',
+                stack: [
+                  { text: 'COMPTE CLIENT', style: 'titleLarge', alignment: 'right' },
+                  { text: data.client.name, style: 'headerMeta', alignment: 'right', bold: true, margin: [0, 6, 0, 0] },
+                  { text: data.client.client_type || '', style: 'headerMeta', alignment: 'right', margin: [0, 3, 0, 0] },
+                  { text: data.period?.from || data.period?.to
+                          ? `Du ${this.formatDate(data.period?.from)} au ${this.formatDate(data.period?.to)}`
+                          : `Au ${this.formatDate(new Date())}`,
+                    style: 'headerMeta', alignment: 'right', margin: [0, 3, 0, 0] },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+      footer: (currentPage: number, pageCount: number) => ({
+        margin: [30, 0, 30, 18],
+        columns: [
+          { width: '*', text: data.organisation?.footerText || `${data.organisation?.name || 'MATKOLLA'} — Compte client`, fontSize: 8, color: '#64748B' },
+          { width: 'auto', text: `Page ${currentPage} / ${pageCount}`, fontSize: 8, color: '#64748B' },
+        ],
+      }),
+      content: [
+        // Bloc résumé par devise : débit - crédit = solde.
+        {
+          margin: [0, 0, 0, 14],
+          columns: [
+            {
+              width: '38%',
+              table: {
+                widths: ['*'],
+                body: [
+                  [{
+                    stack: [
+                      { text: data.client.name, fontSize: 13, bold: true, color: '#111827' },
+                      { text: [data.client.phone1, data.client.email].filter(Boolean).join(' • ') || '—', fontSize: 8.2, color: '#64748B', margin: [0, 4, 0, 0] },
+                      { text: data.client.address || '', fontSize: 8.2, color: '#64748B', margin: [0, 2, 0, 0] },
+                    ],
+                    margin: [12, 12, 12, 12],
+                  }],
+                ],
+              },
+              layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => '#F8FAFC' },
+            },
+            {
+              width: '62%',
+              margin: [10, 0, 0, 0],
+              table: {
+                headerRows: 1,
+                widths: ['*', '*', '*', '*'],
+                body: [
+                  [
+                    { text: 'Devise', style: 'tableHeader' },
+                    { text: 'Débit', style: 'tableHeader', alignment: 'right' },
+                    { text: 'Crédit', style: 'tableHeader', alignment: 'right' },
+                    { text: 'Solde', style: 'tableHeader', alignment: 'right' },
+                  ],
+                  ...summaryRows,
+                ],
+              },
+              layout: {
+                fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : '#F8FAFC',
+                hLineColor: () => '#E5E7EB',
+                vLineColor: () => '#E5E7EB',
+                hLineWidth: () => 0.5,
+                vLineWidth: () => 0.5,
+                paddingLeft: () => 6,
+                paddingRight: () => 6,
+                paddingTop: () => 6,
+                paddingBottom: () => 6,
+              },
+            },
+          ],
+        },
+        {
+          margin: [0, 0, 0, 10],
+          table: {
+            widths: ['*', '*', '*'],
+            body: [[
+              this.summaryCell('Opérations imprimées', fmtNum(data.summary.rows_count || data.rows.length), '#0F3460'),
+              this.summaryCell('Solde GNF', fmtNum(totalFor('GNF').balance), this.balanceColor(totalFor('GNF').balance)),
+              this.summaryCell('Principe', 'Débit - Crédit = Solde', '#64748B'),
+            ]],
+          },
+          layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+        },
+        // Tableau principal
+        {
+          table: {
+            headerRows: 1,
+            widths,
+            body: [headerRow, ...bodyRows],
+          },
+          layout: {
+            fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : rowIndex % 2 === 0 ? '#F8FAFC' : '#FFFFFF',
+            hLineColor: () => '#E5E7EB',
+            vLineColor: () => '#E5E7EB',
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+            paddingLeft: () => 5,
+            paddingRight: () => 5,
+            paddingTop: () => 4.5,
+            paddingBottom: () => 4.5,
+          },
+        },
+      ],
+    };
+  }
+
+  private summaryCell(label: string, value: string, valueColor = '#0F3460'): any {
+    return {
+      fillColor: '#F8FAFC',
+      margin: [4, 0, 4, 0],
+      table: {
+        widths: ['*'],
+        body: [[{
+          stack: [
+            { text: label, fontSize: 8, color: '#64748B', bold: true, characterSpacing: 0.4 },
+            { text: value, fontSize: 13, color: valueColor, bold: true, margin: [0, 3, 0, 0] },
+          ],
+          margin: [10, 8, 10, 8],
+        }]],
+      },
+      layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => '#F8FAFC' },
+    };
+  }
+
+  // ── Synthèse des ventes (rapport marges) ────────────────────────────────
+  async downloadSalesSummaryPdf(data: PrintableSalesSummary, filename?: string): Promise<void> {
+    await this.generateSalesSummaryPdfWithMode(data, 'download', filename);
+  }
+
+  async printSalesSummaryPdf(data: PrintableSalesSummary): Promise<void> {
+    await this.generateSalesSummaryPdfWithMode(data, 'print');
+  }
+
+  private async generateSalesSummaryPdfWithMode(
+    data: PrintableSalesSummary,
+    mode: 'print' | 'download',
+    filename?: string
+  ): Promise<void> {
+    const pdfMake = await this.getPdfMake();
+    if (!pdfMake?.createPdf) {
+      console.warn('pdfmake non disponible');
+      return;
+    }
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const orgLogo = await this.resolveImageData(data.organisation?.logoUrl);
+    const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
+    const docDef = this.buildSalesSummaryDoc(data, { logo });
+    const pdf = pdfMake.createPdf(docDef);
+    if (mode === 'download') {
+      pdf.download(filename || `synthese-ventes-${new Date().toISOString().split('T')[0]}.pdf`);
+    } else {
+      pdf.print();
+    }
+  }
+
+  private buildSalesSummaryDoc(data: PrintableSalesSummary, assets: { logo?: string | null } = {}): any {
+    const fmtNum = (v: number | null | undefined) =>
+      v === null || v === undefined ? '—'
+      : this.normalizeSpaces(new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0 }).format(Number(v) || 0));
+    const fmtPct = (v: number | null | undefined) =>
+      v === null || v === undefined ? '—' : `${Number(v).toFixed(1)} %`;
+    const statusLabel = (status: string) => ({
+      PAYE: 'Payée',
+      PARTIEL: 'Partielle',
+      IMPAYE: 'Impayée',
+    } as Record<string, string>)[status] || status || '—';
+    const periodText = data.period?.from || data.period?.to
+      ? `Période du ${this.formatDate(data.period?.from)} au ${this.formatDate(data.period?.to)}`
+      : `État arrêté au ${this.formatDate(new Date())}`;
+    const marginColor = Number(data.summary.total_margin_gnf || 0) >= 0 ? '#047857' : '#B91C1C';
+
+    const headerRow = [
+      { text: 'Date', style: 'th' },
+      { text: 'Facture', style: 'th' },
+      { text: 'Client', style: 'th' },
+      { text: 'Statut', style: 'th', alignment: 'center' },
+      { text: 'Devise', style: 'th', alignment: 'center' },
+      { text: 'Chiffre affaires', style: 'th', alignment: 'right' },
+      { text: 'Coût achat', style: 'th', alignment: 'right' },
+      { text: 'Marge', style: 'th', alignment: 'right' },
+      { text: 'Marge %', style: 'th', alignment: 'right' },
+    ];
+
+    const body = data.invoices.map(inv => [
+      { text: this.formatDate(inv.date), style: 'td' },
+      { text: inv.invoice_number, style: 'td', bold: true, color: '#0F3460' },
+      { text: inv.client?.name || '—', style: 'td' },
+      { text: statusLabel(inv.status), style: 'td', alignment: 'center',
+        color: inv.status === 'PAYE' ? '#16A34A' : inv.status === 'PARTIEL' ? '#D97706' : '#DC2626' },
+      { text: inv.currency || 'GNF', style: 'td', alignment: 'center' },
+      { text: fmtNum(inv.revenue), style: 'td', alignment: 'right' },
+      { text: fmtNum(inv.cost), style: 'td', alignment: 'right', color: '#B45309' },
+      { text: fmtNum(inv.margin), style: 'td', alignment: 'right', bold: true,
+        color: inv.margin > 0 ? '#16A34A' : inv.margin < 0 ? '#DC2626' : '#64748B' },
+      { text: fmtPct(inv.margin_pct), style: 'td', alignment: 'right', bold: true,
+        color: (inv.margin_pct ?? 0) > 0 ? '#16A34A' : '#DC2626' },
+    ]);
+    const emptyRow = [[
+      { text: 'Aucune vente ne correspond aux filtres sélectionnés.', colSpan: 9, alignment: 'center', color: '#64748B', margin: [0, 12, 0, 12] },
+      {}, {}, {}, {}, {}, {}, {}, {},
+    ]];
+
+    return {
+      pageSize: 'A4',
+      pageOrientation: 'landscape',
+      pageMargins: [30, 30, 30, 34],
+      info: {
+        title: 'Synthèse des ventes',
+        subject: periodText,
+      },
+      defaultStyle: { font: 'Roboto', fontSize: 8.4, color: '#111827' },
+      styles: {
+        reportTitle: { fontSize: 22, bold: true, color: '#0F3460' },
+        orgName: { fontSize: 12.5, bold: true, color: '#111827' },
+        muted: { fontSize: 8, color: '#64748B' },
+        sectionTitle: { fontSize: 9.4, bold: true, color: '#0F3460', characterSpacing: 0.5 },
+        th: { fontSize: 8.1, bold: true, color: '#FFFFFF' },
+        td: { fontSize: 7.9, color: '#111827' },
+      },
+      footer: (p: number, n: number) => ({
+        margin: [30, 0, 30, 14],
+        columns: [
+          { width: '*', text: data.organisation?.footerText || `${data.organisation?.name || 'MATKOLLA'} - Synthèse des ventes`, fontSize: 7.6, color: '#64748B' },
+          { width: 'auto', text: `Page ${p} / ${n}`, fontSize: 7.6, color: '#64748B' },
+        ],
+      }),
+      content: [
+        {
+          columns: [
+            {
+              width: '*',
+              stack: [
+                assets.logo
+                  ? { image: assets.logo, fit: [110, 54], margin: [0, 0, 0, 7] }
+                  : { text: data.organisation?.name || 'MATKOLLA', style: 'orgName', margin: [0, 0, 0, 7] },
+                { text: data.organisation?.name || 'MATKOLLA', style: 'orgName' },
+                { text: data.organisation?.address || '', style: 'muted', margin: [0, 3, 0, 0] },
+                { text: [data.organisation?.phone, data.organisation?.email].filter(Boolean).join(' | '), style: 'muted', margin: [0, 3, 0, 0] },
+              ],
+            },
+            {
+              width: 300,
+              stack: [
+                { text: 'SYNTHÈSE DES VENTES', style: 'reportTitle', alignment: 'right' },
+                { text: periodText, style: 'muted', alignment: 'right', margin: [0, 6, 0, 0] },
+                { text: `Généré le ${this.formatDate(new Date())}`, style: 'muted', alignment: 'right', margin: [0, 3, 0, 0] },
+              ],
+            },
+          ],
+        },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 782, y2: 0, lineWidth: 1, lineColor: '#E5E7EB' }], margin: [0, 16, 0, 14] },
+        {
+          margin: [0, 0, 0, 12],
+          table: {
+            widths: ['*', '*', '*', '*', '*'],
+            body: [[
+              this.summaryCell('FACTURES', fmtNum(data.summary.invoices_count || data.invoices.length), '#0F3460'),
+              this.summaryCell('CHIFFRE AFFAIRES', fmtNum(data.summary.total_revenue_gnf) + ' GNF', '#1D4ED8'),
+              this.summaryCell('COÛT D\'ACHAT', fmtNum(data.summary.total_cost_gnf) + ' GNF', '#B45309'),
+              this.summaryCell('MARGE BRUTE', fmtNum(data.summary.total_margin_gnf) + ' GNF', marginColor),
+              this.summaryCell('MARGE %', fmtPct(data.summary.margin_pct), '#7C3AED'),
+            ]],
+          },
+          layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+        },
+        {
+          columns: [
+            { width: '*', text: `${fmtNum(data.summary.items_count || 0)} article(s) vendus - ${fmtNum(data.summary.samples_count || 0)} échantillon(s)`, style: 'muted' },
+            { width: 'auto', text: 'Montants consolidés en GNF', style: 'muted', alignment: 'right' },
+          ],
+          margin: [0, 0, 0, 9],
+        },
+        {
+          table: { headerRows: 1, widths: [52, 74, '*', 58, 42, 82, 78, 78, 58], body: [headerRow, ...(body.length ? body : emptyRow)] },
+          layout: {
+            fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : rowIndex % 2 === 0 ? '#F8FAFC' : '#FFFFFF',
+            hLineColor: () => '#E5E7EB',
+            vLineWidth: () => 0,
+            hLineWidth: () => 0.5,
+            paddingLeft: () => 6,
+            paddingRight: () => 6,
+            paddingTop: () => 6,
+            paddingBottom: () => 6,
+          },
+        },
+        {
+          margin: [0, 12, 0, 0],
+          columns: [
+            { width: '*', text: 'PAYE: facture soldée   |   PARTIEL: paiement partiel   |   IMPAYE: solde restant dû', style: 'muted' },
+            { width: 'auto', text: `Total lignes: ${fmtNum(data.invoices.length)}`, style: 'muted' },
+          ],
+        },
+      ],
+    };
+  }
+
+  // ── Statistiques dépenses ───────────────────────────────────────────────
+  async downloadExpenseStatsPdf(data: PrintableExpenseStats, filename?: string): Promise<void> {
+    const pdfMake = await this.getPdfMake();
+    if (!pdfMake?.createPdf) return;
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const orgLogo = await this.resolveImageData(data.organisation?.logoUrl);
+    const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
+    const docDef = this.buildExpenseStatsDoc(data, { logo });
+    pdfMake.createPdf(docDef).download(filename || `stats-depenses-${new Date().toISOString().split('T')[0]}.pdf`);
+  }
+
+  private buildExpenseStatsDoc(data: PrintableExpenseStats, assets: { logo?: string | null } = {}): any {
+    const fmtNum = (v: number | null | undefined) =>
+      v === null || v === undefined ? '—'
+      : this.normalizeSpaces(new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0 }).format(Number(v) || 0));
+
+    const categoryRows = (data.by_category || []).map(c => [
+      { text: c.category_name, style: 'tableCell' },
+      { text: String(c.count || 0), style: 'tableCell', alignment: 'center' },
+      { text: fmtNum(c.total) + ' GNF', style: 'tableCell', alignment: 'right', bold: true },
+    ]);
+
+    const topRows = (data.top_expenses || []).slice(0, 10).map((e, i) => [
+      { text: `#${i + 1}`, style: 'tableCell', bold: true, color: i === 0 ? '#D97706' : '#64748B' },
+      { text: this.formatDate(e.expense_date), style: 'tableCell' },
+      { text: e.title, style: 'tableCell' },
+      { text: e.category_name || '—', style: 'tableCell' },
+      { text: fmtNum(e.amount) + ' ' + (e.currency || 'GNF'), style: 'tableCell', alignment: 'right', bold: true, color: '#DC2626' },
+    ]);
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [36, 128, 36, 48],
+      defaultStyle: { font: 'Roboto', fontSize: 9, color: '#111827' },
+      styles: {
+        titleSmall: { fontSize: 10, color: '#BFDBFE', bold: true, characterSpacing: 1.4 },
+        titleLarge: { fontSize: 22, bold: true, color: '#FFFFFF' },
+        headerMeta: { fontSize: 10.5, color: '#DCE7F5' },
+        sectionTitle: { fontSize: 11, bold: true, color: '#0F3460', characterSpacing: 0.5 },
+        tableHeader: { fontSize: 8.6, bold: true, color: '#FFFFFF' },
+        tableCell: { fontSize: 8.6, color: '#111827' },
+      },
+      header: () => this.reportHeader('STATISTIQUES DÉPENSES', data.organisation, data.period, assets),
+      footer: (p: number, n: number) => this.reportFooter(p, n, data.organisation),
+      content: [
+        {
+          margin: [0, 0, 0, 14],
+          table: { widths: ['*', '*', '*'], body: [[
+            this.summaryCell('NOMBRE DE DÉPENSES', fmtNum(data.summary?.total_count) || '0', '#1D4ED8'),
+            this.summaryCell('TOTAL DÉPENSÉ', fmtNum(data.summary?.total_amount) + ' GNF', '#DC2626'),
+            this.summaryCell('MOYENNE', fmtNum(data.summary?.avg_amount) + ' GNF', '#0891B2'),
+          ]] },
+          layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+        },
+        { text: 'RÉPARTITION PAR CATÉGORIE', style: 'sectionTitle', margin: [0, 8, 0, 8] },
+        {
+          table: { headerRows: 1, widths: ['*', 60, 100], body: [
+            [
+              { text: 'Catégorie', style: 'tableHeader' },
+              { text: 'Nb', style: 'tableHeader', alignment: 'center' },
+              { text: 'Total', style: 'tableHeader', alignment: 'right' },
+            ],
+            ...categoryRows,
+          ] },
+          layout: {
+            fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : rowIndex % 2 === 0 ? '#F8FAFC' : '#FFFFFF',
+            hLineColor: () => '#E5E7EB', vLineColor: () => '#E5E7EB',
+            hLineWidth: () => 0.5, vLineWidth: () => 0.5,
+            paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 5, paddingBottom: () => 5,
+          },
+        },
+        { text: 'TOP 10 DÉPENSES', style: 'sectionTitle', margin: [0, 18, 0, 8] },
+        {
+          table: { headerRows: 1, widths: [30, 60, '*', 90, 90], body: [
+            [
+              { text: '#', style: 'tableHeader' },
+              { text: 'Date', style: 'tableHeader' },
+              { text: 'Titre', style: 'tableHeader' },
+              { text: 'Catégorie', style: 'tableHeader' },
+              { text: 'Montant', style: 'tableHeader', alignment: 'right' },
+            ],
+            ...topRows,
+          ] },
+          layout: {
+            fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : rowIndex % 2 === 0 ? '#F8FAFC' : '#FFFFFF',
+            hLineColor: () => '#E5E7EB', vLineColor: () => '#E5E7EB',
+            hLineWidth: () => 0.5, vLineWidth: () => 0.5,
+            paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 5, paddingBottom: () => 5,
+          },
+        },
+      ],
+    };
+  }
+
+  async printClientFinancialOverviewPdf(data: PrintableClientFinancialOverview): Promise<void> {
+    const pdfMake = await this.getPdfMake();
+    if (!pdfMake?.createPdf) {
+      console.warn('pdfmake non disponible');
+      return;
+    }
+    const logo = await this.resolveDefaultLogo(data.organisation);
+    const rows = (data.rows || []).map(r => [
+      { text: r.name || '—', style: 'tableCell' },
+      { text: r.client_type || '—', style: 'tableCell' },
+      { text: this.formatMoney(r.total_charged, 'GNF'), style: 'tableCell', alignment: 'right' },
+      { text: this.formatMoney(r.total_paid, 'GNF'), style: 'tableCell', alignment: 'right', color: '#16A34A' },
+      { text: this.formatMoney(r.gross_debt_gnf, 'GNF'), style: 'tableCell', alignment: 'right', color: '#DC2626' },
+      { text: this.formatMoney(r.rest_to_pay_gnf, 'GNF'), style: 'tableCell', alignment: 'right', bold: true },
+      { text: r.status || '—', style: 'tableCell', alignment: 'center' },
+    ]);
+    const summary = data.summary || {};
+    const docDef = this.buildSimpleReportDoc('INDEX FINANCIER CLIENTS', data.organisation, { logo }, [
+      {
+        margin: [0, 0, 0, 14],
+        table: { widths: ['*', '*', '*'], body: [[
+          this.summaryCell('TOTAL CLIENTS', String(summary.total_clients || data.rows.length || 0), '#1D4ED8'),
+          this.summaryCell('RESTE À PAYER', this.formatMoney(summary.total_rest_to_pay, 'GNF'), '#DC2626'),
+          this.summaryCell('AVANCES DISPONIBLES', this.formatMoney(summary.total_advances_remaining, 'GNF'), '#16A34A'),
+        ]] },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+      },
+      this.simpleTable(
+        ['Client', 'Type', 'Facturé', 'Payé', 'Dette brute', 'Reste à payer', 'Statut'],
+        rows,
+        ['*', 70, 75, 75, 80, 85, 55]
+      ),
+    ], 'landscape');
+    pdfMake.createPdf(docDef).print();
+  }
+
+  async printContainerClientAccountPdf(data: PrintableContainerClientAccount): Promise<void> {
+    const pdfMake = await this.getPdfMake();
+    if (!pdfMake?.createPdf) {
+      console.warn('pdfmake non disponible');
+      return;
+    }
+    const logo = await this.resolveDefaultLogo(data.organisation);
+    const stats = data.stats || {};
+    const salesRows = (data.sales || []).slice(0, 30).map(s => [
+      { text: this.formatDate(s.sale_date || s.created_at), style: 'tableCell' },
+      { text: s.container?.container_number || s.container_number || s.reference || '—', style: 'tableCell' },
+      { text: String(s.quantity || s.qty || 0), style: 'tableCell', alignment: 'center' },
+      { text: this.formatMoney(s.total_amount || s.amount || 0, s.currency || 'GNF'), style: 'tableCell', alignment: 'right' },
+      { text: s.status || '—', style: 'tableCell', alignment: 'center' },
+    ]);
+    const paymentRows = (data.payments || []).slice(0, 30).map(p => [
+      { text: this.formatDate(p.payment_date || p.created_at), style: 'tableCell' },
+      { text: p.payment_method || p.method || '—', style: 'tableCell' },
+      { text: p.reference || '—', style: 'tableCell' },
+      { text: this.formatMoney(p.amount || 0, p.currency || 'GNF'), style: 'tableCell', alignment: 'right', color: '#16A34A' },
+    ]);
+    const docDef = this.buildSimpleReportDoc(`COMPTE CLIENT CONTENEUR - ${data.client?.name || 'CLIENT'}`, data.organisation, { logo }, [
+      {
+        margin: [0, 0, 0, 14],
+        table: { widths: ['*', '*', '*', '*'], body: [[
+          this.summaryCell('TOTAL VENTES', this.formatMoney(stats.total_sales, 'GNF'), '#1D4ED8'),
+          this.summaryCell('TOTAL PAYÉ', this.formatMoney(stats.total_paid, 'GNF'), '#16A34A'),
+          this.summaryCell('DETTE', this.formatMoney(stats.total_debt, 'GNF'), '#DC2626'),
+          this.summaryCell('AVANCES', this.formatMoney(stats.total_advances, 'GNF'), '#D97706'),
+        ]] },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+      },
+      { text: 'VENTES CONTENEURS', style: 'sectionTitle', margin: [0, 6, 0, 8] },
+      this.simpleTable(['Date', 'Conteneur', 'Qté', 'Montant', 'Statut'], salesRows, [70, '*', 45, 90, 70]),
+      { text: 'VERSEMENTS', style: 'sectionTitle', margin: [0, 16, 0, 8] },
+      this.simpleTable(['Date', 'Mode', 'Référence', 'Montant'], paymentRows, [75, 90, '*', 100]),
+    ], 'portrait');
+    pdfMake.createPdf(docDef).print();
+  }
+
+  async printRentalPaymentReceiptPdf(receipt: PrintableRentalPaymentReceipt): Promise<void> {
+    const pdfMake = await this.getPdfMake();
+    if (!pdfMake?.createPdf) {
+      console.warn('pdfmake non disponible');
+      return;
+    }
+    const logo = await this.resolveDefaultLogo(receipt.organisation);
+    const docDef = this.buildSimpleReportDoc(`REÇU LOCATION ${receipt.receipt_number}`, receipt.organisation, { logo }, [
+      {
+        table: { widths: ['*'], body: [[{
+          stack: [
+            { text: this.formatMoney(receipt.amount, receipt.currency || 'GNF'), fontSize: 24, bold: true, color: '#16A34A', alignment: 'center' },
+            { text: `Reçu N° ${receipt.receipt_number}`, alignment: 'center', color: '#64748B', margin: [0, 5, 0, 0] },
+          ],
+          margin: [16, 16, 16, 16],
+        }]] },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => '#ECFDF5' },
+        margin: [0, 0, 0, 16],
+      },
+      this.simpleInfoGrid([
+        ['Locataire', receipt.lease?.renter_name || '—'],
+        ['Téléphone', receipt.lease?.renter_phone || '—'],
+        ['Période réglée', this.formatPeriodMonth(receipt.period_month)],
+        ['Date paiement', this.formatDate(receipt.payment_date)],
+        ['Unité', receipt.lease?.housing_unit_label || '—'],
+        ['Immeuble', receipt.lease?.building_name || receipt.lease?.location_name || '—'],
+        ['Mode paiement', receipt.payment_method || '—'],
+        ['Référence', receipt.reference || '—'],
+        ['Loyer mensuel', this.formatMoney(receipt.lease?.monthly_rent || 0, receipt.lease?.currency || receipt.currency || 'GNF')],
+        ['Statut', receipt.status || 'PAID'],
+      ]),
+      receipt.notes ? { text: `Notes: ${receipt.notes}`, margin: [0, 14, 0, 0], color: '#475569' } : {},
+    ], 'portrait');
+    pdfMake.createPdf(docDef).print();
+  }
+
+  private async resolveDefaultLogo(org?: PrintableOrganisation): Promise<string | null> {
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const orgLogo = await this.resolveImageData(org?.logoUrl);
+    return orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
+  }
+
+  private buildSimpleReportDoc(
+    title: string,
+    organisation: PrintableOrganisation | undefined,
+    assets: { logo?: string | null },
+    content: any[],
+    orientation: 'portrait' | 'landscape' = 'portrait'
+  ): any {
+    return {
+      pageSize: 'A4',
+      pageOrientation: orientation,
+      pageMargins: [28, 128, 28, 48],
+      defaultStyle: { font: 'Roboto', fontSize: 8.8, color: '#111827' },
+      styles: {
+        titleSmall: { fontSize: 10, color: '#BFDBFE', bold: true, characterSpacing: 1.4 },
+        titleLarge: { fontSize: 22, bold: true, color: '#FFFFFF' },
+        headerMeta: { fontSize: 10.5, color: '#DCE7F5' },
+        sectionTitle: { fontSize: 11, bold: true, color: '#0F3460', characterSpacing: 0.5 },
+        tableHeader: { fontSize: 8.4, bold: true, color: '#FFFFFF' },
+        tableCell: { fontSize: 8.2, color: '#111827' },
+      },
+      header: () => this.reportHeader(title, organisation, undefined, assets, orientation === 'landscape'),
+      footer: (p: number, n: number) => this.reportFooter(p, n, organisation),
+      content,
+    };
+  }
+
+  private simpleTable(headers: string[], rows: any[][], widths: any[]): any {
+    const bodyRows = rows.length ? rows : [[{ text: 'Aucune donnée', colSpan: headers.length, alignment: 'center', color: '#64748B', margin: [0, 8, 0, 8] }, ...headers.slice(1).map(() => '')]];
+    return {
+      table: {
+        headerRows: 1,
+        widths,
+        body: [
+          headers.map(h => ({ text: h, style: 'tableHeader' })),
+          ...bodyRows,
+        ],
+      },
+      layout: {
+        fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : rowIndex % 2 === 0 ? '#F8FAFC' : '#FFFFFF',
+        hLineColor: () => '#E5E7EB',
+        vLineColor: () => '#E5E7EB',
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0.5,
+        paddingLeft: () => 5,
+        paddingRight: () => 5,
+        paddingTop: () => 5,
+        paddingBottom: () => 5,
+      },
+    };
+  }
+
+  private simpleInfoGrid(items: Array<[string, string]>): any {
+    const rows: any[] = [];
+    for (let i = 0; i < items.length; i += 2) {
+      const left = items[i];
+      const right = items[i + 1];
+      rows.push([
+        this.infoCell(left[0], left[1]),
+        right ? this.infoCell(right[0], right[1]) : '',
+      ]);
+    }
+    return {
+      table: { widths: ['*', '*'], body: rows },
+      layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 4, paddingBottom: () => 4 },
+    };
+  }
+
+  private infoCell(label: string, value: string): any {
+    return {
+      stack: [
+        { text: label, fontSize: 8, color: '#64748B', bold: true },
+        { text: value, fontSize: 11, color: '#111827', bold: true, margin: [0, 4, 0, 0] },
+      ],
+      margin: [10, 10, 10, 10],
+      fillColor: '#F8FAFC',
+    };
+  }
+
+  private formatPeriodMonth(value?: string): string {
+    if (!value) return '—';
+    const [year, month] = value.split('-').map(Number);
+    if (!year || !month) return value;
+    return this.normalizeSpaces(new Date(year, month - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
+  }
+
+  // ── Header / Footer communs aux rapports ────────────────────────────────
+  private reportHeader(title: string, org: PrintableOrganisation | undefined, period: { from?: string; to?: string } | undefined, assets: { logo?: string | null }, landscape = false): any {
+    const w = landscape ? 842 : 595.28;
+    return {
+      stack: [
+        {
+          canvas: [
+            { type: 'rect', x: 0, y: 0, w, h: 110, color: '#0F172A' },
+            { type: 'rect', x: 0, y: 110, w, h: 4, color: '#0F3460' },
+          ],
+        },
+        {
+          margin: [30, -88, 30, 0],
+          columns: [
+            {
+              width: 110,
+              stack: assets.logo
+                ? [{ image: assets.logo, fit: [100, 72], alignment: 'left', margin: [0, 0, 0, 4] }]
+                : [{ text: 'MK', fontSize: 28, bold: true, color: '#FFFFFF', margin: [0, 8, 0, 0] }],
+            },
+            {
+              width: '*', margin: [10, 4, 0, 0],
+              stack: [
+                { text: 'RAPPORT', style: 'titleSmall' },
+                { text: org?.name || 'MATKOLLA', fontSize: 14, bold: true, color: '#FFFFFF', margin: [0, 6, 0, 0] },
+                { text: org?.address || '', style: 'headerMeta', margin: [0, 4, 0, 0] },
+                { text: `${org?.phone || ''}${org?.phone && org?.email ? ' • ' : ''}${org?.email || ''}`, style: 'headerMeta', margin: [0, 3, 0, 0] },
+              ],
+            },
+            {
+              width: 200, alignment: 'right',
+              stack: [
+                { text: title, style: 'titleLarge', alignment: 'right' },
+                { text: period?.from || period?.to
+                  ? `Du ${this.formatDate(period?.from)} au ${this.formatDate(period?.to)}`
+                  : `Au ${this.formatDate(new Date())}`,
+                  style: 'headerMeta', alignment: 'right', margin: [0, 8, 0, 0] },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+  }
+  private reportFooter(currentPage: number, pageCount: number, org: PrintableOrganisation | undefined): any {
+    return {
+      margin: [30, 0, 30, 18],
+      columns: [
+        { width: '*', text: org?.footerText || `${org?.name || 'MATKOLLA'} — Rapport`, fontSize: 8, color: '#64748B' },
+        { width: 'auto', text: `Page ${currentPage} / ${pageCount}`, fontSize: 8, color: '#64748B' },
+      ],
+    };
+  }
+
+  private balanceColor(v: number | null | undefined): string {
+    const n = Number(v) || 0;
+    if (n > 0) return '#DC2626';
+    if (n < 0) return '#16A34A';
+    return '#64748B';
   }
 
   generateContractPdf(contractData: any): Observable<Blob> {
@@ -259,8 +1538,86 @@ export class PdfService {
     window.URL.revokeObjectURL(url);
   }
 
-  private getPdfMake(): any {
-    return typeof window !== 'undefined' ? (window as any).pdfMake || null : null;
+  private async getPdfMake(): Promise<any> {
+    if (this.bundledPdfMake?.createPdf) {
+      return this.bundledPdfMake;
+    }
+
+    try {
+      const [pdfMakeModule, pdfFontsModule] = await Promise.all([
+        import('pdfmake/build/pdfmake'),
+        import('pdfmake/build/vfs_fonts'),
+      ]);
+      const importedPdfMake = (pdfMakeModule as any)?.default || pdfMakeModule;
+      const globalPdfMake = typeof window !== 'undefined' ? (window as any).pdfMake : null;
+      const pdfMake = globalPdfMake?.createPdf ? globalPdfMake : importedPdfMake;
+      const vfs = this.extractPdfMakeVfs(pdfFontsModule);
+
+      if (pdfMake?.createPdf && vfs) {
+        this.configurePdfMakeFonts(importedPdfMake, vfs);
+        if (globalPdfMake?.createPdf && globalPdfMake !== importedPdfMake) {
+          this.configurePdfMakeFonts(globalPdfMake, vfs);
+        }
+        this.configurePdfMakeFonts(pdfMake, vfs);
+        if (!this.hasPdfMakeFont(pdfMake, 'Roboto-Medium.ttf')) {
+          console.error('pdfmake VFS non initialisé: Roboto-Medium.ttf introuvable');
+          return null;
+        }
+        this.bundledPdfMake = pdfMake;
+        return this.bundledPdfMake;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private configurePdfMakeFonts(pdfMake: any, vfs: Record<string, string>): void {
+    pdfMake.vfs = { ...(pdfMake.vfs || {}), ...vfs };
+    const fonts = {
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf',
+      },
+    };
+    pdfMake.fonts = { ...(pdfMake.fonts || {}), ...fonts };
+    if (typeof pdfMake.addVirtualFileSystem === 'function') {
+      pdfMake.addVirtualFileSystem(vfs);
+    }
+    if (typeof pdfMake.addFonts === 'function') {
+      pdfMake.addFonts(fonts);
+    }
+  }
+
+  private hasPdfMakeFont(pdfMake: any, filename: string): boolean {
+    if (pdfMake?.vfs?.[filename]) {
+      return true;
+    }
+    try {
+      return !!pdfMake?.virtualfs?.readFileSync?.(filename);
+    } catch {
+      return false;
+    }
+  }
+
+  private extractPdfMakeVfs(moduleValue: any): Record<string, string> | null {
+    const candidates = [
+      moduleValue?.pdfMake?.vfs,
+      moduleValue?.default?.pdfMake?.vfs,
+      moduleValue?.vfs,
+      moduleValue?.default?.vfs,
+      moduleValue?.default,
+      moduleValue,
+    ];
+    for (const candidate of candidates) {
+      if (candidate?.['Roboto-Regular.ttf'] && candidate?.['Roboto-Medium.ttf']) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   private async resolveImageData(value?: string | null): Promise<string | null> {
@@ -292,156 +1649,253 @@ export class PdfService {
     assets: { logo?: string | null; signature?: string | null; stamp?: string | null } = {}
   ): any {
     const status = (invoiceData.status || 'IMPAYE').toUpperCase();
-    const statusColor = status === 'PAYE' ? '#10B981' : status === 'PARTIEL' ? '#F59E0B' : '#EF4444';
-    const metaCard = (label: string, value: string) => ({
-      fillColor: '#F8FAFC',
-      margin: [0, 0, 0, 0],
-      table: {
-        widths: ['*'],
-        body: [[{
-          stack: [
-            { text: label, style: 'metaLabel' },
-            { text: value, style: 'metaValue' }
-          ],
-          margin: [10, 10, 10, 10]
-        }]]
-      },
-      layout: {
-        hLineWidth: () => 0,
-        vLineWidth: () => 0,
-        paddingLeft: () => 0,
-        paddingRight: () => 0,
-        paddingTop: () => 0,
-        paddingBottom: () => 0
-      }
-    });
-
+    const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
+      PAYE: { label: 'Payée', color: '#047857', bg: '#ECFDF5' },
+      PARTIEL: { label: 'Partielle', color: '#B45309', bg: '#FFFBEB' },
+      IMPAYE: { label: 'Impayée', color: '#B91C1C', bg: '#FEF2F2' },
+    };
+    const badge = statusMeta[status] || { label: status, color: '#475569', bg: '#F8FAFC' };
+    const cleanOrgContact = [
+      invoiceData.organisation?.address,
+      [invoiceData.organisation?.phone, invoiceData.organisation?.email].filter(Boolean).join(' | '),
+    ].filter(Boolean);
+    const infoLine = (label: string, value: string) => [
+      { text: label, style: 'muted' },
+      { text: value || '-', alignment: 'right', bold: true, color: '#111827' },
+    ];
     const items = (invoiceData.items || []).length > 0
       ? invoiceData.items.map((item, index) => ([
-          { text: String(index + 1), style: 'tableCell' },
-          { text: item.description || 'Ligne de facture', style: 'tableCell' },
-          { text: this.formatNumber(item.quantity), style: 'tableCell', alignment: 'center' },
-          { text: this.formatMoney(item.unitPrice, invoiceData.currency), style: 'tableCell', alignment: 'right' },
-          { text: this.formatMoney(item.total, invoiceData.currency), style: 'tableCell', alignment: 'right', bold: true, color: '#0F3460' }
+          { text: String(index + 1), style: 'td', alignment: 'center' },
+          { text: item.description || 'Ligne de facture', style: 'td' },
+          { text: this.formatNumber(item.quantity), style: 'td', alignment: 'center' },
+          { text: this.formatMoney(item.unitPrice, invoiceData.currency), style: 'td', alignment: 'right' },
+          { text: this.formatMoney(item.total, invoiceData.currency), style: 'td', alignment: 'right', bold: true }
         ]))
       : [[
-          { text: '1', style: 'tableCell' },
-          { text: invoiceData.notes || 'Ligne de facture', style: 'tableCell' },
-          { text: '1', style: 'tableCell', alignment: 'center' },
-          { text: this.formatMoney(invoiceData.subtotal, invoiceData.currency), style: 'tableCell', alignment: 'right' },
-          { text: this.formatMoney(invoiceData.subtotal, invoiceData.currency), style: 'tableCell', alignment: 'right', bold: true, color: '#0F3460' }
+          { text: '1', style: 'td', alignment: 'center' },
+          { text: invoiceData.notes || 'Ligne de facture', style: 'td' },
+          { text: '1', style: 'td', alignment: 'center' },
+          { text: this.formatMoney(invoiceData.subtotal, invoiceData.currency), style: 'td', alignment: 'right' },
+          { text: this.formatMoney(invoiceData.subtotal, invoiceData.currency), style: 'td', alignment: 'right', bold: true }
         ]];
-    const clientDetails = [
-      { text: invoiceData.clientName, fontSize: 16, bold: true, color: '#111827' },
-      ...(invoiceData.clientAddress ? [{ text: invoiceData.clientAddress, margin: [0, 6, 0, 0], color: '#475569' }] : []),
-      ...((invoiceData.clientPhone || invoiceData.clientEmail)
-        ? [{ text: [invoiceData.clientPhone, invoiceData.clientEmail].filter(Boolean).join(' • '), margin: [0, 6, 0, 0], color: '#475569' }]
-        : [])
+    const totalsBody: any[] = [
+      infoLine('Sous-total', this.formatMoney(invoiceData.subtotal, invoiceData.currency)),
     ];
-    const totalEquivalentBox = invoiceData.currency !== 'GNF' && invoiceData.totalGnf ? {
-      margin: [0, 10, 0, 0],
-      table: {
-        widths: ['*'],
-        body: [[{
-          text: `Équivalent GNF: ${this.formatMoney(invoiceData.totalGnf, 'GNF')}`,
-          bold: true,
-          color: '#1D4ED8',
-          margin: [10, 8, 10, 8]
-        }]]
+    if (Number(invoiceData.previousBalance || 0) !== 0) {
+      totalsBody.push(infoLine('Solde antérieur', this.formatMoney(invoiceData.previousBalance || 0, invoiceData.currency)));
+    }
+    totalsBody.push([
+      { text: 'NET À PAYER', bold: true, color: '#0F3460', fontSize: 10.5 },
+      { text: this.formatMoney(invoiceData.total, invoiceData.currency), alignment: 'right', bold: true, color: '#0F3460', fontSize: 13 },
+    ]);
+    if (invoiceData.currency !== 'GNF' && invoiceData.totalGnf) {
+      totalsBody.push([
+        { text: `Équivalent GNF`, color: '#1D4ED8', bold: true },
+        { text: this.formatMoney(invoiceData.totalGnf, 'GNF'), alignment: 'right', color: '#1D4ED8', bold: true },
+      ]);
+      totalsBody.push(infoLine('Taux appliqué', this.formatNumber(invoiceData.exchangeRate || 1)));
+    }
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [38, 34, 38, 34],
+      info: { title: `Facture ${invoiceData.invoiceNumber}`, subject: 'Facture client' },
+      defaultStyle: { font: 'Roboto', fontSize: 9, color: '#111827' },
+      styles: {
+        invoiceTitle: { fontSize: 28, bold: true, color: '#0F3460' },
+        orgName: { fontSize: 14, bold: true, color: '#111827' },
+        sectionTitle: { fontSize: 9.5, bold: true, color: '#0F3460', characterSpacing: 0.6 },
+        muted: { fontSize: 8.4, color: '#64748B' },
+        th: { fontSize: 8.6, bold: true, color: '#FFFFFF' },
+        td: { fontSize: 8.7, color: '#111827' },
+        small: { fontSize: 8, color: '#64748B' },
       },
-      layout: {
-        hLineWidth: () => 0,
-        vLineWidth: () => 0,
-        fillColor: () => '#EFF6FF'
-      }
-    } : null;
-    const notesBox = invoiceData.notes ? {
-      margin: [0, 16, 0, 0],
-      table: {
-        widths: ['*'],
-        body: [[{
-          stack: [
-            { text: 'Notes', style: 'sectionTitle', margin: [0, 0, 0, 6] },
-            { text: invoiceData.notes, style: 'noteText' }
+      footer: (currentPage: number, pageCount: number) => ({
+        margin: [38, 0, 38, 18],
+        columns: [
+          { width: '*', text: invoiceData.organisation?.footerText || 'Merci pour votre confiance.', fontSize: 8, color: '#64748B' },
+          { width: 'auto', text: `Page ${currentPage} / ${pageCount}`, fontSize: 8, color: '#64748B' },
+        ]
+      }),
+      content: [
+        {
+          columns: [
+            {
+              width: '*',
+              stack: [
+                assets.logo
+                  ? { image: assets.logo, fit: [108, 58], margin: [0, 0, 0, 8] }
+                  : { text: invoiceData.organisation?.name || 'MATKOLLA', style: 'orgName', margin: [0, 0, 0, 8] },
+                { text: invoiceData.organisation?.name || 'MATKOLLA', style: 'orgName' },
+                ...(invoiceData.organisation?.motto ? [{ text: invoiceData.organisation.motto, style: 'small', margin: [0, 3, 0, 0] }] : []),
+                ...cleanOrgContact.map(line => ({ text: line, style: 'small', margin: [0, 3, 0, 0] })),
+              ]
+            },
+            {
+              width: 210,
+              alignment: 'right',
+              stack: [
+                { text: 'FACTURE', style: 'invoiceTitle', alignment: 'right' },
+                { text: `N° ${invoiceData.invoiceNumber}`, fontSize: 11, bold: true, color: '#111827', alignment: 'right', margin: [0, 5, 0, 0] },
+                {
+                  margin: [0, 10, 0, 0],
+                  table: {
+                    widths: ['auto'],
+                    body: [[{ text: badge.label, bold: true, color: badge.color, fillColor: badge.bg, margin: [12, 5, 12, 5], fontSize: 9 }]]
+                  },
+                  layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 }
+                },
+              ]
+            }
+          ]
+        },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 519, y2: 0, lineWidth: 1, lineColor: '#E5E7EB' }], margin: [0, 18, 0, 18] },
+        {
+          columns: [
+            {
+              width: '55%',
+              stack: [
+                { text: 'FACTURÉ À', style: 'sectionTitle', margin: [0, 0, 0, 7] },
+                { text: invoiceData.clientName || '-', fontSize: 14, bold: true, color: '#111827' },
+                ...(invoiceData.clientAddress ? [{ text: invoiceData.clientAddress, color: '#475569', margin: [0, 5, 0, 0] }] : []),
+                ...((invoiceData.clientPhone || invoiceData.clientEmail)
+                  ? [{ text: [invoiceData.clientPhone, invoiceData.clientEmail].filter(Boolean).join(' | '), color: '#475569', margin: [0, 5, 0, 0] }]
+                  : []),
+              ],
+            },
+            {
+              width: '45%',
+              table: {
+                widths: ['*', 'auto'],
+                body: [
+                  infoLine('Date facture', this.formatDate(invoiceData.date || new Date())),
+                  infoLine('Échéance', this.formatDate(invoiceData.dueDate)),
+                  infoLine('Devise', invoiceData.currency || 'GNF'),
+                ],
+              },
+              layout: {
+                hLineWidth: (i: number) => i === 0 ? 0 : 0.5,
+                vLineWidth: () => 0,
+                hLineColor: () => '#E5E7EB',
+                paddingLeft: () => 10,
+                paddingRight: () => 10,
+                paddingTop: () => 7,
+                paddingBottom: () => 7,
+                fillColor: () => '#F8FAFC',
+              },
+            },
           ],
-          margin: [12, 12, 12, 12]
-        }]]
-      },
-      layout: {
-        hLineWidth: () => 0,
-        vLineWidth: () => 0,
-        fillColor: () => '#F0FDF4',
-        hLineColor: () => '#BBF7D0',
-        vLineColor: () => '#BBF7D0'
-      }
-    } : null;
+          margin: [0, 0, 0, 20],
+        },
+        {
+          table: {
+            headerRows: 1,
+            widths: [26, '*', 48, 82, 88],
+            body: [
+              [
+                { text: '#', style: 'th', alignment: 'center' },
+                { text: 'Désignation', style: 'th' },
+                { text: 'Qté', style: 'th', alignment: 'center' },
+                { text: 'Prix unit.', style: 'th', alignment: 'right' },
+                { text: 'Montant', style: 'th', alignment: 'right' }
+              ],
+              ...items
+            ]
+          },
+          layout: {
+            fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : rowIndex % 2 === 0 ? '#F8FAFC' : '#FFFFFF',
+            hLineColor: () => '#E5E7EB',
+            vLineWidth: () => 0,
+            hLineWidth: () => 0.5,
+            paddingLeft: () => 9,
+            paddingRight: () => 9,
+            paddingTop: () => 8,
+            paddingBottom: () => 8
+          }
+        },
+        {
+          columns: [
+            {
+              width: '*',
+              margin: [0, 18, 20, 0],
+              stack: invoiceData.notes
+                ? [
+                    { text: 'NOTES', style: 'sectionTitle', margin: [0, 0, 0, 6] },
+                    { text: invoiceData.notes, color: '#475569', lineHeight: 1.25 },
+                  ]
+                : [
+                    { text: 'CONDITIONS', style: 'sectionTitle', margin: [0, 0, 0, 6] },
+                    { text: 'Paiement à effectuer selon les conditions convenues avec le client.', color: '#475569', lineHeight: 1.25 },
+                  ],
+            },
+            {
+              width: 215,
+              margin: [0, 18, 0, 0],
+              table: { widths: ['*', 'auto'], body: totalsBody },
+              layout: {
+                hLineWidth: (i: number) => i === 0 ? 0 : 0.5,
+                vLineWidth: () => 0,
+                hLineColor: () => '#E5E7EB',
+                paddingLeft: () => 10,
+                paddingRight: () => 10,
+                paddingTop: () => 8,
+                paddingBottom: () => 8,
+                fillColor: (rowIndex: number) => rowIndex === totalsBody.findIndex(row => row[0]?.text === 'NET À PAYER') ? '#EFF6FF' : '#FFFFFF',
+              },
+            }
+          ]
+        },
+        {
+          columns: [
+            {
+              width: '*',
+              margin: [0, 28, 12, 0],
+              stack: [
+                { text: 'Signature', style: 'sectionTitle', margin: [0, 0, 0, 10] },
+                assets.signature ? { image: assets.signature, fit: [150, 58] } : { text: ' ', margin: [0, 24, 0, 0] },
+                { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 170, y2: 0, lineWidth: 0.5, lineColor: '#94A3B8' }], margin: [0, 6, 0, 4] },
+                { text: invoiceData.organisation?.name || 'MATKOLLA', bold: true, color: '#0F3460', fontSize: 9 },
+              ],
+            },
+            {
+              width: '*',
+              margin: [12, 28, 0, 0],
+              stack: [
+                { text: 'Cachet', style: 'sectionTitle', alignment: 'right', margin: [0, 0, 0, 10] },
+                assets.stamp
+                  ? { image: assets.stamp, fit: [110, 84], alignment: 'right' }
+                  : { text: 'Cachet de la société', alignment: 'right', color: '#CBD5E1', italics: true, margin: [0, 34, 0, 0] },
+              ],
+            },
+          ],
+        }
+      ]
+    };
+  }
+
+  private buildProfessionalReceiptDocDefinition(
+    receiptData: PrintableReceiptData,
+    assets: { logo?: string | null } = {}
+  ): any {
+    const statusColor = receiptData.status === 'COMPLETED' ? '#10B981' : receiptData.status === 'PENDING' ? '#F59E0B' : '#EF4444';
+    const lineItems = [
+      ['Client', receiptData.client?.name || '—'],
+      ['Téléphone', receiptData.client?.phone || '—'],
+      ['Référence', receiptData.reference || '—'],
+      ['Statut', receiptData.status],
+      ['Généré le', receiptData.generated_at || this.formatDate(new Date())]
+    ];
 
     return {
       pageSize: 'A4',
       pageMargins: [36, 128, 36, 54],
-      info: {
-        title: `Facture ${invoiceData.invoiceNumber}`,
-        subject: 'Facture professionnelle'
-      },
-      defaultStyle: {
-        font: 'Roboto',
-        fontSize: 9,
-        color: '#111827'
-      },
+      defaultStyle: { font: 'Roboto', fontSize: 9, color: '#111827' },
       styles: {
-        titleSmall: {
-          fontSize: 10,
-          color: '#BFDBFE',
-          bold: true,
-          characterSpacing: 1.4
-        },
-        titleLarge: {
-          fontSize: 26,
-          bold: true,
-          color: '#FFFFFF'
-        },
-        headerMeta: {
-          fontSize: 12,
-          color: '#DCE7F5'
-        },
-        docTitle: {
-          fontSize: 24,
-          bold: true,
-          color: '#FFFFFF'
-        },
-        sectionTitle: {
-          fontSize: 11,
-          bold: true,
-          color: '#0F3460',
-          characterSpacing: 0.6
-        },
-        tableHeader: {
-          fontSize: 8.6,
-          bold: true,
-          color: '#FFFFFF'
-        },
-        metaLabel: {
-          fontSize: 8.5,
-          color: '#64748B',
-          bold: true,
-          characterSpacing: 0.4
-        },
-        metaValue: {
-          fontSize: 12.5,
-          color: '#111827',
-          bold: true
-        },
-        tableCell: {
-          fontSize: 8.8,
-          color: '#111827'
-        },
-        noteText: {
-          fontSize: 9.2,
-          color: '#334155',
-          lineHeight: 1.35
-        }
+        titleSmall: { fontSize: 10, color: '#BFDBFE', bold: true, characterSpacing: 1.4 },
+        titleLarge: { fontSize: 26, bold: true, color: '#FFFFFF' },
+        headerMeta: { fontSize: 11, color: '#DCE7F5' },
+        sectionTitle: { fontSize: 11, bold: true, color: '#0F3460', characterSpacing: 0.6 },
       },
-      pageBreakBefore: () => false,
       header: () => ({
         margin: [0, 0, 0, 0],
         stack: [
@@ -457,38 +1911,20 @@ export class PdfService {
               {
                 width: 110,
                 stack: assets.logo ? [
-                  {
-                    image: assets.logo,
-                    fit: [100, 72],
-                    alignment: 'left',
-                    margin: [0, 0, 0, 4]
-                  }
+                  { image: assets.logo, fit: [100, 72], alignment: 'left', margin: [0, 0, 0, 4] }
                 ] : [
-                  {
-                    text: 'MK',
-                    fontSize: 28,
-                    bold: true,
-                    color: '#FFFFFF',
-                    margin: [0, 8, 0, 0]
-                  },
-                  {
-                    text: invoiceData.organisation?.name || 'MATKOLLA',
-                    style: 'headerMeta',
-                    bold: true,
-                    margin: [0, 4, 0, 0]
-                  }
+                  { text: 'MK', fontSize: 28, bold: true, color: '#FFFFFF', margin: [0, 8, 0, 0] }
                 ]
               },
               {
                 width: '*',
                 margin: [10, 4, 0, 0],
                 stack: [
-                  { text: 'FACTURE PROFESSIONNELLE', style: 'titleSmall' },
-                  { text: invoiceData.organisation?.name || 'MATKOLLA', fontSize: 14, bold: true, color: '#FFFFFF', margin: [0, 6, 0, 0] },
-                  { text: invoiceData.organisation?.motto || 'Facturation détaillée et transparente', style: 'headerMeta', margin: [0, 4, 0, 0] },
-                  { text: invoiceData.organisation?.address || '', style: 'headerMeta', margin: [0, 3, 0, 0] },
+                  { text: 'REÇU DE PAIEMENT', style: 'titleSmall' },
+                  { text: receiptData.organisation?.name || 'MATKOLLA', fontSize: 14, bold: true, color: '#FFFFFF', margin: [0, 6, 0, 0] },
+                  { text: receiptData.organisation?.address || '', style: 'headerMeta', margin: [0, 4, 0, 0] },
                   {
-                    text: `${invoiceData.organisation?.phone || ''}${invoiceData.organisation?.phone && invoiceData.organisation?.email ? ' • ' : ''}${invoiceData.organisation?.email || ''}`,
+                    text: `${receiptData.organisation?.phone || ''}${receiptData.organisation?.phone && receiptData.organisation?.email ? ' • ' : ''}${receiptData.organisation?.email || ''}`,
                     style: 'headerMeta',
                     margin: [0, 3, 0, 0]
                   }
@@ -498,324 +1934,25 @@ export class PdfService {
                 width: 175,
                 alignment: 'right',
                 stack: [
-                  { text: 'FACTURE', style: 'titleLarge', alignment: 'right' },
-                  { text: `N° ${invoiceData.invoiceNumber}`, style: 'headerMeta', alignment: 'right', margin: [0, 6, 0, 0] },
+                  { text: 'REÇU', style: 'titleLarge', alignment: 'right' },
+                  { text: `N° ${receiptData.receipt_number}`, style: 'headerMeta', alignment: 'right', margin: [0, 6, 0, 0] },
                   {
                     margin: [0, 10, 0, 0],
                     alignment: 'right',
-                    table: {
-                      widths: ['auto'],
-                      body: [[{
-                        text: status,
-                        color: '#FFFFFF',
-                        bold: true,
-                        fontSize: 9,
-                        fillColor: statusColor,
-                        margin: [10, 4, 10, 4]
-                      }]]
-                    },
+                    table: { widths: ['auto'], body: [[{
+                      text: receiptData.status,
+                      color: '#FFFFFF',
+                      bold: true,
+                      fontSize: 9,
+                      fillColor: statusColor,
+                      margin: [10, 4, 10, 4]
+                    }]] },
                     layout: {
-                      hLineWidth: () => 0,
-                      vLineWidth: () => 0,
-                      paddingLeft: () => 0,
-                      paddingRight: () => 0,
-                      paddingTop: () => 0,
-                      paddingBottom: () => 0
+                      hLineWidth: () => 0, vLineWidth: () => 0,
+                      paddingLeft: () => 0, paddingRight: () => 0,
+                      paddingTop: () => 0, paddingBottom: () => 0
                     }
                   }
-                ]
-              }
-            ]
-          }
-        ]
-      }),
-      footer: (currentPage: number, pageCount: number) => ({
-        margin: [36, 0, 36, 18],
-        columns: [
-          {
-            width: '*',
-            text: invoiceData.organisation?.footerText || invoiceData.organisation?.phone || invoiceData.organisation?.email || 'Merci pour votre confiance',
-            fontSize: 8.5,
-            color: '#64748B'
-          },
-          {
-            width: 'auto',
-            text: `Page ${currentPage} / ${pageCount}`,
-            fontSize: 8.5,
-            color: '#64748B'
-          }
-        ]
-      }),
-      content: [
-        {
-          table: {
-            widths: ['*', '*', '*', '*'],
-            body: [[
-              metaCard('Date d’émission', this.formatDate(invoiceData.date || new Date())),
-              metaCard('Échéance', this.formatDate(invoiceData.dueDate)),
-              metaCard('Devise', invoiceData.currency || 'GNF'),
-              metaCard('Taux GNF', invoiceData.currency !== 'GNF' ? this.formatNumber(invoiceData.exchangeRate || 1) : '1')
-            ]]
-          },
-          layout: {
-            hLineWidth: () => 0,
-            vLineWidth: () => 0,
-            paddingLeft: () => 0,
-            paddingRight: () => 0,
-            paddingTop: () => 0,
-            paddingBottom: () => 0
-          }
-        },
-        {
-          columns: [
-            {
-              width: '58%',
-              margin: [0, 14, 8, 0],
-              stack: [
-                { text: 'FACTURÉ À', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-                {
-                  table: {
-                    widths: ['*'],
-                    body: [[{
-                      stack: clientDetails,
-                      margin: [12, 12, 12, 12]
-                    }]]
-                  },
-                  layout: {
-                    hLineWidth: () => 1,
-                    vLineWidth: () => 1,
-                    hLineColor: () => '#E5E7EB',
-                    vLineColor: () => '#E5E7EB',
-                    fillColor: () => '#FFFFFF'
-                  }
-                }
-              ]
-            },
-            {
-              width: '42%',
-              margin: [8, 14, 0, 0],
-              stack: [
-                { text: 'RÉSUMÉ FINANCIER', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-                {
-                  table: {
-                    widths: ['*', 'auto'],
-                    body: [
-                      [
-                        { text: 'Sous-total articles', bold: false, color: '#475569' },
-                        { text: this.formatMoney(invoiceData.subtotal, invoiceData.currency), alignment: 'right', bold: true }
-                      ],
-                      [
-                        {
-                          stack: [
-                            { text: 'Arriérés client', color: '#475569' },
-                            { text: `au ${this.formatDate(new Date())}`, fontSize: 7.6, color: '#94A3B8', italics: true, margin: [0, 1, 0, 0] }
-                          ]
-                        },
-                        { text: this.formatMoney(invoiceData.previousBalance || 0, invoiceData.currency), alignment: 'right', bold: true, color: '#F59E0B' }
-                      ],
-                      [
-                        { text: 'Total à régler', bold: true, color: '#0F3460', fontSize: 11 },
-                        { text: this.formatMoney(invoiceData.total, invoiceData.currency), alignment: 'right', bold: true, color: '#0F3460', fontSize: 13 }
-                      ]
-                    ]
-                  },
-                  layout: {
-                    hLineWidth: (i: number) => i === 0 ? 0 : 0.6,
-                    vLineWidth: () => 0,
-                    hLineColor: () => '#E5E7EB',
-                    paddingLeft: () => 12,
-                    paddingRight: () => 12,
-                    paddingTop: () => 9,
-                    paddingBottom: () => 9,
-                    fillColor: (rowIndex: number) => rowIndex === 2 ? '#EFF6FF' : '#FFFFFF'
-                  }
-                },
-                ...(totalEquivalentBox ? [totalEquivalentBox] : [])
-              ]
-            }
-          ]
-        },
-        { text: 'LIGNES DE FACTURATION', style: 'sectionTitle', margin: [0, 18, 0, 8] },
-        {
-          table: {
-            headerRows: 1,
-            widths: [24, '*', 48, 78, 78],
-            body: [
-              [
-                { text: '#', style: 'tableHeader' },
-                { text: 'Description', style: 'tableHeader' },
-                { text: 'Qté', style: 'tableHeader', alignment: 'center' },
-                { text: 'PU', style: 'tableHeader', alignment: 'right' },
-                { text: 'Total', style: 'tableHeader', alignment: 'right' }
-              ],
-              ...items
-            ]
-          },
-          layout: {
-            fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : rowIndex % 2 === 0 ? '#F8FAFC' : '#FFFFFF',
-            hLineColor: () => '#E5E7EB',
-            vLineColor: () => '#E5E7EB',
-            hLineWidth: () => 0.6,
-            vLineWidth: () => 0.6,
-            paddingLeft: () => 8,
-            paddingRight: () => 8,
-            paddingTop: () => 7,
-            paddingBottom: () => 7
-          }
-        },
-        ...(notesBox ? [notesBox] : []),
-        {
-          columns: [
-            {
-              width: '50%',
-              margin: [0, 22, 8, 0],
-              stack: [
-                { text: 'SIGNATURE', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-                {
-                  table: {
-                    widths: ['*'],
-                    body: [[{
-                      stack: [
-                        assets.signature
-                          ? { image: assets.signature, fit: [170, 75], alignment: 'left' }
-                          : { text: ' ', color: '#FFFFFF', margin: [0, 22, 0, 22] },
-                        {
-                          canvas: [{ type: 'line', x1: 0, y1: 0, x2: 170, y2: 0, lineWidth: 0.5, lineColor: '#94A3B8' }],
-                          margin: [0, 8, 0, 4]
-                        },
-                        { text: invoiceData.organisation?.name || 'GESTION MULTI-MODULES', bold: true, color: '#0F3460', fontSize: 9.4 },
-                        { text: 'Représentant légal', color: '#94A3B8', fontSize: 8, italics: true, margin: [0, 1, 0, 0] }
-                      ],
-                      margin: [14, 16, 14, 14]
-                    }]]
-                  },
-                  layout: {
-                    hLineWidth: () => 1,
-                    vLineWidth: () => 1,
-                    hLineColor: () => '#E5E7EB',
-                    vLineColor: () => '#E5E7EB',
-                    fillColor: () => '#FFFFFF'
-                  }
-                }
-              ]
-            },
-            {
-              width: '50%',
-              margin: [8, 22, 0, 0],
-              stack: [
-                { text: 'CACHET', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-                {
-                  table: {
-                    widths: ['*'],
-                    body: [[{
-                      stack: [
-                        assets.stamp
-                          ? { image: assets.stamp, fit: [130, 130], alignment: 'center' }
-                          : {
-                              stack: [
-                                { text: ' ', color: '#FFFFFF', margin: [0, 12, 0, 0] },
-                                { text: 'Espace réservé', color: '#CBD5E1', italics: true, alignment: 'center', fontSize: 9 },
-                                { text: 'au cachet', color: '#CBD5E1', italics: true, alignment: 'center', fontSize: 9 },
-                                { text: ' ', color: '#FFFFFF', margin: [0, 12, 0, 0] }
-                              ]
-                            }
-                      ],
-                      margin: [14, 14, 14, 14],
-                      alignment: 'center'
-                    }]]
-                  },
-                  layout: {
-                    hLineWidth: () => 1,
-                    vLineWidth: () => 1,
-                    hLineColor: () => '#E5E7EB',
-                    vLineColor: () => '#E5E7EB',
-                    fillColor: () => '#FFFFFF'
-                  }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          margin: [0, 22, 0, 0],
-          columns: [
-            {
-              canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 0.5, lineColor: '#E5E7EB' }]
-            }
-          ]
-        },
-        {
-          margin: [0, 12, 0, 0],
-          text: invoiceData.organisation?.footerText
-            ? invoiceData.organisation.footerText
-            : 'Merci pour votre confiance. Cette facture peut être téléchargée, imprimée ou enregistrée en PDF.',
-          fontSize: 8.6,
-          color: '#94A3B8',
-          alignment: 'center',
-          italics: true
-        }
-      ]
-    };
-  }
-
-  private buildProfessionalReceiptDocDefinition(receiptData: PrintableReceiptData): any {
-    const statusColor = receiptData.status === 'COMPLETED' ? '#10B981' : receiptData.status === 'PENDING' ? '#F59E0B' : '#EF4444';
-    const qrValue = [
-      receiptData.receipt_number,
-      receiptData.client?.name || '—',
-      this.formatMoney(receiptData.amount, receiptData.currency),
-      this.formatDate(receiptData.payment_date)
-    ].join(' | ');
-    const lineItems = [
-      ['Client', receiptData.client?.name || '—'],
-      ['Téléphone', receiptData.client?.phone || '—'],
-      ['Référence', receiptData.reference || '—'],
-      ['Statut', receiptData.status],
-      ['Généré le', receiptData.generated_at || this.formatDate(new Date())]
-    ];
-
-    return {
-      pageSize: 'A4',
-      pageMargins: [36, 112, 36, 54],
-      defaultStyle: { font: 'Roboto', fontSize: 9, color: '#111827' },
-      styles: {
-        titleSmall: { fontSize: 10, color: '#BFDBFE', bold: true, characterSpacing: 1.4 },
-        titleLarge: { fontSize: 26, bold: true, color: '#FFFFFF' },
-        headerMeta: { fontSize: 11, color: '#DCE7F5' },
-        sectionTitle: { fontSize: 11, bold: true, color: '#0F3460', characterSpacing: 0.6 },
-      },
-      header: () => ({
-        margin: [0, 0, 0, 0],
-        stack: [
-          {
-            canvas: [
-              { type: 'rect', x: 0, y: 0, w: 595.28, h: 96, color: '#0F172A' },
-              { type: 'rect', x: 0, y: 96, w: 595.28, h: 8, color: '#0F3460' }
-            ]
-          },
-          {
-            margin: [36, -76, 36, 0],
-            columns: [
-              {
-                width: '*',
-                stack: [
-                  { text: 'REÇU PROFESSIONNEL', style: 'titleSmall' },
-                  { text: receiptData.organisation?.name || 'GESTION MULTI-MODULES', style: 'headerMeta', bold: true, margin: [0, 6, 0, 0] },
-                  { text: receiptData.organisation?.address || '', style: 'headerMeta', margin: [0, 3, 0, 0] },
-                  {
-                    text: `${receiptData.organisation?.phone || ''}${receiptData.organisation?.phone && receiptData.organisation?.email ? ' • ' : ''}${receiptData.organisation?.email || ''}`,
-                    style: 'headerMeta',
-                    margin: [0, 3, 0, 0]
-                  }
-                ]
-              },
-              {
-                width: 170,
-                alignment: 'right',
-                stack: [
-                  { text: 'REÇU', style: 'titleLarge', alignment: 'right' },
-                  { text: receiptData.receipt_number, style: 'headerMeta', alignment: 'right', margin: [0, 4, 0, 0] },
-                  { text: receiptData.status, alignment: 'right', margin: [0, 8, 0, 0], color: '#FFFFFF', bold: true, fillColor: statusColor }
                 ]
               }
             ]
@@ -915,26 +2052,56 @@ export class PdfService {
           layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => '#EFF6FF' }
         } : {},
         {
+          margin: [0, 22, 0, 0],
           columns: [
             {
-              width: '*',
-              margin: [0, 16, 8, 0],
+              width: '50%',
               stack: [
-                { text: 'VALIDATION', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-                { text: 'QR de validation', bold: true, color: '#0F3460', margin: [0, 0, 0, 4] },
-                { text: 'Scannez pour vérifier le reçu.', color: '#475569', fontSize: 8.8 }
+                { text: 'SIGNATURE CLIENT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+                {
+                  table: { widths: ['*'], body: [[{
+                    stack: [
+                      { text: ' ', color: '#FFFFFF', margin: [0, 18, 0, 18] },
+                      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 170, y2: 0, lineWidth: 0.5, lineColor: '#94A3B8' }], margin: [0, 8, 0, 4] },
+                      { text: receiptData.client?.name || '—', bold: true, color: '#0F3460', fontSize: 9.4 }
+                    ],
+                    margin: [14, 16, 14, 14]
+                  }]]},
+                  layout: { hLineWidth: () => 1, vLineWidth: () => 1, hLineColor: () => '#E5E7EB', vLineColor: () => '#E5E7EB', fillColor: () => '#FFFFFF' }
+                }
               ]
             },
             {
-              width: 120,
-              margin: [8, 16, 0, 0],
-              alignment: 'center',
+              width: '50%',
+              margin: [8, 0, 0, 0],
               stack: [
-                { qr: qrValue, fit: 92, alignment: 'center' },
-                { text: 'Vérification', fontSize: 8, color: '#64748B', alignment: 'center' }
+                { text: 'CACHET / SIGNATURE CAISSE', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+                {
+                  table: { widths: ['*'], body: [[{
+                    stack: [
+                      { text: ' ', color: '#FFFFFF', margin: [0, 18, 0, 18] },
+                      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 170, y2: 0, lineWidth: 0.5, lineColor: '#94A3B8' }], margin: [0, 8, 0, 4] },
+                      { text: receiptData.organisation?.name || 'MATKOLLA', bold: true, color: '#0F3460', fontSize: 9.4 }
+                    ],
+                    margin: [14, 16, 14, 14]
+                  }]]},
+                  layout: { hLineWidth: () => 1, vLineWidth: () => 1, hLineColor: () => '#E5E7EB', vLineColor: () => '#E5E7EB', fillColor: () => '#FFFFFF' }
+                }
               ]
             }
           ]
+        },
+        {
+          margin: [0, 22, 0, 0],
+          columns: [{ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 0.5, lineColor: '#E5E7EB' }] }]
+        },
+        {
+          margin: [0, 12, 0, 0],
+          text: receiptData.organisation?.footer_text || 'Merci pour votre confiance. Ce reçu fait foi de paiement.',
+          fontSize: 8.6,
+          color: '#94A3B8',
+          alignment: 'center',
+          italics: true
         }
       ]
     };
@@ -1008,18 +2175,6 @@ export class PdfService {
     popup.document.write(html);
     popup.document.close();
     popup.focus();
-
-    const runPrint = () => {
-      try {
-        popup.focus();
-        popup.print();
-      } catch {
-        // no-op
-      }
-    };
-
-    popup.onafterprint = () => popup.close();
-    setTimeout(runPrint, 300);
   }
 
   private buildProfessionalInvoiceHtml(invoiceData: PrintableInvoiceData): string {
@@ -1335,16 +2490,22 @@ export class PdfService {
     return date.toLocaleDateString('fr-FR');
   }
 
+  // Remplace les espaces fines insécables (U+202F) et insécables (U+00A0) que Intl 'fr-FR'
+  // insère et que la police Roboto embarquée par pdfmake ne rend pas.
+  private normalizeSpaces(s: string): string {
+    return s.replace(/[  ]/g, ' ');
+  }
+
   private formatNumber(value: number | string | null | undefined): string {
     const parsed = Number(value || 0);
-    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(parsed);
+    return this.normalizeSpaces(new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(parsed));
   }
 
   private formatMoney(value: number | string | null | undefined, currency = 'GNF'): string {
-    const formatted = new Intl.NumberFormat('fr-FR', {
+    const formatted = this.normalizeSpaces(new Intl.NumberFormat('fr-FR', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(Number(value || 0));
+    }).format(Number(value || 0)));
     return `${formatted} ${currency}`;
   }
 

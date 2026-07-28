@@ -2,13 +2,14 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyR
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import {
   ButtonModule, CardModule, FormModule, BadgeModule,
   ModalModule, AlertModule, SpinnerModule, ProgressModule, NavModule, TabsModule,
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import Swal from 'sweetalert2';
 import { environment } from '../../../../environments/environment';
 import { startWith } from 'rxjs/operators';
@@ -17,7 +18,7 @@ import { startWith } from 'rxjs/operators';
   selector: 'app-container-ventes',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, FormsModule, IconDirective,
+    CommonModule, ReactiveFormsModule, FormsModule, RouterModule, IconDirective,
     ButtonModule, CardModule, FormModule, BadgeModule,
     ModalModule, AlertModule, SpinnerModule, ProgressModule, NavModule, TabsModule,
   ],
@@ -123,9 +124,14 @@ export class ContainerVentesComponent implements OnInit {
     { value: 'ANNULE',     label: 'Annulé' }
   ];
 
+  get canCreateContainer(): boolean { return this.authService.hasModulePermission('CONTAINERS', 'create'); }
+  get canEditContainer(): boolean   { return this.authService.hasModulePermission('CONTAINERS', 'edit'); }
+  get canDeleteContainer(): boolean { return this.authService.hasModulePermission('CONTAINERS', 'delete'); }
+
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef,
     private router: Router
   ) {
@@ -139,7 +145,7 @@ export class ContainerVentesComponent implements OnInit {
       product_category_id: [null, Validators.required],
       product_type:   ['DIVERS'],
       total_quantity: [null, [Validators.required, Validators.min(1)]],
-      bale_quantity:  [null, [Validators.required, Validators.min(1)]],
+      bale_quantity:  [null, [Validators.min(1)]],
       description:    ['']
     });
 
@@ -197,6 +203,7 @@ export class ContainerVentesComponent implements OnInit {
     this.loadClients();
     this.loadCurrencyRates();
     this.setupArrivalRateWatcher();
+    this.setupArrivalBaleQuantityWatcher();
     this.setupSaleRateWatcher();
     this.setupGlobalPaymentRateWatcher();
     this.loadArrivals();
@@ -232,7 +239,12 @@ export class ContainerVentesComponent implements OnInit {
 
   loadProductCategories(): void {
     this.apiService.get<any>('product-categories?per_page=200').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (r) => { this.productCategories = this.extractList(r); },
+      next: (r) => {
+        this.productCategories = this.extractList(r);
+        // Re-évalue isTextileArrival maintenant que les catégories sont chargées
+        // (nécessaire quand un formulaire d'édition a été pré-rempli avant que la liste arrive).
+        this.arrivalForm.get('product_category_id')?.updateValueAndValidity();
+      },
       error: () => { this.productCategories = []; }
     });
   }
@@ -804,7 +816,13 @@ export class ContainerVentesComponent implements OnInit {
   }
 
   getSaleTypeLabel(type: string): string {
-    const m: Record<string, string> = { TOTAL: 'Totale', PARTIEL: 'Partielle', DETAIL: 'Au détail' };
+    const m: Record<string, string> = {
+      TOTAL: 'Conteneur entier',
+      BALLE: 'Par balle',
+      CARTON: 'Par carton',
+      PARTIEL: 'Partielle',
+      DETAIL: 'Au détail',
+    };
     return m[type] || type;
   }
 
@@ -865,11 +883,10 @@ export class ContainerVentesComponent implements OnInit {
 
   getClientTypeLabel(type: string | null | undefined): string {
     const map: Record<string, string> = {
-      GENERAL: 'Général',
-      PNEUS: 'Pneus',
       TEXTILE: 'Textile',
+      PNEUS: 'Pneus',
       COSMETIQUES: 'Cosmétiques',
-      CONTAINER_PAGNE: 'Conteneur / Pagne',
+      MACHINE_A_COUDRE: 'Machine à coudre',
     };
     return map[type || ''] || (type || 'Client');
   }
@@ -924,6 +941,32 @@ export class ContainerVentesComponent implements OnInit {
         const currency = String(this.arrivalForm.get('currency')?.value || 'GNF').toUpperCase();
         const rate = this.getExchangeRateForCurrency(currency);
         this.arrivalForm.get('exchange_rate')?.setValue(rate, { emitEvent: false });
+      });
+  }
+
+  // Le champ "Nombre de Balles" n'a de sens que pour le textile.
+  get isTextileArrival(): boolean {
+    const catId = this.arrivalForm.get('product_category_id')?.value;
+    if (!catId) return false;
+    const cat = this.productCategories.find(c => c.id === catId || c.id === Number(catId));
+    const name = String(cat?.name || '').trim().toLowerCase();
+    return name.startsWith('textile');
+  }
+
+  private setupArrivalBaleQuantityWatcher(): void {
+    const balesCtrl = this.arrivalForm.get('bale_quantity');
+    this.arrivalForm.get('product_category_id')?.valueChanges
+      .pipe(startWith(this.arrivalForm.get('product_category_id')?.value), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (!balesCtrl) return;
+        if (this.isTextileArrival) {
+          balesCtrl.setValidators([Validators.required, Validators.min(1)]);
+        } else {
+          balesCtrl.clearValidators();
+          balesCtrl.setValidators([Validators.min(1)]);
+          balesCtrl.setValue(null, { emitEvent: false });
+        }
+        balesCtrl.updateValueAndValidity({ emitEvent: false });
       });
   }
 

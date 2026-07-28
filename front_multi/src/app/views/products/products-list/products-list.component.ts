@@ -85,6 +85,13 @@ export class ProductsListComponent implements OnInit {
   deleteModalOpen = false;
   productToDelete: Product | null = null;
   bulkDeleteModalOpen = false;
+
+  // Restock Modal
+  restockModalOpen = false;
+  productToRestock: Product | null = null;
+  restockQuantity: number | null = null;
+  restockReason = '';
+  restockSubmitting = false;
   
   // Detail Modal
   detailModalOpen = false;
@@ -100,7 +107,12 @@ export class ProductsListComponent implements OnInit {
 
   // Math object for template
   Math = Math;
-  
+
+  get canCreateProducts(): boolean { return this.authService.hasModulePermission('COMMERCIAL', 'create'); }
+  get canEditProducts(): boolean   { return this.authService.hasModulePermission('COMMERCIAL', 'edit'); }
+  get canDeleteProducts(): boolean { return this.authService.hasModulePermission('COMMERCIAL', 'delete'); }
+
+
   constructor(
     private productService: ProductService,
     private authService: AuthService,
@@ -288,6 +300,54 @@ export class ProductsListComponent implements OnInit {
     this.router.navigate(['/products/edit', product.id]);
   }
 
+  // Stock replenishment
+  openRestockModal(product: Product): void {
+    this.productToRestock = product;
+    this.restockQuantity = null;
+    this.restockReason = '';
+    this.restockSubmitting = false;
+    this.restockModalOpen = true;
+  }
+
+  cancelRestock(): void {
+    this.restockModalOpen = false;
+    this.productToRestock = null;
+    this.restockQuantity = null;
+    this.restockReason = '';
+  }
+
+  confirmRestock(): void {
+    if (!this.productToRestock || !this.restockQuantity || this.restockQuantity <= 0) return;
+    this.restockSubmitting = true;
+    const payload = {
+      stock_quantity: Number(this.restockQuantity),
+      operation: 'ADD',
+      reason: this.restockReason || 'Approvisionnement stock',
+    };
+    this.apiService.post<any>(`products/${this.productToRestock.id}/update-stock`, payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          this.restockSubmitting = false;
+          if (r?.success) {
+            this.successMessage = `Stock approvisionné (+${this.restockQuantity}).`;
+            this.cancelRestock();
+            this.loadProducts();
+            this.loadStatistics();
+            this.clearMessagesAfterDelay();
+          } else {
+            this.error = r?.message || 'Erreur lors de l\'approvisionnement.';
+          }
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.restockSubmitting = false;
+          this.error = err?.error?.message || err?.message || 'Erreur lors de l\'approvisionnement.';
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
   // Delete operations
   deleteProduct(product: Product): void {
     this.productToDelete = product;
@@ -301,15 +361,18 @@ export class ProductsListComponent implements OnInit {
     this.apiService.delete<any>(`products/${this.productToDelete.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         if (response.success) {
-          this.successMessage = 'Produit supprimé avec succès';
+          this.successMessage = 'Produit déplacé dans la corbeille (restaurable depuis /trash)';
           this.loadProducts();
           this.loadStatistics();
           this.clearMessagesAfterDelay();
+        } else {
+          this.error = response?.message || 'Erreur lors de la suppression';
         }
+        this.loading = false;
         this.cancelDelete();
       },
       error: (error) => {
-        this.error = error?.error?.message || 'Erreur lors de la suppression';
+        this.error = error?.error?.message || error?.message || 'Erreur lors de la suppression';
         this.loading = false;
         this.cancelDelete();
       }

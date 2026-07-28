@@ -8,14 +8,28 @@ use Illuminate\Support\Facades\Validator;
 
 class DriverController extends BaseController
 {
+    private function tenantId(Request $request): ?int
+    {
+        $user = auth()->user();
+        return $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+    }
+
+    private function driverQuery(Request $request)
+    {
+        $tenantId = $this->tenantId($request);
+        $query = Driver::query();
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        return $query;
+    }
+
     public function index(Request $request)
     {
-        $user     = auth()->user();
-        $tenantId = $user->hasRole('SUPER_ADMIN')
-            ? $request->get('tenant_id')
-            : $user->tenant_id;
-
         $query = Driver::with('tenant', 'taxiAssignments');
+        $tenantId = $this->tenantId($request);
 
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
@@ -27,10 +41,7 @@ class DriverController extends BaseController
 
     public function store(Request $request)
     {
-        $user     = auth()->user();
-        $tenantId = $user->hasRole('SUPER_ADMIN')
-            ? $request->get('tenant_id')
-            : $user->tenant_id;
+        $tenantId = $this->tenantId($request);
 
         if (!$tenantId) {
             return $this->sendError('Tenant ID requis.', [], 422);
@@ -60,9 +71,11 @@ class DriverController extends BaseController
         return $this->sendResponse($driver, 'Driver created successfully', 201);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $driver = Driver::with('tenant', 'taxiAssignments.taxi')->find($id);
+        $driver = $this->driverQuery($request)
+            ->with('tenant', 'taxiAssignments.taxi')
+            ->find($id);
 
         if (!$driver) {
             return $this->sendError('Driver not found');
@@ -73,7 +86,7 @@ class DriverController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $driver = Driver::find($id);
+        $driver = $this->driverQuery($request)->find($id);
 
         if (!$driver) {
             return $this->sendError('Driver not found');
@@ -98,7 +111,8 @@ class DriverController extends BaseController
 
     public function destroy($id)
     {
-        $driver = Driver::find($id);
+        $request = request();
+        $driver = $this->driverQuery($request)->find($id);
 
         if (!$driver) {
             return $this->sendError('Driver not found');
@@ -110,7 +124,8 @@ class DriverController extends BaseController
 
     public function toggleStatus($id)
     {
-        $driver = Driver::find($id);
+        $request = request();
+        $driver = $this->driverQuery($request)->find($id);
 
         if (!$driver) {
             return $this->sendError('Driver not found');
@@ -124,7 +139,8 @@ class DriverController extends BaseController
 
     public function suspend($id)
     {
-        $driver = Driver::find($id);
+        $request = request();
+        $driver = $this->driverQuery($request)->find($id);
 
         if (!$driver) {
             return $this->sendError('Driver not found');
@@ -136,7 +152,8 @@ class DriverController extends BaseController
 
     public function activate($id)
     {
-        $driver = Driver::find($id);
+        $request = request();
+        $driver = $this->driverQuery($request)->find($id);
 
         if (!$driver) {
             return $this->sendError('Driver not found');
@@ -148,10 +165,7 @@ class DriverController extends BaseController
 
     public function statistics(Request $request)
     {
-        $user     = auth()->user();
-        $tenantId = $user->hasRole('SUPER_ADMIN')
-            ? $request->get('tenant_id', null)
-            : $user->tenant_id;
+        $tenantId = $this->tenantId($request);
 
         $query = Driver::query();
         if ($tenantId) {

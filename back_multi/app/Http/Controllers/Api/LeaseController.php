@@ -18,6 +18,28 @@ class LeaseController extends BaseController
         return $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
     }
 
+    private function housingUnitForTenant(int $unitId, int $tenantId): ?HousingUnit
+    {
+        return HousingUnit::whereKey($unitId)
+            ->whereHas('floor.building.location', fn($q) => $q->where('tenant_id', $tenantId))
+            ->first();
+    }
+
+    private function hasOverlappingLease(int $unitId, string $startDate, ?string $endDate = null, ?int $exceptLeaseId = null): bool
+    {
+        $end = $endDate ?: '9999-12-31';
+
+        return Lease::where('housing_unit_id', $unitId)
+            ->when($exceptLeaseId, fn($q) => $q->where('id', '!=', $exceptLeaseId))
+            ->whereIn('status', ['PENDING', 'ACTIVE'])
+            ->where('start_date', '<=', $end)
+            ->where(function ($q) use ($startDate) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $startDate);
+            })
+            ->exists();
+    }
+
     // ==================== CONTRATS ====================
 
     public function index(Request $request)
@@ -73,10 +95,24 @@ class LeaseController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
+        $tenantId = $this->tenantId($request);
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID requis.', [], 422);
+        }
+
+        $unit = $this->housingUnitForTenant((int) $request->housing_unit_id, (int) $tenantId);
+        if (!$unit) {
+            return $this->sendError('Logement introuvable pour ce tenant.', [], 422);
+        }
+
+        if ($this->hasOverlappingLease((int) $request->housing_unit_id, $request->start_date, $request->end_date)) {
+            return $this->sendError('Un bail actif existe déjà pour ce logement sur cette période.', [], 422);
+        }
+
         DB::beginTransaction();
         try {
             $data = $request->all();
-            $data['tenant_id']      = $this->tenantId($request);
+            $data['tenant_id']      = $tenantId;
             $data['deposit_amount'] = $data['deposit_amount'] ?? 0;
             $data['payment_day']    = $data['payment_day'] ?? 1;
             $data['status']         = $data['status'] ?? 'ACTIVE';
@@ -132,6 +168,7 @@ class LeaseController extends BaseController
             'renter_phone'  => 'nullable|string|max:50',
             'renter_email'  => 'nullable|email|max:150',
             'renter_photo'  => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'housing_unit_id' => 'sometimes|exists:housing_units,id',
             'start_date'    => 'sometimes|date',
             'end_date'      => 'nullable|date',
             'monthly_rent'  => 'sometimes|numeric|min:0',
@@ -146,13 +183,32 @@ class LeaseController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
+        $targetUnitId = (int) $request->get('housing_unit_id', $lease->housing_unit_id);
+        $targetStart = $request->get('start_date', $lease->start_date->format('Y-m-d'));
+        $targetEnd = $request->has('end_date') ? $request->get('end_date') : optional($lease->end_date)->format('Y-m-d');
+
+        if ($targetEnd && $targetEnd < $targetStart) {
+            return $this->sendError('La date de fin doit être supérieure ou égale à la date de début.', [], 422);
+        }
+
+        $unit = $this->housingUnitForTenant($targetUnitId, (int) $tenantId);
+        if (!$unit) {
+            return $this->sendError('Logement introuvable pour ce tenant.', [], 422);
+        }
+
+        if ($this->hasOverlappingLease($targetUnitId, $targetStart, $targetEnd, (int) $lease->id)) {
+            return $this->sendError('Un bail actif existe déjà pour ce logement sur cette période.', [], 422);
+        }
+
         DB::beginTransaction();
         try {
             $data = $request->only([
                 'renter_name', 'renter_phone', 'renter_email',
-                'start_date', 'end_date', 'monthly_rent',
+                'housing_unit_id', 'start_date', 'end_date', 'monthly_rent',
                 'deposit_amount', 'currency', 'payment_day', 'status', 'notes',
             ]);
+
+            $previousUnitId = $lease->housing_unit_id;
 
             if ($request->hasFile('renter_photo')) {
                 $this->deleteFile($lease->renter_photo);
@@ -161,7 +217,11 @@ class LeaseController extends BaseController
 
             $lease->update($data);
 
-            // If terminated/expired, free the housing unit
+            if ($previousUnitId !== $lease->housing_unit_id) {
+                HousingUnit::where('id', $lease->housing_unit_id)->update(['status' => 'OCCUPE']);
+            }
+
+            // If terminated/expired, free the housing unit; otherwise mark it occupied.
             if (in_array($lease->status, ['TERMINATED', 'EXPIRED'])) {
                 $activeLeases = Lease::where('housing_unit_id', $lease->housing_unit_id)
                     ->where('id', '!=', $lease->id)
@@ -171,6 +231,19 @@ class LeaseController extends BaseController
                 if ($activeLeases === 0) {
                     HousingUnit::where('id', $lease->housing_unit_id)
                         ->update(['status' => 'LIBRE']);
+                }
+            } else {
+                HousingUnit::where('id', $lease->housing_unit_id)
+                    ->update(['status' => 'OCCUPE']);
+            }
+
+            if ($previousUnitId !== $lease->housing_unit_id) {
+                $activeLeases = Lease::where('housing_unit_id', $previousUnitId)
+                    ->whereIn('status', ['ACTIVE', 'PENDING'])
+                    ->count();
+
+                if ($activeLeases === 0) {
+                    HousingUnit::where('id', $previousUnitId)->update(['status' => 'LIBRE']);
                 }
             }
 
@@ -266,6 +339,15 @@ class LeaseController extends BaseController
         $data['lease_id']  = $leaseId;
         $data['status']    = $data['status'] ?? 'PAID';
         $data['receipt_number'] = $this->generateReceiptNumber($tenantId);
+
+        $exists = LeasePayment::where('tenant_id', $tenantId)
+            ->where('lease_id', $leaseId)
+            ->where('period_month', $data['period_month'])
+            ->exists();
+
+        if ($exists) {
+            return $this->sendError('Un paiement existe déjà pour ce bail et cette période.', [], 422);
+        }
 
         $payment = LeasePayment::create($data);
 

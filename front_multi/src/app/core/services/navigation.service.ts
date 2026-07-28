@@ -67,7 +67,8 @@ export class NavigationService {
             { name: 'Gestion des Utilisateurs',    url: '/admin/users',               iconComponent: { name: 'cilPeople' } },
             { name: 'Rôles & Permissions',         url: '/admin/roles',               iconComponent: { name: 'cilShieldAlt' } },
             { name: 'Statistiques Globales',       url: '/admin/statistics',          iconComponent: { name: 'cilChartPie' } },
-            { name: 'Configuration',               url: '/settings',                  iconComponent: { name: 'cilSettings' } }
+            { name: 'Configuration',               url: '/settings',                  iconComponent: { name: 'cilSettings' } },
+            { name: 'Corbeille',                   url: '/trash',                     iconComponent: { name: 'cilTrash' } }
           );
         }
 
@@ -75,11 +76,8 @@ export class NavigationService {
           baseNavigation.push(
             { name: 'ORGANISATION', title: true },
             { name: 'Informations Entreprise', url: '/organisation/company-info',      iconComponent: { name: 'cilBuilding' } },
-            { name: 'Contacts & Adresses',     url: '/organisation/contacts',          iconComponent: { name: 'cilAddressBook' } },
             { name: 'Utilisateurs',            url: '/organisation/users',             iconComponent: { name: 'cilPeople' } },
-            { name: 'Devises',                 url: '/organisation/currencies',        iconComponent: { name: 'cilDollar' } },
-            { name: 'En-têtes Factures',       url: '/organisation/invoice-headers',   iconComponent: { name: 'cilDescription' } },
-            { name: 'Configuration',           url: '/organisation/settings',          iconComponent: { name: 'cilSettings' } }
+            { name: 'Corbeille',               url: '/trash',                          iconComponent: { name: 'cilTrash' } }
           );
         }
 
@@ -110,9 +108,15 @@ export class NavigationService {
 
     if (!accessibleModules || accessibleModules.length === 0) return [];
 
+    const addedGroups = new Set<string>();
+
     accessibleModules.forEach(module => {
-        switch (module.code) {
+        const code = this.normalizeModuleCode(module.code);
+        if (addedGroups.has(code)) return;
+
+        switch (code) {
           case 'COMMERCE':
+            addedGroups.add(code);
             moduleNavigation.push({
               name: 'Commercial',
               url: '/commercial',
@@ -120,7 +124,6 @@ export class NavigationService {
               children: [
                 { name: 'Tableau de Bord',              url: '/commercial/dashboard',      icon: 'nav-icon-bullet' },
                 { name: 'Produits',                     url: '/products/list',             icon: 'nav-icon-bullet' },
-                { name: 'Gestion Avancée Produits',     url: '/products/advanced',         icon: 'nav-icon-bullet' },
                 { name: 'Retours Produits',             url: '/products/returns',          icon: 'nav-icon-bullet' },
                 { name: 'Catégories',                   url: '/product-categories/list',   icon: 'nav-icon-bullet' },
                 { name: 'Unités de Mesure',             url: '/units/list',                icon: 'nav-icon-bullet' },
@@ -129,24 +132,26 @@ export class NavigationService {
             break;
 
           case 'CLIENTS_SUPPLIERS':
+            addedGroups.add(code);
             moduleNavigation.push({
               name: 'Clients & Fournisseurs',
               url: '/clients',
               iconComponent: { name: 'cilPeople' },
               requiredModule: 'CLIENTS_SUPPLIERS',
               children: [
-                { name: 'Clients généraux',         url: '/clients/list',             icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general' },
-                { name: 'Clients pneus',            url: '/clients/pneus',            icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_pneus' },
                 { name: 'Clients textile',          url: '/clients/textile',          icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_textile' },
+                { name: 'Clients pneus',            url: '/clients/pneus',            icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_pneus' },
                 { name: 'Clients cosmétiques',      url: '/clients/cosmetiques',      icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_cosmetiques' },
-                { name: 'Clients conteneurs pagne', url: '/clients/conteneurs-pagne', icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_conteneurs_pagne' },
-                { name: 'INDEX comptes clients',    url: '/clients/index',            icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general', badge: { color: 'success', text: 'NEW' } },
+                { name: 'Clients machine à coudre', url: '/clients/machine-a-coudre', icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general' },
+                { name: 'Tous les clients',         url: '/clients/list',             icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general' },
+                { name: 'INDEX comptes clients',    url: '/clients/index',            icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general' },
                 { name: 'Fournisseurs',             url: '/suppliers/list',           icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_suppliers' },
               ]
             });
             break;
 
           case 'USERS':
+            addedGroups.add(code);
             moduleNavigation.push({
               name: 'Utilisateurs',
               url: '/organisation/users',
@@ -159,23 +164,25 @@ export class NavigationService {
             break;
 
         case 'FINANCE':
+          addedGroups.add(code);
           moduleNavigation.push({
             name: 'Finance',
             url: '/finance',
             iconComponent: { name: 'cilDollar' },
             children: [
               { name: 'Tableau de Bord',              url: '/finance/dashboard',         icon: 'nav-icon-bullet' },
-              { name: 'Paiements',                    url: '/payments/list',             icon: 'nav-icon-bullet' },
-              { name: 'Gestion Avancée Paiements',    url: '/payments/advanced',         icon: 'nav-icon-bullet' },
+              { name: 'Versements clients',           url: '/finance/payments',          icon: 'nav-icon-bullet' },
               { name: 'Devises',                      url: '/finance/currencies',        icon: 'nav-icon-bullet' },
               { name: 'Taux de Change',               url: '/finance/exchange-rates',    icon: 'nav-icon-bullet' },
               { name: 'Factures',                     url: '/finance/invoices',          icon: 'nav-icon-bullet' },
-              { name: 'Synthèse des ventes',          url: '/finance/sales-summary',     icon: 'nav-icon-bullet', badge: { color: 'success', text: 'NEW' } },
+              { name: 'Synthèse des ventes',          url: '/finance/sales-summary',     icon: 'nav-icon-bullet' },
+              { name: 'Marges bénéficiaires',         url: '/finance/margins',           icon: 'nav-icon-bullet' },
             ]
           });
           break;
 
-        case 'CONTAINER':
+        case 'CONTAINERS':
+          addedGroups.add(code);
           moduleNavigation.push({
             name: 'Conteneurs',
             url: '/containers',
@@ -189,6 +196,7 @@ export class NavigationService {
           break;
 
         case 'RENTAL':
+          addedGroups.add(code);
           moduleNavigation.push({
             name: 'Location Immobilière',
             url: '/rental',
@@ -207,6 +215,7 @@ export class NavigationService {
           break;
 
         case 'BANKING':
+          addedGroups.add(code);
           moduleNavigation.push({
             name: 'Comptes Bancaires',
             url: '/banking',
@@ -220,6 +229,7 @@ export class NavigationService {
           break;
 
         case 'TAXI':
+          addedGroups.add(code);
           moduleNavigation.push({
             name: 'Taxi & Transport',
             url: '/taxi',
@@ -237,6 +247,7 @@ export class NavigationService {
           break;
 
         case 'STATISTICS':
+          addedGroups.add(code);
           moduleNavigation.push({
             name: 'Statistiques',
             url: '/statistics',
@@ -300,5 +311,17 @@ export class NavigationService {
 
         return true;
       });
+  }
+
+  private normalizeModuleCode(code: string | undefined): string {
+    switch (code) {
+      case 'COMMERCIAL':
+      case 'PRODUCTS_STOCK':
+        return 'COMMERCE';
+      case 'CONTAINER':
+        return 'CONTAINERS';
+      default:
+        return code || '';
+    }
   }
 }

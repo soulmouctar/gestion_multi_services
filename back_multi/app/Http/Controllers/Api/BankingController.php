@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\BankAccount;
 use App\Models\BankTransaction;
+use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -31,6 +32,51 @@ class BankingController extends BaseController
             ], 422));
         }
         return $id;
+    }
+
+    private function resolveExchangeRate(Request $request, int $tenantId, string $currency, float $fallback = 1): float
+    {
+        if ($currency === 'GNF') {
+            return 1;
+        }
+
+        if ($request->filled('exchange_rate')) {
+            return round((float) $request->exchange_rate, 4);
+        }
+
+        $currencyModel = Currency::where('tenant_id', $tenantId)
+            ->where('code', $currency)
+            ->first();
+
+        return round((float) ($currencyModel?->exchange_rate ?? $fallback ?: 1), 4);
+    }
+
+    private function resolveAmountGnf(Request $request, string $currency, float $exchangeRate, ?float $fallbackAmount = null): float
+    {
+        $amount = (float) ($request->amount ?? $fallbackAmount ?? 0);
+
+        if ($currency === 'GNF') {
+            return round($amount, 2);
+        }
+
+        if ($request->filled('amount_gnf')) {
+            return round((float) $request->amount_gnf, 2);
+        }
+
+        return round($amount * $exchangeRate, 2);
+    }
+
+    private function convertToGnf(float $amount, string $currency, int $tenantId): float
+    {
+        if ($currency === 'GNF') {
+            return $amount;
+        }
+
+        $rate = (float) (Currency::where('tenant_id', $tenantId)
+            ->where('code', $currency)
+            ->value('exchange_rate') ?: 1);
+
+        return round($amount * $rate, 2);
     }
 
     // ==================== COMPTES ====================
@@ -189,6 +235,8 @@ class BankingController extends BaseController
             'transaction_type' => 'required|in:DEPOT,RETRAIT,REMISE_CHEQUE,VIREMENT_ENTRANT,VIREMENT_SORTANT',
             'amount'           => 'required|numeric|min:0.01',
             'currency'         => 'nullable|string|max:10',
+            'exchange_rate'    => 'nullable|numeric|min:0.0001',
+            'amount_gnf'       => 'nullable|numeric|min:0.01',
             'transaction_date' => 'required|date',
             'reference'        => 'nullable|string|max:100',
             'description'      => 'nullable|string|max:1000',
@@ -200,6 +248,15 @@ class BankingController extends BaseController
 
         $account = BankAccount::where('tenant_id', $this->tenantId())->find($request->bank_account_id);
         if (!$account) return $this->sendError('Account not found', [], 404);
+
+        $tenantId = $this->requireTenantId();
+        $currency = strtoupper($request->currency ?? $account->currency);
+        if ($currency !== strtoupper($account->currency)) {
+            return $this->sendError('Devise incohérente avec le compte bancaire.', [
+                'currency' => ['La devise de la transaction doit être identique à celle du compte.'],
+            ], 422);
+        }
+        $exchangeRate = $this->resolveExchangeRate($request, $tenantId, $currency);
 
         DB::beginTransaction();
         try {
@@ -215,7 +272,9 @@ class BankingController extends BaseController
                 'user_id'          => auth()->id(),
                 'transaction_type' => $request->transaction_type,
                 'amount'           => $request->amount,
-                'currency'         => $request->currency ?? $account->currency,
+                'currency'         => $currency,
+                'exchange_rate'    => $exchangeRate,
+                'amount_gnf'       => $this->resolveAmountGnf($request, $currency, $exchangeRate),
                 'transaction_date' => $request->transaction_date,
                 'reference'        => $request->reference,
                 'description'      => $request->description,
@@ -263,6 +322,8 @@ class BankingController extends BaseController
             'transaction_type' => 'sometimes|in:DEPOT,RETRAIT,REMISE_CHEQUE,VIREMENT_ENTRANT,VIREMENT_SORTANT',
             'amount'           => 'sometimes|numeric|min:0.01',
             'currency'         => 'nullable|string|max:10',
+            'exchange_rate'    => 'nullable|numeric|min:0.0001',
+            'amount_gnf'       => 'nullable|numeric|min:0.01',
             'transaction_date' => 'sometimes|date',
             'reference'        => 'nullable|string|max:100',
             'description'      => 'nullable|string|max:1000',
@@ -273,10 +334,30 @@ class BankingController extends BaseController
 
         DB::beginTransaction();
         try {
-            $transaction->update($request->only([
+            $account = $transaction->bankAccount;
+            $currency = strtoupper($request->currency ?? $transaction->currency ?? $account->currency);
+            if ($currency !== strtoupper($account->currency)) {
+                DB::rollBack();
+                return $this->sendError('Devise incohérente avec le compte bancaire.', [
+                    'currency' => ['La devise de la transaction doit être identique à celle du compte.'],
+                ], 422);
+            }
+            $exchangeRate = $this->resolveExchangeRate($request, (int) $transaction->tenant_id, $currency, (float) ($transaction->exchange_rate ?? 1));
+
+            $payload = $request->only([
                 'transaction_type', 'amount', 'currency', 'transaction_date',
                 'reference', 'description', 'proof_type', 'status',
-            ]));
+            ]);
+            $payload['currency'] = $currency;
+            $payload['exchange_rate'] = $exchangeRate;
+            $payload['amount_gnf'] = $this->resolveAmountGnf(
+                $request,
+                $currency,
+                $exchangeRate,
+                (float) ($request->amount ?? $transaction->amount)
+            );
+
+            $transaction->update($payload);
 
             $newBalance = $transaction->bankAccount->recalculateBalance();
             $transaction->balance_after = $newBalance;
@@ -343,6 +424,13 @@ class BankingController extends BaseController
                 ->get(['id', 'bank_name', 'account_number', 'account_name', 'currency', 'current_balance', 'account_type', 'is_active', 'brand_color', 'logo_path']);
 
             $totalBalance = $accounts->where('is_active', true)->sum('current_balance');
+            $totalBalanceGnf = $accounts
+                ->where('is_active', true)
+                ->sum(fn ($account) => $this->convertToGnf(
+                    (float) $account->current_balance,
+                    strtoupper((string) $account->currency),
+                    $tenantId
+                ));
 
             // Per-currency balance breakdown (USD + GNF cannot be naively summed)
             $balanceByCurrency = $accounts
@@ -367,6 +455,8 @@ class BankingController extends BaseController
                     COUNT(*) as total_transactions,
                     COALESCE(SUM(CASE WHEN transaction_type IN ("DEPOT","REMISE_CHEQUE","VIREMENT_ENTRANT") THEN amount ELSE 0 END),0) as total_credits,
                     COALESCE(SUM(CASE WHEN transaction_type IN ("RETRAIT","VIREMENT_SORTANT") THEN amount ELSE 0 END),0) as total_debits,
+                    COALESCE(SUM(CASE WHEN transaction_type IN ("DEPOT","REMISE_CHEQUE","VIREMENT_ENTRANT") THEN amount_gnf ELSE 0 END),0) as total_credits_gnf,
+                    COALESCE(SUM(CASE WHEN transaction_type IN ("RETRAIT","VIREMENT_SORTANT") THEN amount_gnf ELSE 0 END),0) as total_debits_gnf,
                     COALESCE(SUM(CASE WHEN transaction_type = "DEPOT" THEN amount ELSE 0 END),0) as total_depots,
                     COALESCE(SUM(CASE WHEN transaction_type = "RETRAIT" THEN amount ELSE 0 END),0) as total_retraits,
                     COALESCE(SUM(CASE WHEN transaction_type = "REMISE_CHEQUE" THEN amount ELSE 0 END),0) as total_cheques,
@@ -432,6 +522,8 @@ class BankingController extends BaseController
                     'bank_transactions.id',
                     'bank_transactions.transaction_type',
                     'bank_transactions.amount',
+                    'bank_transactions.amount_gnf',
+                    'bank_transactions.exchange_rate',
                     'bank_transactions.currency',
                     'bank_transactions.transaction_date',
                     'bank_transactions.reference',
@@ -453,6 +545,7 @@ class BankingController extends BaseController
 
             return $this->sendResponse([
                 'total_balance'        => (float) $totalBalance,
+                'total_balance_gnf'    => round((float) $totalBalanceGnf, 2),
                 'total_accounts'       => $accounts->count(),
                 'active_accounts'      => $accounts->where('is_active', true)->count(),
                 'balance_by_currency'  => $balanceByCurrency,

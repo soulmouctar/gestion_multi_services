@@ -1,0 +1,195 @@
+<div class="finance-margins container-fluid px-3 px-md-4 py-3">
+
+  <!-- HEADER -->
+  <div class="fm-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <div class="crumb text-muted small">Finance <span class="mx-1">›</span> Marges bénéficiaires</div>
+      <h1 class="d-flex align-items-center gap-2 mb-0">
+        <svg cIcon name="cilChart" class="text-success"></svg>
+        Marges bénéficiaires
+      </h1>
+      <div class="small text-muted mt-1">
+        Bénéfice = prix de vente − prix d'achat. Choisis une période puis clique <b>Calculer</b>.
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-light btn-sm" (click)="exportCsv()" [disabled]="!loaded" style="border-radius:10px;">
+        <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg> Export CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="fm-filters mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">Du <span class="text-danger">*</span></label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.from" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">Au <span class="text-danger">*</span></label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.to" />
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-success btn-sm w-100 fw-semibold"
+                (click)="compute()"
+                [disabled]="!filters.from || !filters.to || loading">
+          <span *ngIf="!loading"><svg cIcon name="cilCalculator" size="sm" class="me-1"></svg> Calculer</span>
+          <span *ngIf="loading">Calcul en cours…</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div *ngIf="!loaded && !loading" class="text-center py-5 text-muted">
+    <svg cIcon name="cilCalculator" size="xxl" class="opacity-25 mb-2"></svg>
+    <div class="fw-semibold">Aucune période calculée</div>
+    <div class="small">Sélectionne les dates puis clique sur <b>Calculer</b> pour afficher les marges.</div>
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="success"></c-spinner>
+    <div class="small text-muted mt-2">Calcul des marges…</div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div *ngIf="loaded && summary && !loading" class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="fm-kpi">
+        <div class="kpi-label">Chiffre d'affaires</div>
+        <div class="kpi-value">{{ fmt(summary.total_revenue_gnf) }}</div>
+        <div class="kpi-hint text-muted small">Toutes ventes cumulées</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="fm-kpi">
+        <div class="kpi-label">Coût total</div>
+        <div class="kpi-value" style="color:#EA580C;">{{ fmt(summary.total_cost_gnf) }}</div>
+        <div class="kpi-hint text-muted small">Prix d'achat des marchandises</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="fm-kpi kpi-highlight">
+        <div class="kpi-label">Bénéfice réalisé</div>
+        <div class="kpi-value fw-bold" [style.color]="marginColor(summary.total_margin_gnf)">
+          {{ fmt(summary.total_margin_gnf) }}
+        </div>
+        <div class="kpi-hint" [style.color]="marginColor(summary.total_margin_gnf)">
+          <b>{{ pct(summary.margin_pct) }}</b> de marge
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="fm-kpi">
+        <div class="kpi-label">Répartition</div>
+        <div class="small mt-1">
+          <div class="d-flex justify-content-between">
+            <span>Factures ({{ summary.invoices.count }})</span>
+            <b [style.color]="marginColor(summary.invoices.margin)">{{ fmt(summary.invoices.margin) }}</b>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span>Conteneurs ({{ summary.containers.count }})</span>
+            <b [style.color]="marginColor(summary.containers.margin)">{{ fmt(summary.containers.margin) }}</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div *ngIf="loaded && !loading" class="fm-tabs mb-2">
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="activeTab === 'invoices'" (click)="activeTab = 'invoices'" style="cursor:pointer;">
+          Factures <span class="badge bg-light text-dark ms-1">{{ invoices.length }}</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="activeTab === 'containers'" (click)="activeTab = 'containers'" style="cursor:pointer;">
+          Ventes conteneurs <span class="badge bg-light text-dark ms-1">{{ containers.length }}</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- TABLE FACTURES -->
+  <div *ngIf="loaded && !loading && activeTab === 'invoices'" class="fm-table">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>N° facture</th>
+            <th>Client</th>
+            <th>Devise</th>
+            <th class="text-end">Vente (natif)</th>
+            <th class="text-end">Coût (natif)</th>
+            <th class="text-end">CA GNF</th>
+            <th class="text-end">Coût GNF</th>
+            <th class="text-end">Bénéfice</th>
+            <th class="text-end">Marge %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of invoices; trackBy: trackInvoice">
+            <td>{{ r.date | date:'dd/MM/yyyy' }}</td>
+            <td class="fw-semibold text-primary">{{ r.invoice_number }}</td>
+            <td>{{ r.client_name || '—' }}</td>
+            <td><span class="badge bg-light text-dark">{{ r.currency }}</span></td>
+            <td class="text-end">{{ fmtNative(r.revenue, r.currency) }}</td>
+            <td class="text-end text-muted">{{ fmtNative(r.cost, r.currency) }}</td>
+            <td class="text-end">{{ fmt(r.revenue_gnf) }}</td>
+            <td class="text-end text-muted">{{ fmt(r.cost_gnf) }}</td>
+            <td class="text-end fw-bold" [style.color]="marginColor(r.margin_gnf)">{{ fmt(r.margin_gnf) }}</td>
+            <td class="text-end fw-semibold" [style.color]="marginColor(r.margin_gnf)">{{ pct(r.margin_pct) }}</td>
+          </tr>
+          <tr *ngIf="!invoices.length">
+            <td colspan="10" class="text-center py-4 text-muted">Aucune facture sur la période.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TABLE CONTENEURS -->
+  <div *ngIf="loaded && !loading && activeTab === 'containers'" class="fm-table">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Date arrivée</th>
+            <th>Conteneur</th>
+            <th>Catégorie</th>
+            <th>Fournisseur</th>
+            <th>Devise</th>
+            <th class="text-end">Qté vendue</th>
+            <th class="text-end">CA GNF</th>
+            <th class="text-end">Coût GNF</th>
+            <th class="text-end">Bénéfice</th>
+            <th class="text-end">Marge %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of containers; trackBy: trackContainer">
+            <td>{{ r.arrival_date | date:'dd/MM/yyyy' }}</td>
+            <td class="fw-semibold text-primary">{{ r.container_number }}</td>
+            <td>{{ r.product_category || '—' }}</td>
+            <td>{{ r.supplier_name || '—' }}</td>
+            <td><span class="badge bg-light text-dark">{{ r.currency }}</span></td>
+            <td class="text-end">{{ r.quantity_sold }}</td>
+            <td class="text-end">{{ fmt(r.revenue_gnf) }}</td>
+            <td class="text-end text-muted">{{ fmt(r.cost_gnf) }}</td>
+            <td class="text-end fw-bold" [style.color]="marginColor(r.margin_gnf)">{{ fmt(r.margin_gnf) }}</td>
+            <td class="text-end fw-semibold" [style.color]="marginColor(r.margin_gnf)">{{ pct(r.margin_pct) }}</td>
+          </tr>
+          <tr *ngIf="!containers.length">
+            <td colspan="10" class="text-center py-4 text-muted">Aucune vente conteneur sur la période.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

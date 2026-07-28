@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'tenant_id',
@@ -16,12 +17,17 @@ class Payment extends Model
         'supplier_id',
         'invoice_id',
         'receipt_number',
+        'payment_group_id',
         'type',
         'method',
         'amount',
         'currency',
+        'target_currency',
+        'target_account_id',
         'exchange_rate',
         'amount_gnf',
+        'converted_amount',
+        'conversion_rate',
         'proof',
         'reference',
         'description',
@@ -30,11 +36,18 @@ class Payment extends Model
     ];
 
     protected $casts = [
-        'amount'        => 'decimal:2',
-        'exchange_rate' => 'decimal:4',
-        'amount_gnf'    => 'decimal:2',
-        'payment_date'  => 'date',
+        'amount'           => 'decimal:2',
+        'exchange_rate'    => 'decimal:4',
+        'amount_gnf'       => 'decimal:2',
+        'converted_amount' => 'decimal:2',
+        'conversion_rate'  => 'decimal:6',
+        'payment_date'     => 'date',
     ];
+
+    public function targetAccount()
+    {
+        return $this->belongsTo(ClientCurrencyAccount::class, 'target_account_id');
+    }
 
     public function getAmountGnfAttribute($value): float
     {

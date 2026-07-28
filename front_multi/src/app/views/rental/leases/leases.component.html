@@ -43,14 +43,14 @@
   <c-card-header>
     <c-nav variant="tabs" role="tablist">
       <c-nav-item>
-        <a cNavLink [active]="activeTab === 'leases'" (click)="activeTab = 'leases'; loadLeases()">
+        <button type="button" cNavLink [active]="activeTab === 'leases'" (click)="activeTab = 'leases'; loadLeases()">
           Contrats <c-badge color="primary" class="ms-1">{{ leasesTotal }}</c-badge>
-        </a>
+        </button>
       </c-nav-item>
       <c-nav-item>
-        <a cNavLink [active]="activeTab === 'payments'" (click)="activeTab = 'payments'; loadAllPayments()">
+        <button type="button" cNavLink [active]="activeTab === 'payments'" (click)="activeTab = 'payments'; loadAllPayments()">
           Paiements <c-badge color="success" class="ms-1">{{ paymentsTotal }}</c-badge>
-        </a>
+        </button>
       </c-nav-item>
     </c-nav>
   </c-card-header>

@@ -253,7 +253,7 @@
               <div>Aucun compte enregistré</div>
             </div>
 
-            <div *ngIf="stats.accounts?.length" class="mb-3" style="height:220px;">
+            <div *ngIf="stats.accounts?.length" class="chart-frame mb-3">
               <c-chart type="bar" [data]="accountBalanceChartData" [options]="barChartOptions"></c-chart>
             </div>
 
@@ -496,6 +496,20 @@
   .banking-stats .doughnut-canvas {
     position: absolute;
     inset: 0;
+  }
+  .banking-stats .chart-frame {
+    position: relative;
+    height: 220px;
+    width: 100%;
+    overflow: hidden;
+  }
+  .banking-stats .chart-frame > c-chart,
+  .banking-stats .chart-frame canvas {
+    position: absolute !important;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
   }
   .banking-stats .doughnut-center {
     position: absolute;

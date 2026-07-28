@@ -11,7 +11,7 @@
       <a [routerLink]="['/banking/statistics']" cButton color="light" size="sm" style="border-radius:8px">
         <svg cIcon name="cilChartPie" class="me-1" size="sm"></svg> Statistiques
       </a>
-      <button cButton color="success" (click)="openNew()" style="border-radius:10px">
+      <button *ngIf="canCreateTransaction" cButton color="success" (click)="openNew()" style="border-radius:10px">
         <svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle Transaction
       </button>
     </div>
@@ -133,11 +133,11 @@
             </td>
             <td class="px-3 text-center">
               <div class="d-flex justify-content-center gap-1">
-                <button cButton size="sm" color="warning" variant="outline" (click)="openEdit(tx)"
+                <button *ngIf="canEditTransaction" cButton size="sm" color="warning" variant="outline" (click)="openEdit(tx)"
                         title="Modifier" style="border-radius:8px;">
                   <svg cIcon name="cilPencil" size="sm"></svg>
                 </button>
-                <button cButton size="sm" color="danger" variant="ghost" (click)="delete(tx)"
+                <button *ngIf="canDeleteTransaction" cButton size="sm" color="danger" variant="ghost" (click)="delete(tx)"
                         title="Supprimer" style="border-radius:8px;">
                   <svg cIcon name="cilTrash" size="sm"></svg>
                 </button>

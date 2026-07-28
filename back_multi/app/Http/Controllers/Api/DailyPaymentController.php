@@ -17,6 +17,22 @@ class DailyPaymentController extends BaseController
         return $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
     }
 
+    private function assignmentForTenant(int $assignmentId, int $tenantId): ?TaxiAssignment
+    {
+        return TaxiAssignment::with('driver', 'taxi')
+            ->whereHas('taxi', fn($q) => $q->where('tenant_id', $tenantId))
+            ->whereHas('driver', fn($q) => $q->where('tenant_id', $tenantId))
+            ->find($assignmentId);
+    }
+
+    private function isDateInsideAssignment(TaxiAssignment $assignment, string $date): bool
+    {
+        $start = $assignment->start_date->format('Y-m-d');
+        $end = $assignment->end_date ? $assignment->end_date->format('Y-m-d') : null;
+
+        return $date >= $start && (!$end || $date <= $end);
+    }
+
     public function index(Request $request)
     {
         $tenantId = $this->tenantId($request);
@@ -60,9 +76,17 @@ class DailyPaymentController extends BaseController
         }
 
         $tenantId  = $this->tenantId($request);
-        $assignment = TaxiAssignment::with('driver', 'taxi')->find($request->taxi_assignment_id);
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID requis.', [], 422);
+        }
+
+        $assignment = $this->assignmentForTenant((int) $request->taxi_assignment_id, (int) $tenantId);
         if (!$assignment) {
             return $this->sendError('Assignment not found', [], 404);
+        }
+
+        if (!$this->isDateInsideAssignment($assignment, $request->payment_date)) {
+            return $this->sendError('La date du versement doit être comprise dans la période d’affectation.', [], 422);
         }
 
         $existing = DailyPayment::where('taxi_assignment_id', $request->taxi_assignment_id)
@@ -75,7 +99,7 @@ class DailyPaymentController extends BaseController
 
         $paid     = (float) $request->paid_amount;
         $expected = (float) $request->expected_amount;
-        $balance  = max(0, $expected - $paid);
+        $balance  = $request->status === 'EXCUSED' ? 0 : max(0, $expected - $paid);
 
         // Auto-detect status if not provided
         $status = $request->status;
@@ -130,6 +154,7 @@ class DailyPaymentController extends BaseController
         $validator = Validator::make($request->all(), [
             'expected_amount' => 'sometimes|numeric|min:0',
             'paid_amount'     => 'sometimes|numeric|min:0',
+            'payment_date'    => 'sometimes|date',
             'status'          => 'nullable|in:PAID,PARTIAL,UNPAID,EXCUSED',
             'notes'           => 'nullable|string|max:1000',
         ]);
@@ -140,10 +165,27 @@ class DailyPaymentController extends BaseController
 
         $data = $request->only(['expected_amount', 'paid_amount', 'status', 'notes', 'payment_date']);
 
+        if (!empty($data['payment_date'])) {
+            if (!$this->isDateInsideAssignment($payment->taxiAssignment, $data['payment_date'])) {
+                return $this->sendError('La date du versement doit être comprise dans la période d’affectation.', [], 422);
+            }
+
+            $duplicate = DailyPayment::where('taxi_assignment_id', $payment->taxi_assignment_id)
+                ->where('payment_date', $data['payment_date'])
+                ->where('id', '!=', $payment->id)
+                ->exists();
+
+            if ($duplicate) {
+                return $this->sendError('Un versement existe déjà pour cette date et cette affectation', [], 422);
+            }
+        }
+
         // Recalculate balance and auto-status
         $paid     = isset($data['paid_amount'])     ? (float)$data['paid_amount']     : $payment->paid_amount;
         $expected = isset($data['expected_amount']) ? (float)$data['expected_amount'] : $payment->expected_amount;
-        $data['balance'] = max(0, $expected - $paid);
+        $data['balance'] = ($data['status'] ?? $payment->status) === 'EXCUSED'
+            ? 0
+            : max(0, $expected - $paid);
 
         if (empty($data['status'])) {
             if ($paid >= $expected)  $data['status'] = 'PAID';
@@ -191,7 +233,7 @@ class DailyPaymentController extends BaseController
 
         $stats = (clone $baseQuery)->selectRaw('
             COUNT(*) as total_payments,
-            SUM(expected_amount) as total_expected,
+            SUM(CASE WHEN status != "EXCUSED" THEN expected_amount ELSE 0 END) as total_expected,
             SUM(paid_amount) as total_paid,
             SUM(balance) as total_balance,
             SUM(CASE WHEN status = "PAID" THEN 1 ELSE 0 END) as paid_count,
@@ -210,9 +252,10 @@ class DailyPaymentController extends BaseController
             ->join('drivers', 'daily_payments.driver_id', '=', 'drivers.id')
             ->where('daily_payments.tenant_id', $tenantId)
             ->whereBetween('payment_date', [$dateFrom, $dateTo])
+            ->when($request->filled('driver_id'), fn($q) => $q->where('daily_payments.driver_id', $request->driver_id))
             ->when($request->filled('taxi_id'), fn($q) => $q->where('daily_payments.taxi_id', $request->taxi_id))
             ->groupBy('drivers.id', 'drivers.name')
-            ->selectRaw('drivers.id, drivers.name, SUM(paid_amount) as total_paid, SUM(expected_amount) as total_expected, COUNT(*) as payment_count')
+            ->selectRaw('drivers.id, drivers.name, SUM(paid_amount) as total_paid, SUM(CASE WHEN daily_payments.status != "EXCUSED" THEN expected_amount ELSE 0 END) as total_expected, COUNT(*) as payment_count')
             ->orderByDesc('total_paid')
             ->limit(10)
             ->get();
@@ -224,7 +267,7 @@ class DailyPaymentController extends BaseController
             ->when($request->filled('driver_id'), fn($q) => $q->where('driver_id', $request->driver_id))
             ->when($request->filled('taxi_id'),   fn($q) => $q->where('taxi_id',   $request->taxi_id))
             ->groupBy('payment_date')
-            ->selectRaw('payment_date, SUM(expected_amount) as expected, SUM(paid_amount) as paid, COUNT(*) as count')
+            ->selectRaw('payment_date, SUM(CASE WHEN status != "EXCUSED" THEN expected_amount ELSE 0 END) as expected, SUM(paid_amount) as paid, COUNT(*) as count')
             ->orderBy('payment_date', 'desc')
             ->limit(30)
             ->get();
@@ -305,6 +348,8 @@ class DailyPaymentController extends BaseController
             'payments.*.taxi_assignment_id'         => 'required|exists:taxi_assignments,id',
             'payments.*.expected_amount'            => 'required|numeric|min:0',
             'payments.*.paid_amount'                => 'required|numeric|min:0',
+            'payments.*.status'                     => 'nullable|in:PAID,PARTIAL,UNPAID,EXCUSED',
+            'payments.*.notes'                      => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {
@@ -312,15 +357,26 @@ class DailyPaymentController extends BaseController
         }
 
         $tenantId = $this->tenantId($request);
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID requis.', [], 422);
+        }
+
         $created  = [];
         $errors   = [];
 
         DB::beginTransaction();
         try {
             foreach ($request->payments as $index => $paymentData) {
-                $assignment = TaxiAssignment::find($paymentData['taxi_assignment_id']);
+                $assignment = $tenantId
+                    ? $this->assignmentForTenant((int) $paymentData['taxi_assignment_id'], (int) $tenantId)
+                    : null;
                 if (!$assignment) {
                     $errors[] = "Affectation #{$index} non trouvée";
+                    continue;
+                }
+
+                if (!$this->isDateInsideAssignment($assignment, $request->payment_date)) {
+                    $errors[] = "Date hors période pour l'affectation #{$index}";
                     continue;
                 }
 

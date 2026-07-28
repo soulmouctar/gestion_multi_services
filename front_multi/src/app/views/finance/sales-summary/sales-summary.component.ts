@@ -8,6 +8,8 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { PdfService, PrintableSalesSummary } from '../../../core/services/pdf.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 interface SaleItem {
   id: number;
@@ -97,7 +99,38 @@ export class SalesSummaryComponent implements OnInit {
   expanded: Record<number, boolean> = {};
   searchTimer?: ReturnType<typeof setTimeout>;
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private pdfService: PdfService,
+    private authService: AuthService,
+  ) {}
+
+  downloadPdf(): void {
+    void this.pdfService.downloadSalesSummaryPdf(this.buildPrintableSalesSummary());
+  }
+
+  private buildPrintableSalesSummary(): PrintableSalesSummary {
+    const tenant = this.authService.currentTenant as any;
+    return {
+      summary: this.summary,
+      invoices: this.invoices.map(i => ({
+        id: i.id, invoice_number: i.invoice_number, date: i.date,
+        client: i.client ? { name: i.client.name } : null,
+        currency: i.currency, status: i.status,
+        revenue: i.revenue, cost: i.cost, margin: i.margin, margin_pct: i.margin_pct,
+      })),
+      period: { from: this.filters.from, to: this.filters.to },
+      organisation: {
+        name: tenant?.name || 'MATKOLLA',
+        address: tenant?.address || '',
+        phone: tenant?.phone || '',
+        email: tenant?.email || '',
+        logoUrl: tenant?.logo_url || '',
+        footerText: 'Synthèse des ventes',
+      },
+    };
+  }
 
   ngOnInit(): void {
     this.loadClients();
@@ -237,7 +270,9 @@ export class SalesSummaryComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  print(): void { window.print(); }
+  print(): void {
+    void this.pdfService.printSalesSummaryPdf(this.buildPrintableSalesSummary());
+  }
 
   trackInv(_i: number, r: SaleRow): number { return r.id; }
   trackItem(_i: number, it: SaleItem): number { return it.id; }

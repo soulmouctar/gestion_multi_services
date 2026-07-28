@@ -3,6 +3,9 @@ export interface Tenant {
   name: string;
   email: string;
   phone: string;
+  address?: string;
+  logo?: string;
+  logo_url?: string;
   subscription_status: 'ACTIVE' | 'SUSPENDED';
   created_at?: string;
   updated_at?: string;

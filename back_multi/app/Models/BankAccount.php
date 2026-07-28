@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BankAccount extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'tenant_id', 'bank_name', 'account_number', 'account_name',
         'account_type', 'currency', 'opening_balance', 'current_balance',

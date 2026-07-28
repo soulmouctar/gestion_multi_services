@@ -72,7 +72,7 @@ class ContainerSalesController extends BaseController
                 'currency' => 'required|string|max:10',
                 'exchange_rate' => 'nullable|numeric|min:0.0001',
                 'product_category_id' => 'nullable|exists:product_categories,id',
-                'product_type' => 'nullable|in:HABITS,PNEUS,ELECTRONIQUE,DIVERS,MIXTE',
+                'product_type' => 'nullable|in:TEXTILE,HABITS,COSMETIQUES,PNEUS,ELECTRONIQUE,MACHINE_A_COUDRE,DIVERS,MIXTE',
                 'total_quantity' => 'required|integer|min:1',
                 'bale_quantity' => 'nullable|integer|min:1',
                 'description' => 'nullable|string|max:1000'
@@ -127,7 +127,7 @@ class ContainerSalesController extends BaseController
             'currency' => 'sometimes|string|max:10',
             'exchange_rate' => 'nullable|numeric|min:0.0001',
             'product_category_id' => 'nullable|exists:product_categories,id',
-            'product_type' => 'nullable|in:HABITS,PNEUS,ELECTRONIQUE,DIVERS,MIXTE',
+            'product_type' => 'nullable|in:TEXTILE,HABITS,COSMETIQUES,PNEUS,ELECTRONIQUE,MACHINE_A_COUDRE,DIVERS,MIXTE',
             'total_quantity' => 'sometimes|integer|min:1',
             'bale_quantity' => 'nullable|integer|min:1',
             'description' => 'nullable|string|max:1000',
@@ -262,7 +262,7 @@ class ContainerSalesController extends BaseController
             $validator = Validator::make($request->all(), [
                 'container_arrival_id' => 'required|exists:container_arrivals,id',
                 'client_id' => 'required|exists:clients,id',
-                'sale_type' => 'required|in:TOTAL,PARTIEL,DETAIL',
+                'sale_type' => 'required|in:TOTAL,BALLE,CARTON,PARTIEL,DETAIL',
                 'quantity_sold' => 'required|integer|min:1',
                 'sale_price' => 'required|numeric|min:0',
                 'currency' => 'required|string|max:10',

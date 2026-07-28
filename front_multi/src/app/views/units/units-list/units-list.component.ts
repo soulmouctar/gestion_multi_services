@@ -18,6 +18,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-units-list',
@@ -72,9 +73,14 @@ export class UnitsListComponent implements OnInit {
 
   Math = Math;
 
+  get canCreateUnit(): boolean { return this.authService.hasModulePermission('COMMERCIAL', 'create'); }
+  get canEditUnit(): boolean   { return this.authService.hasModulePermission('COMMERCIAL', 'edit'); }
+  get canDeleteUnit(): boolean { return this.authService.hasModulePermission('COMMERCIAL', 'delete'); }
+
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {
     this.unitForm = this.fb.group({

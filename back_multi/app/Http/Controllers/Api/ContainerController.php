@@ -18,7 +18,7 @@ class ContainerController extends BaseController
             ? $request->get('tenant_id')
             : $user->tenant_id;
 
-        $query = Container::with('tenant', 'photos');
+        $query = Container::with('tenant', 'photos', 'expectedCategory:id,name');
 
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
@@ -45,6 +45,7 @@ class ContainerController extends BaseController
             'shipping_number' => $request->shipping_number,
             'bl_number' => $request->bl_number,
             'capacity' => $request->capacity,
+            'expected_product_category_id' => $request->expected_product_category_id,
             'delivery_status' => $request->input('delivery_status', 'NON_LIVRE'),
             'entry_port' => $request->entry_port,
             'entry_date' => $request->entry_date,
@@ -57,7 +58,7 @@ class ContainerController extends BaseController
     public function show($id)
     {
         $user      = Auth::user();
-        $container = Container::with('tenant', 'photos')->find($id);
+        $container = Container::with('tenant', 'photos', 'expectedCategory:id,name')->find($id);
 
         if (!$container) {
             return $this->sendError('Container not found', [], 404);
@@ -88,6 +89,7 @@ class ContainerController extends BaseController
             'shipping_number',
             'bl_number',
             'capacity',
+            'expected_product_category_id',
             'delivery_status',
             'entry_port',
             'entry_date',

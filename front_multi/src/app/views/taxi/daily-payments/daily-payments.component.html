@@ -158,14 +158,14 @@
     <div *ngIf="statistics.top_drivers?.length || statistics.daily_breakdown?.length"
          style="background:#fff;border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);overflow:hidden;">
       <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;">
-        <button class="btn btn-sm"
+        <button type="button" class="btn btn-sm"
                 [style]="activeStatsTab === 'drivers'
                   ? 'border-radius:8px;background:#0f3460;color:#fff;border:1px solid #0f3460;font-size:.8rem;'
                   : 'border-radius:8px;border:1px solid #e2e8f0;color:#64748b;font-size:.8rem;'"
                 (click)="activeStatsTab = 'drivers'">
           Top Chauffeurs
         </button>
-        <button class="btn btn-sm"
+        <button type="button" class="btn btn-sm"
                 [style]="activeStatsTab === 'daily'
                   ? 'border-radius:8px;background:#0f3460;color:#fff;border:1px solid #0f3460;font-size:.8rem;'
                   : 'border-radius:8px;border:1px solid #e2e8f0;color:#64748b;font-size:.8rem;'"

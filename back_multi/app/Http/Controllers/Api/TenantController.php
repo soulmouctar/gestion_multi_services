@@ -26,16 +26,38 @@ class TenantController extends BaseController
             'name' => 'required|string|max:150',
             'email' => 'nullable|email|max:150',
             'phone' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:255',
             'subscription_status' => 'nullable|in:ACTIVE,SUSPENDED',
+            'logo' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $tenant = Tenant::create($request->all());
+        $data = $request->only(['name', 'email', 'phone', 'address', 'subscription_status']);
+
+        if ($request->hasFile('logo')) {
+            $data['logo'] = $this->storeLogo($request->file('logo'));
+        }
+
+        $tenant = Tenant::create($data);
 
         return $this->sendResponse($tenant, 'Tenant created successfully', 201);
+    }
+
+    /**
+     * Sauvegarde le fichier logo dans public/uploads/tenants et renvoie le chemin relatif.
+     */
+    private function storeLogo($file): string
+    {
+        $dir = public_path('uploads/tenants');
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        $name = 'tenant_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move($dir, $name);
+        return 'uploads/tenants/' . $name;
     }
 
     public function show($id)
@@ -65,16 +87,22 @@ class TenantController extends BaseController
             }
 
             $validator = Validator::make($request->all(), [
-                'name'  => 'sometimes|string|max:150',
-                'email' => 'nullable|email|max:150',
-                'phone' => 'nullable|string|max:50',
+                'name'    => 'sometimes|string|max:150',
+                'email'   => 'nullable|email|max:150',
+                'phone'   => 'nullable|string|max:50',
+                'address' => 'nullable|string|max:255',
+                'logo'    => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
             ]);
 
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
             }
 
-            $tenant->update($request->only(['name', 'email', 'phone']));
+            $data = $request->only(['name', 'email', 'phone', 'address']);
+            if ($request->hasFile('logo')) {
+                $data['logo'] = $this->storeLogo($request->file('logo'));
+            }
+            $tenant->update($data);
 
             return $this->sendResponse($tenant->fresh(), 'Tenant updated successfully');
         }
@@ -84,14 +112,20 @@ class TenantController extends BaseController
             'name'                => 'sometimes|string|max:150',
             'email'               => 'nullable|email|max:150',
             'phone'               => 'nullable|string|max:50',
+            'address'             => 'nullable|string|max:255',
             'subscription_status' => 'nullable|in:ACTIVE,SUSPENDED',
+            'logo'                => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $tenant->update($request->all());
+        $data = $request->only(['name', 'email', 'phone', 'address', 'subscription_status']);
+        if ($request->hasFile('logo')) {
+            $data['logo'] = $this->storeLogo($request->file('logo'));
+        }
+        $tenant->update($data);
 
         return $this->sendResponse($tenant->fresh(), 'Tenant updated successfully');
     }
@@ -159,16 +193,22 @@ class TenantController extends BaseController
         }
 
         $validator = Validator::make($request->all(), [
-            'name'  => 'sometimes|string|max:150',
-            'email' => 'nullable|email|max:150',
-            'phone' => 'nullable|string|max:50',
+            'name'    => 'sometimes|string|max:150',
+            'email'   => 'nullable|email|max:150',
+            'phone'   => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:255',
+            'logo'    => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $tenant->update($request->only(['name', 'email', 'phone']));
+        $data = $request->only(['name', 'email', 'phone', 'address']);
+        if ($request->hasFile('logo')) {
+            $data['logo'] = $this->storeLogo($request->file('logo'));
+        }
+        $tenant->update($data);
 
         return $this->sendResponse($tenant->fresh(), 'Organisation mise à jour avec succès');
     }

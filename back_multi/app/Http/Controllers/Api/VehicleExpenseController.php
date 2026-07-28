@@ -3,16 +3,48 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\VehicleExpense;
+use App\Models\Driver;
+use App\Models\Taxi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 
 class VehicleExpenseController extends BaseController
 {
+    private function tenantId(Request $request): ?int
+    {
+        $user = auth()->user();
+        return $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+    }
+
+    private function expenseQuery(Request $request)
+    {
+        $tenantId = $this->tenantId($request);
+        $query = VehicleExpense::query();
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        return $query;
+    }
+
+    private function validateTenantResources(int $tenantId, int $taxiId, ?int $driverId = null): ?array
+    {
+        if (!Taxi::where('tenant_id', $tenantId)->whereKey($taxiId)->exists()) {
+            return ['Taxi introuvable pour ce tenant.', [], 422];
+        }
+
+        if ($driverId && !Driver::where('tenant_id', $tenantId)->whereKey($driverId)->exists()) {
+            return ['Conducteur introuvable pour ce tenant.', [], 422];
+        }
+
+        return null;
+    }
+
     public function index(Request $request)
     {
-        $user     = auth()->user();
-        $tenantId = $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+        $tenantId = $this->tenantId($request);
 
         $query = VehicleExpense::with('taxi', 'driver');
 
@@ -61,8 +93,15 @@ class VehicleExpenseController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $user     = auth()->user();
-        $tenantId = $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
+        $tenantId = $this->tenantId($request);
+        if (!$tenantId) {
+            return $this->sendError('Tenant ID requis.', [], 422);
+        }
+
+        $resourceError = $this->validateTenantResources((int) $tenantId, (int) $request->taxi_id, $request->driver_id ? (int) $request->driver_id : null);
+        if ($resourceError) {
+            return $this->sendError(...$resourceError);
+        }
 
         $expense = VehicleExpense::create([
             ...$request->only(['taxi_id', 'driver_id', 'expense_date', 'expense_type', 'amount', 'description', 'receipt_number', 'notes']),
@@ -76,9 +115,11 @@ class VehicleExpenseController extends BaseController
         );
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $expense = VehicleExpense::with('tenant', 'taxi', 'driver')->find($id);
+        $expense = $this->expenseQuery($request)
+            ->with('tenant', 'taxi', 'driver')
+            ->find($id);
 
         if (!$expense) {
             return $this->sendError('Vehicle expense not found');
@@ -89,7 +130,7 @@ class VehicleExpenseController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $expense = VehicleExpense::find($id);
+        $expense = $this->expenseQuery($request)->find($id);
 
         if (!$expense) {
             return $this->sendError('Vehicle expense not found');
@@ -110,7 +151,26 @@ class VehicleExpenseController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $expense->update($request->all());
+        $taxiId = (int) $request->get('taxi_id', $expense->taxi_id);
+        $driverId = $request->has('driver_id')
+            ? ($request->driver_id ? (int) $request->driver_id : null)
+            : ($expense->driver_id ? (int) $expense->driver_id : null);
+
+        $resourceError = $this->validateTenantResources((int) $expense->tenant_id, $taxiId, $driverId);
+        if ($resourceError) {
+            return $this->sendError(...$resourceError);
+        }
+
+        $expense->update($request->only([
+            'taxi_id',
+            'driver_id',
+            'expense_date',
+            'expense_type',
+            'amount',
+            'description',
+            'receipt_number',
+            'notes',
+        ]));
 
         return $this->sendResponse(
             $expense->load('taxi', 'driver'),
@@ -118,9 +178,9 @@ class VehicleExpenseController extends BaseController
         );
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $expense = VehicleExpense::find($id);
+        $expense = $this->expenseQuery($request)->find($id);
 
         if (!$expense) {
             return $this->sendError('Vehicle expense not found');
@@ -133,10 +193,7 @@ class VehicleExpenseController extends BaseController
 
     public function statistics(Request $request)
     {
-        $user     = auth()->user();
-        $tenantId = $user->hasRole('SUPER_ADMIN')
-            ? $request->get('tenant_id', $user->tenant_id)
-            : $user->tenant_id;
+        $tenantId = $this->tenantId($request);
 
         $dateFrom = $request->get('date_from');
         $dateTo   = $request->get('date_to');

@@ -1,0 +1,143 @@
+<div class="pbf-backdrop" *ngIf="visible" (click)="close()"></div>
+
+<div class="pbf-modal" *ngIf="visible" role="dialog" aria-modal="true">
+  <div class="pbf-header">
+    <div class="d-flex align-items-center gap-2">
+      <svg cIcon name="cilMoney" class="text-success"></svg>
+      <h5 class="mb-0 fw-bold">Nouveau versement client</h5>
+    </div>
+    <button type="button" class="pbf-close" (click)="close()" [disabled]="submitting" aria-label="Fermer">
+      <svg cIcon name="cilX" size="sm"></svg>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="pbf-body">
+    <div class="row g-3">
+      <div class="col-md-6" *ngIf="!clientId">
+        <label class="form-label small fw-semibold">Client <span class="text-danger">*</span></label>
+        <select class="form-select" formControlName="client_id" (change)="onClientChange()">
+          <option [ngValue]="null">— Sélectionner un client —</option>
+          <option *ngFor="let c of clients; trackBy: trackByClient" [ngValue]="c.id">
+            {{ c.name }}<span *ngIf="c.phone1"> · {{ c.phone1 }}</span>
+          </option>
+        </select>
+        <small class="text-muted" *ngIf="loadingClients">Chargement des clients…</small>
+      </div>
+
+      <div class="col-md-6" *ngIf="clientId">
+        <label class="form-label small fw-semibold">Client</label>
+        <div class="pbf-locked">{{ clientName || ('Client #' + clientId) }}</div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label small fw-semibold">Payé par un tiers</label>
+        <select class="form-select" formControlName="paid_by_client_id">
+          <option [ngValue]="null">— Le client lui-même —</option>
+          <option *ngFor="let c of clients; trackBy: trackByClient"
+                  [ngValue]="c.id"
+                  [disabled]="c.id === form.getRawValue().client_id">
+            {{ c.name }}<span *ngIf="c.phone1"> · {{ c.phone1 }}</span>
+          </option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Date <span class="text-danger">*</span></label>
+        <input type="date" class="form-control" formControlName="payment_date" />
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Mode <span class="text-danger">*</span></label>
+        <select class="form-select" formControlName="method">
+          <option *ngFor="let m of methods" [value]="m.value">{{ m.label }}</option>
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label small fw-semibold">Référence</label>
+        <input type="text" class="form-control" formControlName="reference" placeholder="N° chèque, transaction…" />
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label small fw-semibold">Description</label>
+        <input type="text" class="form-control" formControlName="description" placeholder="Note interne (optionnel)" />
+      </div>
+    </div>
+
+    <div class="pbf-entries-header d-flex align-items-center justify-content-between mt-4 mb-2">
+      <div>
+        <div class="fw-bold" style="font-size:0.95rem;">Lignes de versement</div>
+        <div class="small text-muted">Ajoute une ligne par devise reçue. Chaque ligne peut être convertie vers un compte-devise du client.</div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-primary" (click)="addEntry()">
+        <svg cIcon name="cilPlus" size="sm" class="me-1"></svg> Ajouter une devise
+      </button>
+    </div>
+
+    <div class="pbf-entries" formArrayName="entries">
+      <div *ngFor="let entry of entries.controls; let i = index; trackBy: trackByIndex"
+           [formGroupName]="i" class="pbf-entry">
+        <div class="row g-2 align-items-end">
+          <div class="col-6 col-md-2">
+            <label class="form-label small">Montant <span class="text-danger">*</span></label>
+            <input type="number" step="0.01" min="0" class="form-control" formControlName="amount" placeholder="0.00" />
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small">Devise reçue</label>
+            <select class="form-select" formControlName="currency">
+              <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small">Vers devise</label>
+            <select class="form-select" formControlName="target_currency">
+              <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small">Compte cible (optionnel)</label>
+            <select class="form-select" formControlName="target_account_id">
+              <option [ngValue]="null">— Auto —</option>
+              <option *ngFor="let a of currencyAccounts; trackBy: trackByAcc" [ngValue]="a.id">
+                {{ a.currency }}<span *ngIf="a.is_primary"> (principal)</span>
+              </option>
+            </select>
+          </div>
+          <div class="col-8 col-md-2">
+            <label class="form-label small">Taux</label>
+            <input type="number" step="0.0001" min="0" class="form-control"
+                   formControlName="exchange_rate"
+                   [placeholder]="needsExchangeRate(entry) ? 'Obligatoire' : '—'"
+                   [class.is-required]="needsExchangeRate(entry)" />
+          </div>
+          <div class="col-4 col-md-1 text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    (click)="removeEntry(i)" [disabled]="entries.length <= 1"
+                    title="Retirer cette ligne">
+              <svg cIcon name="cilTrash" size="sm"></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pbf-totals mt-3">
+      <div class="fw-semibold small text-muted mb-1">Totaux par devise :</div>
+      <div class="d-flex flex-wrap gap-2">
+        <span *ngFor="let t of totalsByCurrency()" class="badge bg-light text-dark border">
+          {{ fmtNumber(t.total) }} {{ t.currency }}
+        </span>
+      </div>
+    </div>
+
+    <div class="pbf-footer mt-4 d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-light" (click)="close()" [disabled]="submitting">
+        Annuler
+      </button>
+      <button type="submit" class="btn btn-success" [disabled]="submitting || form.invalid">
+        <span *ngIf="!submitting"><svg cIcon name="cilSave" size="sm" class="me-1"></svg> Enregistrer</span>
+        <span *ngIf="submitting">Enregistrement…</span>
+      </button>
+    </div>
+  </form>
+</div>

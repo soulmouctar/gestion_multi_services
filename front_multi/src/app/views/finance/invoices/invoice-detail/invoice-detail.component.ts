@@ -174,11 +174,14 @@ export class InvoiceDetailComponent implements OnInit {
       clientEmail: this.invoice?.client?.email || '',
       organisation: {
         name: header?.company_name || tenant?.name || 'MATKOLLA',
-        address: [header?.address, header?.city, header?.country].filter(Boolean).join(' - '),
+        // Priorite : adresse de l'invoice header, sinon adresse du tenant
+        address: [header?.address, header?.city, header?.country].filter(Boolean).join(' - ')
+                 || (tenant as any)?.address || '',
         phone: header?.phone || tenant?.phone || '',
         email: header?.email || tenant?.email || '',
         motto: header?.footer_text || 'Facturation détaillée et transparente',
-        logoUrl: header?.logo_url || '',
+        // Logo : priorite header > tenant > fallback MatKolla cote pdfService
+        logoUrl: header?.logo_url || (tenant as any)?.logo_url || '',
         signatureUrl: header?.signature_url || '',
         stampUrl: header?.stamp_url || '',
         footerText: header?.footer_text || ''

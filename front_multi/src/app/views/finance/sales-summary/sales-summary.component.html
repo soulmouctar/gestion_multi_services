@@ -19,6 +19,10 @@
               [disabled]="loading || !invoices.length" style="border-radius:10px;">
         <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg> Excel
       </button>
+      <button cButton color="danger" size="sm" (click)="downloadPdf()"
+              [disabled]="loading || !invoices.length" style="border-radius:10px;">
+        <svg cIcon name="cilFile" size="sm" class="me-1"></svg> PDF
+      </button>
       <button cButton color="primary" size="sm" (click)="print()" [disabled]="loading"
               style="border-radius:10px;">
         <svg cIcon name="cilPrint" size="sm" class="me-1"></svg> Imprimer

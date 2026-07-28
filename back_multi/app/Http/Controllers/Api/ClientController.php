@@ -19,6 +19,60 @@ use Illuminate\Support\Facades\Validator;
 
 class ClientController extends BaseController
 {
+    private function normalizeCurrency(?string $currency): string
+    {
+        return strtoupper($currency ?: 'GNF');
+    }
+
+    private function amountToGnf(float $amount, string $currency, ?float $storedGnf = null, ?float $rate = null): float
+    {
+        $currency = $this->normalizeCurrency($currency);
+        if ($storedGnf !== null && $storedGnf > 0) {
+            return round($storedGnf, 2);
+        }
+        if ($currency === 'GNF') {
+            return round($amount, 2);
+        }
+        if ($rate !== null && $rate > 0) {
+            return round($amount * $rate, 2);
+        }
+        return 0.0;
+    }
+
+    private function addCurrencyMovement(array &$bucket, string $currency, float $debit, float $credit, float $debitGnf = 0.0, float $creditGnf = 0.0): void
+    {
+        $currency = $this->normalizeCurrency($currency);
+        if (!isset($bucket[$currency])) {
+            $bucket[$currency] = [
+                'total_debit' => 0.0,
+                'total_credit' => 0.0,
+                'final_balance' => 0.0,
+                'total_debit_gnf' => 0.0,
+                'total_credit_gnf' => 0.0,
+                'final_balance_gnf' => 0.0,
+            ];
+        }
+
+        $bucket[$currency]['total_debit'] += $debit;
+        $bucket[$currency]['total_credit'] += $credit;
+        $bucket[$currency]['total_debit_gnf'] += $debitGnf;
+        $bucket[$currency]['total_credit_gnf'] += $creditGnf;
+    }
+
+    private function finalizeCurrencyBucket(array $bucket): array
+    {
+        ksort($bucket);
+        foreach ($bucket as $currency => $row) {
+            $bucket[$currency]['total_debit'] = round((float) $row['total_debit'], 2);
+            $bucket[$currency]['total_credit'] = round((float) $row['total_credit'], 2);
+            $bucket[$currency]['final_balance'] = round((float) $row['total_debit'] - (float) $row['total_credit'], 2);
+            $bucket[$currency]['total_debit_gnf'] = round((float) $row['total_debit_gnf'], 2);
+            $bucket[$currency]['total_credit_gnf'] = round((float) $row['total_credit_gnf'], 2);
+            $bucket[$currency]['final_balance_gnf'] = round((float) $row['total_debit_gnf'] - (float) $row['total_credit_gnf'], 2);
+        }
+        return $bucket;
+    }
+
     private function tenantId(Request $request): ?int
     {
         $user = Auth::user();
@@ -327,11 +381,11 @@ class ClientController extends BaseController
                     'module'           => 'containers',
                     'date'             => $s->sale_date,
                     'label'            => "Vente conteneur — {$arrivalName}",
-                    'amount'           => (float) ($s->quantity_sold * $s->sale_price),
+                    'amount'           => (float) $s->sale_price,
                     'paid_amount'      => (float) $s->amount_paid,
                     'remaining_balance'=> (float) $s->remaining_amount,
                     'quantity'         => $s->quantity_sold,
-                    'unit_price'       => (float) $s->sale_price,
+                    'unit_price'       => $s->quantity_sold > 0 ? round((float) $s->sale_price / (float) $s->quantity_sold, 2) : (float) $s->sale_price,
                     'sale_type'        => $saleTypeLabels[$s->sale_type] ?? $s->sale_type,
                     'status'           => $s->status,
                     'status_label'     => $statusLabels[$s->status] ?? $s->status,
@@ -540,7 +594,7 @@ class ClientController extends BaseController
                     $sampleSuffix = $sampleCount > 0 ? ", dont {$sampleCount} échantillon(s)" : '';
                     $designation = "Facture #{$inv->invoice_number} ({$items->count()} articles{$sampleSuffix})";
                 }
-                $currency = strtoupper($inv->currency ?? 'GNF');
+                $currency = $this->normalizeCurrency($inv->currency ?? 'GNF');
                 // Montant dans la devise native de la facture (USD ou GNF)
                 $nativeAmount = $currency === 'USD'
                     ? (float) $inv->total_amount
@@ -557,6 +611,8 @@ class ClientController extends BaseController
                     'currency'    => $currency,
                     'debit'       => $nativeAmount,
                     'credit'      => 0.0,
+                    'amount_gnf'   => $this->amountToGnf($nativeAmount, $currency, $inv->total_amount_gnf, $inv->exchange_rate),
+                    'exchange_rate'=> $inv->exchange_rate !== null ? (float) $inv->exchange_rate : null,
                     'reference'   => $inv->invoice_number,
                     'meta_id'     => $inv->id,
                 ];
@@ -579,8 +635,12 @@ class ClientController extends BaseController
                 $designation = $thirdParty
                     ? "{$baseLabel} — par {$thirdParty}"
                     : $baseLabel;
-                $cur = strtoupper($p->currency ?? 'GNF');
-                $nativeAmount = $cur === 'USD' ? (float) $p->amount : (float) ($p->amount_gnf ?? $p->amount);
+                $paymentCurrency = $this->normalizeCurrency($p->currency ?? 'GNF');
+                $targetCurrency = $this->normalizeCurrency($p->target_currency ?: $paymentCurrency);
+                $ledgerCurrency = $targetCurrency;
+                $ledgerAmount = $p->converted_amount !== null
+                    ? (float) $p->converted_amount
+                    : ($paymentCurrency === 'USD' ? (float) $p->amount : (float) ($p->amount_gnf ?? $p->amount));
                 return [
                     'date'        => $p->payment_date->format('Y-m-d'),
                     'sort_key'    => $p->payment_date->format('Y-m-d') . ' 23:59:59_p_' . $p->id,
@@ -588,11 +648,19 @@ class ClientController extends BaseController
                     'type_label'  => $thirdParty ? 'Paiement (tiers)' : 'Paiement',
                     'designation' => $designation,
                     'quantity'    => null,
-                    'currency'    => $cur,
+                    'currency'    => $ledgerCurrency,
                     'debit'       => 0.0,
-                    'credit'      => $nativeAmount,
+                    'credit'      => $ledgerAmount,
                     'reference'   => $p->receipt_number ?? $p->reference,
                     'meta_id'     => $p->id,
+                    // Preuve de conversion (multi-devises)
+                    'exchange_rate'    => $p->exchange_rate !== null ? (float) $p->exchange_rate : null,
+                    'target_currency'  => $targetCurrency,
+                    'converted_amount' => $p->converted_amount !== null ? (float) $p->converted_amount : null,
+                    'amount_gnf'       => (float) ($p->amount_gnf ?? $p->amount),
+                    'native_amount'    => (float) $p->amount,
+                    'native_currency'  => $paymentCurrency,
+                    'payment_method'   => $p->method,
                 ];
             });
         }
@@ -614,9 +682,11 @@ class ClientController extends BaseController
                     'type_label'  => 'Vente conteneur',
                     'designation' => $label,
                     'quantity'    => (float) $s->quantity_sold,
-                    'currency'    => $s->currency ?? 'GNF',
-                    'debit'       => (float) ($s->quantity_sold * $s->sale_price),
+                    'currency'    => $this->normalizeCurrency($s->currency ?? 'GNF'),
+                    'debit'       => (float) $s->sale_price,
                     'credit'      => 0.0,
+                    'amount_gnf'   => $this->amountToGnf((float) $s->sale_price, $s->currency ?? 'GNF', $s->sale_price_gnf, $s->exchange_rate),
+                    'exchange_rate'=> $s->exchange_rate !== null ? (float) $s->exchange_rate : null,
                     'reference'   => null,
                     'meta_id'     => $s->id,
                 ];
@@ -626,7 +696,11 @@ class ClientController extends BaseController
         // ── 4. Versements conteneurs (CREDIT) ───────────────────────────────
         $containerPayments = collect();
         if (!$typeFilter || $typeFilter === 'payment') {
-            $cspQuery = ContainerSalePayment::where('client_id', $id)->where('tenant_id', $tid);
+            $cspQuery = ContainerSalePayment::where('client_id', $id)
+                ->where('tenant_id', $tid)
+                ->where(function ($query) {
+                    $query->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE');
+                });
             $applyDateRange($cspQuery, 'payment_date');
 
             $containerPayments = $cspQuery->get()->map(fn ($p) => [
@@ -636,9 +710,11 @@ class ClientController extends BaseController
                 'type_label'  => 'Versement conteneur',
                 'designation' => $p->notes ?: 'Versement conteneur',
                 'quantity'    => null,
-                'currency'    => $p->currency ?? 'GNF',
+                'currency'    => $this->normalizeCurrency($p->currency ?? 'GNF'),
                 'debit'       => 0.0,
                 'credit'      => (float) $p->amount,
+                'amount_gnf'   => $this->amountToGnf((float) $p->amount, $p->currency ?? 'GNF', $p->amount_gnf, $p->exchange_rate),
+                'exchange_rate'=> $p->exchange_rate !== null ? (float) $p->exchange_rate : null,
                 'reference'   => $p->reference,
                 'meta_id'     => $p->id,
             ]);
@@ -657,9 +733,10 @@ class ClientController extends BaseController
                 'type_label'  => 'Avance',
                 'designation' => $a->description ?: 'Avance client',
                 'quantity'    => null,
-                'currency'    => $a->currency ?? 'GNF',
+                'currency'    => $this->normalizeCurrency($a->currency ?? 'GNF'),
                 'debit'       => 0.0,
                 'credit'      => (float) $a->amount,
+                'amount_gnf'   => $this->amountToGnf((float) $a->amount, $a->currency ?? 'GNF'),
                 'reference'   => $a->reference,
                 'meta_id'     => $a->id,
             ]);
@@ -682,9 +759,10 @@ class ClientController extends BaseController
                     'type_label'  => 'Intérêts',
                     'designation' => $designation,
                     'quantity'    => null,
-                    'currency'    => $c->currency ?? 'GNF',
+                    'currency'    => $this->normalizeCurrency($c->currency ?? 'GNF'),
                     'debit'       => (float) $c->amount,
                     'credit'      => (float) ($c->paid_amount ?? 0),
+                    'amount_gnf'   => $this->amountToGnf((float) $c->amount, $c->currency ?? 'GNF'),
                     'reference'   => $c->reference,
                     'meta_id'     => $c->id,
                 ];
@@ -727,40 +805,62 @@ class ClientController extends BaseController
             ->sortBy('sort_key')
             ->values();
 
-        $runningGnf = 0.0;
-        $runningUsd = 0.0;
-        $rows = $rows->map(function ($row) use (&$runningGnf, &$runningUsd) {
-            $cur    = strtoupper($row['currency'] ?? 'GNF');
+        // Premier passage : liste des devises rencontrées (GNF toujours présente).
+        $currenciesSet = ['GNF' => true];
+        foreach ($rows as $r) {
+            $currenciesSet[strtoupper($r['currency'] ?? 'GNF')] = true;
+        }
+        $currencies = array_keys($currenciesSet);
+        sort($currencies);
+
+        // Deuxième passage : solde courant par devise, avec toutes les devises présentes
+        // sur chaque ligne (0 pour celles non impactées).
+        $running = array_fill_keys($currencies, 0.0);
+        $summaryByCurrency = array_fill_keys($currencies, ['total_debit' => 0.0, 'total_credit' => 0.0, 'final_balance' => 0.0]);
+
+        $rows = $rows->map(function ($row) use (&$running, &$summaryByCurrency, $currencies) {
+            $cur    = $this->normalizeCurrency($row['currency'] ?? 'GNF');
             $debit  = (float) $row['debit'];
             $credit = (float) $row['credit'];
 
-            if ($cur === 'USD') {
-                $runningUsd += $debit - $credit;
-                $row['debit_gnf']  = 0.0;
-                $row['credit_gnf'] = 0.0;
-                $row['debit_usd']  = $debit;
-                $row['credit_usd'] = $credit;
-            } else {
-                $runningGnf += $debit - $credit;
-                $row['debit_gnf']  = $debit;
-                $row['credit_gnf'] = $credit;
-                $row['debit_usd']  = 0.0;
-                $row['credit_usd'] = 0.0;
-            }
+            $running[$cur] += $debit - $credit;
+            $summaryByCurrency[$cur]['total_debit']  += $debit;
+            $summaryByCurrency[$cur]['total_credit'] += $credit;
 
-            $row['balance_gnf'] = round($runningGnf, 2);
-            $row['balance_usd'] = round($runningUsd, 2);
-            // Solde dans la devise propre à la ligne (compat avec affichage existant)
-            $row['balance'] = $cur === 'USD' ? round($runningUsd, 2) : round($runningGnf, 2);
+            $byCurrency = [];
+            foreach ($currencies as $c) {
+                $byCurrency[$c] = [
+                    'debit'   => $c === $cur ? round($debit, 2) : 0.0,
+                    'credit'  => $c === $cur ? round($credit, 2) : 0.0,
+                    'balance' => round($running[$c], 2),
+                ];
+            }
+            $row['by_currency'] = $byCurrency;
+
+            // Compat rétro : GNF/USD explicites.
+            $row['debit_gnf']   = $cur === 'GNF' ? round($debit, 2) : 0.0;
+            $row['credit_gnf']  = $cur === 'GNF' ? round($credit, 2) : 0.0;
+            $row['balance_gnf'] = round($running['GNF'] ?? 0.0, 2);
+            $row['debit_usd']   = $cur === 'USD' ? round($debit, 2) : 0.0;
+            $row['credit_usd']  = $cur === 'USD' ? round($credit, 2) : 0.0;
+            $row['balance_usd'] = round($running['USD'] ?? 0.0, 2);
+            $row['balance']     = round($running[$cur] ?? 0.0, 2);
             return $row;
         });
 
-        // ── Totaux par devise ───────────────────────────────────────────────
-        $totalDebitGnf  = (float) $rows->sum('debit_gnf');
-        $totalCreditGnf = (float) $rows->sum('credit_gnf');
-        $totalDebitUsd  = (float) $rows->sum('debit_usd');
-        $totalCreditUsd = (float) $rows->sum('credit_usd');
-        $hasUsd = $rows->contains(fn ($r) => $r['debit_usd'] > 0 || $r['credit_usd'] > 0);
+        foreach ($currencies as $c) {
+            $summaryByCurrency[$c]['final_balance'] = round(
+                $summaryByCurrency[$c]['total_debit'] - $summaryByCurrency[$c]['total_credit'], 2
+            );
+            $summaryByCurrency[$c]['total_debit']  = round($summaryByCurrency[$c]['total_debit'], 2);
+            $summaryByCurrency[$c]['total_credit'] = round($summaryByCurrency[$c]['total_credit'], 2);
+        }
+
+        $totalDebitGnf  = (float) ($summaryByCurrency['GNF']['total_debit']  ?? 0);
+        $totalCreditGnf = (float) ($summaryByCurrency['GNF']['total_credit'] ?? 0);
+        $totalDebitUsd  = (float) ($summaryByCurrency['USD']['total_debit']  ?? 0);
+        $totalCreditUsd = (float) ($summaryByCurrency['USD']['total_credit'] ?? 0);
+        $hasUsd = isset($summaryByCurrency['USD']);
 
         return $this->sendResponse([
             'client' => [
@@ -778,7 +878,7 @@ class ClientController extends BaseController
                 'total_debit'        => round($totalDebitGnf, 2),
                 'total_credit'       => round($totalCreditGnf, 2),
                 'final_balance'      => round($totalDebitGnf - $totalCreditGnf, 2),
-                // Nouveau : split par devise
+                // Compat GNF/USD explicites
                 'total_debit_gnf'    => round($totalDebitGnf, 2),
                 'total_credit_gnf'   => round($totalCreditGnf, 2),
                 'final_balance_gnf'  => round($totalDebitGnf - $totalCreditGnf, 2),
@@ -787,6 +887,9 @@ class ClientController extends BaseController
                 'final_balance_usd'  => round($totalDebitUsd - $totalCreditUsd, 2),
                 'has_usd'            => $hasUsd,
                 'rows_count'         => $rows->count(),
+                // Nouveau : suivi dynamique multi-devises
+                'currencies'         => $currencies,
+                'by_currency'        => $summaryByCurrency,
             ],
             'rows'   => $rows->values(),
             'period' => ['from' => $from, 'to' => $to],
@@ -867,6 +970,9 @@ class ClientController extends BaseController
 
         $containerPayments = ContainerSalePayment::query()
             ->where('tenant_id', $tenantId)
+            ->where(function ($query) {
+                $query->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE');
+            })
             ->select('client_id', DB::raw("COALESCE(SUM({$containerPaymentAmountColumn}), 0) as total"))
             ->groupBy('client_id')
             ->pluck('total', 'client_id');
@@ -904,6 +1010,48 @@ class ClientController extends BaseController
             ->groupBy('client_id')
             ->pluck('total', 'client_id');
 
+        $invoiceCurrencyRows = Invoice::query()
+            ->where('tenant_id', $tenantId)
+            ->get(['client_id', 'total_amount', 'total_amount_gnf', 'currency', 'exchange_rate'])
+            ->groupBy('client_id');
+
+        $paymentCurrencyRows = Payment::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'COMPLETED')
+            ->get(['client_id', 'amount', 'currency', 'target_currency', 'converted_amount', 'amount_gnf', 'exchange_rate'])
+            ->groupBy('client_id');
+
+        $containerCurrencyRows = ContainerSale::query()
+            ->where('tenant_id', $tenantId)
+            ->get(['client_id', 'quantity_sold', 'sale_price', 'sale_price_gnf', 'currency', 'exchange_rate'])
+            ->groupBy('client_id');
+
+        $containerPaymentCurrencyRows = ContainerSalePayment::query()
+            ->where('tenant_id', $tenantId)
+            ->where(function ($query) {
+                $query->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE');
+            })
+            ->get(['client_id', 'amount', 'amount_gnf', 'currency', 'exchange_rate'])
+            ->groupBy('client_id');
+
+        $advanceCurrencyRows = ClientAdvance::query()
+            ->where('tenant_id', $tenantId)
+            ->get(['client_id', 'amount', 'remaining_amount', 'currency'])
+            ->groupBy('client_id');
+
+        $interestCurrencyRows = ClientInterestCharge::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', ['PENDING', 'PARTIAL', 'PAID'])
+            ->get(['client_id', 'amount', 'paid_amount', 'currency'])
+            ->groupBy('client_id');
+
+        $returnCurrencyRows = ProductReturn::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'APPROVED')
+            ->whereNull('invoice_id')
+            ->get(['client_id', 'client_credit_amount'])
+            ->groupBy('client_id');
+
         $rows = $clients->map(function (Client $client) use (
             $invoiceTotals,
             $invoicePayments,
@@ -911,7 +1059,14 @@ class ClientController extends BaseController
             $containerPayments,
             $advances,
             $interestData,
-            $returnCredits
+            $returnCredits,
+            $invoiceCurrencyRows,
+            $paymentCurrencyRows,
+            $containerCurrencyRows,
+            $containerPaymentCurrencyRows,
+            $advanceCurrencyRows,
+            $interestCurrencyRows,
+            $returnCurrencyRows
         ) {
             $invoiceInvoiced = (float) ($invoiceTotals[$client->id] ?? 0);
             $invoicePaid = (float) ($invoicePayments[$client->id] ?? 0);
@@ -942,6 +1097,92 @@ class ClientController extends BaseController
             $creditBalance = max(0, $totalCredits - $grossDebt);
             $status = $restToPay > 0.009 ? 'DEBITEUR' : ($creditBalance > 0.009 ? 'AVANCE' : 'SOLDE');
 
+            $byCurrency = [];
+
+            foreach (($invoiceCurrencyRows->get($client->id) ?? collect()) as $inv) {
+                $currency = $this->normalizeCurrency($inv->currency ?? 'GNF');
+                $nativeAmount = $currency === 'GNF'
+                    ? (float) ($inv->total_amount_gnf ?? $inv->total_amount)
+                    : (float) $inv->total_amount;
+                $this->addCurrencyMovement(
+                    $byCurrency,
+                    $currency,
+                    $nativeAmount,
+                    0.0,
+                    $this->amountToGnf($nativeAmount, $currency, $inv->total_amount_gnf, $inv->exchange_rate),
+                    0.0
+                );
+            }
+
+            foreach (($paymentCurrencyRows->get($client->id) ?? collect()) as $payment) {
+                $paymentCurrency = $this->normalizeCurrency($payment->currency ?? 'GNF');
+                $targetCurrency = $this->normalizeCurrency($payment->target_currency ?: $paymentCurrency);
+                $credit = $payment->converted_amount !== null
+                    ? (float) $payment->converted_amount
+                    : ($paymentCurrency === 'GNF' ? (float) ($payment->amount_gnf ?? $payment->amount) : (float) $payment->amount);
+                $this->addCurrencyMovement(
+                    $byCurrency,
+                    $targetCurrency,
+                    0.0,
+                    $credit,
+                    0.0,
+                    $this->amountToGnf($credit, $targetCurrency, $payment->amount_gnf, $payment->exchange_rate)
+                );
+            }
+
+            foreach (($containerCurrencyRows->get($client->id) ?? collect()) as $sale) {
+                $currency = $this->normalizeCurrency($sale->currency ?? 'GNF');
+                $amount = (float) $sale->sale_price;
+                $amountGnf = $sale->sale_price_gnf !== null ? (float) $sale->sale_price_gnf : null;
+                $this->addCurrencyMovement(
+                    $byCurrency,
+                    $currency,
+                    $amount,
+                    0.0,
+                    $this->amountToGnf($amount, $currency, $amountGnf, $sale->exchange_rate),
+                    0.0
+                );
+            }
+
+            foreach (($containerPaymentCurrencyRows->get($client->id) ?? collect()) as $payment) {
+                $currency = $this->normalizeCurrency($payment->currency ?? 'GNF');
+                $amount = (float) $payment->amount;
+                $this->addCurrencyMovement(
+                    $byCurrency,
+                    $currency,
+                    0.0,
+                    $amount,
+                    0.0,
+                    $this->amountToGnf($amount, $currency, $payment->amount_gnf, $payment->exchange_rate)
+                );
+            }
+
+            foreach (($advanceCurrencyRows->get($client->id) ?? collect()) as $advance) {
+                $currency = $this->normalizeCurrency($advance->currency ?? 'GNF');
+                $amount = (float) $advance->amount;
+                $this->addCurrencyMovement($byCurrency, $currency, 0.0, $amount, 0.0, $this->amountToGnf($amount, $currency));
+            }
+
+            foreach (($interestCurrencyRows->get($client->id) ?? collect()) as $interest) {
+                $currency = $this->normalizeCurrency($interest->currency ?? 'GNF');
+                $this->addCurrencyMovement(
+                    $byCurrency,
+                    $currency,
+                    (float) $interest->amount,
+                    (float) ($interest->paid_amount ?? 0),
+                    $this->amountToGnf((float) $interest->amount, $currency),
+                    $this->amountToGnf((float) ($interest->paid_amount ?? 0), $currency)
+                );
+            }
+
+            foreach (($returnCurrencyRows->get($client->id) ?? collect()) as $return) {
+                $amount = (float) $return->client_credit_amount;
+                $this->addCurrencyMovement($byCurrency, 'GNF', 0.0, $amount, 0.0, $amount);
+            }
+
+            $byCurrency = $this->finalizeCurrencyBucket($byCurrency);
+            $balanceGnfEquivalent = round(array_sum(array_map(fn ($row) => (float) $row['final_balance_gnf'], $byCurrency)), 2);
+
             return [
                 'id' => $client->id,
                 'name' => $client->name,
@@ -968,6 +1209,9 @@ class ClientController extends BaseController
                 'gross_debt_gnf' => round($grossDebt, 2),
                 'rest_to_pay_gnf' => round($restToPay, 2),
                 'credit_balance_gnf' => round($creditBalance, 2),
+                'by_currency' => $byCurrency,
+                'currencies' => array_keys($byCurrency),
+                'balance_gnf_equivalent' => $balanceGnfEquivalent,
                 'status' => $status,
                 'status_label' => match ($status) {
                     'DEBITEUR' => 'Débiteur',
@@ -991,7 +1235,24 @@ class ClientController extends BaseController
             'total_debt' => round((float) $rows->sum('gross_debt_gnf'), 2),
             'total_rest_to_pay' => round((float) $rows->sum('rest_to_pay_gnf'), 2),
             'total_credit_balance' => round((float) $rows->sum('credit_balance_gnf'), 2),
+            'total_balance_gnf_equivalent' => round((float) $rows->sum('balance_gnf_equivalent'), 2),
         ];
+
+        $summaryByCurrency = [];
+        foreach ($rows as $row) {
+            foreach (($row['by_currency'] ?? []) as $currency => $values) {
+                $this->addCurrencyMovement(
+                    $summaryByCurrency,
+                    $currency,
+                    (float) ($values['total_debit'] ?? 0),
+                    (float) ($values['total_credit'] ?? 0),
+                    (float) ($values['total_debit_gnf'] ?? 0),
+                    (float) ($values['total_credit_gnf'] ?? 0)
+                );
+            }
+        }
+        $summary['by_currency'] = $this->finalizeCurrencyBucket($summaryByCurrency);
+        $summary['currencies'] = array_keys($summary['by_currency']);
 
         return $this->sendResponse([
             'summary' => $summary,

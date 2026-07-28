@@ -265,6 +265,18 @@
 
   .designation .label { color: var(--ink); font-weight: 500; }
   .designation .ref   { color: var(--muted); font-size: 0.7rem; margin-top: 2px; }
+  .designation .fx-proof {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 0.72rem;
+    font-weight: 500;
+    border: 1px solid #dbeafe;
+  }
 
   .v-debit  { color: var(--debit); font-weight: 600; }
   .v-credit { color: var(--credit); font-weight: 600; }
@@ -325,18 +337,22 @@
 /* ───── MODAL ───── */
 .modal-backdrop-custom {
   position: fixed; inset: 0;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(2px);
-  z-index: 1050;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 2000;             /* au-dessus de tout (tooltips natifs ~1090) */
   display: flex; align-items: center; justify-content: center;
   padding: 1rem;
 }
 .modal-dialog-custom {
   width: 100%; max-width: 580px;
+  position: relative;
+  z-index: 2001;
   .modal-content {
     border-radius: 16px;
     border: none;
     overflow: hidden;
+    box-shadow: 0 24px 48px rgba(0,0,0,.35);
   }
   .modal-header {
     background: linear-gradient(135deg, #fef2f2, #fee2e2);

@@ -68,10 +68,22 @@ class AuthController extends BaseController
             }
 
             $user = User::where('email', $request->email)->firstOrFail();
-            
+
             // Check if user is active
             if (isset($user->is_active) && !$user->is_active) {
-                return $this->sendError('Account is deactivated', [], 403);
+                return $this->sendError('Compte utilisateur désactivé. Contactez votre administrateur.', [], 403);
+            }
+
+            // SUPER_ADMIN n'est pas affecte par la suspension d'un tenant
+            if (!$user->hasRole('SUPER_ADMIN') && $user->tenant_id) {
+                $tenant = $user->tenant()->first();
+                if ($tenant && strtoupper($tenant->subscription_status) === 'SUSPENDED') {
+                    return $this->sendError(
+                        'Organisation suspendue. Contactez votre administrateur pour réactivation.',
+                        ['tenant_status' => 'SUSPENDED', 'tenant_name' => $tenant->name],
+                        403
+                    );
+                }
             }
 
             $token = $user->createToken('auth_token')->plainTextToken;

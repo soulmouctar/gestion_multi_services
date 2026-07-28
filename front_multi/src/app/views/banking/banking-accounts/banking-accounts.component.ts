@@ -50,6 +50,10 @@ export class BankingAccountsComponent implements OnInit {
   ];
   currencies = ['GNF', 'USD', 'EUR'];
 
+  get canCreateAccount(): boolean { return this.authService.hasModulePermission('BANKING', 'create'); }
+  get canEditAccount(): boolean   { return this.authService.hasModulePermission('BANKING', 'edit'); }
+  get canDeleteAccount(): boolean { return this.authService.hasModulePermission('BANKING', 'delete'); }
+
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,

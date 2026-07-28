@@ -63,12 +63,29 @@ export class ContainerListComponent implements OnInit {
       shipping_number: ['', Validators.required],
       bl_number: [''],
       capacity: [null],
+      expected_product_category_id: [null],
       delivery_status: ['NON_LIVRE', Validators.required],
       entry_port: [''],
       entry_date: [null],
       expected_delivery_date: [null],
       tenant_id: [null]
     });
+  }
+
+  productCategories: { id: number; name: string }[] = [];
+
+  loadProductCategories(): void {
+    this.apiService.get<any>('product-categories?per_page=200')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          if (r.success) {
+            this.productCategories = (r.data?.data || r.data || []).map((c: any) => ({ id: c.id, name: c.name }));
+            this.cdr.detectChanges();
+          }
+        },
+        error: () => {},
+      });
   }
 
   ngOnInit(): void {
@@ -83,6 +100,7 @@ export class ContainerListComponent implements OnInit {
       this.cdr.markForCheck();
     });
     this.loadContainers();
+    this.loadProductCategories();
   }
 
   loadTenants(): void {
@@ -132,6 +150,7 @@ export class ContainerListComponent implements OnInit {
       shipping_number: '',
       bl_number: '',
       capacity: null,
+      expected_product_category_id: null,
       delivery_status: 'NON_LIVRE',
       entry_port: '',
       entry_date: null,
@@ -160,6 +179,7 @@ export class ContainerListComponent implements OnInit {
       shipping_number: container.shipping_number || '',
       bl_number: container.bl_number || '',
       capacity: container.capacity ?? null,
+      expected_product_category_id: container.expected_product_category_id ?? null,
       delivery_status: container.delivery_status || 'NON_LIVRE',
       entry_port: container.entry_port || '',
       entry_date: container.entry_date ? String(container.entry_date).split('T')[0] : null,

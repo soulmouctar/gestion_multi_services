@@ -16,7 +16,7 @@
           style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:white;padding:8px 16px;font-size:0.875rem;font-weight:600;cursor:pointer;">
           <svg cIcon name="cilCloudDownload" style="width:14px;height:14px;"></svg> Exporter
         </button>
-        <button (click)="createProduct()"
+        <button *ngIf="canCreateProducts" (click)="createProduct()"
           style="display:inline-flex;align-items:center;gap:7px;background:white;color:#0f3460;border:none;border-radius:8px;padding:9px 20px;font-size:0.875rem;font-weight:700;cursor:pointer;">
           <svg cIcon name="cilPlus" style="width:15px;height:15px;"></svg> Nouveau Produit
         </button>
@@ -238,13 +238,20 @@
                 <button type="button" class="btn btn-sm btn-outline-info" (click)="openDetailModal(product)" title="Details" style="border-radius:8px;padding:4px 8px;">
                   <svg cIcon name="cilInfo"></svg>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-warning" (click)="editProduct(product)" title="Modifier" style="border-radius:8px;padding:4px 8px;">
+                <button *ngIf="canEditProducts && (isOutOfStock(product) || isLowStock(product))"
+                        type="button" class="btn btn-sm btn-outline-primary"
+                        (click)="openRestockModal(product)"
+                        title="Approvisionner le stock"
+                        style="border-radius:8px;padding:4px 8px;">
+                  <svg cIcon name="cilPlus"></svg>
+                </button>
+                <button *ngIf="canEditProducts" type="button" class="btn btn-sm btn-outline-warning" (click)="editProduct(product)" title="Modifier" style="border-radius:8px;padding:4px 8px;">
                   <svg cIcon name="cilPencil"></svg>
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-success" (click)="openSalesHistoryModal(product)" title="Historique ventes" style="border-radius:8px;padding:4px 8px;">
                   <svg cIcon name="cilChart"></svg>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteProduct(product)" title="Supprimer" style="border-radius:8px;padding:4px 8px;">
+                <button *ngIf="canDeleteProducts" type="button" class="btn btn-sm btn-outline-danger" (click)="deleteProduct(product)" title="Supprimer" style="border-radius:8px;padding:4px 8px;">
                   <svg cIcon name="cilTrash"></svg>
                 </button>
               </div>
@@ -290,6 +297,53 @@
 </div>
 
 <!-- Delete Modal -->
+<!-- Restock Modal -->
+<c-modal [visible]="restockModalOpen" (visibleChange)="restockModalOpen = $event" backdrop="static">
+  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+    <h5 cModalTitle class="fw-bold text-primary">
+      <svg cIcon name="cilPlus" class="me-1"></svg> Approvisionner le stock
+    </h5>
+    <button type="button" class="btn-close" (click)="cancelRestock()"></button>
+  </c-modal-header>
+  <c-modal-body class="p-4">
+    <div class="mb-3">
+      <div class="small text-muted">Produit</div>
+      <div class="fw-semibold" style="color:#1e293b;">{{ productToRestock?.name }}</div>
+      <div class="small text-muted mt-1">
+        Stock actuel :
+        <span class="fw-bold" [style.color]="(productToRestock?.stock_quantity || 0) === 0 ? '#EF4444' : '#F59E0B'">
+          {{ productToRestock?.stock_quantity || 0 }}
+        </span>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label small fw-semibold">Quantité à ajouter <span class="text-danger">*</span></label>
+      <input type="number" class="form-control" min="1" step="1"
+             [(ngModel)]="restockQuantity" placeholder="Ex: 50" />
+    </div>
+    <div class="mb-2">
+      <label class="form-label small fw-semibold">Motif (optionnel)</label>
+      <input type="text" class="form-control"
+             [(ngModel)]="restockReason" placeholder="Ex: Nouveau lot fournisseur" />
+    </div>
+    <div *ngIf="restockQuantity && restockQuantity > 0" class="mt-3 p-2 rounded-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+      <div class="small" style="color:#1E40AF;">
+        Nouveau stock après approvisionnement :
+        <b>{{ (productToRestock?.stock_quantity || 0) + restockQuantity }}</b>
+      </div>
+    </div>
+  </c-modal-body>
+  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+    <button type="button" class="btn btn-outline-secondary" (click)="cancelRestock()" [disabled]="restockSubmitting" style="border-radius:8px;">Annuler</button>
+    <button type="button" class="btn btn-primary" (click)="confirmRestock()"
+            [disabled]="restockSubmitting || !restockQuantity || restockQuantity <= 0"
+            style="border-radius:8px;">
+      <c-spinner size="sm" class="me-2" *ngIf="restockSubmitting"></c-spinner>
+      Approvisionner
+    </button>
+  </c-modal-footer>
+</c-modal>
+
 <c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
   <c-modal-header style="border-bottom:1px solid #f0f0f0;">
     <h5 cModalTitle class="fw-bold text-danger">Confirmer la suppression</h5>
@@ -301,8 +355,11 @@
         <svg cIcon name="cilWarning" style="color:#EF4444;width:22px;height:22px;"></svg>
       </div>
       <div>
-        <p class="mb-1 fw-semibold" style="color:#1e293b;">Supprimer le produit <strong>{{ productToDelete?.name }}</strong> ?</p>
-        <p class="mb-0" style="font-size:0.875rem;color:#EF4444;">Cette action est irreversible.</p>
+        <p class="mb-1 fw-semibold" style="color:#1e293b;">Déplacer <strong>{{ productToDelete?.name }}</strong> dans la corbeille ?</p>
+        <p class="mb-0" style="font-size:0.875rem;color:#475569;">
+          Le produit sera retiré des listes mais restera restaurable depuis la corbeille.
+          Stock et image préservés.
+        </p>
       </div>
     </div>
   </c-modal-body>

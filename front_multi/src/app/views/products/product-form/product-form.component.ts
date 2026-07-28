@@ -262,7 +262,7 @@ export class ProductFormComponent implements OnInit {
   // Gestion de l'image
   // ─────────────────────────────────────────────
 
-  onImageSelected(event: Event): void {
+  async onImageSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file  = input.files?.[0];
     if (!file) return;
@@ -273,14 +273,30 @@ export class ProductFormComponent implements OnInit {
       this.cdr.markForCheck();
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      this.imageError = 'L\'image ne doit pas dépasser 2 Mo.';
-      this.cdr.markForCheck();
-      return;
+
+    // Compression : au-delà de 1,5 Mo ou 1600 px on ré-encode en JPEG 0.8 pour
+    // éviter d'exploser la taille d'upload sans faire perdre l'action à l'utilisateur.
+    // Le backend accepte max 2 Mo — on cible 1,8 Mo avec passe agressive si besoin.
+    const SOFT_LIMIT = 1.5 * 1024 * 1024;
+    const HARD_LIMIT = 1.8 * 1024 * 1024;
+    let finalFile = file;
+    try {
+      if (file.size > SOFT_LIMIT) {
+        finalFile = await this.compressImage(file, 1600, 0.8);
+      }
+      if (finalFile.size > HARD_LIMIT) {
+        finalFile = await this.compressImage(finalFile, 1200, 0.7);
+      }
+      if (finalFile.size > HARD_LIMIT) {
+        finalFile = await this.compressImage(finalFile, 1000, 0.6);
+      }
+    } catch {
+      // En cas d'échec de compression on garde l'original ; le backend décidera.
+      finalFile = file;
     }
 
     this.imageError        = null;
-    this.selectedFile      = file;
+    this.selectedFile      = finalFile;
     this.pendingRemoveImage = false;
 
     const reader = new FileReader();
@@ -288,7 +304,47 @@ export class ProductFormComponent implements OnInit {
       this.imagePreview = e.target?.result as string;
       this.cdr.markForCheck();
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(finalFile);
+  }
+
+  private compressImage(file: File, maxDimension: number, quality: number): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          let { width, height } = img;
+          const ratio = Math.min(1, maxDimension / Math.max(width, height));
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { URL.revokeObjectURL(url); reject(new Error('Canvas 2D indisponible')); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              URL.revokeObjectURL(url);
+              if (!blob) { reject(new Error('Compression échouée')); return; }
+              const compressed = new File(
+                [blob],
+                file.name.replace(/\.(png|webp)$/i, '.jpg'),
+                { type: 'image/jpeg', lastModified: Date.now() }
+              );
+              resolve(compressed);
+            },
+            'image/jpeg',
+            quality,
+          );
+        } catch (err) {
+          URL.revokeObjectURL(url);
+          reject(err);
+        }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image illisible')); };
+      img.src = url;
+    });
   }
 
   clearSelectedImage(): void {

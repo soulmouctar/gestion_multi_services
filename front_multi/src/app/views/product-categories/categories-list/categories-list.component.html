@@ -7,7 +7,7 @@
             <strong>Gestion des Catégories</strong>
             <small class="text-medium-emphasis ms-2">{{ totalItems }} catégorie(s)</small>
           </div>
-          <button cButton color="primary" size="sm" (click)="openCreateModal()">
+          <button *ngIf="canCreateCategory" cButton color="primary" size="sm" (click)="openCreateModal()">
             <svg cIcon name="cilPlus" class="me-1"></svg>
             Nouvelle catégorie
           </button>
@@ -54,10 +54,10 @@
                   <td>{{ category.created_at | date:'dd/MM/yyyy' }}</td>
                   <td>
                     <c-button-group size="sm">
-                      <button cButton color="warning" variant="outline" size="sm" title="Modifier" (click)="openEditModal(category)">
+                      <button *ngIf="canEditCategory" cButton color="warning" variant="outline" size="sm" title="Modifier" (click)="openEditModal(category)">
                         <svg cIcon name="cilPencil"></svg>
                       </button>
-                      <button cButton color="danger" variant="outline" size="sm" title="Supprimer" (click)="confirmDelete(category)">
+                      <button *ngIf="canDeleteCategory" cButton color="danger" variant="outline" size="sm" title="Supprimer" (click)="confirmDelete(category)">
                         <svg cIcon name="cilTrash"></svg>
                       </button>
                     </c-button-group>

@@ -6,9 +6,33 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class ProductController extends BaseController
 {
+    private function tenantId(Request $request): ?int
+    {
+        $user = Auth::user();
+
+        if ($user && $user->hasRole('SUPER_ADMIN')) {
+            return $request->get('tenant_id') ?? $user->tenant_id;
+        }
+
+        return $user?->tenant_id ?? $request->get('tenant_id');
+    }
+
+    private function productQuery(Request $request)
+    {
+        $query = Product::query();
+        $tenantId = $this->tenantId($request);
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        return $query;
+    }
+
     public function index(Request $request)
     {
         try {
@@ -144,7 +168,12 @@ class ProductController extends BaseController
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:150',
                 'description' => 'nullable|string|max:1000',
-                'sku' => 'nullable|string|max:50|unique:products,sku',
+                'sku' => [
+                    'nullable',
+                    'string',
+                    'max:50',
+                    Rule::unique('products', 'sku')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+                ],
                 'product_category_id' => 'nullable|exists:product_categories,id',
                 'unit_id' => 'nullable|exists:units,id',
                 'purchase_price'        => 'nullable|numeric|min:0',
@@ -166,7 +195,26 @@ class ProductController extends BaseController
                 return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
             }
 
-            $productData = $request->all();
+            $productData = $request->only([
+                'name',
+                'description',
+                'sku',
+                'product_category_id',
+                'unit_id',
+                'purchase_price',
+                'carton_purchase_price',
+                'selling_price',
+                'carton_selling_price',
+                'units_per_carton',
+                'stock_quantity',
+                'low_stock_threshold',
+                'status',
+                'barcode',
+                'weight',
+                'dimensions',
+                'supplier_info',
+                'notes',
+            ]);
             $productData['tenant_id'] = $tenantId;
             $productData['status'] = $productData['status'] ?? 'ACTIVE';
 
@@ -180,12 +228,14 @@ class ProductController extends BaseController
         }
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $product = Product::with('tenant', 'category', 'unit')->find($id);
+        $product = $this->productQuery($request)
+            ->with('tenant', 'category', 'unit')
+            ->find($id);
 
         if (!$product) {
-            return $this->sendError('Product not found');
+            return $this->sendError('Product not found', [], 404);
         }
 
         return $this->sendResponse($product, 'Product retrieved successfully');
@@ -193,16 +243,23 @@ class ProductController extends BaseController
 
     public function update(Request $request, $id)
     {
-        $product = Product::find($id);
+        $product = $this->productQuery($request)->find($id);
 
         if (!$product) {
-            return $this->sendError('Product not found');
+            return $this->sendError('Product not found', [], 404);
         }
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:150',
             'description' => 'nullable|string|max:1000',
-            'sku' => 'nullable|string|max:50|unique:products,sku,' . $id,
+            'sku' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('products', 'sku')
+                    ->ignore($product->id)
+                    ->where(fn ($query) => $query->where('tenant_id', $product->tenant_id)),
+            ],
             'product_category_id' => 'nullable|exists:product_categories,id',
             'unit_id' => 'nullable|exists:units,id',
             'purchase_price'        => 'nullable|numeric|min:0',
@@ -224,7 +281,26 @@ class ProductController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $product->update($request->all());
+        $product->update($request->only([
+            'name',
+            'description',
+            'sku',
+            'product_category_id',
+            'unit_id',
+            'purchase_price',
+            'carton_purchase_price',
+            'selling_price',
+            'carton_selling_price',
+            'units_per_carton',
+            'stock_quantity',
+            'low_stock_threshold',
+            'status',
+            'barcode',
+            'weight',
+            'dimensions',
+            'supplier_info',
+            'notes',
+        ]));
 
         return $this->sendResponse($product->load('category', 'unit'), 'Product updated successfully');
     }
@@ -242,13 +318,11 @@ class ProductController extends BaseController
             return $this->sendError('Accès refusé', [], 403);
         }
 
-        if ($product->image) {
-            $this->deleteUploadedFile($product->image);
-        }
-
+        // SoftDelete : on garde l'image (la restauration la conservera).
+        // L'image sera nettoyée au forceDelete via le hook Product::booted().
         $product->delete();
 
-        return $this->sendResponse([], 'Product deleted successfully');
+        return $this->sendResponse([], 'Product moved to trash');
     }
 
     public function uploadImage(Request $request, $id)
@@ -309,7 +383,7 @@ class ProductController extends BaseController
     public function updateStock(Request $request, $id)
     {
         try {
-            $product = Product::find($id);
+            $product = $this->productQuery($request)->find($id);
             
             if (!$product) {
                 return $this->sendError('Product not found', [], 404);
@@ -336,6 +410,11 @@ class ProductController extends BaseController
                     $product->stock_quantity = $currentStock + $newQuantity;
                     break;
                 case 'SUBTRACT':
+                    if ($newQuantity > $currentStock) {
+                        return $this->sendError('Stock insuffisant pour cette sortie.', [
+                            'stock_quantity' => ['La quantité à retirer dépasse le stock disponible.'],
+                        ], 422);
+                    }
                     $product->stock_quantity = max(0, $currentStock - $newQuantity);
                     break;
             }
@@ -490,9 +569,13 @@ class ProductController extends BaseController
             $user = Auth::user();
             $tenantId = $user->tenant_id ?? $request->get('tenant_id');
 
+            if (!$tenantId && !$user->hasRole('SUPER_ADMIN')) {
+                return $this->sendError('Tenant ID required', [], 400);
+            }
+
             $query = Product::whereIn('id', $request->product_ids);
             
-            if ($tenantId && !$user->hasRole('SUPER_ADMIN')) {
+            if ($tenantId) {
                 $query->where('tenant_id', $tenantId);
             }
 

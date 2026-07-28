@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Container extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'tenant_id',
@@ -15,6 +16,7 @@ class Container extends Model
         'shipping_number',
         'bl_number',
         'capacity',
+        'expected_product_category_id',
         'delivery_status',
         'entry_port',
         'entry_date',
@@ -41,5 +43,10 @@ class Container extends Model
     public function photos()
     {
         return $this->hasMany(ContainerPhoto::class);
+    }
+
+    public function expectedCategory()
+    {
+        return $this->belongsTo(ProductCategory::class, 'expected_product_category_id');
     }
 }

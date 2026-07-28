@@ -68,6 +68,10 @@ export class InvoicesComponent implements OnInit {
   invoiceForm: FormGroup;
   selectedInvoice: any = null;
 
+  get canCreateInvoice(): boolean { return this.authService.hasModulePermission('FINANCE', 'create'); }
+  get canEditInvoice(): boolean   { return this.authService.hasModulePermission('FINANCE', 'edit'); }
+  get canDeleteInvoice(): boolean { return this.authService.hasModulePermission('FINANCE', 'delete'); }
+
   Math = Math;
 
   constructor(

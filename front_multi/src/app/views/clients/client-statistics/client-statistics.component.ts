@@ -29,11 +29,10 @@ export class ClientStatisticsComponent implements OnInit {
 
   clientTypes = [
     { value: '', label: 'Tous les types' },
-    { value: 'GENERAL', label: 'Clients généraux' },
-    { value: 'PNEUS', label: 'Clients pneus' },
     { value: 'TEXTILE', label: 'Clients textile' },
+    { value: 'PNEUS', label: 'Clients pneus' },
     { value: 'COSMETIQUES', label: 'Clients cosmétiques' },
-    { value: 'CONTAINER_PAGNE', label: 'Clients conteneurs pagne' },
+    { value: 'MACHINE_A_COUDRE', label: 'Clients machine à coudre' },
   ];
 
   readonly chartOptions: ChartOptions<'bar' | 'doughnut'> = {

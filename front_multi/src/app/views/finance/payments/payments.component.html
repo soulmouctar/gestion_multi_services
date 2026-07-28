@@ -1,0 +1,153 @@
+<div class="finance-payments container-fluid px-3 px-md-4 py-3">
+
+  <!-- HEADER -->
+  <div class="fp-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <div class="crumb text-muted small">Finance <span class="mx-1">›</span> Versements</div>
+      <h1 class="d-flex align-items-center gap-2 mb-0">
+        <svg cIcon name="cilMoney" class="text-success"></svg>
+        Versements clients
+      </h1>
+      <div class="small text-muted mt-1">
+        Enregistre les versements clients (mono ou multi-devises) et retrouve l'historique.
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-light btn-sm" (click)="load()" [disabled]="loading" style="border-radius:10px;">
+        <svg cIcon name="cilReload" size="sm" class="me-1"></svg> Actualiser
+      </button>
+      <button *ngIf="canCreatePayment" class="btn btn-success btn-sm fw-semibold" (click)="openBatchForm()" style="border-radius:10px;">
+        <svg cIcon name="cilPlus" size="sm" class="me-1"></svg> Nouveau versement
+      </button>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="fp-filters mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Recherche</label>
+        <input type="text" class="form-control form-control-sm"
+               [(ngModel)]="filters.search"
+               placeholder="Reçu, référence, client…"
+               (keyup.enter)="applyFilters()" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Du</label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_from" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Au</label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_to" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Devise</label>
+        <select class="form-select form-select-sm" [(ngModel)]="filters.currency">
+          <option value="">Toutes</option>
+          <option value="GNF">GNF</option>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button class="btn btn-primary btn-sm w-100" (click)="applyFilters()">Filtrer</button>
+        <button class="btn btn-light btn-sm" (click)="resetFilters()" title="Réinitialiser">
+          <svg cIcon name="cilX" size="sm"></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="success"></c-spinner>
+    <div class="small text-muted mt-2">Chargement des versements…</div>
+  </div>
+
+  <!-- TABLE -->
+  <div *ngIf="!loading" class="fp-table-wrap">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>N° reçu</th>
+            <th>Client</th>
+            <th>Mode</th>
+            <th class="text-end">Montant</th>
+            <th class="text-end">Équivalent GNF</th>
+            <th>Compte cible</th>
+            <th>Référence</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of payments; trackBy: trackById">
+            <td>{{ p.payment_date | date:'dd/MM/yyyy' }}</td>
+            <td class="fw-semibold text-primary">{{ p.receipt_number }}</td>
+            <td>{{ p.client?.name || '—' }}</td>
+            <td>
+              <span class="badge bg-light text-dark">{{ methodLabel(p.method) }}</span>
+            </td>
+            <td class="text-end fw-semibold">{{ fmt(p.amount, p.currency) }}</td>
+            <td class="text-end text-muted small">{{ fmt(p.amount_gnf, 'GNF') }}</td>
+            <td>
+              <ng-container *ngIf="p.target_currency && p.target_currency !== p.currency; else sameCur">
+                <div class="badge bg-info-subtle text-info">
+                  → {{ p.target_currency }}
+                  <span *ngIf="p.converted_amount" class="ms-1">({{ fmt(p.converted_amount, p.target_currency) }})</span>
+                </div>
+                <div *ngIf="p.exchange_rate" class="small text-muted mt-1">
+                  Taux&nbsp;: <b>{{ p.exchange_rate }}</b>
+                </div>
+              </ng-container>
+              <ng-template #sameCur>
+                <span class="text-muted small">—</span>
+              </ng-template>
+            </td>
+            <td class="text-muted small">{{ p.reference || '—' }}</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-primary me-1" (click)="printReceipt(p, 'print')" title="Imprimer le reçu">
+                <svg cIcon name="cilPrint" size="sm"></svg>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" (click)="printReceipt(p, 'download')" title="Télécharger PDF">
+                <svg cIcon name="cilCloudDownload" size="sm"></svg>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!payments.length">
+            <td colspan="9" class="text-center py-5 text-muted">
+              Aucun versement enregistré.
+              <div class="mt-2">
+                <button *ngIf="canCreatePayment" class="btn btn-sm btn-outline-success" (click)="openBatchForm()">
+                  <svg cIcon name="cilPlus" size="sm" class="me-1"></svg> Créer le premier versement
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PAGINATION -->
+    <div *ngIf="lastPage > 1" class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+      <div class="small text-muted">Page {{ page }} / {{ lastPage }} — {{ total }} versement(s)</div>
+      <div class="d-flex gap-1">
+        <button class="btn btn-sm btn-light" [disabled]="page <= 1" (click)="goToPage(page - 1)">
+          <svg cIcon name="cilArrowLeft" size="sm"></svg>
+        </button>
+        <button class="btn btn-sm btn-light" [disabled]="page >= lastPage" (click)="goToPage(page + 1)">
+          <svg cIcon name="cilArrowRight" size="sm"></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL BATCH -->
+  <app-payment-batch-form
+    [visible]="showBatchForm"
+    (visibleChange)="showBatchForm = $event"
+    (saved)="onBatchSaved($event)">
+  </app-payment-batch-form>
+
+</div>

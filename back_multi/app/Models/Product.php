@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'tenant_id',
@@ -33,6 +34,25 @@ class Product extends Model
     ];
 
     protected $appends = ['image_url', 'unit_selling_price', 'half_carton_price', 'dozen_price'];
+
+    /**
+     * Nettoie le fichier image quand le produit est supprime definitivement
+     * depuis la corbeille (forceDelete). Sur soft delete classique l'image est preservee.
+     */
+    protected static function booted(): void
+    {
+        static::forceDeleted(function (Product $product) {
+            if (!$product->image) return;
+            $path = ltrim($product->image, '/');
+            if (!str_starts_with($path, 'uploads/')) {
+                $path = 'uploads/' . $path;
+            }
+            $abs = public_path($path);
+            if (is_file($abs)) {
+                @unlink($abs);
+            }
+        });
+    }
 
     public function getImageUrlAttribute(): ?string
     {

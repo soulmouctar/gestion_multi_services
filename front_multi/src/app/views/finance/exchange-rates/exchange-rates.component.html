@@ -15,7 +15,7 @@
         {{ totalItems }} taux enregistré(s)
       </p>
     </div>
-    <button class="btn fw-semibold"
+    <button *ngIf="canCreateRate" class="btn fw-semibold"
             style="background:#10B981;color:#fff;border-radius:10px;border:none;padding:8px 20px;"
             (click)="openCreateModal()">
       <svg cIcon name="cilPlus" class="me-1" style="width:16px;height:16px;"></svg> Nouveau taux
@@ -79,13 +79,13 @@
             </td>
             <td class="px-4 py-3">
               <div class="d-flex gap-2">
-                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                <button *ngIf="canEditRate" class="btn btn-sm d-flex align-items-center justify-content-center"
                         style="width:32px;height:32px;padding:0;background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;"
                         (click)="openEditModal(rate)"
                         title="Modifier">
                   <svg cIcon name="cilPencil" style="width:14px;height:14px;"></svg>
                 </button>
-                <button class="btn btn-sm d-flex align-items-center justify-content-center"
+                <button *ngIf="canDeleteRate" class="btn btn-sm d-flex align-items-center justify-content-center"
                         style="width:32px;height:32px;padding:0;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:8px;"
                         (click)="confirmDelete(rate)"
                         title="Supprimer">

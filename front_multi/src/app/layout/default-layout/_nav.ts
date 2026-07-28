@@ -28,10 +28,6 @@ export const navItems: INavData[] = [
     name: 'Commercial',
     url: '/commercial',
     iconComponent: { name: 'cilBasket' },
-    badge: {
-      color: 'success',
-      text: 'NOUVEAU'
-    },
     children: [
       {
         name: 'Tableau de Bord',
@@ -45,15 +41,6 @@ export const navItems: INavData[] = [
         badge: {
           color: 'success',
           text: 'COMPLET'
-        }
-      },
-      {
-        name: 'Gestion Avancée Produits',
-        url: '/products/advanced',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'info',
-          text: 'NOUVEAU'
         }
       },
       {
@@ -82,33 +69,11 @@ export const navItems: INavData[] = [
     name: 'Finance',
     url: '/finance',
     iconComponent: { name: 'cilDollar' },
-    badge: {
-      color: 'success',
-      text: 'NOUVEAU'
-    },
     children: [
       {
         name: 'Tableau de Bord',
         url: '/finance/dashboard',
         icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'Paiements',
-        url: '/payments/list',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'success',
-          text: 'COMPLET'
-        }
-      },
-      {
-        name: 'Gestion Avancée Paiements',
-        url: '/payments/advanced',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'info',
-          text: 'NOUVEAU'
-        }
       },
       {
         name: 'Devises',
@@ -145,11 +110,7 @@ export const navItems: INavData[] = [
       {
         name: 'Suivi Paiements',
         url: '/containers/payments',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'success',
-          text: 'NOUVEAU'
-        }
+        icon: 'nav-icon-bullet'
       },
       {
         name: 'Statistiques Avancées',
@@ -187,15 +148,6 @@ export const navItems: INavData[] = [
         name: 'Configurations',
         url: '/rental/unit-configurations',
         icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'Gestion Avancée Emplacements',
-        url: '/rental/locations-advanced',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'info',
-          text: 'NOUVEAU'
-        }
       }
     ]
   },
@@ -222,20 +174,12 @@ export const navItems: INavData[] = [
       {
         name: 'Versements Journaliers',
         url: '/taxi/daily-payments',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'success',
-          text: 'NOUVEAU'
-        }
+        icon: 'nav-icon-bullet'
       },
       {
         name: 'Dépenses Véhicules',
         url: '/taxi/vehicle-expenses',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'info',
-          text: 'NOUVEAU'
-        }
+        icon: 'nav-icon-bullet'
       }
     ]
   },
@@ -286,18 +230,9 @@ export const navItems: INavData[] = [
         icon: 'nav-icon-bullet'
       },
       {
-        name: 'Contacts',
-        url: '/organisation/contacts',
-        icon: 'nav-icon-bullet'
-      },
-      {
         name: 'Paramètres Avancés',
         url: '/organisation/settings-advanced',
-        icon: 'nav-icon-bullet',
-        badge: {
-          color: 'info',
-          text: 'NOUVEAU'
-        }
+        icon: 'nav-icon-bullet'
       }
     ]
   },
