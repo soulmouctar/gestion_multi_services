@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Tenant, Module, ApiResponse } from '../models/tenant.model';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -10,20 +11,45 @@ import { Tenant, Module, ApiResponse } from '../models/tenant.model';
 export class TenantService {
   private readonly API_URL = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
 
   // Organisation courante (accessible ADMIN + SUPER_ADMIN)
   getMyTenant(): Observable<ApiResponse<Tenant>> {
-    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`);
+    const tenantId = this.authService.isSuperAdmin ? this.authService.selectedManagedTenantId : null;
+    const options = tenantId
+      ? { params: new HttpParams().set('tenant_id', tenantId.toString()) }
+      : {};
+    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, options);
   }
 
   updateMyTenant(data: Partial<Tenant> | FormData): Observable<ApiResponse<Tenant>> {
+    const payload = this.attachSelectedTenant(data);
     // Laravel ne lit pas les fichiers sur PUT multipart : POST + _method=PUT
-    if (data instanceof FormData) {
-      data.append('_method', 'PUT');
-      return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, data);
+    if (payload instanceof FormData) {
+      if (!payload.has('_method')) {
+        payload.append('_method', 'PUT');
+      }
+      return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, payload);
     }
-    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, data);
+    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, payload);
+  }
+
+  private attachSelectedTenant(data: Partial<Tenant> | FormData): Partial<Tenant> | FormData {
+    const tenantId = this.authService.isSuperAdmin ? this.authService.selectedManagedTenantId : null;
+    if (!tenantId) return data;
+
+    if (data instanceof FormData) {
+      if (!data.has('tenant_id')) {
+        data.append('tenant_id', tenantId.toString());
+      }
+      return data;
+    }
+
+    const payload = data as Partial<Tenant> & { tenant_id?: number };
+    return payload.tenant_id ? payload : ({ ...payload, tenant_id: tenantId } as Partial<Tenant>);
   }
 
   // Tenants CRUD (SUPER_ADMIN uniquement)

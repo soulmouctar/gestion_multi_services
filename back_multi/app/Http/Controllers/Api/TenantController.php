@@ -47,7 +47,8 @@ class TenantController extends BaseController
     }
 
     /**
-     * Sauvegarde le fichier logo dans public/uploads/tenants et renvoie le chemin relatif.
+     * Sauvegarde le fichier logo dans public/uploads/tenants
+     * et renvoie le chemin relatif public.
      */
     private function storeLogo($file): string
     {
@@ -150,8 +151,19 @@ class TenantController extends BaseController
     {
         $user = auth()->user();
 
-        if ($user->hasRole('SUPER_ADMIN') && !$user->tenant_id) {
-            return $this->sendResponse(null, 'Super administrateur sans tenant.');
+        if ($user->hasRole('SUPER_ADMIN')) {
+            $tenantId = $request->input('tenant_id') ?? $user->tenant_id;
+            if (!$tenantId) {
+                return $this->sendResponse(null, 'Super administrateur sans tenant.');
+            }
+
+            $tenant = Tenant::with('modules')->find($tenantId);
+
+            if (!$tenant) {
+                return $this->sendError('Organisation introuvable.', [], 404);
+            }
+
+            return $this->sendResponse($tenant, 'Organisation récupérée avec succès');
         }
 
         $tenant = Tenant::with('modules')->find($user->tenant_id);

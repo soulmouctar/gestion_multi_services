@@ -51,7 +51,16 @@ export class ApiService {
     headers?: HttpHeaders;
   }): Observable<ApiResponse<T>> {
     const httpOptions = this.buildHttpOptions(endpoint, options);
-    return this.http.put<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, this.attachTenantToPayload(endpoint, data), httpOptions).pipe(
+    const payload = this.attachTenantToPayload(endpoint, data);
+    if (payload instanceof FormData) {
+      if (!payload.has('_method')) {
+        payload.append('_method', 'PUT');
+      }
+      return this.http.post<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, payload, httpOptions).pipe(
+        catchError(error => this.handleError(error))
+      );
+    }
+    return this.http.put<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, payload, httpOptions).pipe(
       catchError(error => this.handleError(error))
     );
   }

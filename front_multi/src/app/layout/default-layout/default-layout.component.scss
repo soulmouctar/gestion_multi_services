@@ -18,6 +18,24 @@
   //}
 }
 
+.sidebar-brand-full,
+.sidebar-brand-narrow {
+  max-width: 100%;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.sidebar-brand-full {
+  width: 160px;
+  height: 56px;
+}
+
+.sidebar-brand-narrow {
+  width: 48px;
+  height: 48px;
+}
+
 // ng-scrollbar css variables
 //.cui-scrollbar {
 //  --scrollbar-border-radius: 7px;

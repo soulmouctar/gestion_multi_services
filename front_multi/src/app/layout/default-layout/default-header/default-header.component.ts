@@ -118,6 +118,9 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
     }
 
     let path = avatar.startsWith('/') ? avatar.substring(1) : avatar;
+    if (path.startsWith('upload/')) {
+      path = 'uploads/' + path.slice('upload/'.length);
+    }
     if (!path.startsWith('uploads/') && !path.startsWith('storage/')) {
       path = 'uploads/' + path;
     }

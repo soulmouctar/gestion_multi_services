@@ -9,9 +9,9 @@
   <c-sidebar-header class="border-bottom" style="background-color: white; padding: 1rem; display: flex; justify-content: center; align-items: center;">
     <c-sidebar-brand [routerLink]="[]" style="display: flex; justify-content: center; align-items: center; width: 100%;">
       <div class="sidebar-brand-full" aria-label="Mat Kolla Logo"
-           style="width: 160px; height: 56px; max-width: 100%; background: center/contain no-repeat url('/assets/images/logo/logo_matkolla_2026.jpeg');"></div>
+           [style.background-image]="'url(' + appLogoUrl + ')'"></div>
       <div class="sidebar-brand-narrow" aria-label="Mat Kolla Logo"
-           style="width: 48px; height: 48px; max-width: 100%; background: center/contain no-repeat url('/assets/images/logo/logo_matkolla_2026.jpeg');"></div>
+           [style.background-image]="'url(' + appLogoUrl + ')'"></div>
     </c-sidebar-brand>
   </c-sidebar-header>
 

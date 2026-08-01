@@ -903,7 +903,9 @@ export class ContainerVentesComponent implements OnInit {
     const raw = String(photo.image_path);
     if (raw.startsWith('http')) return raw;
     const clean = raw.replace(/^\/+/, '');
-    const path  = clean.startsWith('uploads/') ? clean : `uploads/${clean}`;
+    const path  = clean.startsWith('upload/')
+      ? `uploads/${clean.slice('upload/'.length)}`
+      : (clean.startsWith('uploads/') ? clean : `uploads/${clean}`);
     return `${environment.apiUrl.replace(/\/api$/, '')}/${path}`;
   }
 

@@ -44,6 +44,9 @@ class Client extends Model
         if (!$this->photo) return null;
         if (str_starts_with($this->photo, 'http')) return $this->photo;
         $path = ltrim($this->photo, '/');
+        if (str_starts_with($path, 'upload/')) {
+            $path = 'uploads/' . substr($path, strlen('upload/'));
+        }
         if (!str_starts_with($path, 'uploads/')) {
             $path = 'uploads/' . $path;
         }

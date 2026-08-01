@@ -218,7 +218,11 @@ class ContainerPhotoController extends BaseController
     private function deleteFile(?string $path): void
     {
         if ($path) {
-            $full = public_path($path);
+            $normalized = ltrim($path, '/');
+            if (str_starts_with($normalized, 'upload/')) {
+                $normalized = 'uploads/' . substr($normalized, strlen('upload/'));
+            }
+            $full = public_path($normalized);
             if (file_exists($full)) {
                 unlink($full);
             }

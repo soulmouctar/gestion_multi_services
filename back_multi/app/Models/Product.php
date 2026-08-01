@@ -44,6 +44,9 @@ class Product extends Model
         static::forceDeleted(function (Product $product) {
             if (!$product->image) return;
             $path = ltrim($product->image, '/');
+            if (str_starts_with($path, 'upload/')) {
+                $path = 'uploads/' . substr($path, strlen('upload/'));
+            }
             if (!str_starts_with($path, 'uploads/')) {
                 $path = 'uploads/' . $path;
             }
@@ -59,6 +62,9 @@ class Product extends Model
         if (!$this->image) return null;
         if (str_starts_with($this->image, 'http')) return $this->image;
         $path = ltrim($this->image, '/');
+        if (str_starts_with($path, 'upload/')) {
+            $path = 'uploads/' . substr($path, strlen('upload/'));
+        }
         if (!str_starts_with($path, 'uploads/')) {
             $path = 'uploads/' . $path;
         }

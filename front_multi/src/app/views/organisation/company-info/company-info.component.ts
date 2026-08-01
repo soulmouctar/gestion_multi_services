@@ -153,6 +153,7 @@ export class CompanyInfoComponent implements OnInit {
     this.tenantService.updateMyTenant(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         this.currentOrganisation = response.data;
+        this.authService.updateCurrentTenant(response.data);
         this.successMessage = 'Informations mises à jour avec succès.';
         this.saving = false;
         // On reset la selection logo : la nouvelle URL persistee s'affiche desormais
@@ -161,11 +162,21 @@ export class CompanyInfoComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.error = err.message || 'Erreur lors de la mise à jour.';
+        this.error = this.extractErrorMessage(err);
         this.saving = false;
         this.cdr.detectChanges();
       }
     });
+  }
+
+  private extractErrorMessage(err: any): string {
+    const apiError = err?.error;
+    if (apiError?.errors && typeof apiError.errors === 'object') {
+      const first = Object.values(apiError.errors)[0] as any;
+      if (Array.isArray(first) && first.length) return first[0];
+      if (typeof first === 'string') return first;
+    }
+    return apiError?.message || err?.message || 'Erreur lors de la mise à jour.';
   }
 
   get f() {

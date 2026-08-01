@@ -265,7 +265,9 @@ export class ContainerPhotosComponent implements OnInit {
       return imagePath;
     }
     const clean = imagePath.replace(/^\/+/, '');
-    const path  = clean.startsWith('uploads/') ? clean : `uploads/${clean}`;
+    const path  = clean.startsWith('upload/')
+      ? `uploads/${clean.slice('upload/'.length)}`
+      : (clean.startsWith('uploads/') ? clean : `uploads/${clean}`);
     return this.storageBaseUrl + path;
   }
 

@@ -24,6 +24,9 @@ class ContainerPhoto extends Model
         if (!$this->image_path) return null;
         if (str_starts_with($this->image_path, 'http')) return $this->image_path;
         $path = ltrim($this->image_path, '/');
+        if (str_starts_with($path, 'upload/')) {
+            $path = 'uploads/' . substr($path, strlen('upload/'));
+        }
         if (!str_starts_with($path, 'uploads/')) {
             $path = 'uploads/' . $path;
         }

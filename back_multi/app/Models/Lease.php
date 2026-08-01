@@ -32,6 +32,9 @@ class Lease extends Model
             return null;
         }
         $path = ltrim($this->renter_photo, '/');
+        if (str_starts_with($path, 'upload/')) {
+            $path = 'uploads/' . substr($path, strlen('upload/'));
+        }
         if (!str_starts_with($path, 'uploads/')) {
             $path = 'uploads/' . $path;
         }

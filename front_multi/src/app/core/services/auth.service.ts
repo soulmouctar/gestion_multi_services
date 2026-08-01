@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, from, tap, catchError, throwError, switchMap } from 'rxjs';
-import { User, AuthState, ApiResponse } from '../models';
+import { User, AuthState, ApiResponse, Tenant } from '../models';
 import { environment } from '../../../environments/environment';
 import { ImageCompressionService } from './image-compression.service';
 
@@ -203,6 +203,25 @@ export class AuthService {
     }
     this.authState.next({ ...this.authState.value, user: merged });
     localStorage.setItem(this.USER_KEY, JSON.stringify(merged));
+  }
+
+  updateCurrentTenant(data: Partial<Tenant>): void {
+    const currentTenant = this.authState.value.tenant;
+    const currentUser = this.currentUser;
+    const mergedTenant = { ...(currentTenant || currentUser?.tenant || {}), ...data } as Tenant;
+    const updatedUser = currentUser
+      ? { ...currentUser, tenant: mergedTenant }
+      : currentUser;
+
+    this.authState.next({
+      ...this.authState.value,
+      tenant: mergedTenant,
+      user: updatedUser,
+    });
+
+    if (updatedUser) {
+      localStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));
+    }
   }
 
   reloadCurrentUser(): Observable<any> {

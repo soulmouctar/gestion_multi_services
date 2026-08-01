@@ -47,6 +47,9 @@ class BaseController extends Controller
     {
         if (!$path) return;
         $normalized = ltrim($path, '/');
+        if (str_starts_with($normalized, 'upload/')) {
+            $normalized = 'uploads/' . substr($normalized, strlen('upload/'));
+        }
         if (!str_starts_with($normalized, 'uploads/')) {
             $normalized = 'uploads/' . $normalized;
         }

@@ -32,6 +32,9 @@ class User extends Authenticatable
         }
 
         $path = ltrim($this->avatar, '/');
+        if (str_starts_with($path, 'upload/')) {
+            $path = 'uploads/' . substr($path, strlen('upload/'));
+        }
         if (!str_starts_with($path, 'uploads/')) {
             $path = 'uploads/' . $path;
         }
