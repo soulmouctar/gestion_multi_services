@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Tenant, Module, ApiResponse } from '../models/tenant.model';
 import { AuthService } from './auth.service';
+import { resolveUploadUrl } from '../utils/upload-url.util';
 
 @Injectable({
   providedIn: 'root'
@@ -22,7 +24,9 @@ export class TenantService {
     const options = tenantId
       ? { params: new HttpParams().set('tenant_id', tenantId.toString()) }
       : {};
-    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, options);
+    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, options).pipe(
+      map(response => this.normalizeTenantResponse(response))
+    );
   }
 
   updateMyTenant(data: Partial<Tenant> | FormData): Observable<ApiResponse<Tenant>> {
@@ -32,9 +36,13 @@ export class TenantService {
       if (!payload.has('_method')) {
         payload.append('_method', 'PUT');
       }
-      return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, payload);
+      return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, payload).pipe(
+        map(response => this.normalizeTenantResponse(response))
+      );
     }
-    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, payload);
+    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/organisation/tenant`, payload).pipe(
+      map(response => this.normalizeTenantResponse(response))
+    );
   }
 
   private attachSelectedTenant(data: Partial<Tenant> | FormData): Partial<Tenant> | FormData {
@@ -54,24 +62,34 @@ export class TenantService {
 
   // Tenants CRUD (SUPER_ADMIN uniquement)
   getTenants(): Observable<ApiResponse<Tenant[]>> {
-    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants`);
+    return this.http.get<ApiResponse<Tenant[]>>(`${this.API_URL}/tenants`).pipe(
+      map(response => this.normalizeTenantResponse(response))
+    );
   }
 
   getTenant(id: number): Observable<ApiResponse<Tenant>> {
-    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`);
+    return this.http.get<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`).pipe(
+      map(response => this.normalizeTenantResponse(response))
+    );
   }
 
   createTenant(tenant: Partial<Tenant> | FormData): Observable<ApiResponse<Tenant>> {
-    return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants`, tenant);
+    return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants`, tenant).pipe(
+      map(response => this.normalizeTenantResponse(response))
+    );
   }
 
   updateTenant(id: number, tenant: Partial<Tenant> | FormData): Observable<ApiResponse<Tenant>> {
     // Laravel ne lit pas les fichiers sur PUT multipart : on POST avec _method=PUT override.
     if (tenant instanceof FormData) {
       tenant.append('_method', 'PUT');
-      return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`, tenant);
+      return this.http.post<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`, tenant).pipe(
+        map(response => this.normalizeTenantResponse(response))
+      );
     }
-    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`, tenant);
+    return this.http.put<ApiResponse<Tenant>>(`${this.API_URL}/tenants/${id}`, tenant).pipe(
+      map(response => this.normalizeTenantResponse(response))
+    );
   }
 
   deleteTenant(id: number): Observable<ApiResponse<void>> {
@@ -170,5 +188,28 @@ export class TenantService {
   // Get all modules from database
   getModules(): Observable<ApiResponse<any>> {
     return this.http.get<ApiResponse<any>>(`${this.API_URL}/modules`);
+  }
+
+  private normalizeTenantResponse<T>(response: ApiResponse<T>): ApiResponse<T> {
+    return this.normalizeUploadUrls(response) as ApiResponse<T>;
+  }
+
+  private normalizeUploadUrls(value: any): any {
+    if (Array.isArray(value)) {
+      return value.map(item => this.normalizeUploadUrls(item));
+    }
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    const normalized = { ...value };
+    for (const [key, item] of Object.entries(normalized)) {
+      if (typeof item === 'string' && key.endsWith('_url')) {
+        (normalized as any)[key] = resolveUploadUrl(item);
+      } else if (item && typeof item === 'object') {
+        (normalized as any)[key] = this.normalizeUploadUrls(item);
+      }
+    }
+    return normalized;
   }
 }

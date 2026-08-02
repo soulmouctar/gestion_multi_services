@@ -46,7 +46,7 @@ import { TenantService } from '../../core/services/tenant.service';
 })
 export class DefaultLayoutComponent implements OnInit, OnDestroy {
   public navItems: INavData[] = [];
-  readonly defaultLogoUrl = '/assets/images/logo/logo_matkolla_2026.jpeg';
+  readonly defaultLogoUrl = '/assets/images/logo/logo_matkolletf.png';
   public appLogoUrl = this.defaultLogoUrl;
 
   private readonly destroy$ = new Subject<void>();

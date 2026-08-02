@@ -56,6 +56,11 @@ return [
 
     'asset_url' => env('ASSET_URL', null),
 
+    'upload_public_prefix' => env(
+        'UPLOAD_PUBLIC_PREFIX',
+        env('APP_ENV') === 'production' ? 'public/uploads' : 'uploads'
+    ),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

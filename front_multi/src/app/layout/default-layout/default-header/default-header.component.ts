@@ -3,7 +3,6 @@ import { Component, computed, inject, input, NgZone, OnInit, OnDestroy, ChangeDe
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { environment } from '../../../../environments/environment';
 
 import {
   BadgeComponent,
@@ -29,6 +28,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ApiService } from '../../../core/services/api.service';
 import { ModuleService, Module } from '../../../core/services/module.service';
 import { PermissionService, UserModulePermission } from '../../../core/services/permission.service';
+import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
 
 @Component({
   selector: 'app-default-header',
@@ -57,7 +57,6 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
 
   currentUser = this.#authService.currentUser;
   private _authSub?: Subscription;
-  private readonly backendBaseUrl = environment.apiUrl.replace(/\/api\/?$/, '');
 
   readonly colorModes = [
     { name: 'light', text: 'Light', icon: 'cilSun' },
@@ -113,18 +112,7 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
       return undefined;
     }
 
-    if (/^https?:\/\//i.test(avatar) || avatar.startsWith('data:')) {
-      return avatar;
-    }
-
-    let path = avatar.startsWith('/') ? avatar.substring(1) : avatar;
-    if (path.startsWith('upload/')) {
-      path = 'uploads/' + path.slice('upload/'.length);
-    }
-    if (!path.startsWith('uploads/') && !path.startsWith('storage/')) {
-      path = 'uploads/' + path;
-    }
-    return `${this.backendBaseUrl}/${path}`;
+    return resolveUploadUrl(avatar);
   }
 
   ngOnInit(): void {

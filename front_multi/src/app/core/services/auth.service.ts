@@ -5,6 +5,7 @@ import { Observable, BehaviorSubject, from, tap, catchError, throwError, switchM
 import { User, AuthState, ApiResponse, Tenant } from '../models';
 import { environment } from '../../../environments/environment';
 import { ImageCompressionService } from './image-compression.service';
+import { resolveUploadUrl } from '../utils/upload-url.util';
 
 @Injectable({
   providedIn: 'root'
@@ -137,7 +138,7 @@ export class AuthService {
     }).pipe(
       tap(response => {
         if (response.success && response.data) {
-          const updated = { ...this.currentUser, ...response.data };
+          const updated = this.normalizeModuleAccess({ ...this.currentUser, ...response.data });
           this.authState.next({ ...this.authState.value, user: updated as User });
           localStorage.setItem(this.USER_KEY, JSON.stringify(updated));
         }
@@ -158,7 +159,7 @@ export class AuthService {
       }),
       tap(response => {
         if (response.success && response.data) {
-          const updated = { ...this.currentUser, ...response.data };
+          const updated = this.normalizeModuleAccess({ ...this.currentUser, ...response.data });
           this.authState.next({ ...this.authState.value, user: updated as User });
           localStorage.setItem(this.USER_KEY, JSON.stringify(updated));
         }
@@ -190,7 +191,7 @@ export class AuthService {
   updateCurrentUser(data: Partial<User>): void {
     const current = this.currentUser;
     if (!current) return;
-    const merged = { ...current, ...data };
+    const merged = this.normalizeModuleAccess({ ...current, ...data });
     // Preserve existing roles/module data if the update response didn't include them
     if (!merged.roles?.length && current.roles?.length) {
       merged.roles = current.roles;
@@ -208,7 +209,7 @@ export class AuthService {
   updateCurrentTenant(data: Partial<Tenant>): void {
     const currentTenant = this.authState.value.tenant;
     const currentUser = this.currentUser;
-    const mergedTenant = { ...(currentTenant || currentUser?.tenant || {}), ...data } as Tenant;
+    const mergedTenant = this.normalizeUploadUrls({ ...(currentTenant || currentUser?.tenant || {}), ...data }) as Tenant;
     const updatedUser = currentUser
       ? { ...currentUser, tenant: mergedTenant }
       : currentUser;
@@ -452,11 +453,34 @@ export class AuthService {
       });
     }
 
-    return {
+    return this.normalizeUploadUrls({
       ...user,
       tenant_active_modules: tenantModules,
       module_permissions: modulePermissions,
-    };
+    });
+  }
+
+  private normalizeUploadUrls<T extends Record<string, any>>(entity: T): T {
+    if (!entity) return entity;
+
+    const normalized: any = { ...entity };
+    for (const key of ['avatar_url', 'photo_url', 'logo_url', 'image_url', 'renter_photo_url']) {
+      if (typeof normalized[key] === 'string') {
+        normalized[key] = resolveUploadUrl(normalized[key]);
+      }
+    }
+
+    if (typeof normalized.avatar === 'string') {
+      normalized.avatar_url = resolveUploadUrl(normalized.avatar_url || normalized.avatar);
+    }
+    if (typeof normalized.logo === 'string') {
+      normalized.logo_url = resolveUploadUrl(normalized.logo_url || normalized.logo);
+    }
+    if (normalized.tenant) {
+      normalized.tenant = this.normalizeUploadUrls(normalized.tenant);
+    }
+
+    return normalized as T;
   }
 
   hasPermission(_permission: string): boolean {

@@ -60,12 +60,18 @@ export class CompanyInfoComponent implements OnInit {
   logoFile: File | null = null;
   logoPreview: string | null = null;
   logoError: string | null = null;
+  logoLoadFailed = false;
 
   get currentLogoUrl(): string | null {
     return (this.currentOrganisation as any)?.logo_url || null;
   }
   get displayedLogo(): string | null {
-    return this.logoPreview || this.currentLogoUrl;
+    return this.logoLoadFailed ? null : (this.logoPreview || this.currentLogoUrl);
+  }
+
+  onLogoLoadError(): void {
+    this.logoLoadFailed = true;
+    this.cdr.detectChanges();
   }
 
   onLogoSelected(event: Event): void {
@@ -83,6 +89,7 @@ export class CompanyInfoComponent implements OnInit {
       return;
     }
     this.logoError = null;
+    this.logoLoadFailed = false;
     this.logoFile = file;
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -112,6 +119,7 @@ export class CompanyInfoComponent implements OnInit {
     this.tenantService.getMyTenant().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: ApiResponse<Tenant>) => {
         this.currentOrganisation = response.data;
+        this.logoLoadFailed = false;
         if (this.currentOrganisation) {
           this.companyForm.patchValue({
             name:    this.currentOrganisation.name  || '',
@@ -154,6 +162,7 @@ export class CompanyInfoComponent implements OnInit {
       next: (response: ApiResponse<Tenant>) => {
         this.currentOrganisation = response.data;
         this.authService.updateCurrentTenant(response.data);
+        this.logoLoadFailed = false;
         this.successMessage = 'Informations mises à jour avec succès.';
         this.saving = false;
         // On reset la selection logo : la nouvelle URL persistee s'affiche desormais

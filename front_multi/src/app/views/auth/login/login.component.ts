@@ -33,6 +33,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
   returnUrl = '';
+  showPassword = false;
+  readonly logoUrl = 'assets/images/logo/logo_matkolletf.png';
 
   constructor(
     private fb: FormBuilder,
@@ -73,6 +75,10 @@ export class LoginComponent implements OnInit, OnDestroy {
   
   get remember() {
     return this.loginForm.get('remember');
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
   }
   
   // Convenience getter for easy access to form fields

@@ -178,16 +178,6 @@ export class ClientLedgerComponent implements OnInit {
   ];
 
   showPaymentModal = false;
-  showInterestModal = false;
-  interestForm = {
-    amount: 0,
-    interest_rate: 15,
-    principal_amount: 0,
-    charge_date: new Date().toISOString().split('T')[0],
-    notes: 'Intérêts SALL',
-    currency: 'GNF',
-  };
-  savingInterest = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -506,51 +496,6 @@ export class ClientLedgerComponent implements OnInit {
       generated_at: new Date().toLocaleString('fr-FR'),
     };
     await this.pdfService.printVersementReceiptPdf(data);
-  }
-
-  openInterestModal(): void {
-    this.interestForm = {
-      amount: 0,
-      interest_rate: 15,
-      principal_amount: Math.max(0, Number(this.summary.final_balance_gnf) || 0),
-      charge_date: new Date().toISOString().split('T')[0],
-      notes: 'Intérêts SALL',
-      currency: 'GNF',
-    };
-    this.showInterestModal = true;
-  }
-
-  computeInterestAmount(): void {
-    const principal = Number(this.interestForm.principal_amount) || 0;
-    const rate = Number(this.interestForm.interest_rate) || 0;
-    this.interestForm.amount = Math.round(principal * rate / 100);
-  }
-
-  saveInterest(): void {
-    if (!this.interestForm.amount || this.interestForm.amount <= 0) return;
-    this.savingInterest = true;
-    const payload = {
-      client_id: this.clientId,
-      principal_amount: this.interestForm.principal_amount,
-      interest_rate: this.interestForm.interest_rate,
-      amount: this.interestForm.amount,
-      currency: this.interestForm.currency,
-      charge_date: this.interestForm.charge_date,
-      notes: this.interestForm.notes,
-    };
-    this.apiService.post<any>('client-interest-charges', payload)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (r) => {
-          this.savingInterest = false;
-          if (r.success) {
-            this.showInterestModal = false;
-            this.loadLedger();
-          }
-          this.cdr.detectChanges();
-        },
-        error: () => { this.savingInterest = false; this.cdr.detectChanges(); }
-      });
   }
 
   fmt(v: number | null | undefined, currency = 'GNF'): string {

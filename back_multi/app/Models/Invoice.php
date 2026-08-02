@@ -73,7 +73,7 @@ class Invoice extends Model
         return $this->hasMany(ProductReturn::class);
     }
 
-    public function recalculatePaidAmount(): void
+    public function recalculatePaidAmount(bool $syncStatus = true): void
     {
         $invoiceCurrency = strtoupper((string) ($this->currency ?? 'GNF'));
 
@@ -97,9 +97,14 @@ class Invoice extends Model
                 }
 
                 return 0.0;
-            });
+        });
 
         $this->paid_amount = $paid;
+
+        if (!$syncStatus) {
+            $this->save();
+            return;
+        }
 
         if ($paid <= 0) {
             $this->status = 'IMPAYE';

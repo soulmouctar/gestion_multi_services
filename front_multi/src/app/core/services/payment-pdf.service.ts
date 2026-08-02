@@ -8,6 +8,7 @@ const RED = '#EF4444';
 const AMBER = '#F59E0B';
 const GRAY = '#6B7280';
 const BG = '#F8FAFC';
+const DEFAULT_LOGO = 'assets/images/logo/logo_matkolletf.png';
 
 @Injectable({ providedIn: 'root' })
 export class PaymentPdfService {
@@ -69,13 +70,38 @@ export class PaymentPdfService {
     return null;
   }
 
+  private receiptLogoUrl(receipt: PaymentReceipt): string {
+    return (receipt.organisation as any)?.logoUrl
+      || (receipt.organisation as any)?.logo_url
+      || DEFAULT_LOGO;
+  }
+
+  private async resolveImageData(url?: string): Promise<string | undefined> {
+    if (!url) return undefined;
+    try {
+      const absoluteUrl = new URL(url, window.location.origin).toString();
+      const response = await fetch(absoluteUrl);
+      if (!response.ok) return undefined;
+      const blob = await response.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return undefined;
+    }
+  }
+
   // ─── 1. Reçu de paiement ─────────────────────────────────────────────────
 
   async downloadReceipt(receipt: PaymentReceipt, logoDataUrl?: string): Promise<void> {
     const pm = await this.pm();
     if (!pm) { this.printReceiptHtml(receipt); return; }
 
-    const doc = this.buildReceiptDoc(receipt, logoDataUrl);
+    const logo = logoDataUrl || await this.resolveImageData(this.receiptLogoUrl(receipt));
+    const doc = this.buildReceiptDoc(receipt, logo);
     try {
       pm.createPdf(doc).download(`recu-${receipt.receipt_number}.pdf`);
     } catch {
@@ -87,7 +113,8 @@ export class PaymentPdfService {
     const pm = await this.pm();
     if (!pm) { this.printReceiptHtml(receipt); return; }
 
-    const doc = this.buildReceiptDoc(receipt, logoDataUrl);
+    const logo = logoDataUrl || await this.resolveImageData(this.receiptLogoUrl(receipt));
+    const doc = this.buildReceiptDoc(receipt, logo);
     try {
       pm.createPdf(doc).print();
     } catch {
@@ -963,10 +990,11 @@ export class PaymentPdfService {
 
   private printReceiptHtml(r: PaymentReceipt): void {
     const statusColor = { COMPLETED: '#10B981', PENDING: '#F59E0B', FAILED: '#EF4444', CANCELLED: '#6B7280' }[r.status] ?? '#6B7280';
+    const logoUrl = this.esc(this.receiptLogoUrl(r));
     this.openWin(`Reçu ${r.receipt_number}`, `
       <div style="max-width:500px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;padding:32px 0;">
         <div style="text-align:center;margin-bottom:20px;">
-          <img src="/assets/images/logo/logo_matkolla_2026.jpeg" style="height:56px;max-width:120px;object-fit:contain;" />
+          <img src="${logoUrl}" style="height:56px;max-width:120px;object-fit:contain;" />
           <div style="font-size:1.1rem;font-weight:700;margin-top:8px;">${this.esc(r.organisation.name)}</div>
           <div style="font-size:.78rem;color:#6B7280;">${this.esc(r.organisation.address || '')} ${r.organisation.phone ? '· ' + this.esc(r.organisation.phone) : ''}</div>
           <div style="margin:14px 0;border-top:2px solid #0F3460;"></div>

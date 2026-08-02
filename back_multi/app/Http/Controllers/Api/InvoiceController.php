@@ -170,7 +170,11 @@ class InvoiceController extends BaseController
             ]);
 
             $this->syncItems($invoice, $payload['line_items']);
-            $invoice->recalculatePaidAmount();
+            $invoice->recalculatePaidAmount(!$request->filled('status'));
+
+            if ($request->filled('status')) {
+                $this->applyManualStatus($invoice->fresh(), $request->status);
+            }
 
             DB::commit();
 
@@ -546,6 +550,27 @@ class InvoiceController extends BaseController
             $this->reserveStockForItem($invoice->tenant_id, $item);
             $invoice->items()->create($item);
         }
+    }
+
+    private function applyManualStatus(Invoice $invoice, string $status): void
+    {
+        $total = (float) $invoice->total_amount;
+        $paid = (float) $invoice->paid_amount;
+
+        if ($status === 'PAYE') {
+            $invoice->paid_amount = $total;
+            $invoice->status = 'PAYE';
+        } elseif ($status === 'IMPAYE') {
+            $invoice->paid_amount = 0;
+            $invoice->status = 'IMPAYE';
+        } else {
+            $invoice->paid_amount = $total > 0
+                ? min(max($paid, 0.01), max($total - 0.01, 0.01))
+                : 0;
+            $invoice->status = 'PARTIEL';
+        }
+
+        $invoice->save();
     }
 
     private function restoreInvoiceStock(Invoice $invoice): void

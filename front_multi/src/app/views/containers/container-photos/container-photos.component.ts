@@ -8,7 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
-import { environment } from '../../../../environments/environment';
+import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
 
 @Component({
   selector: 'app-container-photos',
@@ -43,7 +43,6 @@ export class ContainerPhotosComponent implements OnInit {
   previewItem: any = null;
   
   // Base URL for uploaded images (served from public/uploads)
-  readonly storageBaseUrl = environment.urlBase + '/';
 
   constructor(private fb: FormBuilder, private apiService: ApiService, private cdr: ChangeDetectorRef) {
     this.photoForm = this.fb.group({
@@ -261,14 +260,7 @@ export class ContainerPhotosComponent implements OnInit {
 
   getImageUrl(imagePath: string): string {
     if (!imagePath) return 'assets/img/placeholder.png';
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      return imagePath;
-    }
-    const clean = imagePath.replace(/^\/+/, '');
-    const path  = clean.startsWith('upload/')
-      ? `uploads/${clean.slice('upload/'.length)}`
-      : (clean.startsWith('uploads/') ? clean : `uploads/${clean}`);
-    return this.storageBaseUrl + path;
+    return resolveUploadUrl(imagePath, 'assets/img/placeholder.png');
   }
 
   previewImage(item: any): void {

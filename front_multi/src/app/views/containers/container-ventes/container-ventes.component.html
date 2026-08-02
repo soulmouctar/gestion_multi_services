@@ -1182,7 +1182,7 @@
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">
             Montant du versement <span class="text-danger">*</span>
           </label>
-          <input type="number" class="form-control" formControlName="amount" min="1" style="border-radius:8px"
+          <input type="text" inputmode="decimal" class="form-control" formControlName="amount" style="border-radius:8px"
             [class.is-invalid]="submitted && paymentForm.get('amount')?.invalid">
           <div class="invalid-feedback">Montant requis</div>
         </div>
@@ -1261,7 +1261,7 @@
         </div>
         <div class="col-md-4">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">Montant <span class="text-danger">*</span></label>
-          <input type="number" class="form-control" formControlName="amount" min="1" style="border-radius:8px" [class.is-invalid]="submitted && globalPaymentForm.get('amount')?.invalid">
+          <input type="text" inputmode="decimal" class="form-control" formControlName="amount" style="border-radius:8px" [class.is-invalid]="submitted && globalPaymentForm.get('amount')?.invalid">
           <div class="invalid-feedback">Montant requis</div>
         </div>
         <div class="col-md-3">
@@ -1343,7 +1343,7 @@
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">
             Montant <span class="text-danger">*</span>
           </label>
-          <input type="number" class="form-control" formControlName="amount" min="1" style="border-radius:8px"
+          <input type="text" inputmode="decimal" class="form-control" formControlName="amount" style="border-radius:8px"
             [class.is-invalid]="submitted && advanceForm.get('amount')?.invalid">
           <div class="invalid-feedback">Montant requis</div>
         </div>

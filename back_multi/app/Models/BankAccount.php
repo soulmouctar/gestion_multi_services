@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\UploadUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -28,15 +29,7 @@ class BankAccount extends Model
         if (!$this->logo_path) {
             return null;
         }
-        if (str_starts_with($this->logo_path, 'http')) return $this->logo_path;
-        $path = ltrim($this->logo_path, '/');
-        if (str_starts_with($path, 'upload/')) {
-            $path = 'uploads/' . substr($path, strlen('upload/'));
-        }
-        if (!str_starts_with($path, 'uploads/')) {
-            $path = 'uploads/' . $path;
-        }
-        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
+        return UploadUrl::make($this->logo_path);
     }
 
     public function scopeForTenant($query, int $tenantId)

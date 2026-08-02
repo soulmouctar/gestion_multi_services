@@ -172,6 +172,7 @@ export class NavigationService {
             children: [
               { name: 'Tableau de Bord',              url: '/finance/dashboard',         icon: 'nav-icon-bullet' },
               { name: 'Versements clients',           url: '/finance/payments',          icon: 'nav-icon-bullet' },
+              { name: 'Intérêts',                     url: '/finance/interests',         icon: 'nav-icon-bullet' },
               { name: 'Devises',                      url: '/finance/currencies',        icon: 'nav-icon-bullet' },
               { name: 'Taux de Change',               url: '/finance/exchange-rates',    icon: 'nav-icon-bullet' },
               { name: 'Factures',                     url: '/finance/invoices',          icon: 'nav-icon-bullet' },

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Support\UploadUrl;
 
 class Product extends Model
 {
@@ -60,15 +61,7 @@ class Product extends Model
     public function getImageUrlAttribute(): ?string
     {
         if (!$this->image) return null;
-        if (str_starts_with($this->image, 'http')) return $this->image;
-        $path = ltrim($this->image, '/');
-        if (str_starts_with($path, 'upload/')) {
-            $path = 'uploads/' . substr($path, strlen('upload/'));
-        }
-        if (!str_starts_with($path, 'uploads/')) {
-            $path = 'uploads/' . $path;
-        }
-        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
+        return UploadUrl::make($this->image);
     }
 
     /** Prix de vente à l'unité : priorité au selling_price manuel, sinon carton / nb unités */

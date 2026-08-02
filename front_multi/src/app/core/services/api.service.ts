@@ -5,6 +5,7 @@ import { catchError, map } from 'rxjs/operators';
 import { ApiResponse, PaginatedResponse, FilterOptions } from '../models';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
+import { resolveUploadUrl } from '../utils/upload-url.util';
 
 @Injectable({
   providedIn: 'root'
@@ -24,6 +25,7 @@ export class ApiService {
   }): Observable<ApiResponse<T>> {
     const httpOptions = this.buildHttpOptions(endpoint, options);
     return this.http.get<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, httpOptions).pipe(
+      map(response => this.normalizeUploadUrls(response)),
       catchError(error => this.handleError(error))
     );
   }
@@ -34,6 +36,7 @@ export class ApiService {
   }): Observable<PaginatedResponse<T>> {
     const httpOptions = this.buildHttpOptions(endpoint, options);
     return this.http.get<PaginatedResponse<T>>(`${this.API_URL}/${endpoint}`, httpOptions).pipe(
+      map(response => this.normalizeUploadUrls(response)),
       catchError(error => this.handleError(error))
     );
   }
@@ -43,6 +46,7 @@ export class ApiService {
   }): Observable<ApiResponse<T>> {
     const httpOptions = this.buildHttpOptions(endpoint, options);
     return this.http.post<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, this.attachTenantToPayload(endpoint, data), httpOptions).pipe(
+      map(response => this.normalizeUploadUrls(response)),
       catchError(error => this.handleError(error))
     );
   }
@@ -57,10 +61,12 @@ export class ApiService {
         payload.append('_method', 'PUT');
       }
       return this.http.post<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, payload, httpOptions).pipe(
+        map(response => this.normalizeUploadUrls(response)),
         catchError(error => this.handleError(error))
       );
     }
     return this.http.put<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, payload, httpOptions).pipe(
+      map(response => this.normalizeUploadUrls(response)),
       catchError(error => this.handleError(error))
     );
   }
@@ -70,6 +76,7 @@ export class ApiService {
   }): Observable<ApiResponse<T>> {
     const httpOptions = this.buildHttpOptions(endpoint, options);
     return this.http.patch<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, this.attachTenantToPayload(endpoint, data), httpOptions).pipe(
+      map(response => this.normalizeUploadUrls(response)),
       catchError(error => this.handleError(error))
     );
   }
@@ -79,6 +86,7 @@ export class ApiService {
   }): Observable<ApiResponse<T>> {
     const httpOptions = this.buildHttpOptions(endpoint, options);
     return this.http.delete<ApiResponse<T>>(`${this.API_URL}/${endpoint}`, httpOptions).pipe(
+      map(response => this.normalizeUploadUrls(response)),
       catchError(error => this.handleError(error))
     );
   }
@@ -95,6 +103,7 @@ export class ApiService {
     }
     
     return this.http.post<ApiResponse<any>>(`${this.API_URL}/${endpoint}`, formData).pipe(
+      map(response => this.normalizeUploadUrls(response)),
       catchError(error => this.handleError(error))
     );
   }
@@ -366,6 +375,39 @@ export class ApiService {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+  }
+
+  private normalizeUploadUrls<T>(value: T): T {
+    if (Array.isArray(value)) {
+      return value.map(item => this.normalizeUploadUrls(item)) as T;
+    }
+
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    const uploadUrlKeys = new Set([
+      'avatar_url',
+      'photo_url',
+      'logo_url',
+      'image_url',
+      'renter_photo_url',
+      'proof_url',
+      'document_url',
+      'signature_url',
+      'stamp_url',
+    ]);
+
+    const normalized: any = { ...(value as any) };
+    for (const [key, item] of Object.entries(normalized)) {
+      if (typeof item === 'string' && uploadUrlKeys.has(key)) {
+        normalized[key] = resolveUploadUrl(item);
+      } else if (item && typeof item === 'object') {
+        normalized[key] = this.normalizeUploadUrls(item);
+      }
+    }
+
+    return normalized as T;
   }
   
   private handleError(error: any): Observable<never> {

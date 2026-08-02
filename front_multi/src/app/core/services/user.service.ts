@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, from, switchMap } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApiResponse } from '../models/tenant.model';
 import { environment } from '../../../environments/environment';
 import { ImageCompressionService } from './image-compression.service';
+import { resolveUploadUrl } from '../utils/upload-url.util';
 
 export interface Role {
   id: number;
@@ -89,13 +91,15 @@ export class UserService {
   // CRUD Operations
   getUsers(tenantId?: number): Observable<ApiResponse<any>> {
     const params = tenantId ? `?tenant_id=${tenantId}` : '';
-    return this.http.get<ApiResponse<any>>(`${this.API_URL}/users${params}`);
+    return this.http.get<ApiResponse<any>>(`${this.API_URL}/users${params}`).pipe(
+      map(response => this.normalizeUserResponse(response))
+    );
   }
 
   getUser(id: number): Observable<ApiResponse<UserProfile>> {
     return this.http.get<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}`, {
       headers: this.getAuthHeaders()
-    });
+    }).pipe(map(response => this.normalizeUserResponse(response)));
   }
 
   createUser(userData: CreateUserRequest, avatar?: File | null): Observable<ApiResponse<UserProfile>> {
@@ -111,13 +115,13 @@ export class UserService {
           fd.append('avatar', compressed);
           return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users`, fd, {
             headers: this.getAuthHeadersMultipart()
-          });
+          }).pipe(map(response => this.normalizeUserResponse(response)));
         })
       );
     }
     return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users`, userData, {
       headers: this.getAuthHeaders()
-    });
+    }).pipe(map(response => this.normalizeUserResponse(response)));
   }
 
   updateUser(id: number, userData: UpdateUserRequest, avatar?: File | null): Observable<ApiResponse<UserProfile>> {
@@ -134,13 +138,13 @@ export class UserService {
           fd.append('_method', 'PUT');
           return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}`, fd, {
             headers: this.getAuthHeadersMultipart()
-          });
+          }).pipe(map(response => this.normalizeUserResponse(response)));
         })
       );
     }
     return this.http.put<ApiResponse<UserProfile>>(`${this.API_URL}/users/${id}`, userData, {
       headers: this.getAuthHeaders()
-    });
+    }).pipe(map(response => this.normalizeUserResponse(response)));
   }
 
   changePassword(id: number, password: string, passwordConfirmation: string): Observable<ApiResponse<UserProfile>> {
@@ -177,6 +181,29 @@ export class UserService {
       { role }, 
       { headers: this.getAuthHeaders() }
     );
+  }
+
+  private normalizeUserResponse<T>(response: ApiResponse<T>): ApiResponse<T> {
+    return this.normalizeUploadUrls(response) as ApiResponse<T>;
+  }
+
+  private normalizeUploadUrls(value: any): any {
+    if (Array.isArray(value)) {
+      return value.map(item => this.normalizeUploadUrls(item));
+    }
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    const normalized = { ...value };
+    for (const [key, item] of Object.entries(normalized)) {
+      if (typeof item === 'string' && key.endsWith('_url')) {
+        (normalized as any)[key] = resolveUploadUrl(item);
+      } else if (item && typeof item === 'object') {
+        (normalized as any)[key] = this.normalizeUploadUrls(item);
+      }
+    }
+    return normalized;
   }
 
   // Get available roles

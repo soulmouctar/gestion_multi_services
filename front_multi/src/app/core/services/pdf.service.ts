@@ -227,7 +227,7 @@ export class PdfService {
     filename?: string
   ): Promise<void> {
     // Fallback : si pas de logo organisation, on utilise le logo MatKolla
-    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolletf.png';
     const orgLogo = await this.resolveImageData(invoiceData.organisation?.logoUrl);
     const [logo, signature, stamp] = await Promise.all([
       orgLogo ? Promise.resolve(orgLogo) : this.resolveImageData(MATKOLLA_LOGO),
@@ -278,7 +278,7 @@ export class PdfService {
     }
 
     // Logo tenant en fallback MatKolla
-    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolletf.png';
     const orgLogo = await this.resolveImageData((receiptData.organisation as any)?.logoUrl);
     const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
 
@@ -323,7 +323,7 @@ export class PdfService {
       return;
     }
 
-    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolletf.png';
     const orgLogo = await this.resolveImageData(data.organisation?.logoUrl);
     const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
 
@@ -639,7 +639,7 @@ export class PdfService {
       console.warn('pdfmake non disponible');
       return;
     }
-    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolletf.png';
     const orgLogo = await this.resolveImageData(ledgerData.organisation?.logoUrl);
     const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
 
@@ -936,7 +936,7 @@ export class PdfService {
       console.warn('pdfmake non disponible');
       return;
     }
-    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolletf.png';
     const orgLogo = await this.resolveImageData(data.organisation?.logoUrl);
     const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
     const docDef = this.buildSalesSummaryDoc(data, { logo });
@@ -1093,7 +1093,7 @@ export class PdfService {
   async downloadExpenseStatsPdf(data: PrintableExpenseStats, filename?: string): Promise<void> {
     const pdfMake = await this.getPdfMake();
     if (!pdfMake?.createPdf) return;
-    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolletf.png';
     const orgLogo = await this.resolveImageData(data.organisation?.logoUrl);
     const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
     const docDef = this.buildExpenseStatsDoc(data, { logo });
@@ -1296,7 +1296,7 @@ export class PdfService {
   }
 
   private async resolveDefaultLogo(org?: PrintableOrganisation): Promise<string | null> {
-    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolla_2026.jpeg';
+    const MATKOLLA_LOGO = 'assets/images/logo/logo_matkolletf.png';
     const orgLogo = await this.resolveImageData(org?.logoUrl);
     return orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
   }

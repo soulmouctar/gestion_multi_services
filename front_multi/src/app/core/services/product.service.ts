@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, from, timeout, retry, catchError, throwError, switchMap } from 'rxjs';
+import { Observable, from, timeout, retry, catchError, throwError, switchMap, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, PaginatedResponse } from '../models';
 import { ImageCompressionService } from './image-compression.service';
+import { resolveUploadUrl } from '../utils/upload-url.util';
 
 export interface Product {
   id: number;
@@ -105,6 +106,7 @@ export class ProductService {
 
     return this.http.get<ApiResponse<PaginatedResponse<Product>>>(`${this.API_URL}/products`, { params })
       .pipe(
+        map(response => this.normalizeProductResponse(response)),
         timeout(10000),
         retry(2),
         catchError(this.handleError)
@@ -117,6 +119,7 @@ export class ProductService {
   getProduct(id: number): Observable<ApiResponse<Product>> {
     return this.http.get<ApiResponse<Product>>(`${this.API_URL}/products/${id}`)
       .pipe(
+        map(response => this.normalizeProductResponse(response)),
         timeout(10000),
         retry(2),
         catchError(this.handleError)
@@ -129,6 +132,7 @@ export class ProductService {
   createProduct(product: Partial<Product>): Observable<ApiResponse<Product>> {
     return this.http.post<ApiResponse<Product>>(`${this.API_URL}/products`, product)
       .pipe(
+        map(response => this.normalizeProductResponse(response)),
         timeout(10000),
         retry(1),
         catchError(this.handleError)
@@ -141,6 +145,7 @@ export class ProductService {
   updateProduct(id: number, product: Partial<Product>): Observable<ApiResponse<Product>> {
     return this.http.put<ApiResponse<Product>>(`${this.API_URL}/products/${id}`, product)
       .pipe(
+        map(response => this.normalizeProductResponse(response)),
         timeout(10000),
         retry(1),
         catchError(this.handleError)
@@ -165,14 +170,22 @@ export class ProductService {
         const fd = new FormData();
         fd.append('image', compressed);
         return this.http.post<ApiResponse<Product>>(`${this.API_URL}/products/${id}/image`, fd)
-          .pipe(timeout(30000), catchError(this.handleError));
+          .pipe(
+            map(response => this.normalizeProductResponse(response)),
+            timeout(30000),
+            catchError(this.handleError)
+          );
       })
     );
   }
 
   removeImage(id: number): Observable<ApiResponse<Product>> {
     return this.http.delete<ApiResponse<Product>>(`${this.API_URL}/products/${id}/image`)
-      .pipe(timeout(10000), catchError(this.handleError));
+      .pipe(
+        map(response => this.normalizeProductResponse(response)),
+        timeout(10000),
+        catchError(this.handleError)
+      );
   }
 
   /**
@@ -181,6 +194,7 @@ export class ProductService {
   updateStock(id: number, stockUpdate: StockUpdateRequest): Observable<ApiResponse<Product>> {
     return this.http.post<ApiResponse<Product>>(`${this.API_URL}/products/${id}/update-stock`, stockUpdate)
       .pipe(
+        map(response => this.normalizeProductResponse(response)),
         timeout(10000),
         retry(1),
         catchError(this.handleError)
@@ -193,6 +207,7 @@ export class ProductService {
   getLowStockProducts(): Observable<ApiResponse<Product[]>> {
     return this.http.get<ApiResponse<Product[]>>(`${this.API_URL}/products/low-stock`)
       .pipe(
+        map(response => this.normalizeProductResponse(response)),
         timeout(10000),
         retry(2),
         catchError(this.handleError)
@@ -207,6 +222,7 @@ export class ProductService {
     
     return this.http.get<ApiResponse<Product>>(`${this.API_URL}/products/search/barcode`, { params })
       .pipe(
+        map(response => this.normalizeProductResponse(response)),
         timeout(10000),
         retry(2),
         catchError(this.handleError)
@@ -338,6 +354,48 @@ export class ProductService {
       style: 'currency',
       currency: currency
     }).format(price);
+  }
+
+  private normalizeProductResponse<T>(response: ApiResponse<T>): ApiResponse<T> {
+    if (!response || response.data == null) return response;
+    return {
+      ...response,
+      data: this.normalizeProductPayload(response.data) as T,
+    };
+  }
+
+  private normalizeProductPayload(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map(item => this.normalizeProductPayload(item));
+    }
+
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    const item: any = { ...(value as any) };
+
+    if (Array.isArray(item.data)) {
+      item.data = item.data.map((product: Product) => this.normalizeProduct(product));
+      return item;
+    }
+
+    if ('image_url' in item || 'image' in item) {
+      return this.normalizeProduct(item);
+    }
+
+    return item;
+  }
+
+  private normalizeProduct(product: Product): Product {
+    const normalized: Product = { ...product };
+    const imageSource = normalized.image_url || normalized.image;
+
+    if (imageSource) {
+      normalized.image_url = resolveUploadUrl(imageSource);
+    }
+
+    return normalized;
   }
 
   /**

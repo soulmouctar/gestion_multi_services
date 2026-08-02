@@ -377,9 +377,9 @@ import { AlertService } from '../../../core/services/alert.service';
               <td>
                 <div class="user-info">
                   <div class="avatar" [style.background]="avatarBg(user)" style="overflow:hidden;">
-                    <img *ngIf="user.avatar_url" [src]="user.avatar_url" alt="Avatar"
+                    <img *ngIf="avatarVisible(user)" [src]="user.avatar_url" alt="Avatar" (error)="onAvatarError(user)"
                          style="width:100%;height:100%;object-fit:cover;" />
-                    <span *ngIf="!user.avatar_url">{{ initials(user.name) }}</span>
+                    <span *ngIf="!avatarVisible(user)">{{ initials(user.name) }}</span>
                   </div>
                   <div>
                     <div class="user-name">{{ user.name }}</div>
@@ -692,6 +692,7 @@ export class OrganisationUsersComponent implements OnInit {
   filteredUsers: UserProfile[] = [];
   loading = false;
   saving = false;
+  failedAvatarIds = new Set<number>();
   loadingPerms = false;
   searchQuery = '';
 
@@ -776,6 +777,7 @@ export class OrganisationUsersComponent implements OnInit {
       next: (response: any) => {
         const data = response?.data;
         this.users = data?.data ?? (Array.isArray(data) ? data : []);
+        this.failedAvatarIds.clear();
         this.filterUsers();
         this.loading = false;
         this.cdr.detectChanges();
@@ -795,6 +797,15 @@ export class OrganisationUsersComponent implements OnInit {
     this.filteredUsers = q
       ? this.users.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
       : [...this.users];
+    this.cdr.detectChanges();
+  }
+
+  avatarVisible(user: UserProfile): boolean {
+    return !!user.avatar_url && !this.failedAvatarIds.has(user.id);
+  }
+
+  onAvatarError(user: UserProfile): void {
+    this.failedAvatarIds.add(user.id);
     this.cdr.detectChanges();
   }
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\UploadUrl;
 
 class ContainerPhoto extends Model
 {
@@ -23,14 +24,7 @@ class ContainerPhoto extends Model
     {
         if (!$this->image_path) return null;
         if (str_starts_with($this->image_path, 'http')) return $this->image_path;
-        $path = ltrim($this->image_path, '/');
-        if (str_starts_with($path, 'upload/')) {
-            $path = 'uploads/' . substr($path, strlen('upload/'));
-        }
-        if (!str_starts_with($path, 'uploads/')) {
-            $path = 'uploads/' . $path;
-        }
-        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
+        return UploadUrl::make($this->image_path);
     }
 
     public function container()

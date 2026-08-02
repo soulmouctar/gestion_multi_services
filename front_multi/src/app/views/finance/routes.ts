@@ -17,6 +17,11 @@ export const routes: Routes = [
     title: 'Versements clients'
   },
   {
+    path: 'interests',
+    loadComponent: () => import('./interests/finance-interests.component').then(m => m.FinanceInterestsComponent),
+    title: 'Tableau de bord des intérêts'
+  },
+  {
     path: 'currencies',
     loadComponent: () => import('./currencies/currencies.component').then(m => m.FinanceCurrenciesComponent),
     title: 'Gestion des Devises'

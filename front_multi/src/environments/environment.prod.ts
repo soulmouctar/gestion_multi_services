@@ -3,6 +3,7 @@ export const environment = {
   urlBase: 'https://apimatkolla.ddevstock.com/',
   apiUrl: 'https://apimatkolla.ddevstock.com/api',
   appUrl: 'https://matkolla.ddevstock.com/',
+  uploadPublicPrefix: 'public/uploads',
   
   // Multi-tenant configuration
   multiTenant: true,
@@ -75,7 +76,7 @@ export const environment = {
   
   // PDF configuration
   pdf: {
-    logoUrl: '/assets/images/logo/logo_matkolla_2026.jpeg',
+    logoUrl: '/assets/images/logo/logo_matkolletf.png',
     companyName: 'Mat Kolla',
     companyAddress: 'Conakry, Guinée',
     companyPhone: '+224 XXX XXX XXX',

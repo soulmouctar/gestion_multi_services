@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\UploadUrl;
 
 class Tenant extends Model
 {
@@ -27,14 +28,7 @@ class Tenant extends Model
     {
         if (!$this->logo) return null;
         if (str_starts_with($this->logo, 'http')) return $this->logo;
-        $path = ltrim($this->logo, '/');
-        if (str_starts_with($path, 'upload/')) {
-            $path = 'uploads/' . substr($path, strlen('upload/'));
-        }
-        if (!str_starts_with($path, 'uploads/')) {
-            $path = 'uploads/' . $path;
-        }
-        return url($path);
+        return UploadUrl::make($this->logo);
     }
 
     public function users()

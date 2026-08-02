@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Support\UploadUrl;
 
 class User extends Authenticatable
 {
@@ -31,14 +32,7 @@ class User extends Authenticatable
             return $this->avatar;
         }
 
-        $path = ltrim($this->avatar, '/');
-        if (str_starts_with($path, 'upload/')) {
-            $path = 'uploads/' . substr($path, strlen('upload/'));
-        }
-        if (!str_starts_with($path, 'uploads/')) {
-            $path = 'uploads/' . $path;
-        }
-        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
+        return UploadUrl::make($this->avatar);
     }
 
     protected $appends = ['avatar_url'];

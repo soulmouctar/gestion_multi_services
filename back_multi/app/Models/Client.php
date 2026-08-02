@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Support\UploadUrl;
 class Client extends Model
 {
     use HasFactory, SoftDeletes;
@@ -43,14 +44,7 @@ class Client extends Model
     {
         if (!$this->photo) return null;
         if (str_starts_with($this->photo, 'http')) return $this->photo;
-        $path = ltrim($this->photo, '/');
-        if (str_starts_with($path, 'upload/')) {
-            $path = 'uploads/' . substr($path, strlen('upload/'));
-        }
-        if (!str_starts_with($path, 'uploads/')) {
-            $path = 'uploads/' . $path;
-        }
-        return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
+        return UploadUrl::make($this->photo);
     }
 
     public function scopeForTenant($query, int $tenantId)

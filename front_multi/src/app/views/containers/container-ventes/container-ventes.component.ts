@@ -11,7 +11,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import Swal from 'sweetalert2';
-import { environment } from '../../../../environments/environment';
+import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
 import { startWith } from 'rxjs/operators';
 
 @Component({
@@ -166,7 +166,7 @@ export class ContainerVentesComponent implements OnInit {
 
     this.paymentForm = this.fb.group({
       container_sale_id: [null, Validators.required],
-      amount:            [null, [Validators.required, Validators.min(1)]],
+      amount:            [null, Validators.required],
       currency:          ['GNF', Validators.required],
       payment_method:    ['ESPECES', Validators.required],
       payment_date:      [this.today(), Validators.required],
@@ -176,7 +176,7 @@ export class ContainerVentesComponent implements OnInit {
 
     this.globalPaymentForm = this.fb.group({
       client_id:       [null, Validators.required],
-      amount:          [null, [Validators.required, Validators.min(1)]],
+      amount:          [null, Validators.required],
       currency:        ['GNF', Validators.required],
       exchange_rate:   [1, [Validators.min(0.0001)]],
       payment_method:  ['ESPECES', Validators.required],
@@ -187,7 +187,7 @@ export class ContainerVentesComponent implements OnInit {
 
     this.advanceForm = this.fb.group({
       client_id:      [null, Validators.required],
-      amount:         [null, [Validators.required, Validators.min(1)]],
+      amount:         [null, Validators.required],
       currency:       ['GNF', Validators.required],
       payment_method: ['ESPECES', Validators.required],
       payment_date:   [this.today(), Validators.required],
@@ -536,8 +536,10 @@ export class ContainerVentesComponent implements OnInit {
   savePayment(): void {
     this.submitted = true;
     if (this.paymentForm.invalid) return;
+    const payload = this.buildAmountPayload(this.paymentForm);
+    if (!payload) return;
 
-    this.apiService.post<any>('container-sale-payments', this.paymentForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.post<any>('container-sale-payments', payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: 'Versement enregistré', timer: 2000, showConfirmButton: false });
@@ -581,8 +583,10 @@ export class ContainerVentesComponent implements OnInit {
   saveAdvance(): void {
     this.submitted = true;
     if (this.advanceForm.invalid) return;
+    const payload = this.buildAmountPayload(this.advanceForm);
+    if (!payload) return;
 
-    this.apiService.post<any>('client-advances', this.advanceForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.post<any>('client-advances', payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: 'Avance enregistrée', timer: 2000, showConfirmButton: false });
@@ -613,8 +617,10 @@ export class ContainerVentesComponent implements OnInit {
   saveGlobalPayment(): void {
     this.submitted = true;
     if (this.globalPaymentForm.invalid) return;
+    const payload = this.buildAmountPayload(this.globalPaymentForm);
+    if (!payload) return;
 
-    this.apiService.post<any>('container-sales/global-payment', this.globalPaymentForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.post<any>('container-sales/global-payment', payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           Swal.fire({ icon: 'success', title: 'Versement global enregistré', timer: 2200, showConfirmButton: false });
@@ -835,20 +841,62 @@ export class ContainerVentesComponent implements OnInit {
     return new Intl.NumberFormat('fr-GN', { minimumFractionDigits: 0 }).format(amount || 0) + ' ' + currency;
   }
 
+  parseAmount(value: unknown): number {
+    if (typeof value === 'number') return value;
+    let normalized = String(value ?? '')
+      .trim()
+      .replace(/\s/g, '');
+
+    const lastComma = normalized.lastIndexOf(',');
+    const lastDot = normalized.lastIndexOf('.');
+
+    if (lastComma > -1 && lastDot > -1) {
+      const decimalSeparator = lastComma > lastDot ? ',' : '.';
+      const thousandSeparator = decimalSeparator === ',' ? '.' : ',';
+      normalized = normalized
+        .replace(new RegExp('\\' + thousandSeparator, 'g'), '')
+        .replace(decimalSeparator, '.');
+    } else {
+      normalized = normalized.replace(',', '.');
+    }
+
+    normalized = normalized.replace(/[^0-9.-]/g, '');
+    const amount = Number(normalized);
+    return Number.isFinite(amount) ? amount : 0;
+  }
+
+  private buildAmountPayload(form: FormGroup): any | null {
+    const payload = form.getRawValue();
+    const amount = this.parseAmount(payload.amount);
+
+    if (amount < 1) {
+      form.get('amount')?.setErrors({ min: true });
+      Swal.fire({ icon: 'warning', title: 'Montant invalide', text: 'Saisissez un montant valide supérieur à 0.' });
+      this.cdr.detectChanges();
+      return null;
+    }
+
+    return {
+      ...payload,
+      amount,
+      exchange_rate: payload.exchange_rate != null ? this.parseAmount(payload.exchange_rate) || 1 : payload.exchange_rate,
+    };
+  }
+
   getExchangeRateForCurrency(currency: string | null | undefined): number {
     const code = String(currency || 'GNF').toUpperCase();
     return code === 'GNF' ? 1 : (this.currencyRates[code] || 1);
   }
 
   get saleEquivalentGnf(): number {
-    const amount = Number(this.saleForm.get('sale_price')?.value || 0);
+    const amount = this.parseAmount(this.saleForm.get('sale_price')?.value || 0);
     const currency = String(this.saleForm.get('currency')?.value || 'GNF').toUpperCase();
     const rate = Number(this.saleForm.get('exchange_rate')?.value || 1);
     return currency === 'GNF' ? amount : Math.round(amount * rate);
   }
 
   get saleRemainingPreview(): number {
-    return Number(this.saleForm.get('sale_price')?.value || 0);
+    return this.parseAmount(this.saleForm.get('sale_price')?.value || 0);
   }
 
   get showSaleExchangeRate(): boolean {
@@ -856,7 +904,7 @@ export class ContainerVentesComponent implements OnInit {
   }
 
   get arrivalEquivalentGnf(): number {
-    const amount = Number(this.arrivalForm.get('purchase_price')?.value || 0);
+    const amount = this.parseAmount(this.arrivalForm.get('purchase_price')?.value || 0);
     const currency = String(this.arrivalForm.get('currency')?.value || 'GNF').toUpperCase();
     const rate = Number(this.arrivalForm.get('exchange_rate')?.value || 1);
     return currency === 'GNF' ? amount : Math.round(amount * rate);
@@ -871,7 +919,7 @@ export class ContainerVentesComponent implements OnInit {
   }
 
   get globalPaymentEquivalentGnf(): number {
-    const amount = Number(this.globalPaymentForm.get('amount')?.value || 0);
+    const amount = this.parseAmount(this.globalPaymentForm.get('amount')?.value || 0);
     const currency = String(this.globalPaymentForm.get('currency')?.value || 'GNF').toUpperCase();
     const rate = Number(this.globalPaymentForm.get('exchange_rate')?.value || 1);
     return currency === 'GNF' ? amount : Math.round(amount * rate);
@@ -900,13 +948,7 @@ export class ContainerVentesComponent implements OnInit {
     if (!photo) return '';
     if (photo.image_url) return photo.image_url;
     if (!photo.image_path) return '';
-    const raw = String(photo.image_path);
-    if (raw.startsWith('http')) return raw;
-    const clean = raw.replace(/^\/+/, '');
-    const path  = clean.startsWith('upload/')
-      ? `uploads/${clean.slice('upload/'.length)}`
-      : (clean.startsWith('uploads/') ? clean : `uploads/${clean}`);
-    return `${environment.apiUrl.replace(/\/api$/, '')}/${path}`;
+    return resolveUploadUrl(photo.image_path);
   }
 
   canAddSale(arrival: any): boolean {

@@ -74,6 +74,8 @@ export class PaymentsListComponent implements OnInit {
 
   Math = Math;
 
+  readonly defaultLogoUrl = '/assets/images/logo/logo_matkolletf.png';
+
   constructor(
     private paymentService: PaymentService,
     private alertService: AlertService,
@@ -521,7 +523,7 @@ export class PaymentsListComponent implements OnInit {
 
     this.paymentService.getReceipt(payment.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
-        this.currentReceipt = res.data as any;
+        this.currentReceipt = this.withTenantLogo(res.data as PaymentReceipt);
         this.receiptLoading = false;
         this.cdr.markForCheck();
       },
@@ -542,6 +544,12 @@ export class PaymentsListComponent implements OnInit {
   get orgName(): string {
     const user = this.authService.currentUser as any;
     return user?.tenant?.name || user?.organisation_name || 'Organisation';
+  }
+
+  get orgLogoUrl(): string {
+    const tenant = this.authService.currentTenant as any;
+    const user = this.authService.currentUser as any;
+    return tenant?.logo_url || user?.tenant?.logo_url || this.defaultLogoUrl;
   }
 
   async printReceipt(): Promise<void> {
@@ -690,6 +698,20 @@ export class PaymentsListComponent implements OnInit {
     this.loadClientAccounts(clientId);
     if (!clientId) { this.selectedClientBalance = null; return; }
     this.fetchSelectedClientBalance(clientId);
+  }
+
+  private withTenantLogo(receipt: PaymentReceipt): PaymentReceipt {
+    const tenant = this.authService.currentTenant as any;
+    return {
+      ...receipt,
+      organisation: {
+        ...(receipt.organisation || { name: this.orgName }),
+        name: receipt.organisation?.name || tenant?.name || this.orgName,
+        address: receipt.organisation?.address || tenant?.address || '',
+        phone: receipt.organisation?.phone || tenant?.phone || '',
+        logoUrl: receipt.organisation?.logoUrl || receipt.organisation?.logo_url || this.orgLogoUrl,
+      },
+    };
   }
 
   private onCurrencyChanged(currency: string): void {

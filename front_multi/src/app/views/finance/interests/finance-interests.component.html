@@ -1,0 +1,159 @@
+<div class="finance-interests">
+  <section class="page-header">
+    <div>
+      <span class="eyebrow">Finance</span>
+      <h1>Tableau de bord des intérêts</h1>
+      <p>Suivi global des intérêts par client pour le tenant connecté.</p>
+      <span *ngIf="lastUpdated" class="updated">Actualisé à {{ lastUpdated | date:'HH:mm' }}</span>
+    </div>
+    <div class="header-actions">
+      <button cButton color="light" size="sm" type="button" (click)="loadInterests()" [disabled]="loading">
+        <svg cIcon name="cilReload"></svg>
+        Actualiser
+      </button>
+      <button cButton color="primary" size="sm" type="button" (click)="exportCsv()" [disabled]="loading || !filteredRows.length">
+        <svg cIcon name="cilSpreadsheet"></svg>
+        Exporter
+      </button>
+    </div>
+  </section>
+
+  <div *ngIf="error" class="error-box">
+    <svg cIcon name="cilWarning"></svg>
+    <span>{{ error }}</span>
+    <button type="button" (click)="loadInterests()">Réessayer</button>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <c-spinner color="primary"></c-spinner>
+    <span>Chargement des intérêts...</span>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <section class="kpi-grid">
+      <article class="kpi-card">
+        <span>Intérêts facturés</span>
+        <strong>{{ fmt(summary.total_interest_charged) }} <small>GNF</small></strong>
+      </article>
+      <article class="kpi-card kpi-danger">
+        <span>Intérêts dus</span>
+        <strong>{{ fmt(summary.total_interest_remaining) }} <small>GNF</small></strong>
+      </article>
+      <article class="kpi-card">
+        <span>Comptes concernés</span>
+        <strong>{{ filteredRows.length }}</strong>
+      </article>
+      <article class="kpi-card kpi-muted">
+        <span>Dette brute clients</span>
+        <strong>{{ fmt(summary.total_debt) }} <small>GNF</small></strong>
+      </article>
+    </section>
+
+    <section class="workspace">
+      <aside class="side-panel">
+        <div class="panel-title">
+          <svg cIcon name="cilCalculator"></svg>
+          <h2>Calcul rapide</h2>
+        </div>
+        <label>
+          <span>Capital</span>
+          <input type="number" min="0" step="1000" [(ngModel)]="calculator.principal">
+        </label>
+        <label>
+          <span>Taux (%)</span>
+          <input type="number" min="0" max="100" step="0.5" [(ngModel)]="calculator.rate">
+        </label>
+        <div class="calculated">
+          <span>Intérêt calculé</span>
+          <strong>{{ fmt(calculatedInterest) }} GNF</strong>
+        </div>
+      </aside>
+
+      <section class="main-panel">
+        <div class="filters">
+          <label class="search-field">
+            <span>Recherche</span>
+            <div>
+              <svg cIcon name="cilMagnifyingGlass"></svg>
+              <input type="search" [(ngModel)]="filters.search" (input)="onSearchInput()" placeholder="Client, téléphone...">
+            </div>
+          </label>
+          <label>
+            <span>Catégorie</span>
+            <select [(ngModel)]="filters.client_type" (change)="loadInterests()">
+              <option *ngFor="let option of clientTypeOptions" [value]="option.v">{{ option.l }}</option>
+            </select>
+          </label>
+          <label class="toggle-field">
+            <input type="checkbox" [(ngModel)]="filters.only_with_interest" (change)="applyFilters()">
+            <span>Afficher seulement les comptes avec intérêts</span>
+          </label>
+          <button type="button" class="reset-btn" (click)="resetFilters()">
+            <svg cIcon name="cilX"></svg>
+            Réinitialiser
+          </button>
+        </div>
+
+        <div *ngIf="!filteredRows.length" class="empty-state">
+          <svg cIcon name="cilSearch"></svg>
+          <strong>Aucun intérêt à afficher</strong>
+          <span>Modifiez les filtres ou rechargez la liste.</span>
+        </div>
+
+        <div *ngIf="filteredRows.length" class="table-responsive">
+          <table class="interest-table">
+            <thead>
+              <tr>
+                <th class="sortable" (click)="sortBy('name')">
+                  Client <svg cIcon [name]="sortIcon('name')"></svg>
+                </th>
+                <th>Catégorie</th>
+                <th class="numeric sortable" (click)="sortBy('interest_charged')">
+                  Facturés <svg cIcon [name]="sortIcon('interest_charged')"></svg>
+                </th>
+                <th class="numeric sortable" (click)="sortBy('interest_paid')">
+                  Payés <svg cIcon [name]="sortIcon('interest_paid')"></svg>
+                </th>
+                <th class="numeric sortable" (click)="sortBy('interest_remaining')">
+                  Dus <svg cIcon [name]="sortIcon('interest_remaining')"></svg>
+                </th>
+                <th class="numeric sortable" (click)="sortBy('gross_debt_gnf')">
+                  Dette brute <svg cIcon [name]="sortIcon('gross_debt_gnf')"></svg>
+                </th>
+                <th class="center">Compte</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of filteredRows; trackBy: trackById">
+                <td>
+                  <strong>{{ row.name }}</strong>
+                  <span>{{ row.phone1 || row.email || 'Coordonnées non renseignées' }}</span>
+                </td>
+                <td><span class="type-badge">{{ clientTypeLabel(row.client_type) }}</span></td>
+                <td class="numeric">{{ fmt(row.interest_charged) }}</td>
+                <td class="numeric paid">{{ fmt(row.interest_paid) }}</td>
+                <td class="numeric due">{{ fmt(row.interest_remaining) }}</td>
+                <td class="numeric">{{ fmt(row.gross_debt_gnf) }}</td>
+                <td class="center">
+                  <a [routerLink]="['/clients/ledger', row.id]" class="ledger-link" title="Ouvrir le compte client">
+                    <svg cIcon name="cilArrowRight"></svg>
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="2">Total affiché</td>
+                <td class="numeric">{{ fmt(filteredSummary.interest_charged) }}</td>
+                <td class="numeric paid">{{ fmt(filteredSummary.interest_paid) }}</td>
+                <td class="numeric due">{{ fmt(filteredSummary.interest_remaining) }}</td>
+                <td class="numeric">{{ fmt(filteredSummary.gross_debt_gnf) }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </section>
+  </ng-container>
+</div>

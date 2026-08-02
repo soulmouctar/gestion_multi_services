@@ -4,7 +4,7 @@
   <div class="rounded-4 mb-4 px-4 py-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
        style="background:linear-gradient(135deg,#111827 0%,#0f3460 60%,#1d4ed8 100%);">
     <div class="d-flex align-items-center gap-3">
-      <img src="/assets/images/logo/logo_matkolla_2026.jpeg" alt="Logo" style="height:40px;width:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.12);padding:4px;" />
+      <img [src]="orgLogoUrl" alt="Logo" style="height:40px;width:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.12);padding:4px;" />
       <div>
         <h4 class="mb-0 fw-bold text-white">Paiements &amp; Reçus</h4>
         <p class="mb-0 small" style="color:rgba(255,255,255,.65);">Suivi des paiements, reçus et soldes clients</p>
@@ -563,7 +563,7 @@
 
             <!-- En-tête : logo + nom organisation -->
             <div class="text-center" style="margin-bottom:20px;">
-              <img src="/assets/images/logo/logo_matkolla_2026.jpeg" alt="Logo"
+              <img [src]="currentReceipt.organisation.logoUrl || orgLogoUrl" alt="Logo"
                    style="height:56px;max-width:120px;object-fit:contain;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;" />
               <div style="font-size:1.1rem;font-weight:700;color:#111827;letter-spacing:.3px;">
                 {{ currentReceipt.organisation.name || 'Gestion Multi-Modules' }}
