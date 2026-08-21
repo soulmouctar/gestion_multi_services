@@ -71,14 +71,14 @@
               <span *ngIf="item.type"
                 class="badge rounded-pill"
                 style="background:#F0F9FF;color:#0EA5E9;font-size:.75rem;font-weight:600">
-                {{ item.type }}
+                {{ getTypeLabel(item.type) }}
               </span>
               <span *ngIf="!item.type" class="text-muted" style="font-size:.85rem">—</span>
             </td>
             <td class="py-3 text-center">
               <span class="badge rounded-pill"
                 style="background:#EEF2FF;color:#6366F1;font-size:.78rem;font-weight:700;padding:4px 10px">
-                {{ item.total_floors ?? '—' }}
+                {{ (item.total_floors ?? 0) === 0 ? 'Sans étage' : item.total_floors }}
               </span>
             </td>
             <td class="py-3">
@@ -157,16 +157,24 @@
         <div class="invalid-feedback">Le nom est obligatoire.</div>
       </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:.85rem">Type</label>
-        <input type="text" class="form-control" style="border-radius:8px"
+        <label class="form-label fw-semibold" style="font-size:.85rem">Type de bâtiment</label>
+        <select class="form-select" style="border-radius:8px"
           formControlName="type"
-          placeholder="Résidentiel, Commercial, Mixte..." />
+          (change)="onTypeChange()">
+          <option *ngFor="let type of buildingTypes" [ngValue]="type.value">{{ type.label }}</option>
+        </select>
+        <div class="form-text text-muted">
+          Choisissez “Annexe” ou “Maison simple / plain-pied” quand les habitations ne sont pas dans un étage.
+        </div>
       </div>
       <div class="mb-3">
         <label class="form-label fw-semibold" style="font-size:.85rem">Nombre d'étages</label>
         <input type="number" class="form-control" style="border-radius:8px"
           formControlName="total_floors"
           placeholder="Ex : 3" min="0" />
+        <div class="form-text" [class.text-primary]="isNoFloorBuilding()" [class.text-muted]="!isNoFloorBuilding()">
+          {{ isNoFloorBuilding() ? 'Ce type est enregistré sans étage. Les logements seront créés comme annexes / plain-pied.' : 'Indiquez 1 ou plus pour un bâtiment à étages. 0 signifie sans étage.' }}
+        </div>
       </div>
     </form>
   </c-modal-body>

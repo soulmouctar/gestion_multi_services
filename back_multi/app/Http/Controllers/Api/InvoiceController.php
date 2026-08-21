@@ -622,6 +622,7 @@ class InvoiceController extends BaseController
             ->where('client_id', $clientId)
             ->whereNull('invoice_id')
             ->where('status', 'APPROVED')
+            ->whereNull('client_advance_id')
             ->sum('client_credit_amount');
 
         $paymentCredits = (float) Payment::where('tenant_id', $tenantId)

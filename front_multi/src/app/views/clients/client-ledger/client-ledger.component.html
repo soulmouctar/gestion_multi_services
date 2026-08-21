@@ -228,13 +228,14 @@
                 <th class="col-num">Crédit {{ c }}</th>
                 <th class="col-num">Solde {{ c }}</th>
               </ng-container>
+              <th class="col-actions no-print">Actions</th>
             </tr>
           </thead>
           <tbody>
             <ng-container *ngIf="groupByMonth; else flatRows">
               <ng-container *ngFor="let g of monthGroups; trackBy: trackByGroup">
                 <tr class="month-row">
-                  <td [attr.colspan]="4 + ledgerCurrencies.length * 3">
+                  <td [attr.colspan]="5 + ledgerCurrencies.length * 3">
                     <svg cIcon name="cilCalendar" size="sm" class="me-1"></svg>
                     {{ g.label }}
                     <span class="month-totals">
@@ -281,6 +282,16 @@
                       {{ fmtNum(cellFor(r, c).balance) }}
                     </td>
                   </ng-container>
+                  <td class="col-actions no-print">
+                    <div class="row-actions" *ngIf="canManagePayment(r)">
+                      <button type="button" class="action-btn edit" title="Modifier le versement" (click)="openEditPayment(r)">
+                        <svg cIcon name="cilPencil" size="sm"></svg>
+                      </button>
+                      <button type="button" class="action-btn delete" title="Supprimer le versement" (click)="deletePayment(r)">
+                        <svg cIcon name="cilTrash" size="sm"></svg>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               </ng-container>
             </ng-container>
@@ -322,6 +333,16 @@
                     {{ fmtNum(cellFor(r, c).balance) }}
                   </td>
                 </ng-container>
+                <td class="col-actions no-print">
+                  <div class="row-actions" *ngIf="canManagePayment(r)">
+                    <button type="button" class="action-btn edit" title="Modifier le versement" (click)="openEditPayment(r)">
+                      <svg cIcon name="cilPencil" size="sm"></svg>
+                    </button>
+                    <button type="button" class="action-btn delete" title="Supprimer le versement" (click)="deletePayment(r)">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </div>
+                </td>
               </tr>
             </ng-template>
           </tbody>
@@ -337,6 +358,7 @@
                   {{ fmtNum(balanceFor(c)) }}
                 </td>
               </ng-container>
+              <td class="no-print"></td>
             </tr>
           </tfoot>
         </table>
@@ -357,4 +379,93 @@
     (visibleChange)="showPaymentModal = $event"
     (saved)="onPaymentSaved($event)">
   </app-payment-batch-form>
+
+  <!-- MODAL MODIFICATION VERSEMENT -->
+  <div *ngIf="editPaymentModalOpen" class="modal-backdrop-custom no-print" (click)="closeEditPayment()">
+    <div class="modal-dialog-custom edit-payment-modal" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <svg cIcon name="cilPencil" class="me-2"></svg>
+            Modifier le versement
+          </h5>
+          <button type="button" class="btn-close-custom" (click)="closeEditPayment()" [disabled]="paymentSaving">
+            <svg cIcon name="cilX" size="lg"></svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div *ngIf="paymentLoading" class="text-center py-4">
+            <c-spinner color="primary"></c-spinner>
+            <div class="text-muted small mt-2">Chargement du versement...</div>
+          </div>
+
+          <form *ngIf="!paymentLoading" class="edit-payment-form" (ngSubmit)="saveEditedPayment()">
+            <div class="row g-3">
+              <div class="col-12 col-md-4">
+                <label>Date *</label>
+                <input type="date" class="form-control" [(ngModel)]="editPaymentForm.payment_date" name="edit_payment_date" required />
+                <div class="field-error" *ngIf="paymentSubmitted && !editPaymentForm.payment_date">Date requise.</div>
+              </div>
+              <div class="col-12 col-md-4">
+                <label>Montant *</label>
+                <input type="number" class="form-control" min="0.01" step="0.01"
+                       [(ngModel)]="editPaymentForm.amount" name="edit_amount" required />
+                <div class="field-error" *ngIf="paymentSubmitted && !(editPaymentForm.amount || 0)">Montant requis.</div>
+              </div>
+              <div class="col-12 col-md-4">
+                <label>Devise reçue</label>
+                <select class="form-select" [(ngModel)]="editPaymentForm.currency" name="edit_currency">
+                  <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label>Devise imputée</label>
+                <select class="form-select" [(ngModel)]="editPaymentForm.target_currency" name="edit_target_currency">
+                  <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label>Taux</label>
+                <input type="number" class="form-control" min="0.0001" step="0.0001"
+                       [(ngModel)]="editPaymentForm.exchange_rate" name="edit_exchange_rate"
+                       [required]="needsEditExchangeRate()" [disabled]="!needsEditExchangeRate()" />
+                <div class="field-error" *ngIf="paymentSubmitted && needsEditExchangeRate() && !editPaymentForm.exchange_rate">
+                  Taux requis.
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <label>Mode</label>
+                <select class="form-select" [(ngModel)]="editPaymentForm.method" name="edit_method" required>
+                  <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-6">
+                <label>Référence</label>
+                <input type="text" class="form-control" [(ngModel)]="editPaymentForm.reference" name="edit_reference" />
+              </div>
+              <div class="col-12 col-md-6">
+                <label>Statut</label>
+                <select class="form-select" [(ngModel)]="editPaymentForm.status" name="edit_status">
+                  <option *ngFor="let s of paymentStatuses" [value]="s.value">{{ s.label }}</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label>Description</label>
+                <textarea class="form-control" rows="3" [(ngModel)]="editPaymentForm.description" name="edit_description"></textarea>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" cButton color="light" (click)="closeEditPayment()" [disabled]="paymentSaving">Annuler</button>
+          <button type="button" cButton color="primary" (click)="saveEditedPayment()" [disabled]="paymentSaving || paymentLoading">
+            <c-spinner *ngIf="paymentSaving" size="sm" class="me-2"></c-spinner>
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

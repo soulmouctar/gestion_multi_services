@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
-import { debounceTime } from 'rxjs/operators';
+import { debounceTime, finalize } from 'rxjs/operators';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -23,6 +23,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { ProductService, Product, ProductCategory, Unit, ProductFilters } from '../../../core/services/product.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ApiService } from '../../../core/services/api.service';
+import { PdfService, PrintableProductList } from '../../../core/services/pdf.service';
 
 @Component({
   selector: 'app-products-list',
@@ -55,6 +56,7 @@ export class ProductsListComponent implements OnInit {
   units: Unit[] = [];
   
   loading = false;
+  exportingProducts = false;
   error: string | null = null;
   successMessage: string | null = null;
   
@@ -117,6 +119,7 @@ export class ProductsListComponent implements OnInit {
     private productService: ProductService,
     private authService: AuthService,
     private apiService: ApiService,
+    private pdfService: PdfService,
     private fb: FormBuilder,
     private router: Router,
     private cdr: ChangeDetectorRef
@@ -522,13 +525,25 @@ export class ProductsListComponent implements OnInit {
 
   // Export
   exportProducts(format: 'csv' | 'excel' | 'pdf' = 'csv'): void {
-    this.loading = true;
-    
-    const filters: ProductFilters = {
-      ...this.filterForm.value
-    };
+    if (this.exportingProducts) return;
 
-    this.productService.exportProducts(format, filters).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    if (format === 'pdf') {
+      void this.exportProductsPdf();
+      return;
+    }
+
+    this.exportingProducts = true;
+    this.cdr.markForCheck();
+    
+    const filters = this.cleanedProductFilters({ ...this.filterForm.value });
+
+    this.productService.exportProducts(format, filters).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        this.exportingProducts = false;
+        this.cdr.markForCheck();
+      })
+    ).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -538,13 +553,77 @@ export class ProductsListComponent implements OnInit {
         window.URL.revokeObjectURL(url);
         
         this.productService.showSuccessMessage('Export réalisé avec succès');
-        this.loading = false;
       },
       error: (error) => {
         this.productService.showErrorMessage(error.message || 'Erreur lors de l\'export');
-        this.loading = false;
       }
     });
+  }
+
+  private async exportProductsPdf(): Promise<void> {
+    this.exportingProducts = true;
+    this.cdr.markForCheck();
+
+    try {
+      const filters = this.cleanedProductFilters({
+        ...this.filterForm.value,
+        page: 1,
+        per_page: Math.max(this.totalItems || this.products.length || this.itemsPerPage, this.itemsPerPage),
+      });
+      const response = await firstValueFrom(this.productService.getProducts(filters));
+      const responseData: any = response.data;
+      const products = Array.isArray(responseData?.data)
+        ? responseData.data
+        : (Array.isArray(responseData) ? responseData : this.products);
+
+      const printable: PrintableProductList = {
+        products: products.map((product: Product) => ({
+          name: product.name,
+          sku: product.sku || null,
+          category: product.category?.name || this.getCategoryName(product.product_category_id),
+          unit: product.unit?.name || this.getUnitName(product.unit_id),
+          stock_quantity: product.stock_quantity ?? 0,
+          low_stock_threshold: product.low_stock_threshold ?? null,
+          purchase_price: product.purchase_price ?? product.carton_purchase_price ?? null,
+          selling_price: product.selling_price ?? product.carton_selling_price ?? null,
+          status: product.status,
+          image_url: product.image_url || null,
+          image: product.image || null,
+        })),
+        organisation: this.buildPrintableOrganisation(),
+      };
+
+      await this.pdfService.downloadProductsPdf(printable, 'liste-produits.pdf');
+      this.productService.showSuccessMessage('PDF produits généré avec succès');
+    } catch (error: any) {
+      this.productService.showErrorMessage(error?.message || 'Erreur lors de la génération du PDF produits');
+    } finally {
+      this.exportingProducts = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private cleanedProductFilters(filters: ProductFilters): ProductFilters {
+    const cleaned: ProductFilters = { ...filters };
+    Object.keys(cleaned).forEach(key => {
+      const value = (cleaned as any)[key];
+      if (value === '' || value === null || value === undefined || value === false) {
+        delete (cleaned as any)[key];
+      }
+    });
+    return cleaned;
+  }
+
+  private buildPrintableOrganisation(): PrintableProductList['organisation'] {
+    const tenant: any = this.authService.currentTenant || this.authService.currentUser?.tenant || {};
+    return {
+      name: tenant.name || tenant.company_name || 'MATKOLLA',
+      address: tenant.address || '',
+      phone: tenant.phone || '',
+      email: tenant.email || '',
+      logoUrl: tenant.logo_url || tenant.logo || '',
+      footerText: tenant.footer_text || tenant.footerText || '',
+    };
   }
 
   // Stock management

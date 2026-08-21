@@ -7,10 +7,30 @@
       <h2 style="font-size:1.5rem;font-weight:700;margin:0 0 4px;">Vue d'ensemble — Statistiques</h2>
       <p style="margin:0;opacity:0.7;font-size:0.875rem;">Indicateurs clés de performance de tous les modules</p>
     </div>
-    <button (click)="loadAll()"
-            style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:white;padding:8px 18px;font-size:0.875rem;font-weight:600;cursor:pointer;">
-      <svg cIcon name="cilReload" style="width:15px;height:15px;"></svg> Actualiser
-    </button>
+    <div class="d-flex flex-wrap align-items-end gap-2">
+      <div>
+        <label class="d-block mb-1" style="font-size:0.72rem;opacity:0.75;">Du</label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="dateFrom"
+               style="width:145px;border-radius:8px;border-color:rgba(255,255,255,0.28);">
+      </div>
+      <div>
+        <label class="d-block mb-1" style="font-size:0.72rem;opacity:0.75;">Au</label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="dateTo"
+               style="width:145px;border-radius:8px;border-color:rgba(255,255,255,0.28);">
+      </div>
+      <button (click)="applyDateFilter()"
+              style="display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#0f3460;padding:8px 14px;font-size:0.875rem;font-weight:700;cursor:pointer;">
+        Filtrer
+      </button>
+      <button (click)="resetDateFilter()"
+              style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:white;padding:8px 14px;font-size:0.875rem;font-weight:600;cursor:pointer;">
+        Réinitialiser
+      </button>
+      <button (click)="loadAll()"
+              style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:white;padding:8px 14px;font-size:0.875rem;font-weight:600;cursor:pointer;">
+        <svg cIcon name="cilReload" style="width:15px;height:15px;"></svg> Actualiser
+      </button>
+    </div>
   </div>
 
   <!-- Loading -->
@@ -206,6 +226,10 @@
               <div class="info-row">
                 <span class="text-muted" style="font-size:.8rem;">Dépenses perso.</span>
                 <strong>{{ fmt(cashflow.expense_total) }}</strong>
+              </div>
+              <div class="info-row" *ngIf="cashflow.product_return_refunds > 0">
+                <span class="text-muted" style="font-size:.8rem;">Restitutions retours</span>
+                <strong style="color:#EF4444;">{{ fmt(cashflow.product_return_refunds) }}</strong>
               </div>
             </div>
           </div>

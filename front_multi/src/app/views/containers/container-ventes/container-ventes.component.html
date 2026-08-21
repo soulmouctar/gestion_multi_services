@@ -1055,9 +1055,19 @@
             </button>
           </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-3">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">
-            Prix de Vente Total <span class="text-danger">*</span>
+            Prix unitaire
+          </label>
+          <input type="number" class="form-control" formControlName="unit_sale_price" min="0" placeholder="P.U."
+            style="border-radius:8px" [class.is-invalid]="submitted && saleForm.get('unit_sale_price')?.invalid">
+          <div class="small mt-1" style="color:#64748b" *ngIf="saleUnitTotalPreview > 0">
+            Qté x P.U. = {{ formatAmount(saleUnitTotalPreview, saleForm.get('currency')?.value || 'GNF') }}
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:#374151">
+            Prix total <span class="text-danger">*</span>
           </label>
           <input type="number" class="form-control" formControlName="sale_price" min="0" placeholder="Montant total"
             style="border-radius:8px" [class.is-invalid]="submitted && saleForm.get('sale_price')?.invalid">

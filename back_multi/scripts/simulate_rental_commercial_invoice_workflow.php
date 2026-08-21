@@ -126,7 +126,9 @@ try {
     checkOk($floorResponse->getStatusCode() === 201 && $floor, 'Creation etage valide', $failures);
 
     $unitResponse = callApiController('POST', '/api/housing-units', [
+        'building_id' => $building->id,
         'floor_id' => $floor->id,
+        'unit_label' => 'A-101',
         'rent_amount' => 1200000,
         'status' => 'LIBRE',
     ], $unitController, 'store');
@@ -138,7 +140,9 @@ try {
         'floor_number' => 2,
     ]);
     $otherUnit = HousingUnit::create([
+        'building_id' => $otherBuilding->id,
         'floor_id' => $otherFloor->id,
+        'unit_label' => 'B-201',
         'rent_amount' => 900000,
         'status' => 'LIBRE',
     ]);

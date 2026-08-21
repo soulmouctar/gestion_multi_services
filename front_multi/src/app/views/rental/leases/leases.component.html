@@ -84,17 +84,31 @@
           <tbody>
             <tr *ngFor="let lease of leases; trackBy: trackById">
               <td>
-                <div class="fw-semibold">{{ lease.renter_name }}</div>
-                <div class="text-muted small">{{ lease.renter_phone || lease.renter_email || '—' }}</div>
+                <div class="d-flex align-items-center gap-2">
+                  <ng-container *ngIf="leasePhotoUrl(lease); else leaseInitials">
+                    <img [src]="leasePhotoUrl(lease)" alt="{{ lease.renter_name }}"
+                         (error)="hideBrokenImage($event)"
+                         style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #E5E7EB;">
+                    <div style="display:none;width:38px;height:38px;border-radius:50%;background:#EEF2FF;color:#4F46E5;
+                                align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0">
+                      {{ (lease.renter_name || '?').charAt(0).toUpperCase() }}
+                    </div>
+                  </ng-container>
+                  <ng-template #leaseInitials>
+                    <div style="width:38px;height:38px;border-radius:50%;background:#EEF2FF;color:#4F46E5;
+                                display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0">
+                      {{ (lease.renter_name || '?').charAt(0).toUpperCase() }}
+                    </div>
+                  </ng-template>
+                  <div>
+                    <div class="fw-semibold">{{ lease.renter_name }}</div>
+                    <div class="text-muted small">{{ lease.renter_phone || lease.renter_email || '—' }}</div>
+                  </div>
+                </div>
               </td>
               <td>
                 <div class="small">
-                  <span *ngIf="lease.housing_unit?.floor?.building?.name">
-                    {{ lease.housing_unit.floor.building.name }} —
-                    Étage {{ lease.housing_unit.floor.floor_number }} —
-                    #{{ lease.housing_unit.id }}
-                  </span>
-                  <span *ngIf="!lease.housing_unit?.floor?.building?.name">Unité #{{ lease.housing_unit_id }}</span>
+                  {{ getUnitLabel(lease.housing_unit || { id: lease.housing_unit_id }) }}
                 </div>
               </td>
               <td class="text-end fw-semibold">{{ formatAmount(lease.monthly_rent, lease.currency) }}</td>
@@ -235,10 +249,13 @@
           <select formControlName="housing_unit_id" class="form-select"
             [class.is-invalid]="submitted && leaseForm.get('housing_unit_id')?.invalid">
             <option [ngValue]="null">-- Choisir une unité --</option>
-            <option *ngFor="let u of housingUnits; trackBy: trackById" [ngValue]="u.id">
-              {{ getUnitLabel(u) }} — {{ u.type || '' }} ({{ u.status }})
+            <option *ngFor="let u of selectableHousingUnits; trackBy: trackById" [ngValue]="u.id">
+              {{ getUnitLabel(u) }} — {{ u.type || '' }} ({{ u.status === 'OCCUPE' ? 'occupé par ce contrat' : 'libre' }})
             </option>
           </select>
+          <div class="form-text text-muted">
+            Les logements occupés par un bail actif ne sont pas proposés tant que le locataire n'est pas déclaré sorti.
+          </div>
           <div class="invalid-feedback">Unité requise</div>
         </div>
 
@@ -348,7 +365,8 @@
 
     <div *ngIf="!loadingPaidMonths && unpaidMonths.length === 0 && paidPeriods.length > 0"
       class="alert alert-success small mb-3">
-      ✅ Tous les loyers sont à jour. Vous pouvez enregistrer un paiement anticipé.
+      ✅ Tous les loyers sont à jour. Le paiement sera enregistré comme avance sur
+      <strong>{{ formatPeriod(advancePaymentMonth || paymentForm.get('period_month')?.value) }}</strong>.
     </div>
 
     <form [formGroup]="paymentForm">

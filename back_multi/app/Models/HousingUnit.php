@@ -11,7 +11,9 @@ class HousingUnit extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'building_id',
         'floor_id',
+        'unit_label',
         'unit_configuration_id',
         'rent_amount',
         'status',
@@ -24,6 +26,11 @@ class HousingUnit extends Model
     public function floor()
     {
         return $this->belongsTo(Floor::class);
+    }
+
+    public function building()
+    {
+        return $this->belongsTo(Building::class);
     }
 
     public function configuration()

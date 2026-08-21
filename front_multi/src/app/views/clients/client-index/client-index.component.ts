@@ -18,10 +18,13 @@ type SortDir = 'asc' | 'desc';
 interface FilteredSummary {
   total_charged: number;
   total_paid: number;
+  total_client_account_paid: number;
   total_advances_remaining: number;
+  total_return_credit_gnf: number;
   total_interest_remaining: number;
   total_debt: number;
   total_rest_to_pay: number;
+  total_credit_balance: number;
 }
 
 @Component({
@@ -121,10 +124,13 @@ export class ClientIndexComponent implements OnInit {
     this.filteredSummary = rows.reduce((total, row) => ({
       total_charged: total.total_charged + this.asNumber(row.total_charged),
       total_paid: total.total_paid + this.asNumber(row.total_paid),
+      total_client_account_paid: total.total_client_account_paid + this.asNumber(row.client_account_paid),
       total_advances_remaining: total.total_advances_remaining + this.asNumber(row.advances_remaining),
+      total_return_credit_gnf: total.total_return_credit_gnf + this.asNumber(row.return_credit_gnf),
       total_interest_remaining: total.total_interest_remaining + this.asNumber(row.interest_remaining),
       total_debt: total.total_debt + this.asNumber(row.gross_debt_gnf),
       total_rest_to_pay: total.total_rest_to_pay + this.asNumber(row.rest_to_pay_gnf),
+      total_credit_balance: total.total_credit_balance + this.asNumber(row.credit_balance_gnf),
     }), this.emptyFilteredSummary());
   }
 
@@ -201,8 +207,10 @@ export class ClientIndexComponent implements OnInit {
 
   exportCsv(): void {
     const headers = ['Nom', 'Type', 'Téléphone', 'Soldes par devise', 'Solde équiv. GNF',
-                     'Total facturé GNF', 'Total payé GNF', 'Avances dispo GNF', 'Intérêts dus GNF',
-                     'Dette brute GNF', 'Reste à payer GNF', 'Statut'];
+                     'Factures GNF', 'Payé factures GNF', 'Versements compte GNF',
+                     'Conteneurs GNF', 'Payé conteneurs GNF', 'Avances dispo GNF',
+                     'Retours/avoirs GNF', 'Intérêts dus GNF', 'Dette brute GNF',
+                     'Reste à payer GNF', 'Crédit net GNF', 'Statut'];
     const lines = [headers.join(';')];
     for (const r of this.filteredRows) {
       lines.push([
@@ -211,12 +219,17 @@ export class ClientIndexComponent implements OnInit {
         r.phone1 || '',
         `"${this.currencySummaryText(r).replace(/"/g, '""')}"`,
         r.balance_gnf_equivalent || 0,
-        r.total_charged || 0,
-        r.total_paid || 0,
+        r.invoice_invoiced || 0,
+        r.invoice_paid || 0,
+        r.client_account_paid || 0,
+        r.container_charged || 0,
+        r.container_paid || 0,
         r.advances_remaining || 0,
+        r.return_credit_gnf || 0,
         r.interest_remaining || 0,
         r.gross_debt_gnf || 0,
         r.rest_to_pay_gnf || 0,
+        r.credit_balance_gnf || 0,
         this.statusLabel(r.status),
       ].join(';'));
     }
@@ -231,7 +244,14 @@ export class ClientIndexComponent implements OnInit {
   print(): void {
     const tenant = this.authService.currentTenant as any;
     void this.pdfService.printClientFinancialOverviewPdf({
-      summary: this.summary,
+      summary: {
+        ...this.summary,
+        ...this.filteredSummary,
+        total_clients: this.filteredRows.length,
+        debtor_clients: this.filteredRows.filter(r => r.status === 'DEBITEUR').length,
+        settled_clients: this.filteredRows.filter(r => r.status === 'SOLDE').length,
+        credit_clients: this.filteredRows.filter(r => r.status === 'AVANCE').length,
+      },
       rows: this.filteredRows,
       filters: this.filters,
       organisation: {
@@ -260,10 +280,13 @@ export class ClientIndexComponent implements OnInit {
     return {
       total_charged: 0,
       total_paid: 0,
+      total_client_account_paid: 0,
       total_advances_remaining: 0,
+      total_return_credit_gnf: 0,
       total_interest_remaining: 0,
       total_debt: 0,
       total_rest_to_pay: 0,
+      total_credit_balance: 0,
     };
   }
 }

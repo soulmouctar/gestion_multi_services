@@ -36,6 +36,7 @@
             <th class="px-4 py-3">Qté</th>
             <th class="px-4 py-3">Montant</th>
             <th class="px-4 py-3">Stock</th>
+            <th class="px-4 py-3">Réception</th>
             <th class="px-4 py-3">Impact compte</th>
           </tr>
         </thead>
@@ -46,7 +47,7 @@
             <td class="px-4 py-3">{{ item.client?.name || getClientName(item.client_id) }}</td>
             <td class="px-4 py-3">{{ item.invoice?.invoice_number || getInvoiceNumber(item.invoice_id) }}</td>
             <td class="px-4 py-3">{{ item.quantity }}</td>
-            <td class="px-4 py-3 fw-semibold">{{ item.total_amount | number:'1.0-0' }}</td>
+            <td class="px-4 py-3 fw-semibold">{{ item.total_amount | number:'1.0-0' }} {{ item.currency || 'GNF' }}</td>
             <td class="px-4 py-3">
               <span class="px-2 py-1 rounded-2 small fw-semibold"
                     [style.background]="item.reintegrate_to_stock ? '#ECFDF5' : '#F3F4F6'"
@@ -55,9 +56,19 @@
               </span>
             </td>
             <td class="px-4 py-3">
-              <div class="small">{{ item.account_impact }}</div>
+              <span class="px-2 py-1 rounded-2 small fw-semibold"
+                    [style.background]="item.product_received ? '#EFF6FF' : '#FEF2F2'"
+                    [style.color]="item.product_received ? '#2563EB' : '#DC2626'">
+                {{ item.product_received ? 'Produit reçu' : 'Non reçu' }}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="small">{{ getImpactLabel(item.account_impact) }}</div>
               <div *ngIf="item.client_credit_amount" class="small text-warning">
-                Avoir: {{ item.client_credit_amount | number:'1.0-0' }}
+                Avoir: {{ item.client_credit_amount | number:'1.0-0' }} {{ item.currency || 'GNF' }}
+              </div>
+              <div *ngIf="item.refund_amount" class="small text-danger">
+                Remboursé: {{ item.refund_amount | number:'1.0-0' }} {{ item.currency || 'GNF' }}
               </div>
               <div *ngIf="item.applied_to_invoice_amount" class="small text-success">
                 Déduit facture: {{ item.applied_to_invoice_amount | number:'1.0-0' }}
@@ -140,14 +151,44 @@
       </div>
 
       <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small">Devise *</label>
+          <select cSelect formControlName="currency">
+            <option *ngFor="let currency of currencies; trackBy: trackById" [value]="currency">{{ currency }}</option>
+          </select>
+        </div>
+        <div class="col-md-4" *ngIf="showExchangeRate">
+          <label class="form-label fw-semibold small">Taux vers GNF *</label>
+          <input cFormControl type="number" formControlName="exchange_rate" min="0.0001" step="0.0001"
+                 [class.is-invalid]="submitted && returnForm.get('exchange_rate')?.invalid" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small">Montant retour</label>
+          <div class="px-3 py-2 rounded-3 fw-semibold" style="background:#F8FAFC;border:1px solid #E5E7EB;color:#1F2937;">
+            {{ returnTotal | number:'1.0-2' }} {{ returnForm.get('currency')?.value || 'GNF' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Produit reçu ?</label>
+          <select cSelect formControlName="product_received">
+            <option [ngValue]="true">Oui, produit reçu</option>
+            <option [ngValue]="false">Non, produit non reçu</option>
+          </select>
+        </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Impact compte client</label>
           <select cSelect formControlName="account_impact">
-            <option value="CREDIT_NOTE">Avoir client</option>
-            <option value="REFUND">Remboursement</option>
+            <option value="CREDIT_NOTE">Garder l'argent pour prochaine commande</option>
+            <option value="REFUND">Restituer le montant au client</option>
             <option value="NONE">Aucun impact</option>
           </select>
         </div>
+      </div>
+
+      <div class="row g-3 mb-3">
         <div class="col-md-6 d-flex align-items-end">
           <div class="form-check form-switch">
             <input class="form-check-input" type="checkbox" id="reintegrateStock" formControlName="reintegrate_to_stock">

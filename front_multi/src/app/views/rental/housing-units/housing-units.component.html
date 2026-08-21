@@ -37,11 +37,12 @@
           <div *ngIf="loading" class="text-center p-4"><c-spinner></c-spinner><p class="mt-2">Chargement...</p></div>
           <div class="table-responsive" *ngIf="!loading">
             <table class="table table-striped table-hover">
-              <thead class="table-light"><tr><th>Bâtiment</th><th>Étage</th><th>Configuration</th><th>Détails</th><th class="text-end">Loyer (GNF)</th><th>Statut</th><th style="width:120px">Actions</th></tr></thead>
+              <thead class="table-light"><tr><th>Bâtiment</th><th>Appartement</th><th>Niveau</th><th>Configuration</th><th>Détails</th><th class="text-end">Loyer (GNF)</th><th>Statut</th><th style="width:120px">Actions</th></tr></thead>
               <tbody>
                 <tr *ngFor="let item of housingUnits; trackBy: trackById">
-                  <td>{{ getBuildingName(item.floor_id) }}</td>
-                  <td>Étage {{ item.floor?.floor_number }}</td>
+                  <td>{{ getUnitBuildingName(item) }}</td>
+                  <td><strong>{{ getUnitApartmentLabel(item) }}</strong></td>
+                  <td>{{ getUnitFloorLabel(item) }}</td>
                   <td><strong>{{ getConfigName(item.unit_configuration_id) }}</strong></td>
                   <td><small class="text-muted">{{ getConfigDetails(item.unit_configuration_id) }}</small></td>
                   <td class="text-end"><strong class="text-primary">{{ item.rent_amount | number:'1.0-0' }}</strong></td>
@@ -53,7 +54,7 @@
                     </c-button-group>
                   </td>
                 </tr>
-                <tr *ngIf="housingUnits.length === 0"><td colspan="7" class="text-center text-medium-emphasis p-4">Aucune unité trouvée</td></tr>
+                <tr *ngIf="housingUnits.length === 0"><td colspan="8" class="text-center text-medium-emphasis p-4">Aucune unité trouvée</td></tr>
               </tbody>
             </table>
           </div>
@@ -83,35 +84,35 @@
       <div class="row g-3">
         <!-- Building -->
         <div class="col-md-6">
-          <label class="form-label fw-semibold small">Bâtiment</label>
+          <label class="form-label fw-semibold small">Bâtiment *</label>
           <select cSelect formControlName="building_id" (change)="onBuildingChange($event)" style="border-radius:8px">
             <option [ngValue]="null">-- Sélectionner un bâtiment --</option>
             <option *ngFor="let b of buildings; trackBy: trackById" [ngValue]="b.id">{{ b.name }}</option>
           </select>
-          <div class="form-text text-muted">Sélectionnez d'abord le bâtiment pour filtrer les étages</div>
+          <div class="invalid-feedback d-block" *ngIf="submitted && unitForm.get('building_id')?.hasError('required')">
+            Le bâtiment est obligatoire
+          </div>
+          <div class="form-text text-muted">Le bâtiment rattache aussi les annexes et logements sans étage.</div>
         </div>
 
         <!-- Floor -->
         <div class="col-md-6">
-          <label class="form-label fw-semibold small">Étage *</label>
+          <label class="form-label fw-semibold small">Étage / niveau</label>
           <select cSelect formControlName="floor_id"
-            [class.is-invalid]="submitted && unitForm.get('floor_id')?.invalid"
             style="border-radius:8px"
             [disabled]="!unitForm.get('building_id')?.value">
-            <option [ngValue]="null">-- Sélectionner un étage --</option>
+            <option [ngValue]="null">Sans étage / annexe / plain-pied</option>
             <option *ngFor="let f of filteredFloors; trackBy: trackById" [ngValue]="f.id">
               {{ f.building?.name || 'Bâtiment' }} — Étage {{ f.floor_number }}
             </option>
           </select>
-          <div class="invalid-feedback" *ngIf="submitted && unitForm.get('floor_id')?.hasError('required')">
-            L'étage est obligatoire
-          </div>
+          <div class="form-text text-muted">Laissez vide pour une annexe, une chambre indépendante ou un logement plain-pied.</div>
 
           <!-- No floors warning + inline create -->
           <div *ngIf="unitForm.get('building_id')?.value && filteredFloors.length === 0 && !showInlineFloor"
             class="mt-2 p-3 rounded" style="background:#fff3cd;border:1px solid #ffc107">
-            <div class="fw-semibold small text-warning mb-1">⚠️ Aucun étage pour ce bâtiment</div>
-            <p class="small mb-2 text-muted">Créez un étage pour pouvoir ajouter des unités.</p>
+            <div class="fw-semibold small text-warning mb-1">Aucun étage pour ce bâtiment</div>
+            <p class="small mb-2 text-muted">Vous pouvez créer une unité sans étage, ou ajouter un étage si nécessaire.</p>
             <button type="button" cButton color="warning" size="sm" variant="outline"
               (click)="showInlineFloor = true; inlineFloorNumber = 0"
               style="border-radius:8px;font-size:.8rem;font-weight:600">
@@ -142,6 +143,22 @@
           </div>
         </div>
 
+        <!-- Apartment label -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Appartement / porte *</label>
+          <input cFormControl type="text" formControlName="unit_label"
+            [class.is-invalid]="submitted && unitForm.get('unit_label')?.invalid"
+            placeholder="Ex : A1, A2, A3, Annexe 1, Studio 2"
+            style="border-radius:8px;text-transform:uppercase">
+          <div class="invalid-feedback" *ngIf="submitted && unitForm.get('unit_label')?.hasError('required')">
+            Précisez l'appartement ou la porte.
+          </div>
+          <div class="invalid-feedback" *ngIf="submitted && unitForm.get('unit_label')?.hasError('maxlength')">
+            Le libellé ne doit pas dépasser 50 caractères.
+          </div>
+          <div class="form-text text-muted">Obligatoire pour distinguer plusieurs logements dans le même bâtiment : A1, A2, A3...</div>
+        </div>
+
         <!-- Configuration -->
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Configuration (type logement)</label>
@@ -150,7 +167,7 @@
             <option *ngFor="let c of configurations; trackBy: trackById" [ngValue]="c.id">
               {{ c.name }}
               <ng-container *ngIf="c.bedrooms || c.living_rooms || c.bathrooms">
-                ({{ c.bedrooms || 0 }} ch, {{ c.living_rooms || 0 }} salon, {{ c.bathrooms || 0 }} sdb)
+                ({{ c.bedrooms || 0 }} chambre(s), {{ c.living_rooms || 0 }} salon(s), {{ c.bathrooms || 0 }} douche(s) / salle(s) de bain)
               </ng-container>
             </option>
           </select>

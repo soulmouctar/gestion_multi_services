@@ -6,6 +6,7 @@ import { Router, RouterModule } from '@angular/router';
 import { CardModule, BadgeModule, SpinnerModule, ButtonModule, FormModule } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
 
 @Component({
   selector: 'app-rental-tenants',
@@ -98,9 +99,13 @@ import { ApiService } from '../../../core/services/api.service';
           <tr *ngFor="let t of tenants">
             <td class="ps-4 py-3">
               <div class="d-flex align-items-center gap-2">
-                <ng-container *ngIf="t.photo_url; else tenantInitials">
-                  <img [src]="t.photo_url" alt="{{ t.renter_name }}"
+                <ng-container *ngIf="photoUrl(t); else tenantInitials">
+                  <img [src]="photoUrl(t)" alt="{{ t.renter_name }}" (error)="hideBrokenImage($event)"
                        style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #E5E7EB;">
+                  <div style="display:none;width:36px;height:36px;border-radius:50%;background:#EEF2FF;color:#6366F1;
+                    align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0">
+                    {{ (t.renter_name || '?').charAt(0).toUpperCase() }}
+                  </div>
                 </ng-container>
                 <ng-template #tenantInitials>
                   <div style="width:36px;height:36px;border-radius:50%;background:#EEF2FF;color:#6366F1;
@@ -215,6 +220,19 @@ export class RentalTenantsComponent implements OnInit {
 
   goToLeaseCreation(): void {
     this.router.navigate(['/rental/leases'], { queryParams: { action: 'new-tenant' } });
+  }
+
+  photoUrl(tenant: any): string {
+    return resolveUploadUrl(tenant?.photo_url || tenant?.renter_photo_url || tenant?.renter_photo || '');
+  }
+
+  hideBrokenImage(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    image.style.display = 'none';
+    const fallback = image.nextElementSibling as HTMLElement | null;
+    if (fallback) {
+      fallback.style.display = 'flex';
+    }
   }
 
   fmt(v: number, currency = 'GNF'): string {

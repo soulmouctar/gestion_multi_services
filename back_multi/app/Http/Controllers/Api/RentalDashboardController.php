@@ -23,8 +23,7 @@ class RentalDashboardController extends BaseController
 
             // ── Occupation ──────────────────────────────────────────────
             $unitStats = DB::table('housing_units')
-                ->join('floors', 'housing_units.floor_id', '=', 'floors.id')
-                ->join('buildings', 'floors.building_id', '=', 'buildings.id')
+                ->join('buildings', 'housing_units.building_id', '=', 'buildings.id')
                 ->join('locations', 'buildings.location_id', '=', 'locations.id')
                 ->where('locations.tenant_id', $tid)
                 ->selectRaw('
@@ -116,8 +115,7 @@ class RentalDashboardController extends BaseController
             // ── Occupation par bâtiment ──────────────────────────────────
             $byBuilding = DB::table('buildings')
                 ->join('locations', 'buildings.location_id', '=', 'locations.id')
-                ->join('floors', 'floors.building_id', '=', 'buildings.id')
-                ->join('housing_units', 'housing_units.floor_id', '=', 'floors.id')
+                ->leftJoin('housing_units', 'housing_units.building_id', '=', 'buildings.id')
                 ->where('locations.tenant_id', $tid)
                 ->groupBy('buildings.id', 'buildings.name', 'locations.name')
                 ->selectRaw('
@@ -179,7 +177,7 @@ class RentalDashboardController extends BaseController
         $search = $request->get('search');
         $status = $request->get('status');
 
-        $query = Lease::with(['payments', 'housingUnit.floor.building.location'])
+        $query = Lease::with(['payments', 'housingUnit.building.location', 'housingUnit.floor.building.location'])
             ->where('tenant_id', $tid);
 
         if ($search) {

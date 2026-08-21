@@ -423,7 +423,7 @@ class ClientController extends BaseController
                 'type'             => 'advance',
                 'module'           => 'containers',
                 'date'             => $a->payment_date,
-                'label'            => "Avance client",
+                'label'            => $a->payment_method === 'AVOIR_RETOUR' ? "Avoir retour gardé" : "Avance client",
                 'amount'           => (float) $a->amount,
                 'used_amount'      => (float) $a->used_amount,
                 'remaining_amount' => (float) $a->remaining_amount,
@@ -435,12 +435,41 @@ class ClientController extends BaseController
                 'status'           => $a->status,
             ]);
 
+        // ── 6. Traces de retours produits ───────────────────────────────────
+        $productReturns = ProductReturn::where('client_id', $id)->where('tenant_id', $tid)
+            ->where('status', 'APPROVED')
+            ->with(['product:id,name', 'clientAdvance:id,remaining_amount'])
+            ->orderBy('return_date', 'desc')->get()
+            ->map(function ($r) {
+                $isRefunded = (float) ($r->refund_amount ?? 0) > 0;
+                $isKept = (float) ($r->client_credit_amount ?? 0) > 0;
+
+                return [
+                    'id'               => $r->id,
+                    'type'             => 'return',
+                    'module'           => 'products',
+                    'date'             => $r->return_date,
+                    'label'            => $isRefunded ? 'Retour produit remboursé' : ($isKept ? 'Retour produit gardé en avoir' : 'Retour produit'),
+                    'amount'           => (float) $r->total_amount,
+                    'credit_amount'    => (float) $r->client_credit_amount,
+                    'refund_amount'    => (float) $r->refund_amount,
+                    'remaining_amount' => $r->clientAdvance ? (float) $r->clientAdvance->remaining_amount : 0,
+                    'quantity'         => (float) $r->quantity,
+                    'notes'            => $r->notes,
+                    'currency'         => $r->currency ?? 'GNF',
+                    'direction'        => $isRefunded ? 'debit' : ($isKept ? 'credit' : 'neutral'),
+                    'status'           => $r->account_impact,
+                    'product_name'     => $r->product?->name,
+                ];
+            });
+
         // ── Fusion & tri ──────────────────────────────────────────────────────
         $history = $invoices
             ->concat($payments)
             ->concat($containerSales)
             ->concat($containerPayments)
             ->concat($advances)
+            ->concat($productReturns)
             ->sortByDesc('date')
             ->values();
 
@@ -454,7 +483,9 @@ class ClientController extends BaseController
         $returnCredits = (float) $client->productReturns()
             ->whereNull('invoice_id')
             ->where('status', 'APPROVED')
+            ->whereNull('client_advance_id')
             ->sum('client_credit_amount');
+        $advanceRemaining = (float) $advances->sum('remaining_amount');
 
         // ── Résumé global ─────────────────────────────────────────────────────
         $totalCharged  = $invoices->sum('amount')
@@ -465,7 +496,7 @@ class ClientController extends BaseController
         $invoiceDebt = (float) $invoices->sum('remaining_balance');
         $containerDebt = (float) $containerSales->sum('remaining_balance');
         $grossDebt = $invoiceDebt + $containerDebt;
-        $availableCredit = $accountCredits + $returnCredits;
+        $availableCredit = $accountCredits + $returnCredits + $advanceRemaining;
         $totalRemaining = max(0, $grossDebt - $availableCredit);
         $creditAfterOffset = max(0, $availableCredit - $grossDebt);
 
@@ -777,19 +808,24 @@ class ClientController extends BaseController
                 ->with('product:id,name');
             $applyDateRange($retQuery, 'return_date');
 
-            $returns = $retQuery->get()->map(fn ($r) => [
-                'date'        => $r->return_date->format('Y-m-d'),
-                'sort_key'    => $r->return_date->format('Y-m-d') . ' 23:59:56_r_' . $r->id,
-                'type'        => 'return',
-                'type_label'  => 'Retour',
-                'designation' => 'Retour : ' . ($r->product->name ?? "Produit #{$r->product_id}"),
-                'quantity'    => (float) $r->quantity,
-                'currency'    => 'GNF',
-                'debit'       => 0.0,
-                'credit'      => (float) $r->total_amount,
-                'reference'   => null,
-                'meta_id'     => $r->id,
-            ]);
+            $returns = $retQuery->get()->map(function ($r) {
+                $credit = $r->client_advance_id ? 0.0 : (float) $r->client_credit_amount;
+
+                return [
+                    'date'        => $r->return_date->format('Y-m-d'),
+                    'sort_key'    => $r->return_date->format('Y-m-d') . ' 23:59:56_r_' . $r->id,
+                    'type'        => 'return',
+                    'type_label'  => 'Retour',
+                    'designation' => 'Retour : ' . ($r->product->name ?? "Produit #{$r->product_id}"),
+                    'quantity'    => (float) $r->quantity,
+                    'currency'    => $this->normalizeCurrency($r->currency ?? 'GNF'),
+                    'debit'       => 0.0,
+                    'credit'      => $credit,
+                    'amount_gnf'  => $credit > 0 ? $this->amountToGnf($credit, $r->currency ?? 'GNF', $r->total_amount_gnf, $r->exchange_rate) : 0.0,
+                    'reference'   => null,
+                    'meta_id'     => $r->id,
+                ];
+            });
         }
 
         // ── Fusion ASC + calcul de DEUX soldes courants parallèles (GNF + USD) ──
@@ -952,6 +988,15 @@ class ClientController extends BaseController
         $invoicePayments = Payment::query()
             ->where('tenant_id', $tenantId)
             ->where('status', 'COMPLETED')
+            ->whereNotNull('invoice_id')
+            ->select('client_id', DB::raw("COALESCE(SUM({$paymentAmountColumn}), 0) as total"))
+            ->groupBy('client_id')
+            ->pluck('total', 'client_id');
+
+        $clientAccountPayments = Payment::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'COMPLETED')
+            ->whereNull('invoice_id')
             ->select('client_id', DB::raw("COALESCE(SUM({$paymentAmountColumn}), 0) as total"))
             ->groupBy('client_id')
             ->pluck('total', 'client_id');
@@ -1006,6 +1051,7 @@ class ClientController extends BaseController
             ->where('tenant_id', $tenantId)
             ->where('status', 'APPROVED')
             ->whereNull('invoice_id')
+            ->whereNull('client_advance_id')
             ->select('client_id', DB::raw('COALESCE(SUM(client_credit_amount), 0) as total'))
             ->groupBy('client_id')
             ->pluck('total', 'client_id');
@@ -1049,12 +1095,14 @@ class ClientController extends BaseController
             ->where('tenant_id', $tenantId)
             ->where('status', 'APPROVED')
             ->whereNull('invoice_id')
-            ->get(['client_id', 'client_credit_amount'])
+            ->whereNull('client_advance_id')
+            ->get(['client_id', 'client_credit_amount', 'currency', 'total_amount_gnf', 'exchange_rate'])
             ->groupBy('client_id');
 
         $rows = $clients->map(function (Client $client) use (
             $invoiceTotals,
             $invoicePayments,
+            $clientAccountPayments,
             $containerSales,
             $containerPayments,
             $advances,
@@ -1070,6 +1118,7 @@ class ClientController extends BaseController
         ) {
             $invoiceInvoiced = (float) ($invoiceTotals[$client->id] ?? 0);
             $invoicePaid = (float) ($invoicePayments[$client->id] ?? 0);
+            $clientAccountPaid = (float) ($clientAccountPayments[$client->id] ?? 0);
             $invoiceRemaining = max(0, $invoiceInvoiced - $invoicePaid);
 
             $containerData = $containerSales->get($client->id);
@@ -1092,7 +1141,7 @@ class ClientController extends BaseController
             $returnCreditAmount = (float) ($returnCredits[$client->id] ?? 0);
 
             $grossDebt    = $invoiceRemaining + $containerRemaining + $interestRemaining;
-            $totalCredits = $advanceRemaining + $returnCreditAmount;
+            $totalCredits = $advanceRemaining + $returnCreditAmount + $clientAccountPaid;
             $restToPay    = max(0, $grossDebt - $totalCredits);
             $creditBalance = max(0, $totalCredits - $grossDebt);
             $status = $restToPay > 0.009 ? 'DEBITEUR' : ($creditBalance > 0.009 ? 'AVANCE' : 'SOLDE');
@@ -1177,7 +1226,8 @@ class ClientController extends BaseController
 
             foreach (($returnCurrencyRows->get($client->id) ?? collect()) as $return) {
                 $amount = (float) $return->client_credit_amount;
-                $this->addCurrencyMovement($byCurrency, 'GNF', 0.0, $amount, 0.0, $amount);
+                $currency = $this->normalizeCurrency($return->currency ?? 'GNF');
+                $this->addCurrencyMovement($byCurrency, $currency, 0.0, $amount, 0.0, $this->amountToGnf($amount, $currency, $return->total_amount_gnf, $return->exchange_rate));
             }
 
             $byCurrency = $this->finalizeCurrencyBucket($byCurrency);
@@ -1194,12 +1244,13 @@ class ClientController extends BaseController
                 'sale_count' => $saleCount,
                 'invoice_invoiced' => round($invoiceInvoiced, 2),
                 'invoice_paid' => round($invoicePaid, 2),
+                'client_account_paid' => round($clientAccountPaid, 2),
                 'invoice_remaining' => round($invoiceRemaining, 2),
                 'container_charged' => round($containerCharged, 2),
                 'container_paid' => round($containerPaid, 2),
                 'container_remaining' => round($containerRemaining, 2),
                 'total_charged' => round($invoiceInvoiced + $containerCharged, 2),
-                'total_paid' => round($invoicePaid + $containerPaid, 2),
+                'total_paid' => round($invoicePaid + $clientAccountPaid + $containerPaid, 2),
                 'advances_total' => round($advanceTotal, 2),
                 'advances_remaining' => round($advanceRemaining, 2),
                 'interest_charged'  => round($interestCharged, 2),

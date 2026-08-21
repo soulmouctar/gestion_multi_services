@@ -104,7 +104,7 @@ class LocationController extends BaseController
         $totalLocations  = Location::where('tenant_id', $tenantId)->count();
         $totalBuildings  = \App\Models\Building::whereHas('location', fn($q) => $q->where('tenant_id', $tenantId))->count();
         $totalFloors     = \App\Models\Floor::whereHas('building.location', fn($q) => $q->where('tenant_id', $tenantId))->count();
-        $totalHousingUnits = \App\Models\HousingUnit::whereHas('floor.building.location', fn($q) => $q->where('tenant_id', $tenantId))->count();
+        $totalHousingUnits = \App\Models\HousingUnit::whereHas('building.location', fn($q) => $q->where('tenant_id', $tenantId))->count();
 
         return $this->sendResponse([
             'total_locations'    => $totalLocations,

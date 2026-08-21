@@ -54,6 +54,7 @@ export class FinanceDashboardComponent implements OnInit {
     supplier_out_total: 0,
     bank_withdrawals: 0,
     expense_total: 0,
+    product_return_refunds: 0,
     outgoing_total: 0,
     net_cashflow: 0,
   };

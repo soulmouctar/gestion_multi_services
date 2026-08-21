@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { forkJoin, catchError, of } from 'rxjs';
 import { CardModule, ButtonModule, BadgeModule, ProgressModule, SpinnerModule } from '@coreui/angular';
@@ -10,7 +11,7 @@ import { ApiService } from '../../../core/services/api.service';
 @Component({
   selector: 'app-statistics-overview',
   standalone: true,
-  imports: [CommonModule, RouterModule, IconDirective, CardModule, ButtonModule, BadgeModule, ProgressModule, SpinnerModule],
+  imports: [CommonModule, FormsModule, RouterModule, IconDirective, CardModule, ButtonModule, BadgeModule, ProgressModule, SpinnerModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './statistics-overview.component.html'
 })
@@ -18,6 +19,8 @@ export class StatisticsOverviewComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   loading = true;
+  dateFrom = this.monthStart();
+  dateTo = this.today();
 
   // Finance & paiements
   payments:  any = null;
@@ -59,14 +62,15 @@ export class StatisticsOverviewComponent implements OnInit {
 
   loadAll(): void {
     this.loading = true;
+    const periodQuery = this.periodQuery();
     forkJoin({
-      finance:    this.apiService.get<any>('finance/dashboard').pipe(catchError(() => of({ success: false }))),
-      products:   this.apiService.get<any>('products/statistics').pipe(catchError(() => of({ success: false }))),
-      clients:    this.apiService.get<any>('clients/statistics').pipe(catchError(() => of({ success: false }))),
-      containers: this.apiService.get<any>('containers/statistics/general').pipe(catchError(() => of({ success: false }))),
-      rental:     this.apiService.get<any>('rental/dashboard').pipe(catchError(() => of({ success: false }))),
-      taxi:       this.apiService.get<any>('taxi/dashboard').pipe(catchError(() => of({ success: false }))),
-      expenses:   this.apiService.get<any>('personal-expenses/statistics').pipe(catchError(() => of({ success: false }))),
+      finance:    this.apiService.get<any>(`finance/dashboard${periodQuery}`).pipe(catchError(() => of({ success: false }))),
+      products:   this.apiService.get<any>(`products/statistics${periodQuery}`).pipe(catchError(() => of({ success: false }))),
+      clients:    this.apiService.get<any>(`clients/statistics${periodQuery}`).pipe(catchError(() => of({ success: false }))),
+      containers: this.apiService.get<any>(`containers/statistics/general${periodQuery}`).pipe(catchError(() => of({ success: false }))),
+      rental:     this.apiService.get<any>(`rental/dashboard${periodQuery}`).pipe(catchError(() => of({ success: false }))),
+      taxi:       this.apiService.get<any>(`taxi/dashboard${periodQuery}`).pipe(catchError(() => of({ success: false }))),
+      expenses:   this.apiService.get<any>(`personal-expenses/statistics${periodQuery}`).pipe(catchError(() => of({ success: false }))),
       drivers:    this.apiService.get<any>('drivers/statistics').pipe(catchError(() => of({ success: false }))),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r: any) => {
@@ -159,6 +163,38 @@ export class StatisticsOverviewComponent implements OnInit {
     if (rate >= 80) return 'bg-success';
     if (rate >= 50) return 'bg-warning';
     return 'bg-danger';
+  }
+
+  applyDateFilter(): void {
+    if (this.dateFrom && this.dateTo && this.dateFrom > this.dateTo) {
+      const previousFrom = this.dateFrom;
+      this.dateFrom = this.dateTo;
+      this.dateTo = previousFrom;
+    }
+    this.loadAll();
+  }
+
+  resetDateFilter(): void {
+    this.dateFrom = this.monthStart();
+    this.dateTo = this.today();
+    this.loadAll();
+  }
+
+  private periodQuery(): string {
+    const params = new URLSearchParams();
+    if (this.dateFrom) params.set('date_from', this.dateFrom);
+    if (this.dateTo) params.set('date_to', this.dateTo);
+    const query = params.toString();
+    return query ? `?${query}` : '';
+  }
+
+  private today(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  private monthStart(): string {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
   }
 
   trackById(_index: number, item: any): any { return item?.id ?? _index; }

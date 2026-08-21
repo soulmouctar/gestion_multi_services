@@ -50,8 +50,9 @@ export class HousingUnitsComponent implements OnInit {
 
   constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.unitForm = this.fb.group({
-      building_id: [null],
-      floor_id: [null, Validators.required],
+      building_id: [null, Validators.required],
+      floor_id: [null],
+      unit_label: ['', [Validators.required, Validators.maxLength(50)]],
       unit_configuration_id: [null],
       rent_amount: [null, [Validators.required, Validators.min(0)]],
       status: ['LIBRE']
@@ -155,6 +156,7 @@ export class HousingUnitsComponent implements OnInit {
   loadData(): void {
     this.loading = true; this.error = null;
     let url = `housing-units?page=${this.currentPage}`;
+    if (this.selectedBuildingId) url += `&building_id=${this.selectedBuildingId}`;
     if (this.selectedFloorId) url += `&floor_id=${this.selectedFloorId}`;
     
     this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -191,7 +193,7 @@ export class HousingUnitsComponent implements OnInit {
     this.filteredFloors = this.floors;
     this.showInlineFloor = false;
     this.inlineFloorNumber = null;
-    this.unitForm.reset({ building_id: null, floor_id: null, unit_configuration_id: null, rent_amount: null, status: 'LIBRE' });
+    this.unitForm.reset({ building_id: null, floor_id: null, unit_label: '', unit_configuration_id: null, rent_amount: null, status: 'LIBRE' });
     this.showFormModal = true;
   }
   
@@ -202,11 +204,12 @@ export class HousingUnitsComponent implements OnInit {
     this.selectedItem = item;
     // Set building from floor
     const floor = this.floors.find(f => f.id === item.floor_id);
-    const buildingId = floor ? floor.building_id : null;
+    const buildingId = item.building_id || floor?.building_id || item.building?.id || null;
     this.filteredFloors = buildingId ? this.floors.filter(f => f.building_id === buildingId) : this.floors;
     this.unitForm.patchValue({
       building_id: buildingId,
       floor_id: item.floor_id,
+      unit_label: item.unit_label || '',
       unit_configuration_id: item.unit_configuration_id,
       rent_amount: item.rent_amount,
       status: item.status
@@ -217,7 +220,10 @@ export class HousingUnitsComponent implements OnInit {
   save(): void {
     this.submitted = true; if (this.unitForm.invalid) return;
     if (this.editMode ? !this.canEditUnits : !this.canCreateUnits) return;
-    const { building_id, ...data } = this.unitForm.value;
+    const data = {
+      ...this.unitForm.value,
+      floor_id: this.unitForm.value.floor_id || null,
+    };
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`housing-units/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('housing-units', data);
@@ -237,6 +243,7 @@ export class HousingUnitsComponent implements OnInit {
   }
 
   getFloorLabel(id: number): string { 
+    if (!id) return 'Sans étage / annexe';
     const f = this.floors.find(x => x.id === id); 
     if (!f) return `ID: ${id}`;
     const buildingName = f.building?.name || '';
@@ -249,9 +256,9 @@ export class HousingUnitsComponent implements OnInit {
     const c = this.configurations.find(x => x.id === id);
     if (!c) return '';
     const parts = [];
-    if (c.bedrooms) parts.push(`${c.bedrooms} ch.`);
-    if (c.living_rooms) parts.push(`${c.living_rooms} salon`);
-    if (c.bathrooms) parts.push(`${c.bathrooms} sdb`);
+    if (c.bedrooms) parts.push(`${c.bedrooms} chambre(s)`);
+    if (c.living_rooms) parts.push(`${c.living_rooms} salon(s)`);
+    if (c.bathrooms) parts.push(`${c.bathrooms} douche(s) / salle(s) de bain`);
     if (c.has_terrace) parts.push('terrasse');
     return parts.join(', ');
   }
@@ -259,6 +266,19 @@ export class HousingUnitsComponent implements OnInit {
   getBuildingName(floorId: number): string {
     const f = this.floors.find(x => x.id === floorId);
     return f?.building?.name || '-';
+  }
+
+  getUnitBuildingName(item: any): string {
+    return item?.building?.name || this.buildings.find(b => b.id === item?.building_id)?.name || this.getBuildingName(item?.floor_id);
+  }
+
+  getUnitFloorLabel(item: any): string {
+    if (!item?.floor_id) return 'Sans étage / annexe';
+    return `Étage ${item.floor?.floor_number ?? this.floors.find(f => f.id === item.floor_id)?.floor_number ?? item.floor_id}`;
+  }
+
+  getUnitApartmentLabel(item: any): string {
+    return item?.unit_label || `Unité #${item?.id || '-'}`;
   }
 
   getStatusClass(s: string): string {

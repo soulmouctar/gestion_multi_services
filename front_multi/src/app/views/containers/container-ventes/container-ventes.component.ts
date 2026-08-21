@@ -154,6 +154,7 @@ export class ContainerVentesComponent implements OnInit {
       client_id:            [null, Validators.required],
       sale_type:            ['TOTAL', Validators.required],
       quantity_sold:        [null, [Validators.required, Validators.min(1)]],
+      unit_sale_price:      [null, [Validators.min(0)]],
       sale_price:           [null, [Validators.required, Validators.min(0)]],
       currency:             ['GNF', Validators.required],
       exchange_rate:        [1, [Validators.min(0.0001)]],
@@ -205,6 +206,7 @@ export class ContainerVentesComponent implements OnInit {
     this.setupArrivalRateWatcher();
     this.setupArrivalBaleQuantityWatcher();
     this.setupSaleRateWatcher();
+    this.setupSaleTotalWatcher();
     this.setupGlobalPaymentRateWatcher();
     this.loadArrivals();
     this.loadSales();
@@ -471,7 +473,7 @@ export class ContainerVentesComponent implements OnInit {
     this.saleForm.reset({
       container_arrival_id: arrival.id,
       client_id: null, sale_type: type,
-      quantity_sold: null, sale_price: null,
+      quantity_sold: null, unit_sale_price: null, sale_price: null,
       currency: arrival.currency || 'GNF',
       exchange_rate: this.getExchangeRateForCurrency(arrival.currency || 'GNF'),
       is_installment: false, installment_count: null,
@@ -497,6 +499,7 @@ export class ContainerVentesComponent implements OnInit {
     if (data.sale_type === 'TOTAL' && this.selectedArrival) {
       data.quantity_sold = this.selectedArrival.remaining_quantity;
     }
+    delete data.unit_sale_price;
 
     this.apiService.post<any>('container-sales', data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
@@ -899,6 +902,12 @@ export class ContainerVentesComponent implements OnInit {
     return this.parseAmount(this.saleForm.get('sale_price')?.value || 0);
   }
 
+  get saleUnitTotalPreview(): number {
+    const quantity = this.parseAmount(this.saleForm.getRawValue().quantity_sold || 0);
+    const unitPrice = this.parseAmount(this.saleForm.get('unit_sale_price')?.value || 0);
+    return Math.round(quantity * unitPrice * 100) / 100;
+  }
+
   get showSaleExchangeRate(): boolean {
     return String(this.saleForm.get('currency')?.value || 'GNF').toUpperCase() !== 'GNF';
   }
@@ -970,6 +979,23 @@ export class ContainerVentesComponent implements OnInit {
       .subscribe(() => {
         this.patchSaleExchangeRate();
       });
+  }
+
+  private setupSaleTotalWatcher(): void {
+    this.saleForm.get('quantity_sold')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.patchSaleTotalFromUnitPrice());
+    this.saleForm.get('unit_sale_price')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.patchSaleTotalFromUnitPrice());
+  }
+
+  private patchSaleTotalFromUnitPrice(): void {
+    const unitPrice = this.parseAmount(this.saleForm.get('unit_sale_price')?.value || 0);
+    if (unitPrice <= 0) return;
+    const quantity = this.parseAmount(this.saleForm.getRawValue().quantity_sold || 0);
+    const total = Math.round(quantity * unitPrice * 100) / 100;
+    this.saleForm.get('sale_price')?.setValue(total, { emitEvent: false });
   }
 
   private patchSaleExchangeRate(): void {

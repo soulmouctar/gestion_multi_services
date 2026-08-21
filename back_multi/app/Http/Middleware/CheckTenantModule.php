@@ -11,6 +11,7 @@ class CheckTenantModule
     public function handle(Request $request, Closure $next, string $moduleCode)
     {
         $user = $request->user();
+        $moduleCodes = $this->moduleCodeAliases($moduleCode);
 
         if ($user && $user->hasRole('SUPER_ADMIN')) {
             return $next($request);
@@ -27,7 +28,7 @@ class CheckTenantModule
         $tenantHasModule = DB::table('tenant_modules')
             ->join('modules', 'tenant_modules.module_id', '=', 'modules.id')
             ->where('tenant_modules.tenant_id', $user->tenant_id)
-            ->where('modules.code', $moduleCode)
+            ->whereIn('modules.code', $moduleCodes)
             ->where('tenant_modules.is_active', true)
             ->exists();
 
@@ -46,7 +47,7 @@ class CheckTenantModule
 
         $userHasPermission = DB::table('user_module_permissions')
             ->where('user_id', $user->id)
-            ->where('module_code', $moduleCode)
+            ->whereIn('module_code', $moduleCodes)
             ->where('is_active', true)
             ->exists();
 
@@ -59,5 +60,15 @@ class CheckTenantModule
         }
 
         return $next($request);
+    }
+
+    private function moduleCodeAliases(string $moduleCode): array
+    {
+        return match ($moduleCode) {
+            'COMMERCE', 'COMMERCIAL', 'PRODUCTS_STOCK' => ['COMMERCE', 'COMMERCIAL', 'PRODUCTS_STOCK'],
+            'CONTAINER', 'CONTAINERS' => ['CONTAINER', 'CONTAINERS'],
+            'CLIENTS_SUPPLIERS' => ['CLIENTS_SUPPLIERS', 'COMMERCE', 'COMMERCIAL'],
+            default => [$moduleCode],
+        };
     }
 }

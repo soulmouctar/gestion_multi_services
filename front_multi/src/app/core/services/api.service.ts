@@ -415,6 +415,15 @@ export class ApiService {
     
     if (error.error?.message) {
       errorMessage = error.error.message;
+      if (error.error?.errors && typeof error.error.errors === 'object') {
+        const details = Object.values(error.error.errors)
+          .flat()
+          .filter(Boolean)
+          .join(' ');
+        if (details) {
+          errorMessage = `${errorMessage}: ${details}`;
+        }
+      }
     } else if (error.message) {
       errorMessage = error.message;
     } else if (error.status) {

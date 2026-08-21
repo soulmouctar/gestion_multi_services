@@ -26,4 +26,9 @@ class Building extends Model
     {
         return $this->hasMany(Floor::class);
     }
+
+    public function housingUnits()
+    {
+        return $this->hasMany(HousingUnit::class);
+    }
 }

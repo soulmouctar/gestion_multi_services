@@ -29,6 +29,7 @@ export class ProductReturnsComponent implements OnInit {
   products: any[] = [];
   clients: any[] = [];
   invoices: any[] = [];
+  currencies = ['GNF', 'USD', 'EUR'];
 
   loading = false;
   currentPage = 1;
@@ -51,7 +52,10 @@ export class ProductReturnsComponent implements OnInit {
       invoice_id: [null],
       quantity: [1, [Validators.required, Validators.min(0.01)]],
       unit_price: [0, [Validators.required, Validators.min(0)]],
+      currency: ['GNF', Validators.required],
+      exchange_rate: [1, [Validators.min(0.0001)]],
       return_date: [new Date().toISOString().split('T')[0], Validators.required],
+      product_received: [true],
       reintegrate_to_stock: [true],
       account_impact: ['CREDIT_NOTE', Validators.required],
       notes: [''],
@@ -62,6 +66,16 @@ export class ProductReturnsComponent implements OnInit {
     this.returnForm.get('product_id')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((productId) => this.onProductChange(productId));
+    this.returnForm.get('product_received')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((received) => this.onProductReceivedChange(!!received));
+    this.returnForm.get('currency')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((currency) => {
+        if (String(currency || 'GNF').toUpperCase() === 'GNF') {
+          this.returnForm.patchValue({ exchange_rate: 1 }, { emitEvent: false });
+        }
+      });
 
     this.loadReturns();
     this.loadProducts();
@@ -126,7 +140,10 @@ export class ProductReturnsComponent implements OnInit {
       invoice_id: null,
       quantity: 1,
       unit_price: 0,
+      currency: 'GNF',
+      exchange_rate: 1,
       return_date: new Date().toISOString().split('T')[0],
+      product_received: true,
       reintegrate_to_stock: true,
       account_impact: 'CREDIT_NOTE',
       notes: '',
@@ -138,7 +155,7 @@ export class ProductReturnsComponent implements OnInit {
     this.submitted = true;
     if (this.returnForm.invalid) return;
 
-    this.apiService.post<any>('product-returns', this.returnForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.post<any>('product-returns', this.returnForm.getRawValue()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
           this.alertService.showSuccess('Retour produit enregistré');
@@ -165,6 +182,36 @@ export class ProductReturnsComponent implements OnInit {
     this.returnForm.patchValue({
       unit_price: Number(product.sale_price || product.selling_price || 0),
     });
+  }
+
+  onProductReceivedChange(received: boolean): void {
+    const stockCtrl = this.returnForm.get('reintegrate_to_stock');
+    if (!received) {
+      stockCtrl?.setValue(false, { emitEvent: false });
+      stockCtrl?.disable({ emitEvent: false });
+    } else {
+      stockCtrl?.enable({ emitEvent: false });
+      stockCtrl?.setValue(true, { emitEvent: false });
+    }
+    this.cdr.detectChanges();
+  }
+
+  get returnTotal(): number {
+    const quantity = Number(this.returnForm.get('quantity')?.value || 0);
+    const unitPrice = Number(this.returnForm.get('unit_price')?.value || 0);
+    return Math.round(quantity * unitPrice * 100) / 100;
+  }
+
+  get showExchangeRate(): boolean {
+    return String(this.returnForm.get('currency')?.value || 'GNF').toUpperCase() !== 'GNF';
+  }
+
+  getImpactLabel(value: string): string {
+    return {
+      CREDIT_NOTE: 'Gardé pour prochaine commande',
+      REFUND: 'Montant restitué',
+      NONE: 'Aucun impact',
+    }[value] || value;
   }
 
   getProductName(id: number): string {

@@ -21,7 +21,7 @@ class LeaseController extends BaseController
     private function housingUnitForTenant(int $unitId, int $tenantId): ?HousingUnit
     {
         return HousingUnit::whereKey($unitId)
-            ->whereHas('floor.building.location', fn($q) => $q->where('tenant_id', $tenantId))
+            ->whereHas('building.location', fn($q) => $q->where('tenant_id', $tenantId))
             ->first();
     }
 
@@ -46,7 +46,7 @@ class LeaseController extends BaseController
     {
         try {
             $tenantId = $this->tenantId($request);
-            $query = Lease::with(['housingUnit.floor.building.location'])
+            $query = Lease::with(['housingUnit.building.location', 'housingUnit.floor.building.location'])
                 ->where('tenant_id', $tenantId);
 
             if ($request->has('status')) {
@@ -105,8 +105,12 @@ class LeaseController extends BaseController
             return $this->sendError('Logement introuvable pour ce tenant.', [], 422);
         }
 
+        if ($unit->status === 'OCCUPE') {
+            return $this->sendError('Ce logement est déjà occupé. Déclarez d’abord le locataire actuel sorti avant de créer un nouveau contrat.', [], 422);
+        }
+
         if ($this->hasOverlappingLease((int) $request->housing_unit_id, $request->start_date, $request->end_date)) {
-            return $this->sendError('Un bail actif existe déjà pour ce logement sur cette période.', [], 422);
+            return $this->sendError('Ce logement possède déjà un bail actif sur cette période. Déclarez d’abord le locataire actuel sorti.', [], 422);
         }
 
         DB::beginTransaction();
@@ -130,7 +134,7 @@ class LeaseController extends BaseController
             DB::commit();
 
             return $this->sendResponse(
-                $lease->load(['housingUnit.floor.building.location']),
+                $lease->load(['housingUnit.building.location', 'housingUnit.floor.building.location']),
                 'Lease created successfully',
                 201
             );
@@ -143,7 +147,7 @@ class LeaseController extends BaseController
     public function show(Request $request, $id)
     {
         $tenantId = $this->tenantId($request);
-        $lease = Lease::with(['housingUnit.floor.building.location', 'payments'])
+        $lease = Lease::with(['housingUnit.building.location', 'housingUnit.floor.building.location', 'payments'])
             ->where('tenant_id', $tenantId)
             ->find($id);
 
@@ -196,8 +200,12 @@ class LeaseController extends BaseController
             return $this->sendError('Logement introuvable pour ce tenant.', [], 422);
         }
 
+        if ((int) $targetUnitId !== (int) $lease->housing_unit_id && $unit->status === 'OCCUPE') {
+            return $this->sendError('Ce logement est déjà occupé. Déclarez d’abord le locataire actuel sorti avant de l’assigner à ce contrat.', [], 422);
+        }
+
         if ($this->hasOverlappingLease($targetUnitId, $targetStart, $targetEnd, (int) $lease->id)) {
-            return $this->sendError('Un bail actif existe déjà pour ce logement sur cette période.', [], 422);
+            return $this->sendError('Ce logement possède déjà un bail actif sur cette période. Déclarez d’abord le locataire actuel sorti.', [], 422);
         }
 
         DB::beginTransaction();
@@ -250,7 +258,7 @@ class LeaseController extends BaseController
             DB::commit();
 
             return $this->sendResponse(
-                $lease->load(['housingUnit.floor.building.location']),
+                $lease->load(['housingUnit.building.location', 'housingUnit.floor.building.location']),
                 'Lease updated successfully'
             );
         } catch (\Exception $e) {
@@ -374,7 +382,7 @@ class LeaseController extends BaseController
     public function getPaymentReceipt(Request $request, $paymentId)
     {
         $tenantId = $this->tenantId($request);
-        $payment = LeasePayment::with(['lease.housingUnit.floor.building.location'])
+        $payment = LeasePayment::with(['lease.housingUnit.building.location', 'lease.housingUnit.floor.building.location'])
             ->where('tenant_id', $tenantId)
             ->find($paymentId);
 
@@ -383,6 +391,7 @@ class LeaseController extends BaseController
         }
 
         $lease = $payment->lease;
+        $financialSituation = $lease ? $this->buildFinancialSituationPayload($lease) : null;
         $receipt = [
             'id' => $payment->id,
             'receipt_number' => $payment->receipt_number ?: $this->generateReceiptNumber($tenantId),
@@ -407,9 +416,10 @@ class LeaseController extends BaseController
                 'monthly_rent' => (float) ($lease?->monthly_rent ?? 0),
                 'currency' => $lease?->currency,
                 'housing_unit_label' => $this->buildLeaseUnitLabel($lease),
-                'location_name' => $lease?->housingUnit?->floor?->building?->location?->name,
-                'building_name' => $lease?->housingUnit?->floor?->building?->name,
+                'location_name' => $lease?->housingUnit?->building?->location?->name ?: $lease?->housingUnit?->floor?->building?->location?->name,
+                'building_name' => $lease?->housingUnit?->building?->name ?: $lease?->housingUnit?->floor?->building?->name,
             ],
+            'financial_situation' => $financialSituation,
         ];
 
         return $this->sendResponse($receipt, 'Lease payment receipt generated successfully');
@@ -418,7 +428,7 @@ class LeaseController extends BaseController
     public function getFinancialSituation(Request $request, $leaseId)
     {
         $tenantId = $this->tenantId($request);
-        $lease = Lease::with(['housingUnit.floor.building.location'])
+        $lease = Lease::with(['housingUnit.building.location', 'housingUnit.floor.building.location'])
             ->where('tenant_id', $tenantId)
             ->find($leaseId);
 
@@ -426,8 +436,13 @@ class LeaseController extends BaseController
             return $this->sendError('Lease not found', [], 404);
         }
 
-        $payments = LeasePayment::where('tenant_id', $tenantId)
-            ->where('lease_id', $leaseId)
+        return $this->sendResponse($this->buildFinancialSituationPayload($lease), 'Lease financial situation retrieved successfully');
+    }
+
+    private function buildFinancialSituationPayload(Lease $lease): array
+    {
+        $payments = LeasePayment::where('tenant_id', $lease->tenant_id)
+            ->where('lease_id', $lease->id)
             ->orderByDesc('payment_date')
             ->orderByDesc('id')
             ->get();
@@ -441,7 +456,7 @@ class LeaseController extends BaseController
         $paidPeriods = $payments->whereIn('status', $paidStatuses)->pluck('period_month')->filter()->unique()->values();
         $unpaidPeriods = collect($dueMonths)->reject(fn($month) => $paidPeriods->contains($month))->values();
 
-        return $this->sendResponse([
+        return [
             'lease' => [
                 'id' => $lease->id,
                 'renter_name' => $lease->renter_name,
@@ -469,7 +484,7 @@ class LeaseController extends BaseController
             'paid_periods' => $paidPeriods,
             'unpaid_periods' => $unpaidPeriods,
             'payments' => $payments,
-        ], 'Lease financial situation retrieved successfully');
+        ];
     }
 
     // ==================== STATISTIQUES ====================
@@ -567,6 +582,13 @@ class LeaseController extends BaseController
     {
         if ($path) {
             $normalized = ltrim($path, '/');
+            if (str_starts_with($normalized, 'http://') || str_starts_with($normalized, 'https://')) {
+                $urlPath = parse_url($normalized, PHP_URL_PATH);
+                $normalized = $urlPath ? ltrim($urlPath, '/') : $normalized;
+            }
+            if (str_starts_with($normalized, 'public/uploads/')) {
+                $normalized = 'uploads/' . substr($normalized, strlen('public/uploads/'));
+            }
             if (str_starts_with($normalized, 'upload/')) {
                 $normalized = 'uploads/' . substr($normalized, strlen('upload/'));
             }
@@ -612,13 +634,12 @@ class LeaseController extends BaseController
 
         $unit = $lease->housingUnit;
         $floor = $unit->floor;
-        $building = $floor?->building;
+        $building = $unit->building ?: $floor?->building;
 
-        return trim(sprintf(
-            '%s - Étage %s - Unité #%s',
-            $building?->name ?? 'Bâtiment',
-            $floor?->floor_number ?? '—',
-            $unit->id
-        ));
+        $parts = [$building?->name ?? 'Bâtiment'];
+        $parts[] = $unit->unit_label ?: 'Unité #' . $unit->id;
+        $parts[] = $floor ? 'Étage ' . $floor->floor_number : 'Sans étage / annexe';
+
+        return implode(' - ', $parts);
     }
 }

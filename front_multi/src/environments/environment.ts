@@ -10,10 +10,10 @@ export const environment = {
   // urlBase: 'https://apimatkolla.ddevstock.com/',
   // apiUrl: 'https://apimatkolla.ddevstock.com/api',
   // appUrl: 'https://matkolla.ddevstock.com/',
-  
+
   // Multi-tenant configuration
   multiTenant: true,
-  
+
   // Modules configuration
   modules: {
     COMMERCIAL: {
@@ -65,21 +65,21 @@ export const environment = {
       enabled: true
     }
   },
-  
+
   // Currency configuration
   currencies: {
     default: 'USD',
     supported: ['USD', 'GNF'],
     exchangeRateApi: 'https://api.exchangerate-api.com/v4/latest/USD'
   },
-  
+
   // File upload configuration
   upload: {
     maxFileSize: 5 * 1024 * 1024, // 5MB
     allowedTypes: ['image/jpeg', 'image/png', 'application/pdf'],
     uploadUrl: 'http://127.0.0.1:8001/api/upload'
   },
-  
+
   // PDF configuration
   pdf: {
     logoUrl: '/assets/images/logo/logo_matkolletf.png',
@@ -88,7 +88,7 @@ export const environment = {
     companyPhone: '+224 XXX XXX XXX',
     companyEmail: 'contact@mat-kolla.com'
   },
-  
+
   // Payment configuration
   payment: {
     orangeMoney: {
@@ -111,7 +111,7 @@ export const environment = {
       ]
     }
   },
-  
+
   // Notifications
   notifications: {
     email: {
@@ -123,7 +123,7 @@ export const environment = {
       provider: 'orange-sms'
     }
   },
-  
+
   // Security
   security: {
     tokenExpiration: 24 * 60 * 60, // 24 hours in seconds
@@ -131,7 +131,7 @@ export const environment = {
     passwordMinLength: 8,
     requireStrongPassword: true
   },
-  
+
   // UI Configuration
   ui: {
     theme: 'default',

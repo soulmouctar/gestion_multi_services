@@ -130,6 +130,9 @@
           <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Sorties</div>
           <div class="fw-bold" style="font-size:26px;color:#EF4444;">{{ cashflow.outgoing_total | number:'1.0-0' }}</div>
           <div class="small" style="color:#9CA3AF;">Fournisseurs, retraits, dépenses</div>
+          <div class="small mt-1" style="color:#B91C1C;" *ngIf="cashflow.product_return_refunds > 0">
+            Restitutions retours: {{ cashflow.product_return_refunds | number:'1.0-0' }} GNF
+          </div>
         </div>
       </div>
       <div class="col-12 col-md-4">

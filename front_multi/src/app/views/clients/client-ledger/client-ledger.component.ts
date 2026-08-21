@@ -178,6 +178,38 @@ export class ClientLedgerComponent implements OnInit {
   ];
 
   showPaymentModal = false;
+  editPaymentModalOpen = false;
+  paymentSaving = false;
+  paymentLoading = false;
+  paymentSubmitted = false;
+  paymentToEdit: any = null;
+  editPaymentForm = {
+    payment_date: '',
+    amount: null as number | null,
+    currency: 'GNF',
+    target_currency: 'GNF',
+    exchange_rate: null as number | null,
+    method: 'ESPECES',
+    reference: '',
+    description: '',
+    status: 'COMPLETED',
+  };
+
+  readonly currencies = ['GNF', 'USD', 'EUR'];
+  readonly paymentMethods = [
+    { value: 'ESPECES', label: 'Espèces' },
+    { value: 'VIREMENT', label: 'Virement' },
+    { value: 'CHEQUE', label: 'Chèque' },
+    { value: 'ORANGE_MONEY', label: 'Orange Money' },
+    { value: 'WAVE', label: 'Wave' },
+    { value: 'MTN_MONEY', label: 'MTN Money' },
+  ];
+  readonly paymentStatuses = [
+    { value: 'COMPLETED', label: 'Validé' },
+    { value: 'PENDING', label: 'En attente' },
+    { value: 'FAILED', label: 'Échoué' },
+    { value: 'CANCELLED', label: 'Annulé' },
+  ];
 
   constructor(
     private route: ActivatedRoute,
@@ -398,6 +430,165 @@ export class ClientLedgerComponent implements OnInit {
   }
 
   openPaymentModal(): void { this.showPaymentModal = true; }
+
+  canManagePayment(row: LedgerRow): boolean {
+    return row.type === 'payment' && Number(row.meta_id) > 0;
+  }
+
+  needsEditExchangeRate(): boolean {
+    return String(this.editPaymentForm.currency || 'GNF').toUpperCase() !==
+      String(this.editPaymentForm.target_currency || this.editPaymentForm.currency || 'GNF').toUpperCase();
+  }
+
+  openEditPayment(row: LedgerRow): void {
+    if (!this.canManagePayment(row)) return;
+
+    this.paymentSubmitted = false;
+    this.paymentLoading = true;
+    this.paymentToEdit = { ...row };
+    this.editPaymentForm = {
+      payment_date: (row.date || new Date().toISOString()).slice(0, 10),
+      amount: Number(row.native_amount ?? row.credit ?? 0),
+      currency: String(row.native_currency || row.currency || 'GNF').toUpperCase(),
+      target_currency: String(row.target_currency || row.currency || row.native_currency || 'GNF').toUpperCase(),
+      exchange_rate: row.exchange_rate ? Number(row.exchange_rate) : null,
+      method: row.payment_method || 'ESPECES',
+      reference: row.reference || '',
+      description: row.designation || '',
+      status: 'COMPLETED',
+    };
+    this.editPaymentModalOpen = true;
+    this.cdr.detectChanges();
+
+    this.apiService.get<any>(`payments/${row.meta_id}`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: any) => {
+          const payment = res?.data || {};
+          this.paymentToEdit = payment;
+          this.editPaymentForm = {
+            payment_date: this.toDateInput(payment.payment_date || row.date),
+            amount: Number(payment.amount ?? row.native_amount ?? row.credit ?? 0),
+            currency: String(payment.currency || row.native_currency || 'GNF').toUpperCase(),
+            target_currency: String(payment.target_currency || row.target_currency || payment.currency || 'GNF').toUpperCase(),
+            exchange_rate: payment.exchange_rate ? Number(payment.exchange_rate) : null,
+            method: payment.method || row.payment_method || 'ESPECES',
+            reference: payment.reference || '',
+            description: payment.description || '',
+            status: payment.status || 'COMPLETED',
+          };
+          this.paymentLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.paymentLoading = false;
+          this.cdr.detectChanges();
+          Swal.fire('Erreur', 'Impossible de charger ce versement.', 'error');
+        },
+      });
+  }
+
+  closeEditPayment(): void {
+    if (this.paymentSaving) return;
+    this.editPaymentModalOpen = false;
+    this.paymentLoading = false;
+    this.paymentSubmitted = false;
+    this.paymentToEdit = null;
+  }
+
+  saveEditedPayment(): void {
+    this.paymentSubmitted = true;
+    const amount = Number(this.editPaymentForm.amount || 0);
+    if (!this.paymentToEdit?.id || !this.editPaymentForm.payment_date || amount <= 0 || !this.editPaymentForm.method) {
+      this.cdr.detectChanges();
+      return;
+    }
+    if (this.needsEditExchangeRate() && !Number(this.editPaymentForm.exchange_rate || 0)) {
+      Swal.fire('Taux requis', 'Renseigne le taux de conversion pour ce versement.', 'warning');
+      return;
+    }
+
+    const payload: any = {
+      type: 'CLIENT',
+      client_id: this.clientId,
+      payment_date: this.editPaymentForm.payment_date,
+      amount,
+      currency: String(this.editPaymentForm.currency || 'GNF').toUpperCase(),
+      target_currency: String(this.editPaymentForm.target_currency || this.editPaymentForm.currency || 'GNF').toUpperCase(),
+      method: this.editPaymentForm.method,
+      reference: this.editPaymentForm.reference || null,
+      description: this.editPaymentForm.description || null,
+      status: this.editPaymentForm.status || 'COMPLETED',
+    };
+    if (this.needsEditExchangeRate()) {
+      payload.exchange_rate = Number(this.editPaymentForm.exchange_rate);
+    } else {
+      payload.exchange_rate = 1;
+    }
+
+    this.paymentSaving = true;
+    this.apiService.put<any>(`payments/${this.paymentToEdit.id}`, payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: any) => {
+          this.paymentSaving = false;
+          if (res?.success) {
+            this.closeEditPayment();
+            this.loadLedger();
+            Swal.fire('Versement modifié', 'Le compte client a été mis à jour.', 'success');
+          } else {
+            Swal.fire('Erreur', res?.message || 'Modification impossible.', 'error');
+          }
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.paymentSaving = false;
+          const msg = err?.error?.message || err?.message || 'Modification impossible.';
+          Swal.fire('Erreur', msg, 'error');
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  async deletePayment(row: LedgerRow): Promise<void> {
+    if (!this.canManagePayment(row)) return;
+    const result = await Swal.fire({
+      title: 'Supprimer ce versement ?',
+      text: row.reference ? `Référence ${row.reference}` : row.designation,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Supprimer',
+      cancelButtonText: 'Annuler',
+      confirmButtonColor: '#dc2626',
+    });
+    if (!result.isConfirmed) return;
+
+    this.apiService.delete<any>(`payments/${row.meta_id}`)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: any) => {
+          if (res?.success) {
+            this.loadLedger();
+            Swal.fire('Supprimé', 'Le versement a été retiré du compte client.', 'success');
+          } else {
+            Swal.fire('Erreur', res?.message || 'Suppression impossible.', 'error');
+          }
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          const msg = err?.error?.message || err?.message || 'Suppression impossible.';
+          Swal.fire('Erreur', msg, 'error');
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  private toDateInput(value: any): string {
+    if (!value) return new Date().toISOString().split('T')[0];
+    if (typeof value === 'string') return value.slice(0, 10);
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? new Date().toISOString().split('T')[0] : date.toISOString().split('T')[0];
+  }
 
   async onPaymentSaved(batch: any): Promise<void> {
     this.loadLedger();

@@ -75,6 +75,47 @@
     </div>
 
     <div class="row g-3 mb-4">
+      <div class="col-12 col-md-4">
+        <div class="bg-white rounded-3 p-3 h-100 d-flex align-items-center gap-3" style="border:1px solid #f0f0f0;">
+          <div class="rounded-3 d-flex align-items-center justify-content-center"
+               style="width:48px;height:48px;background:#DCFCE7;color:#16A34A;">
+            <svg cIcon name="cilSpeedometer" size="lg"></svg>
+          </div>
+          <div>
+            <div class="small text-muted">Taux de recouvrement</div>
+            <div class="fw-bold fs-4" [style.color]="collectionRate() >= 75 ? '#16A34A' : collectionRate() >= 45 ? '#D97706' : '#DC2626'">
+              {{ collectionRate() }}%
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="bg-white rounded-3 p-3 h-100 d-flex align-items-center gap-3" style="border:1px solid #f0f0f0;">
+          <div class="rounded-3 d-flex align-items-center justify-content-center"
+               style="width:48px;height:48px;background:#DBEAFE;color:#2563EB;">
+            <svg cIcon name="cilChart" size="lg"></svg>
+          </div>
+          <div>
+            <div class="small text-muted">Valeur moyenne / client</div>
+            <div class="fw-bold fs-5" style="color:#0f3460;">{{ fmt(averageClientValue()) }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="bg-white rounded-3 p-3 h-100 d-flex align-items-center gap-3" style="border:1px solid #f0f0f0;">
+          <div class="rounded-3 d-flex align-items-center justify-content-center"
+               style="width:48px;height:48px;background:#FEF2F2;color:#DC2626;">
+            <svg cIcon name="cilWarning" size="lg"></svg>
+          </div>
+          <div>
+            <div class="small text-muted">Clients à relancer</div>
+            <div class="fw-bold fs-4" style="color:#DC2626;">{{ riskClients().length }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
       <div class="col-12 col-xl-4">
         <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
           <div class="fw-semibold mb-3" style="color:#0f3460;">Comptes clients</div>
@@ -97,6 +138,71 @@
           <div style="height:280px;">
             <c-chart type="bar" [data]="amountsChartData" [options]="chartOptions"></c-chart>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-xl-7">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <div class="fw-semibold" style="color:#0f3460;">Performance des meilleurs clients</div>
+              <div class="text-muted small">Montants payés comparés aux restes dus</div>
+            </div>
+            <span class="badge bg-light text-dark border">Top 8</span>
+          </div>
+          <div *ngIf="topClientsByPaid(8).length; else noTopClients" style="height:340px;">
+            <c-chart type="bar" [data]="topClientsChartData" [options]="horizontalBarOptions"></c-chart>
+          </div>
+          <ng-template #noTopClients>
+            <div class="text-center text-muted py-5">Aucune performance client disponible.</div>
+          </ng-template>
+        </div>
+      </div>
+      <div class="col-12 col-xl-5">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="fw-semibold mb-3" style="color:#0f3460;">Répartition par activité</div>
+          <div *ngIf="clients.length; else noClientTypes" style="height:340px;">
+            <c-chart type="doughnut" [data]="clientTypesChartData" [options]="chartOptions"></c-chart>
+          </div>
+          <ng-template #noClientTypes>
+            <div class="text-center text-muted py-5">Aucun client à analyser.</div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-xl-7">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="fw-semibold mb-3" style="color:#0f3460;">Recouvrement global</div>
+          <div style="height:300px;">
+            <c-chart type="bar" [data]="collectionChartData" [options]="chartOptions"></c-chart>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-xl-5">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="fw-semibold" style="color:#0f3460;">Clients à risque</div>
+            <small class="text-muted">Reste dû le plus élevé</small>
+          </div>
+          <div *ngIf="riskClients().length; else noRiskClients">
+            <div *ngFor="let client of riskClients(); trackBy: trackById" class="d-flex align-items-center justify-content-between py-2 border-bottom">
+              <div>
+                <div class="fw-semibold">{{ client.name }}</div>
+                <div class="small text-muted">{{ clientTypeLabel(client.client_type) }} · payé {{ fmt(client.total_paid) }}</div>
+              </div>
+              <div class="text-end">
+                <div class="fw-bold text-danger">{{ fmt(client.rest_to_pay_gnf) }}</div>
+                <small class="text-muted">à recouvrer</small>
+              </div>
+            </div>
+          </div>
+          <ng-template #noRiskClients>
+            <div class="text-center text-muted py-5">Aucun client débiteur sur ce filtre.</div>
+          </ng-template>
         </div>
       </div>
     </div>

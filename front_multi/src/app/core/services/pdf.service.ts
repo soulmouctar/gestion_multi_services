@@ -89,6 +89,24 @@ export interface PrintableContainerClientAccount {
   organisation?: PrintableOrganisation;
 }
 
+export interface PrintableProductList {
+  products: Array<{
+    name: string;
+    sku?: string | null;
+    category?: string | null;
+    unit?: string | null;
+    stock_quantity?: number | null;
+    low_stock_threshold?: number | null;
+    purchase_price?: number | null;
+    selling_price?: number | null;
+    status?: string | null;
+    image_url?: string | null;
+    image?: string | null;
+  }>;
+  filters?: Record<string, any>;
+  organisation?: PrintableOrganisation;
+}
+
 export interface PrintableRentalPaymentReceipt {
   receipt_number: string;
   payment_date?: string | Date;
@@ -101,6 +119,20 @@ export interface PrintableRentalPaymentReceipt {
   notes?: string | null;
   generated_at?: string | Date;
   lease?: any;
+  financial_situation?: {
+    summary?: {
+      due_months_count?: number;
+      paid_months_count?: number;
+      payment_count?: number;
+      expected_total?: number;
+      paid_total?: number;
+      advance_total?: number;
+      remaining_total?: number;
+      deposit_amount?: number;
+    };
+    unpaid_periods?: string[];
+    paid_periods?: string[];
+  } | null;
   organisation?: PrintableOrganisation;
 }
 
@@ -1190,30 +1222,69 @@ export class PdfService {
       return;
     }
     const logo = await this.resolveDefaultLogo(data.organisation);
+    const money = (value: unknown) => this.formatMoney(Number(value) || 0, 'GNF');
+    const statusLabel = (status: string) => status === 'DEBITEUR' ? 'DÉBITEUR' : status === 'AVANCE' ? 'AVANCE' : 'SOLDÉ';
+    const statusColor = (status: string) => status === 'DEBITEUR' ? '#DC2626' : status === 'AVANCE' ? '#0284C7' : '#16A34A';
+    const typeLabel = (value: string) => String(value || '—').replace(/_/g, ' ');
+    const cell = (text: string, extra: any = {}) => ({ text, style: 'tableCell', fontSize: 7.1, ...extra });
+    const currencyText = (row: any) => {
+      const byCurrency = row?.by_currency || {};
+      const parts = Object.keys(byCurrency)
+        .sort((a, b) => a === 'GNF' ? -1 : b === 'GNF' ? 1 : a.localeCompare(b))
+        .map(currency => {
+          const balance = Number(byCurrency[currency]?.final_balance || 0);
+          return Math.abs(balance) > 0.009 ? `${this.normalizeSpaces(new Intl.NumberFormat('fr-FR').format(balance))} ${currency}` : '';
+        })
+        .filter(Boolean);
+      return parts.length ? parts.join('\n') : 'Soldé';
+    };
     const rows = (data.rows || []).map(r => [
-      { text: r.name || '—', style: 'tableCell' },
-      { text: r.client_type || '—', style: 'tableCell' },
-      { text: this.formatMoney(r.total_charged, 'GNF'), style: 'tableCell', alignment: 'right' },
-      { text: this.formatMoney(r.total_paid, 'GNF'), style: 'tableCell', alignment: 'right', color: '#16A34A' },
-      { text: this.formatMoney(r.gross_debt_gnf, 'GNF'), style: 'tableCell', alignment: 'right', color: '#DC2626' },
-      { text: this.formatMoney(r.rest_to_pay_gnf, 'GNF'), style: 'tableCell', alignment: 'right', bold: true },
-      { text: r.status || '—', style: 'tableCell', alignment: 'center' },
+      cell(r.name || '—', { bold: true }),
+      cell(typeLabel(r.client_type)),
+      cell(money(r.invoice_invoiced), { alignment: 'right' }),
+      cell(money(r.container_charged), { alignment: 'right' }),
+      cell(money(r.interest_remaining), { alignment: 'right', color: '#B91C1C' }),
+      cell(money(r.invoice_paid), { alignment: 'right', color: '#16A34A' }),
+      cell(money(r.client_account_paid), { alignment: 'right', color: '#16A34A' }),
+      cell(money(r.container_paid), { alignment: 'right', color: '#16A34A' }),
+      cell(money(r.advances_remaining), { alignment: 'right', color: '#0284C7' }),
+      cell(money(r.return_credit_gnf), { alignment: 'right', color: '#0284C7' }),
+      cell(money(r.gross_debt_gnf), { alignment: 'right', color: '#DC2626' }),
+      cell(money(r.rest_to_pay_gnf), { alignment: 'right', bold: true, color: Number(r.rest_to_pay_gnf || 0) > 0 ? '#DC2626' : '#16A34A' }),
+      cell(money(r.credit_balance_gnf), { alignment: 'right', bold: true, color: '#0284C7' }),
+      cell(currencyText(r), { alignment: 'right', fontSize: 6.8 }),
+      cell(statusLabel(r.status), { alignment: 'center', bold: true, color: statusColor(r.status) }),
     ]);
     const summary = data.summary || {};
     const docDef = this.buildSimpleReportDoc('INDEX FINANCIER CLIENTS', data.organisation, { logo }, [
       {
-        margin: [0, 0, 0, 14],
-        table: { widths: ['*', '*', '*'], body: [[
+        margin: [0, 0, 0, 8],
+        table: { widths: ['*', '*', '*', '*'], body: [[
           this.summaryCell('TOTAL CLIENTS', String(summary.total_clients || data.rows.length || 0), '#1D4ED8'),
-          this.summaryCell('RESTE À PAYER', this.formatMoney(summary.total_rest_to_pay, 'GNF'), '#DC2626'),
-          this.summaryCell('AVANCES DISPONIBLES', this.formatMoney(summary.total_advances_remaining, 'GNF'), '#16A34A'),
+          this.summaryCell('DETTE BRUTE', money(summary.total_debt), '#DC2626'),
+          this.summaryCell('RESTE À PAYER', money(summary.total_rest_to_pay), '#DC2626'),
+          this.summaryCell('CRÉDIT NET', money(summary.total_credit_balance), '#0284C7'),
+        ]] },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+      },
+      {
+        margin: [0, 0, 0, 14],
+        table: { widths: ['*', '*', '*', '*'], body: [[
+          this.summaryCell('TOTAL FACTURÉ', money(summary.total_charged), '#0F3460'),
+          this.summaryCell('TOTAL PAYÉ', money(summary.total_paid), '#16A34A'),
+          this.summaryCell('AVANCES DISPONIBLES', money(summary.total_advances_remaining), '#0284C7'),
+          this.summaryCell('INTÉRÊTS DUS', money(summary.total_interest_remaining), '#B91C1C'),
         ]] },
         layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
       },
       this.simpleTable(
-        ['Client', 'Type', 'Facturé', 'Payé', 'Dette brute', 'Reste à payer', 'Statut'],
+        [
+          'Client', 'Type', 'Factures', 'Conteneurs', 'Intérêts dus',
+          'Payé fact.', 'Vers. compte', 'Payé cont.', 'Avances',
+          'Avoirs', 'Dette brute', 'Reste', 'Crédit net', 'Soldes devises', 'Statut',
+        ],
         rows,
-        ['*', 70, 75, 75, 80, 85, 55]
+        [86, 45, 48, 48, 46, 48, 50, 48, 48, 45, 50, 50, 50, 58, 42]
       ),
     ], 'landscape');
     pdfMake.createPdf(docDef).print();
@@ -1259,6 +1330,105 @@ export class PdfService {
     pdfMake.createPdf(docDef).print();
   }
 
+  async downloadProductsPdf(data: PrintableProductList, filename = 'produits.pdf'): Promise<void> {
+    const pdfMake = await this.getPdfMake();
+    if (!pdfMake?.createPdf) {
+      throw new Error('pdfmake non initialisé: polices Roboto indisponibles');
+    }
+
+    const logo = await this.resolveDefaultLogo(data.organisation);
+    const productImages = await Promise.all(
+      (data.products || []).map(product => this.resolveImageData(product.image_url || product.image))
+    );
+    const docDef = this.buildProductsDoc(data, { logo, productImages });
+    pdfMake.createPdf(docDef).download(filename);
+  }
+
+  async printProductsPdf(data: PrintableProductList): Promise<void> {
+    const pdfMake = await this.getPdfMake();
+    if (!pdfMake?.createPdf) {
+      throw new Error('pdfmake non initialisé: polices Roboto indisponibles');
+    }
+
+    const logo = await this.resolveDefaultLogo(data.organisation);
+    const productImages = await Promise.all(
+      (data.products || []).map(product => this.resolveImageData(product.image_url || product.image))
+    );
+    const docDef = this.buildProductsDoc(data, { logo, productImages });
+    pdfMake.createPdf(docDef).print();
+  }
+
+  private buildProductsDoc(data: PrintableProductList, assets: { logo?: string | null; productImages?: Array<string | null> } = {}): any {
+    const statusLabels: Record<string, string> = {
+      ACTIVE: 'Actif',
+      INACTIVE: 'Inactif',
+      DISCONTINUED: 'Arrêté',
+    };
+    const fmtNum = (value: number | null | undefined) => this.normalizeSpaces(new Intl.NumberFormat('fr-FR').format(Number(value) || 0));
+    const fmtPrice = (value: number | null | undefined) => value == null ? '—' : `${fmtNum(value)} GNF`;
+    const imageCell = (image?: string | null) => image
+      ? { image, fit: [34, 34], alignment: 'center', margin: [0, 1, 0, 1] }
+      : { text: 'Photo\nabsente', style: 'tableCell', alignment: 'center', color: '#94A3B8', fontSize: 6.7 };
+
+    const products = data.products || [];
+    const rows = products.map((product, index) => {
+      const stock = Number(product.stock_quantity) || 0;
+      const lowStock = product.low_stock_threshold != null && stock <= Number(product.low_stock_threshold);
+      const status = String(product.status || '').toUpperCase();
+
+      return [
+        imageCell(assets.productImages?.[index]),
+        { text: product.name || '—', style: 'tableCell', bold: true },
+        { text: product.sku || '—', style: 'tableCell', color: product.sku ? '#111827' : '#94A3B8' },
+        { text: product.category || '—', style: 'tableCell' },
+        { text: product.unit || '—', style: 'tableCell' },
+        { text: fmtNum(stock), style: 'tableCell', alignment: 'center', color: lowStock ? '#DC2626' : '#111827', bold: lowStock },
+        { text: fmtPrice(product.purchase_price), style: 'tableCell', alignment: 'right' },
+        { text: fmtPrice(product.selling_price), style: 'tableCell', alignment: 'right', bold: true },
+        { text: statusLabels[status] || product.status || '—', style: 'tableCell', alignment: 'center' },
+      ];
+    });
+
+    const emptyRow = [[
+      { text: 'Aucun produit trouvé', colSpan: 9, alignment: 'center', color: '#64748B', margin: [0, 10, 0, 10] },
+      '', '', '', '', '', '', '', '',
+    ]];
+
+    return this.buildSimpleReportDoc('Liste des produits', data.organisation, { logo: assets.logo }, [
+      {
+        table: { widths: ['*', '*', '*', '*'], body: [[
+          this.infoCell('Total produits', fmtNum(products.length)),
+          this.infoCell('Actifs', fmtNum(products.filter(p => p.status === 'ACTIVE').length)),
+          this.infoCell('Stock faible', fmtNum(products.filter(p => p.low_stock_threshold != null && (Number(p.stock_quantity) || 0) <= Number(p.low_stock_threshold)).length)),
+          this.infoCell('Généré le', this.formatDate(new Date())),
+        ]] },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 2, paddingRight: () => 2, paddingTop: () => 2, paddingBottom: () => 10 },
+      },
+      {
+        table: {
+          headerRows: 1,
+          widths: [42, '*', 58, 76, 46, 42, 70, 70, 58],
+          body: [
+            ['Photo', 'Produit', 'SKU', 'Catégorie', 'Unité', 'Stock', 'Achat', 'Vente', 'Statut']
+              .map(h => ({ text: h, style: 'tableHeader', alignment: h === 'Photo' || h === 'Stock' || h === 'Statut' ? 'center' : 'left' })),
+            ...(rows.length ? rows : emptyRow),
+          ],
+        },
+        layout: {
+          fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : rowIndex % 2 === 0 ? '#F8FAFC' : '#FFFFFF',
+          hLineColor: () => '#E5E7EB',
+          vLineColor: () => '#E5E7EB',
+          hLineWidth: () => 0.5,
+          vLineWidth: () => 0.5,
+          paddingLeft: () => 5,
+          paddingRight: () => 5,
+          paddingTop: () => 4,
+          paddingBottom: () => 4,
+        },
+      },
+    ], 'landscape');
+  }
+
   async printRentalPaymentReceiptPdf(receipt: PrintableRentalPaymentReceipt): Promise<void> {
     const pdfMake = await this.getPdfMake();
     if (!pdfMake?.createPdf) {
@@ -1266,33 +1436,194 @@ export class PdfService {
       return;
     }
     const logo = await this.resolveDefaultLogo(receipt.organisation);
-    const docDef = this.buildSimpleReportDoc(`REÇU LOCATION ${receipt.receipt_number}`, receipt.organisation, { logo }, [
+    const docDef = this.buildRentalPaymentReceiptDoc(receipt, { logo });
+    pdfMake.createPdf(docDef).print();
+  }
+
+  private buildRentalPaymentReceiptDoc(receipt: PrintableRentalPaymentReceipt, assets: { logo?: string | null } = {}): any {
+    const currency = receipt.currency || receipt.lease?.currency || 'GNF';
+    const situation = receipt.financial_situation;
+    const summary = situation?.summary || {};
+    const unpaidPeriods = situation?.unpaid_periods || [];
+    const remainingTotal = Number(summary.remaining_total || 0);
+    const advanceTotal = Number(summary.advance_total || 0);
+    const statusText = remainingTotal > 0
+      ? `${unpaidPeriods.length} mois impayé(s) restant(s)`
+      : (advanceTotal > 0 ? 'Compte en avance' : 'Compte soldé');
+    const statusColor = remainingTotal > 0 ? '#DC2626' : '#16A34A';
+    const unpaidRows = unpaidPeriods.slice(0, 12).map((period, index) => [
+      { text: String(index + 1), style: 'tableCell', alignment: 'center' },
+      { text: this.formatPeriodMonth(period), style: 'tableCell', bold: true },
+      { text: this.formatMoney(receipt.lease?.monthly_rent || 0, currency), style: 'tableCell', alignment: 'right', color: '#DC2626', bold: true },
+    ]);
+    const monthlyRent = Number(receipt.lease?.monthly_rent || 0);
+    const advancePeriods = advanceTotal > 0 && monthlyRent > 0
+      ? this.buildFuturePeriods(String(receipt.period_month || ''), Math.ceil(advanceTotal / monthlyRent)).slice(0, 12)
+      : [];
+    const advanceRows = advancePeriods.map((period, index) => [
+      { text: String(index + 1), style: 'tableCell', alignment: 'center' },
+      { text: this.formatPeriodMonth(period), style: 'tableCell', bold: true },
+      { text: this.formatMoney(monthlyRent, currency), style: 'tableCell', alignment: 'right', color: '#16A34A', bold: true },
+    ]);
+    const moreUnpaid = unpaidPeriods.length > 12
+      ? [{ text: `+ ${unpaidPeriods.length - 12} autre(s) mois impayé(s)`, colSpan: 3, alignment: 'center', color: '#64748B', margin: [0, 5, 0, 5] }, '', '']
+      : null;
+
+    const content: any[] = [
       {
-        table: { widths: ['*'], body: [[{
-          stack: [
-            { text: this.formatMoney(receipt.amount, receipt.currency || 'GNF'), fontSize: 24, bold: true, color: '#16A34A', alignment: 'center' },
-            { text: `Reçu N° ${receipt.receipt_number}`, alignment: 'center', color: '#64748B', margin: [0, 5, 0, 0] },
-          ],
-          margin: [16, 16, 16, 16],
-        }]] },
-        layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => '#ECFDF5' },
+        columns: [
+          {
+            width: '*',
+            table: { widths: ['*'], body: [[{
+              stack: [
+                { text: 'MONTANT REÇU', fontSize: 8.5, bold: true, color: '#047857', alignment: 'center', characterSpacing: 1.2 },
+                { text: this.formatMoney(receipt.amount, currency), fontSize: 30, bold: true, color: '#16A34A', alignment: 'center', margin: [0, 6, 0, 4] },
+                { text: `Période réglée : ${this.formatPeriodMonth(receipt.period_month)}`, fontSize: 10, color: '#475569', alignment: 'center' },
+              ],
+              margin: [16, 16, 16, 16],
+            }]] },
+            layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => '#ECFDF5' },
+          },
+          {
+            width: 180,
+            margin: [14, 0, 0, 0],
+            table: { widths: ['*'], body: [[{
+              stack: [
+                { text: 'SITUATION APRÈS PAIEMENT', fontSize: 8.5, bold: true, color: statusColor, alignment: 'center', characterSpacing: 0.8 },
+                { text: remainingTotal > 0 ? this.formatMoney(remainingTotal, currency) : this.formatMoney(advanceTotal, currency), fontSize: 18, bold: true, color: statusColor, alignment: 'center', margin: [0, 8, 0, 4] },
+                { text: statusText, fontSize: 9, color: '#475569', alignment: 'center' },
+              ],
+              margin: [12, 15, 12, 15],
+            }]] },
+            layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => remainingTotal > 0 ? '#FEF2F2' : '#ECFDF5' },
+          },
+        ],
         margin: [0, 0, 0, 16],
       },
-      this.simpleInfoGrid([
-        ['Locataire', receipt.lease?.renter_name || '—'],
-        ['Téléphone', receipt.lease?.renter_phone || '—'],
-        ['Période réglée', this.formatPeriodMonth(receipt.period_month)],
-        ['Date paiement', this.formatDate(receipt.payment_date)],
-        ['Unité', receipt.lease?.housing_unit_label || '—'],
-        ['Immeuble', receipt.lease?.building_name || receipt.lease?.location_name || '—'],
-        ['Mode paiement', receipt.payment_method || '—'],
-        ['Référence', receipt.reference || '—'],
-        ['Loyer mensuel', this.formatMoney(receipt.lease?.monthly_rent || 0, receipt.lease?.currency || receipt.currency || 'GNF')],
-        ['Statut', receipt.status || 'PAID'],
-      ]),
-      receipt.notes ? { text: `Notes: ${receipt.notes}`, margin: [0, 14, 0, 0], color: '#475569' } : {},
-    ], 'portrait');
-    pdfMake.createPdf(docDef).print();
+      {
+        table: { widths: ['*', '*'], body: [
+          [
+            this.receiptInfoBlock('LOCATAIRE', [
+              ['Nom', receipt.lease?.renter_name || '—'],
+              ['Téléphone', receipt.lease?.renter_phone || '—'],
+              ['Logement', receipt.lease?.housing_unit_label || '—'],
+              ['Immeuble', receipt.lease?.building_name || receipt.lease?.location_name || '—'],
+            ]),
+            this.receiptInfoBlock('PAIEMENT', [
+              ['Reçu N°', receipt.receipt_number],
+              ['Date paiement', this.formatDate(receipt.payment_date)],
+              ['Mode paiement', receipt.payment_method || '—'],
+              ['Référence', receipt.reference || '—'],
+            ]),
+          ],
+        ] },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 4, paddingBottom: () => 4 },
+        margin: [0, 0, 0, 14],
+      },
+      {
+        table: { widths: ['*', '*', '*', '*'], body: [[
+          this.summaryCell('LOYER MENSUEL', this.formatMoney(receipt.lease?.monthly_rent || 0, currency), '#1D4ED8'),
+          this.summaryCell('TOTAL À PAYER', this.formatMoney(summary.expected_total || 0, currency), '#0F3460'),
+          this.summaryCell('TOTAL PAYÉ', this.formatMoney(summary.paid_total || 0, currency), '#16A34A'),
+          this.summaryCell('RESTE À SOLDER', this.formatMoney(remainingTotal, currency), remainingTotal > 0 ? '#DC2626' : '#16A34A'),
+        ]] },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+        margin: [0, 0, 0, 14],
+      },
+      { text: 'MOIS IMPAYÉS RESTANTS', style: 'sectionTitle', margin: [0, 4, 0, 8] },
+      unpaidPeriods.length
+        ? {
+            table: {
+              headerRows: 1,
+              widths: [34, '*', 110],
+              body: [
+                [
+                  { text: '#', style: 'tableHeader', alignment: 'center' },
+                  { text: 'Mois restant à payer', style: 'tableHeader' },
+                  { text: 'Montant', style: 'tableHeader', alignment: 'right' },
+                ],
+                ...unpaidRows,
+                ...(moreUnpaid ? [moreUnpaid] : []),
+              ],
+            },
+            layout: this.lightTableLayout(),
+          }
+        : { text: 'Aucun mois impayé restant après ce paiement.', color: '#16A34A', bold: true, margin: [0, 4, 0, 8] },
+      ...(advanceRows.length
+        ? [
+          { text: 'AVANCE SUR MOIS À VENIR', style: 'sectionTitle', margin: [0, 14, 0, 8] },
+          {
+            table: {
+              headerRows: 1,
+              widths: [34, '*', 110],
+              body: [
+                [
+                  { text: '#', style: 'tableHeader', alignment: 'center' },
+                  { text: 'Mois couvert en avance', style: 'tableHeader' },
+                  { text: 'Montant estimé', style: 'tableHeader', alignment: 'right' },
+                ],
+                ...advanceRows,
+              ],
+            },
+            layout: this.lightTableLayout(),
+          },
+        ]
+        : []),
+      receipt.notes ? { text: `Notes : ${receipt.notes}`, margin: [0, 14, 0, 0], color: '#475569' } : {},
+    ];
+
+    const doc = this.buildSimpleReportDoc(`REÇU LOCATION ${receipt.receipt_number}`, receipt.organisation, assets, content, 'portrait');
+    return {
+      ...doc,
+      pageMargins: [28, 128, 28, 52],
+      styles: {
+        ...doc.styles,
+        tableCell: { fontSize: 8.6, color: '#111827' },
+      },
+    };
+  }
+
+  private buildFuturePeriods(startPeriod: string, count: number): string[] {
+    if (!startPeriod || startPeriod.length < 7 || count <= 0) return [];
+    const [year, month] = startPeriod.split('-').map(Number);
+    const cursor = new Date(year, (month || 1) - 1, 1);
+    const periods: string[] = [];
+    for (let i = 0; i < count && i < 60; i++) {
+      periods.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`);
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return periods;
+  }
+
+  private receiptInfoBlock(title: string, rows: Array<[string, string]>): any {
+    return {
+      stack: [
+        { text: title, fontSize: 9, bold: true, color: '#0F3460', margin: [0, 0, 0, 8], characterSpacing: 0.8 },
+        ...rows.map(([label, value]) => ({
+          columns: [
+            { width: 82, text: label, fontSize: 8, color: '#64748B', bold: true },
+            { width: '*', text: value || '—', fontSize: 9.6, color: '#111827', bold: true },
+          ],
+          margin: [0, 0, 0, 6],
+        })),
+      ],
+      margin: [12, 12, 12, 8],
+      fillColor: '#F8FAFC',
+    };
+  }
+
+  private lightTableLayout(): any {
+    return {
+      fillColor: (rowIndex: number) => rowIndex === 0 ? '#0F3460' : rowIndex % 2 === 0 ? '#F8FAFC' : '#FFFFFF',
+      hLineColor: () => '#E5E7EB',
+      vLineColor: () => '#E5E7EB',
+      hLineWidth: () => 0.5,
+      vLineWidth: () => 0.5,
+      paddingLeft: () => 6,
+      paddingRight: () => 6,
+      paddingTop: () => 6,
+      paddingBottom: () => 6,
+    };
   }
 
   private async resolveDefaultLogo(org?: PrintableOrganisation): Promise<string | null> {

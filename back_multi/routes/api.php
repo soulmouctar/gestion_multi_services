@@ -186,73 +186,107 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::get('/dashboard/revenue-chart', [DashboardController::class, 'getRevenueChart']);
         Route::get('/dashboard/module-usage', [DashboardController::class, 'getModuleUsage']);
 
-        // Catégories de produits & Unités
-        Route::apiResource('product-categories', ProductCategoryController::class);
-        Route::apiResource('units', UnitController::class);
+        Route::middleware('tenant.module:COMMERCE')->group(function () {
+            // Catégories de produits & Unités
+            Route::apiResource('product-categories', ProductCategoryController::class);
+            Route::apiResource('units', UnitController::class);
 
-        // Produits
-        Route::get('products/low-stock', [ProductController::class, 'getLowStockProducts']);
-        Route::get('products/statistics', [ProductController::class, 'getStatistics']);
-        Route::apiResource('products', ProductController::class);
-        Route::post('products/{id}/update-stock', [ProductController::class, 'updateStock']);
-        Route::post('products/bulk-update-status', [ProductController::class, 'bulkUpdateStatus']);
-        Route::post('products/{id}/image', [ProductController::class, 'uploadImage']);
-        Route::delete('products/{id}/image', [ProductController::class, 'removeImage']);
+            // Produits
+            Route::get('products/low-stock', [ProductController::class, 'getLowStockProducts']);
+            Route::get('products/statistics', [ProductController::class, 'getStatistics']);
+            Route::apiResource('products', ProductController::class);
+            Route::post('products/{id}/update-stock', [ProductController::class, 'updateStock']);
+            Route::post('products/bulk-update-status', [ProductController::class, 'bulkUpdateStatus']);
+            Route::post('products/{id}/image', [ProductController::class, 'uploadImage']);
+            Route::delete('products/{id}/image', [ProductController::class, 'removeImage']);
 
-        // Conteneurs
-        Route::get('containers/statistics/general', [ContainerController::class, 'statisticsGeneral']);
-        Route::get('containers/statistics/capacity', [ContainerController::class, 'statisticsCapacity']);
-        Route::get('containers/statistics/status', [ContainerController::class, 'statisticsStatus']);
-        Route::get('containers/statistics/monthly', [ContainerController::class, 'statisticsMonthly']);
-        Route::get('containers/statistics/top-performers', [ContainerController::class, 'statisticsTopPerformers']);
-        Route::apiResource('containers', ContainerController::class);
+            // Tableau de bord commercial (endpoint unique optimisé)
+            Route::get('commercial/dashboard', [CommercialDashboardController::class, 'index']);
 
-        // Paiements conteneurs
-        Route::get('container-payments/statistics', [ContainerPaymentController::class, 'statistics']);
-        Route::apiResource('container-payments', ContainerPaymentController::class);
+            // Factures
+            Route::get('invoices/sales-summary', [InvoiceController::class, 'salesSummary']);
+            Route::get('clients/{id}/outstanding-balance', [InvoiceController::class, 'clientOutstandingBalance']);
+            Route::apiResource('invoices', InvoiceController::class);
 
-        // Tableau de bord commercial (endpoint unique optimisé)
-        Route::get('commercial/dashboard', [CommercialDashboardController::class, 'index']);
+            // Retours produits
+            Route::apiResource('product-returns', ProductReturnController::class)->only(['index', 'store']);
+        });
 
-        // Ventes conteneurs
-        Route::get('container-arrivals', [ContainerSalesController::class, 'getArrivals']);
-        Route::post('container-arrivals', [ContainerSalesController::class, 'storeArrival']);
-        Route::put('container-arrivals/{id}', [ContainerSalesController::class, 'updateArrival']);
-        Route::delete('container-arrivals/{id}', [ContainerSalesController::class, 'deleteArrival']);
+        Route::middleware('tenant.module:CONTAINER')->group(function () {
+            // Conteneurs
+            Route::get('containers/statistics/general', [ContainerController::class, 'statisticsGeneral']);
+            Route::get('containers/statistics/capacity', [ContainerController::class, 'statisticsCapacity']);
+            Route::get('containers/statistics/status', [ContainerController::class, 'statisticsStatus']);
+            Route::get('containers/statistics/monthly', [ContainerController::class, 'statisticsMonthly']);
+            Route::get('containers/statistics/top-performers', [ContainerController::class, 'statisticsTopPerformers']);
+            Route::apiResource('containers', ContainerController::class);
 
-        Route::get('container-sales/global-stats', [ContainerSalesController::class, 'getGlobalStats']);
-        Route::get('container-sales/client-balances', [ContainerSalesController::class, 'getClientBalances']);
-        Route::get('container-sales/client-stats/{clientId}', [ContainerSalesController::class, 'getClientStats']);
-        Route::get('container-sales/allocation-summary', [ContainerSalesController::class, 'getAllocationSummary']);
-        Route::get('container-sales', [ContainerSalesController::class, 'getSales']);
-        Route::post('container-sales', [ContainerSalesController::class, 'storeSale']);
-        Route::post('container-sales/global-payment', [ContainerSalesController::class, 'storeGlobalClientPayment']);
-        Route::put('container-sales/{id}', [ContainerSalesController::class, 'updateSale']);
+            // Paiements conteneurs
+            Route::get('container-payments/statistics', [ContainerPaymentController::class, 'statistics']);
+            Route::apiResource('container-payments', ContainerPaymentController::class);
 
-        Route::get('container-sale-payments', [ContainerSalesController::class, 'getPayments']);
-        Route::post('container-sale-payments', [ContainerSalesController::class, 'storePayment']);
-        Route::delete('container-sale-payments/{id}', [ContainerSalesController::class, 'deletePayment']);
+            // Ventes conteneurs
+            Route::get('container-arrivals', [ContainerSalesController::class, 'getArrivals']);
+            Route::post('container-arrivals', [ContainerSalesController::class, 'storeArrival']);
+            Route::put('container-arrivals/{id}', [ContainerSalesController::class, 'updateArrival']);
+            Route::delete('container-arrivals/{id}', [ContainerSalesController::class, 'deleteArrival']);
 
-        Route::get('client-advances', [ContainerSalesController::class, 'getAdvances']);
-        Route::post('client-advances', [ContainerSalesController::class, 'storeAdvance']);
+            Route::get('container-sales/global-stats', [ContainerSalesController::class, 'getGlobalStats']);
+            Route::get('container-sales/client-balances', [ContainerSalesController::class, 'getClientBalances']);
+            Route::get('container-sales/client-stats/{clientId}', [ContainerSalesController::class, 'getClientStats']);
+            Route::get('container-sales/allocation-summary', [ContainerSalesController::class, 'getAllocationSummary']);
+            Route::get('container-sales', [ContainerSalesController::class, 'getSales']);
+            Route::post('container-sales', [ContainerSalesController::class, 'storeSale']);
+            Route::post('container-sales/global-payment', [ContainerSalesController::class, 'storeGlobalClientPayment']);
+            Route::put('container-sales/{id}', [ContainerSalesController::class, 'updateSale']);
 
-        // Photos conteneurs
-        Route::get('container-photos', [ContainerPhotoController::class, 'publicIndex']);
-        Route::post('container-photos', [ContainerPhotoController::class, 'publicStore']);
-        Route::delete('container-photos/{id}', [ContainerPhotoController::class, 'destroy']);
+            Route::get('container-sale-payments', [ContainerSalesController::class, 'getPayments']);
+            Route::post('container-sale-payments', [ContainerSalesController::class, 'storePayment']);
+            Route::delete('container-sale-payments/{id}', [ContainerSalesController::class, 'deletePayment']);
 
-        // Clients & Fournisseurs
-        // Clients
-        Route::get('clients/statistics', [ClientController::class, 'getStatistics']);
-        Route::get('clients/financial-overview', [ClientController::class, 'getFinancialOverview']);
-        Route::get('clients/{id}/transactions', [ClientController::class, 'getTransactionHistory']);
-        Route::get('clients/{id}/ledger', [ClientController::class, 'getLedger']);
+            Route::get('client-advances', [ContainerSalesController::class, 'getAdvances']);
+            Route::post('client-advances', [ContainerSalesController::class, 'storeAdvance']);
 
-        // Frais d'intérêts client (compte SALL)
-        Route::get('clients/{id}/interest-charges', [ClientInterestController::class, 'indexForClient']);
-        Route::post('client-interest-charges', [ClientInterestController::class, 'store']);
-        Route::put('client-interest-charges/{id}', [ClientInterestController::class, 'update']);
-        Route::delete('client-interest-charges/{id}', [ClientInterestController::class, 'destroy']);
+            // Photos conteneurs
+            Route::get('container-photos', [ContainerPhotoController::class, 'publicIndex']);
+            Route::post('container-photos', [ContainerPhotoController::class, 'publicStore']);
+            Route::delete('container-photos/{id}', [ContainerPhotoController::class, 'destroy']);
+        });
+
+        Route::middleware('tenant.module:CLIENTS_SUPPLIERS')->group(function () {
+            // Clients & Fournisseurs
+            // Clients
+            Route::get('clients/statistics', [ClientController::class, 'getStatistics']);
+            Route::get('clients/financial-overview', [ClientController::class, 'getFinancialOverview']);
+            Route::get('clients/{id}/transactions', [ClientController::class, 'getTransactionHistory']);
+            Route::get('clients/{id}/ledger', [ClientController::class, 'getLedger']);
+
+            // Frais d'intérêts client (compte SALL)
+            Route::get('clients/{id}/interest-charges', [ClientInterestController::class, 'indexForClient']);
+            Route::post('client-interest-charges', [ClientInterestController::class, 'store']);
+            Route::put('client-interest-charges/{id}', [ClientInterestController::class, 'update']);
+            Route::delete('client-interest-charges/{id}', [ClientInterestController::class, 'destroy']);
+
+            // Comptes-devises par client (GNF principal + USD/EUR/etc.)
+            Route::get('clients/{id}/currency-accounts', [ClientCurrencyAccountController::class, 'indexForClient']);
+            Route::post('client-currency-accounts', [ClientCurrencyAccountController::class, 'store']);
+            Route::put('client-currency-accounts/{id}', [ClientCurrencyAccountController::class, 'update']);
+            Route::delete('client-currency-accounts/{id}', [ClientCurrencyAccountController::class, 'destroy']);
+            Route::post('clients/{id}/photo', [ClientController::class, 'uploadPhoto']);
+            Route::delete('clients/{id}/photo', [ClientController::class, 'deletePhoto']);
+            Route::apiResource('clients', ClientController::class);
+
+            // Fournisseurs
+            Route::get('suppliers/balance-summary', [SupplierController::class, 'getBalanceSummary']);
+            Route::get('suppliers/{id}/history', [SupplierController::class, 'getHistory']);
+            Route::get('suppliers/{id}/financial-relations', [SupplierController::class, 'getFinancialRelations']);
+            Route::get('suppliers/{id}/payments', [SupplierController::class, 'getPayments']);
+            Route::post('suppliers/{id}/payments', [SupplierController::class, 'storePayment']);
+            Route::delete('suppliers/{supplierId}/payments/{paymentId}', [SupplierController::class, 'deletePayment']);
+            Route::post('suppliers/{id}/photo', [SupplierController::class, 'uploadPhoto']);
+            Route::delete('suppliers/{id}/photo', [SupplierController::class, 'deletePhoto']);
+            Route::apiResource('suppliers', SupplierController::class);
+        });
 
         // ── CORBEILLE (SoftDeletes) ────────────────────────────────
         Route::get('trash',                        [TrashController::class, 'summary']);
@@ -261,119 +295,101 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::delete('trash/{entity}/{id}/force', [TrashController::class, 'forceDestroy']);
         Route::delete('trash/{entity}/empty',      [TrashController::class, 'emptyAll']);
 
-        // Comptes-devises par client (GNF principal + USD/EUR/etc.)
-        Route::get('clients/{id}/currency-accounts', [ClientCurrencyAccountController::class, 'indexForClient']);
-        Route::post('client-currency-accounts', [ClientCurrencyAccountController::class, 'store']);
-        Route::put('client-currency-accounts/{id}', [ClientCurrencyAccountController::class, 'update']);
-        Route::delete('client-currency-accounts/{id}', [ClientCurrencyAccountController::class, 'destroy']);
-        Route::post('clients/{id}/photo', [ClientController::class, 'uploadPhoto']);
-        Route::delete('clients/{id}/photo', [ClientController::class, 'deletePhoto']);
-        Route::apiResource('clients', ClientController::class);
+        Route::middleware('tenant.module:FINANCE')->group(function () {
+            // Taux de change
+            Route::apiResource('exchange-rates', ExchangeRateController::class);
 
-        // Fournisseurs
-        Route::get('suppliers/balance-summary', [SupplierController::class, 'getBalanceSummary']);
-        Route::get('suppliers/{id}/history', [SupplierController::class, 'getHistory']);
-        Route::get('suppliers/{id}/financial-relations', [SupplierController::class, 'getFinancialRelations']);
-        Route::get('suppliers/{id}/payments', [SupplierController::class, 'getPayments']);
-        Route::post('suppliers/{id}/payments', [SupplierController::class, 'storePayment']);
-        Route::delete('suppliers/{supplierId}/payments/{paymentId}', [SupplierController::class, 'deletePayment']);
-        Route::post('suppliers/{id}/photo', [SupplierController::class, 'uploadPhoto']);
-        Route::delete('suppliers/{id}/photo', [SupplierController::class, 'deletePhoto']);
-        Route::apiResource('suppliers', SupplierController::class);
+            // Finance dashboard (optimisé : 5 requêtes au lieu de 18+)
+            Route::get('finance/dashboard', [PaymentController::class, 'financeDashboard']);
 
-        // Taux de change
-        Route::apiResource('exchange-rates', ExchangeRateController::class);
+            // Rapport marges bénéficiaires (factures + conteneurs)
+            Route::get('finance/margins', [PaymentController::class, 'marginsReport']);
 
-        // Finance dashboard (optimisé : 5 requêtes au lieu de 18+)
-        Route::get('finance/dashboard', [PaymentController::class, 'financeDashboard']);
+            // Paiements
+            Route::post('payments/batch', [PaymentController::class, 'storeBatch']);
+            Route::get('payments/statistics', [PaymentController::class, 'getStatistics']);
+            Route::get('payments/date-range', [PaymentController::class, 'getByDateRange']);
+            Route::post('payments/bulk-delete', [PaymentController::class, 'bulkDelete']);
+            Route::get('payments/export', [PaymentController::class, 'export']);
+            Route::get('payments/clients-balances', [PaymentController::class, 'getClientsBalances']);
+            Route::get('payments/{id}/receipt', [PaymentController::class, 'getReceipt']);
+            Route::get('clients/{clientId}/balance', [PaymentController::class, 'getClientBalance']);
+            Route::apiResource('payments', PaymentController::class);
+        });
 
-        // Rapport marges bénéficiaires (factures + conteneurs)
-        Route::get('finance/margins', [PaymentController::class, 'marginsReport']);
+        Route::middleware('tenant.module:TAXI')->group(function () {
+            // Versements journaliers
+            Route::get('daily-payments/statistics', [DailyPaymentController::class, 'statistics']);
+            Route::post('daily-payments/bulk', [DailyPaymentController::class, 'bulkCreate']);
+            Route::get('drivers/{id}/payment-history', [DailyPaymentController::class, 'driverHistory']);
+            Route::apiResource('daily-payments', DailyPaymentController::class);
 
-        // Paiements
-        Route::post('payments/batch', [PaymentController::class, 'storeBatch']);
-        Route::get('payments/statistics', [PaymentController::class, 'getStatistics']);
-        Route::get('payments/date-range', [PaymentController::class, 'getByDateRange']);
-        Route::post('payments/bulk-delete', [PaymentController::class, 'bulkDelete']);
-        Route::get('payments/export', [PaymentController::class, 'export']);
-        Route::get('payments/clients-balances', [PaymentController::class, 'getClientsBalances']);
-        Route::get('payments/{id}/receipt', [PaymentController::class, 'getReceipt']);
-        Route::get('clients/{clientId}/balance', [PaymentController::class, 'getClientBalance']);
-        Route::apiResource('payments', PaymentController::class);
+            // Dépenses véhicules
+            Route::get('vehicle-expenses/statistics', [VehicleExpenseController::class, 'statistics']);
+            Route::get('vehicle-expenses/types', [VehicleExpenseController::class, 'expenseTypes']);
+            Route::apiResource('vehicle-expenses', VehicleExpenseController::class);
 
-        // Retours produits
-        Route::apiResource('product-returns', ProductReturnController::class)->only(['index', 'store']);
+            // Module Taxi
+            Route::get('taxi/dashboard', [TaxiDashboardController::class, 'dashboard']);
+            Route::get('taxi/documents', [TaxiDashboardController::class, 'documents']);
+            Route::get('drivers/statistics', [DriverController::class, 'statistics']);
+            Route::post('drivers/{id}/toggle-status', [DriverController::class, 'toggleStatus']);
+            Route::post('drivers/{id}/activate', [DriverController::class, 'activate']);
+            Route::post('drivers/{id}/suspend', [DriverController::class, 'suspend']);
+            Route::apiResource('drivers', DriverController::class);
+            Route::apiResource('taxis', TaxiController::class);
+            Route::apiResource('taxi-assignments', TaxiAssignmentController::class);
+        });
 
-        // Versements journaliers
-        Route::get('daily-payments/statistics', [DailyPaymentController::class, 'statistics']);
-        Route::post('daily-payments/bulk', [DailyPaymentController::class, 'bulkCreate']);
-        Route::get('drivers/{id}/payment-history', [DailyPaymentController::class, 'driverHistory']);
-        Route::apiResource('daily-payments', DailyPaymentController::class);
+        Route::middleware('tenant.module:RENTAL')->group(function () {
+            // Module Immobilier
+            Route::get('locations/statistics', [LocationController::class, 'statistics']);
+            Route::apiResource('locations', LocationController::class);
+            Route::apiResource('buildings', BuildingController::class);
+            Route::apiResource('floors', FloorController::class);
+            Route::apiResource('unit-configurations', UnitConfigurationController::class);
+            Route::apiResource('housing-units', HousingUnitController::class);
 
-        // Dépenses véhicules
-        Route::get('vehicle-expenses/statistics', [VehicleExpenseController::class, 'statistics']);
-        Route::get('vehicle-expenses/types', [VehicleExpenseController::class, 'expenseTypes']);
-        Route::apiResource('vehicle-expenses', VehicleExpenseController::class);
+            // Contrats de location (leases)
+            Route::get('leases/statistics', [LeaseController::class, 'statistics']);
+            Route::get('leases/payments', [LeaseController::class, 'allPayments']);
+            Route::apiResource('leases', LeaseController::class);
+            Route::get('leases/{lease}/financial-situation', [LeaseController::class, 'getFinancialSituation']);
+            Route::get('leases/{lease}/payments',    [LeaseController::class, 'getPayments']);
+            Route::post('leases/{lease}/payments',   [LeaseController::class, 'addPayment']);
+            Route::get('lease-payments/{id}/receipt', [LeaseController::class, 'getPaymentReceipt']);
+            Route::delete('lease-payments/{id}',     [LeaseController::class, 'deletePayment']);
 
-        // Factures
-        Route::get('invoices/sales-summary', [InvoiceController::class, 'salesSummary']);
-        Route::get('clients/{id}/outstanding-balance', [InvoiceController::class, 'clientOutstandingBalance']);
-        Route::apiResource('invoices', InvoiceController::class);
+            // Tableau de bord Immobilier
+            Route::get('rental/dashboard', [RentalDashboardController::class, 'dashboard']);
+            Route::get('rental/tenants',   [RentalDashboardController::class, 'tenants']);
+        });
 
-        // Module Immobilier
-        Route::get('locations/statistics', [LocationController::class, 'statistics']);
-        Route::apiResource('locations', LocationController::class);
-        Route::apiResource('buildings', BuildingController::class);
-        Route::apiResource('floors', FloorController::class);
-        Route::apiResource('unit-configurations', UnitConfigurationController::class);
-        Route::apiResource('housing-units', HousingUnitController::class);
+        Route::middleware('tenant.module:EXPENSES')->group(function () {
+            // Module Dépenses Personnelles
+            Route::get('personal-expenses/statistics',      [PersonalExpenseController::class, 'statistics']);
+            Route::get('personal-expense-categories',       [PersonalExpenseController::class, 'indexCategories']);
+            Route::post('personal-expense-categories',      [PersonalExpenseController::class, 'storeCategory']);
+            Route::put('personal-expense-categories/{id}',  [PersonalExpenseController::class, 'updateCategory']);
+            Route::delete('personal-expense-categories/{id}', [PersonalExpenseController::class, 'destroyCategory']);
+            Route::apiResource('personal-expenses', PersonalExpenseController::class)->except(['create', 'edit']);
+        });
 
-        // Contrats de location (leases)
-        Route::get('leases/statistics', [LeaseController::class, 'statistics']);
-        Route::get('leases/payments', [LeaseController::class, 'allPayments']);
-        Route::apiResource('leases', LeaseController::class);
-        Route::get('leases/{lease}/financial-situation', [LeaseController::class, 'getFinancialSituation']);
-        Route::get('leases/{lease}/payments',    [LeaseController::class, 'getPayments']);
-        Route::post('leases/{lease}/payments',   [LeaseController::class, 'addPayment']);
-        Route::get('lease-payments/{id}/receipt', [LeaseController::class, 'getPaymentReceipt']);
-        Route::delete('lease-payments/{id}',     [LeaseController::class, 'deletePayment']);
-
-        // Tableau de bord Immobilier
-        Route::get('rental/dashboard', [RentalDashboardController::class, 'dashboard']);
-        Route::get('rental/tenants',   [RentalDashboardController::class, 'tenants']);
-
-        // Module Taxi
-        Route::get('taxi/dashboard', [TaxiDashboardController::class, 'dashboard']);
-        Route::get('taxi/documents', [TaxiDashboardController::class, 'documents']);
-        Route::get('drivers/statistics', [DriverController::class, 'statistics']);
-        Route::post('drivers/{id}/toggle-status', [DriverController::class, 'toggleStatus']);
-        Route::post('drivers/{id}/activate', [DriverController::class, 'activate']);
-        Route::post('drivers/{id}/suspend', [DriverController::class, 'suspend']);
-        Route::apiResource('drivers', DriverController::class);
-        Route::apiResource('taxis', TaxiController::class);
-        Route::apiResource('taxi-assignments', TaxiAssignmentController::class);
-
-        // Module Dépenses Personnelles
-        Route::get('personal-expenses/statistics',      [PersonalExpenseController::class, 'statistics']);
-        Route::get('personal-expense-categories',       [PersonalExpenseController::class, 'indexCategories']);
-        Route::post('personal-expense-categories',      [PersonalExpenseController::class, 'storeCategory']);
-        Route::put('personal-expense-categories/{id}',  [PersonalExpenseController::class, 'updateCategory']);
-        Route::delete('personal-expense-categories/{id}', [PersonalExpenseController::class, 'destroyCategory']);
-        Route::apiResource('personal-expenses', PersonalExpenseController::class)->except(['create', 'edit']);
-
-        // Module Bancaire
-        Route::get('banking/statistics',                    [BankingController::class, 'statistics']);
-        Route::get('banking/accounts',                      [BankingController::class, 'indexAccounts']);
-        Route::post('banking/accounts',                     [BankingController::class, 'storeAccount']);
-        Route::get('banking/accounts/{id}',                 [BankingController::class, 'showAccount']);
-        Route::put('banking/accounts/{id}',                 [BankingController::class, 'updateAccount']);
-        Route::delete('banking/accounts/{id}',              [BankingController::class, 'destroyAccount']);
-        Route::get('banking/transactions',                  [BankingController::class, 'indexTransactions']);
-        Route::post('banking/transactions',                 [BankingController::class, 'storeTransaction']);
-        Route::get('banking/transactions/{id}',             [BankingController::class, 'showTransaction']);
-        Route::put('banking/transactions/{id}',             [BankingController::class, 'updateTransaction']);
-        Route::delete('banking/transactions/{id}',          [BankingController::class, 'destroyTransaction']);
-        Route::post('banking/transactions/{id}/upload-proof', [BankingController::class, 'uploadProof']);
+        Route::middleware('tenant.module:BANKING')->group(function () {
+            // Module Bancaire
+            Route::get('banking/statistics',                    [BankingController::class, 'statistics']);
+            Route::get('banking/accounts',                      [BankingController::class, 'indexAccounts']);
+            Route::post('banking/accounts',                     [BankingController::class, 'storeAccount']);
+            Route::get('banking/accounts/{id}',                 [BankingController::class, 'showAccount']);
+            Route::put('banking/accounts/{id}',                 [BankingController::class, 'updateAccount']);
+            Route::delete('banking/accounts/{id}',              [BankingController::class, 'destroyAccount']);
+            Route::get('banking/transactions',                  [BankingController::class, 'indexTransactions']);
+            Route::post('banking/transactions',                 [BankingController::class, 'storeTransaction']);
+            Route::get('banking/transactions/{id}',             [BankingController::class, 'showTransaction']);
+            Route::put('banking/transactions/{id}',             [BankingController::class, 'updateTransaction']);
+            Route::delete('banking/transactions/{id}',          [BankingController::class, 'destroyTransaction']);
+            Route::post('banking/transactions/{id}/upload-proof', [BankingController::class, 'uploadProof']);
+        });
 
     }); // Fin du groupe auth:sanctum
 

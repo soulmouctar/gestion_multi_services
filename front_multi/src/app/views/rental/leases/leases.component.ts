@@ -11,6 +11,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PdfService } from '../../../core/services/pdf.service';
+import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -70,6 +71,7 @@ export class LeasesComponent implements OnInit {
   paidPeriods: string[] = [];
   // Ordered list of unpaid months from contract start to today
   unpaidMonths: string[] = [];
+  advancePaymentMonth = '';
   loadingPaidMonths = false;
 
   // ===== FORMS =====
@@ -146,6 +148,13 @@ export class LeasesComponent implements OnInit {
   get canDeleteLeases(): boolean { return this.authService.hasModulePermission('RENTAL', 'delete'); }
   get canRegisterLeasePayments(): boolean { return this.authService.hasModulePermission('RENTAL', 'create'); }
   get canDeleteLeasePayments(): boolean { return this.authService.hasModulePermission('RENTAL', 'delete'); }
+  get selectableHousingUnits(): any[] {
+    const currentUnitId = Number(this.selectedLease?.housing_unit_id || 0);
+    return this.housingUnits.filter(unit => {
+      const isCurrentLeaseUnit = this.editMode && Number(unit.id) === currentUnitId;
+      return isCurrentLeaseUnit || String(unit.status || 'LIBRE').toUpperCase() === 'LIBRE';
+    });
+  }
 
   ngOnInit(): void {
     this.loadHousingUnits();
@@ -174,8 +183,9 @@ export class LeasesComponent implements OnInit {
         this.housingUnits = r.success
           ? (Array.isArray(r.data) ? r.data : (r.data?.data || []))
           : [];
+        this.cdr.detectChanges();
       },
-      error: () => { this.housingUnits = []; }
+      error: () => { this.housingUnits = []; this.cdr.detectChanges(); }
     });
   }
 
@@ -271,7 +281,7 @@ export class LeasesComponent implements OnInit {
     this.submitted = false;
     this.selectedLease = lease;
     this.selectedLeasePhotoFile = null;
-    this.selectedLeasePhotoPreview = lease.renter_photo_url || null;
+    this.selectedLeasePhotoPreview = this.leasePhotoUrl(lease) || null;
     this.leaseForm.patchValue({
       housing_unit_id: lease.housing_unit_id,
       renter_name:     lease.renter_name,
@@ -300,6 +310,19 @@ export class LeasesComponent implements OnInit {
         this.cdr.detectChanges();
       };
       reader.readAsDataURL(file);
+    }
+  }
+
+  leasePhotoUrl(lease: any): string {
+    return resolveUploadUrl(lease?.renter_photo_url || lease?.renter_photo || '');
+  }
+
+  hideBrokenImage(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    image.style.display = 'none';
+    const fallback = image.nextElementSibling as HTMLElement | null;
+    if (fallback) {
+      fallback.style.display = 'flex';
     }
   }
 
@@ -362,6 +385,7 @@ export class LeasesComponent implements OnInit {
     this.selectedLease = lease;
     this.paidPeriods = [];
     this.unpaidMonths = [];
+    this.advancePaymentMonth = '';
     this.loadingPaidMonths = true;
 
     // Load existing payments to determine next unpaid month
@@ -384,7 +408,8 @@ export class LeasesComponent implements OnInit {
         }
 
         this.unpaidMonths = allMonths.filter(m => !this.paidPeriods.includes(m));
-        const suggestedMonth = this.unpaidMonths.length > 0 ? this.unpaidMonths[0] : this.currentMonth();
+        this.advancePaymentMonth = this.unpaidMonths.length > 0 ? '' : this.nextAvailableMonth(this.paidPeriods, this.currentMonth());
+        const suggestedMonth = this.unpaidMonths.length > 0 ? this.unpaidMonths[0] : this.advancePaymentMonth;
 
         this.paymentForm.reset({
           period_month:   suggestedMonth,
@@ -400,6 +425,7 @@ export class LeasesComponent implements OnInit {
       error: () => {
         this.paidPeriods = [];
         this.unpaidMonths = [];
+        this.advancePaymentMonth = '';
         this.paymentForm.reset({
           period_month:   this.currentMonth(),
           amount:         lease.monthly_rent,
@@ -424,11 +450,15 @@ export class LeasesComponent implements OnInit {
     this.apiService.post<any>(`leases/${this.selectedLease.id}/payments`, this.paymentForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
-          Swal.fire({ icon: 'success', title: 'Paiement enregistré', timer: 2000, showConfirmButton: false });
+          Swal.fire({ icon: 'success', title: 'Paiement enregistré', text: 'Génération du reçu en cours...', timer: 1200, showConfirmButton: false });
           this.showPaymentModal = false;
           this.loadAllPayments(); this.loadStats();
           if (this.selectedLease?.id) {
             this.loadLeaseFinancialSituation(this.selectedLease.id);
+          }
+          const payment = r.data;
+          if (payment?.id) {
+            this.printPaymentReceipt(payment);
           }
         }
       },
@@ -501,8 +531,10 @@ export class LeasesComponent implements OnInit {
   getUnitLabel(unit: any): string {
     if (!unit) return '—';
     const floor = unit.floor;
-    const building = floor?.building;
-    return `${building?.name || ''} - Étage ${floor?.floor_number ?? ''} - Unité #${unit.id}`;
+    const building = unit.building || floor?.building;
+    const level = floor ? `Étage ${floor.floor_number}` : 'Sans étage / annexe';
+    const apartment = unit.unit_label || `Unité #${unit.id}`;
+    return `${building?.name || 'Bâtiment'} - ${apartment} - ${level}`;
   }
 
   getStatusColor(status: string): string {
@@ -563,6 +595,20 @@ export class LeasesComponent implements OnInit {
 
   isPeriodAlreadyPaid(period: string): boolean {
     return this.paidPeriods.includes(period);
+  }
+
+  private nextAvailableMonth(paidPeriods: string[], fromMonth: string): string {
+    const paid = new Set(paidPeriods || []);
+    const [year, month] = fromMonth.split('-').map(Number);
+    const cursor = new Date(year, (month || 1) - 1, 1);
+    for (let i = 0; i < 60; i++) {
+      const candidate = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
+      if (!paid.has(candidate)) {
+        return candidate;
+      }
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return fromMonth;
   }
 
   private today(): string { return new Date().toISOString().split('T')[0]; }

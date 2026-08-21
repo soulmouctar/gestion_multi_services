@@ -472,6 +472,8 @@ class PaymentController extends BaseController
             'method'       => 'sometimes|in:ORANGE_MONEY,WAVE,MTN_MONEY,VIREMENT,CHEQUE,ESPECES',
             'amount'       => 'sometimes|numeric|min:0.01',
             'currency'     => 'nullable|string|max:10',
+            'target_currency'   => 'nullable|string|max:10',
+            'target_account_id' => 'nullable|exists:client_currency_accounts,id',
             'exchange_rate'=> 'nullable|numeric|min:0.0001',
             'amount_gnf'   => 'nullable|numeric|min:0.01',
             'proof'        => 'nullable|string|max:255',
@@ -480,6 +482,7 @@ class PaymentController extends BaseController
             'status'       => 'nullable|in:PENDING,COMPLETED,FAILED,CANCELLED',
             'payment_date' => 'sometimes|date',
             'client_id'    => 'nullable|exists:clients,id',
+            'paid_by_client_id' => 'nullable|exists:clients,id|different:client_id',
             'invoice_id'   => 'nullable|exists:invoices,id',
         ]);
 
@@ -496,7 +499,14 @@ class PaymentController extends BaseController
 
         DB::beginTransaction();
         try {
-            $currency = $request->currency ?? $payment->currency ?? 'GNF';
+            $currency = strtoupper($request->currency ?? $payment->currency ?? 'GNF');
+            $targetCurrency = strtoupper($request->target_currency ?: ($payment->target_currency ?: $currency));
+            if ($targetCurrency !== $currency && !$request->filled('exchange_rate') && !$payment->exchange_rate) {
+                DB::rollBack();
+                return $this->sendError('Taux de change requis pour convertir le paiement.', [
+                    'exchange_rate' => ['Le taux de change est requis lorsque la devise reçue diffère de la devise imputée.'],
+                ], 422);
+            }
             $exchangeRate = $this->resolveExchangeRate($request, $payment->tenant_id, $currency, (float) ($payment->exchange_rate ?? 1));
             $amountGnf = $this->resolveAmountGnf(
                 $request,
@@ -504,17 +514,40 @@ class PaymentController extends BaseController
                 $exchangeRate,
                 (float) ($request->amount ?? $payment->amount)
             );
+            $requestedTargetAccountId = $request->filled('target_account_id')
+                ? $request->input('target_account_id')
+                : ($targetCurrency === strtoupper($payment->target_currency ?: '') ? $payment->target_account_id : null);
+            $routingRequest = $request->duplicate();
+            $routingRequest->merge([
+                'type' => $request->input('type', $payment->type),
+                'client_id' => $request->input('client_id', $payment->client_id),
+                'target_currency' => $targetCurrency,
+                'target_account_id' => $requestedTargetAccountId,
+            ]);
+            $routing = $this->routePaymentToAccount(
+                $routingRequest,
+                (int) $payment->tenant_id,
+                $currency,
+                (float) ($request->amount ?? $payment->amount),
+                $exchangeRate
+            );
 
             $payload = $request->only([
                 'type', 'method', 'amount', 'currency', 'proof',
                 'reference', 'description', 'status', 'payment_date',
-                'client_id', 'invoice_id',
+                'client_id', 'paid_by_client_id', 'invoice_id',
             ]);
             $payload['currency'] = $currency;
             $payload['exchange_rate'] = $exchangeRate;
             $payload['amount_gnf'] = $amountGnf;
+            $payload['target_currency'] = $routing['target_currency'];
+            $payload['target_account_id'] = $routing['target_account_id'];
+            $payload['converted_amount'] = $routing['converted_amount'];
+            $payload['conversion_rate'] = $routing['conversion_rate'];
 
+            $this->reverseClientAccountCredit($payment);
             $payment->update($payload);
+            $this->applyClientAccountCredit($payment->fresh());
 
             // Recalculate old and new invoice if changed
             if ($oldInvoiceId && $oldInvoiceId !== $payment->invoice_id) {
@@ -548,6 +581,7 @@ class PaymentController extends BaseController
         }
 
         $invoiceId = $payment->invoice_id;
+        $this->reverseClientAccountCredit($payment);
         $payment->delete();
 
         if ($invoiceId) {
@@ -555,6 +589,35 @@ class PaymentController extends BaseController
         }
 
         return $this->sendResponse([], 'Payment deleted successfully');
+    }
+
+    private function reverseClientAccountCredit(?Payment $payment): void
+    {
+        if (!$payment || $payment->type !== 'CLIENT' || !$payment->target_account_id || !$payment->converted_amount) {
+            return;
+        }
+
+        $account = ClientCurrencyAccount::where('tenant_id', $payment->tenant_id)->find($payment->target_account_id);
+        if (!$account) {
+            return;
+        }
+
+        $amount = (float) $payment->converted_amount;
+        $account->current_balance = (float) $account->current_balance + $amount;
+        $account->total_credit = max(0, (float) $account->total_credit - $amount);
+        $account->save();
+    }
+
+    private function applyClientAccountCredit(?Payment $payment): void
+    {
+        if (!$payment || $payment->type !== 'CLIENT' || $payment->status !== 'COMPLETED' || !$payment->target_account_id || !$payment->converted_amount) {
+            return;
+        }
+
+        $account = ClientCurrencyAccount::where('tenant_id', $payment->tenant_id)->find($payment->target_account_id);
+        if ($account) {
+            $account->applyCredit((float) $payment->converted_amount);
+        }
     }
 
     /**
@@ -653,6 +716,7 @@ class PaymentController extends BaseController
             ->where('tenant_id', $tenantId)
             ->whereNull('invoice_id')
             ->where('status', 'APPROVED')
+            ->whereNull('client_advance_id')
             ->sum('client_credit_amount');
         $availableCredit = (float) $unappliedPayments->sum(fn ($payment) => $payment->amount_gnf);
         $totalRemaining = max(0, $totalInvoiced - $totalPaid - $availableCredit - (float) $returnCredits);
@@ -733,6 +797,7 @@ class PaymentController extends BaseController
                 ->where('client_id', $client?->id)
                 ->whereNull('invoice_id')
                 ->where('status', 'APPROVED')
+                ->whereNull('client_advance_id')
                 ->sum('client_credit_amount');
 
             return [
@@ -874,7 +939,12 @@ class PaymentController extends BaseController
             $expenseTotal = (float) PersonalExpense::where('tenant_id', $tenantId)
                 ->where('status', '!=', 'CANCELLED')
                 ->sum('amount_gnf');
-            $outgoingTotal = $supplierOutTotal + $bankWithdrawals + $expenseTotal;
+            $productReturnRefunds = (float) ProductReturn::where('tenant_id', $tenantId)
+                ->where('status', 'APPROVED')
+                ->where('refund_amount', '>', 0)
+                ->whereNull('refund_payment_id')
+                ->sum('total_amount_gnf');
+            $outgoingTotal = $supplierOutTotal + $bankWithdrawals + $expenseTotal + $productReturnRefunds;
 
             return $this->sendResponse([
                 'payments' => [
@@ -902,6 +972,7 @@ class PaymentController extends BaseController
                     'supplier_out_total' => $supplierOutTotal,
                     'bank_withdrawals'   => $bankWithdrawals,
                     'expense_total'      => $expenseTotal,
+                    'product_return_refunds' => $productReturnRefunds,
                     'outgoing_total'     => $outgoingTotal,
                     'net_cashflow'       => $incomeTotal - $outgoingTotal,
                 ],

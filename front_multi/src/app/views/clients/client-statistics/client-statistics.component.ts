@@ -56,6 +56,24 @@ export class ClientStatisticsComponent implements OnInit {
     }
   };
 
+  readonly horizontalBarOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+      legend: { display: true, position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, pointStyle: 'circle' } },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => ` ${ctx.dataset.label}: ${this.shortNumber(Number(ctx.parsed.x || 0))} GNF`
+        }
+      }
+    },
+    scales: {
+      x: { ticks: { color: '#64748b', callback: (v) => this.shortNumber(Number(v)) }, grid: { color: '#eef2f7' } },
+      y: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { display: false } }
+    }
+  };
+
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
@@ -121,6 +139,63 @@ export class ClientStatisticsComponent implements OnInit {
     };
   }
 
+  get collectionChartData(): ChartData<'bar'> {
+    const summary = this.stats?.summary || {};
+    return {
+      labels: ['Facturé / vendu', 'Payé', 'Reste dû', 'Crédit net'],
+      datasets: [{
+        label: 'Performance GNF',
+        data: [
+          Number(summary.total_charged || 0),
+          Number(summary.total_paid || 0),
+          Number(summary.total_rest_to_pay || 0),
+          Number(summary.total_credit_balance || 0),
+        ],
+        backgroundColor: ['#1D4ED8', '#16A34A', '#DC2626', '#7C3AED'],
+        borderRadius: 10,
+        maxBarThickness: 44,
+      }]
+    };
+  }
+
+  get topClientsChartData(): ChartData<'bar'> {
+    const rows = this.topClientsByPaid(8);
+    return {
+      labels: rows.map((c: any) => c.name),
+      datasets: [
+        {
+          label: 'Payé',
+          data: rows.map((c: any) => Number(c.total_paid || 0)),
+          backgroundColor: '#16A34A',
+          borderRadius: 8,
+        },
+        {
+          label: 'Reste dû',
+          data: rows.map((c: any) => Number(c.rest_to_pay_gnf || 0)),
+          backgroundColor: '#DC2626',
+          borderRadius: 8,
+        }
+      ]
+    };
+  }
+
+  get clientTypesChartData(): ChartData<'doughnut'> {
+    const grouped = this.clients.reduce((acc: Record<string, number>, client: any) => {
+      const key = this.clientTypeLabel(client.client_type || 'AUTRE');
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      labels: Object.keys(grouped),
+      datasets: [{
+        data: Object.values(grouped),
+        backgroundColor: ['#1D4ED8', '#16A34A', '#F59E0B', '#7C3AED', '#06B6D4', '#64748B'],
+        borderWidth: 0,
+      }]
+    };
+  }
+
   get statusesChartData(): ChartData<'doughnut'> {
     const summary = this.stats?.summary || {};
     return {
@@ -139,6 +214,55 @@ export class ClientStatisticsComponent implements OnInit {
 
   fmt(v: number, currency = 'GNF'): string {
     return new Intl.NumberFormat('fr-GN', { minimumFractionDigits: 0 }).format(v || 0) + ' ' + currency;
+  }
+
+  shortNumber(v: number): string {
+    const abs = Math.abs(v || 0);
+    if (abs >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1) + ' Mrd';
+    if (abs >= 1_000_000) return (v / 1_000_000).toFixed(1) + ' M';
+    if (abs >= 1_000) return (v / 1_000).toFixed(1) + ' k';
+    return String(Math.round(v || 0));
+  }
+
+  get clients(): any[] {
+    return this.stats?.clients || [];
+  }
+
+  collectionRate(): number {
+    const summary = this.stats?.summary || {};
+    const charged = Number(summary.total_charged || 0) + Number(summary.total_interest_charged || 0);
+    if (charged <= 0) return 0;
+    return Math.min(100, Math.round((Number(summary.total_paid || 0) / charged) * 100));
+  }
+
+  averageClientValue(): number {
+    const count = Number(this.stats?.summary?.total_clients || 0);
+    return count > 0 ? Number(this.stats?.summary?.total_charged || 0) / count : 0;
+  }
+
+  topClientsByPaid(limit = 5): any[] {
+    return this.clients
+      .slice()
+      .sort((a: any, b: any) => Number(b.total_paid || 0) - Number(a.total_paid || 0))
+      .slice(0, limit);
+  }
+
+  riskClients(limit = 5): any[] {
+    return this.clients
+      .filter((c: any) => Number(c.rest_to_pay_gnf || 0) > 0)
+      .slice()
+      .sort((a: any, b: any) => Number(b.rest_to_pay_gnf || 0) - Number(a.rest_to_pay_gnf || 0))
+      .slice(0, limit);
+  }
+
+  clientTypeLabel(type: string): string {
+    const map: Record<string, string> = {
+      TEXTILE: 'Textile',
+      PNEUS: 'Pneus',
+      COSMETIQUES: 'Cosmétiques',
+      MACHINE_A_COUDRE: 'Machine à coudre',
+    };
+    return map[type] || type || 'Autre';
   }
 
   getStatusTone(status: string): string {

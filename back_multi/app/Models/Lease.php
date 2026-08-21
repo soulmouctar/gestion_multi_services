@@ -32,6 +32,9 @@ class Lease extends Model
         if (!$this->renter_photo) {
             return null;
         }
+        if (str_starts_with($this->renter_photo, 'http://') || str_starts_with($this->renter_photo, 'https://')) {
+            return $this->renter_photo;
+        }
         return UploadUrl::make($this->renter_photo);
     }
 

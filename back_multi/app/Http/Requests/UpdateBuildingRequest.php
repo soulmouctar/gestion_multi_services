@@ -12,7 +12,7 @@ class UpdateBuildingRequest extends FormRequest
             'location_id'  => 'sometimes|exists:locations,id',
             'name'         => 'sometimes|string|max:150',
             'type'         => 'nullable|string|max:50',
-            'total_floors' => 'nullable|integer|min:1',
+            'total_floors' => 'nullable|integer|min:0',
         ];
     }
 }

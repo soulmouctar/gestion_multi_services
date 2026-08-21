@@ -28,7 +28,7 @@ class UnitConfigurationController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $configuration = UnitConfiguration::create($request->all());
+        $configuration = UnitConfiguration::create($this->unitConfigurationPayload($request));
 
         return $this->sendResponse($configuration, 'Unit configuration created successfully', 201);
     }
@@ -64,7 +64,7 @@ class UnitConfigurationController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $configuration->update($request->all());
+        $configuration->update($this->unitConfigurationPayload($request, true));
 
         return $this->sendResponse($configuration, 'Unit configuration updated successfully');
     }
@@ -92,5 +92,24 @@ class UnitConfigurationController extends BaseController
     public function publicStore(Request $request)
     {
         return $this->store($request);
+    }
+
+    private function unitConfigurationPayload(Request $request, bool $partial = false): array
+    {
+        $payload = $partial
+            ? $request->only(['name', 'bedrooms', 'living_rooms', 'bathrooms', 'has_terrace'])
+            : $request->all();
+
+        foreach (['bedrooms', 'living_rooms', 'bathrooms'] as $field) {
+            if (!$partial || array_key_exists($field, $payload)) {
+                $payload[$field] = (int) ($payload[$field] ?? 0);
+            }
+        }
+
+        if (!$partial || array_key_exists('has_terrace', $payload)) {
+            $payload['has_terrace'] = (bool) ($payload['has_terrace'] ?? false);
+        }
+
+        return $payload;
     }
 }

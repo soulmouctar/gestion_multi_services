@@ -38,9 +38,9 @@ export class UnitConfigurationsComponent implements OnInit {
   constructor(private fb: FormBuilder, private apiService: ApiService, private authService: AuthService, private cdr: ChangeDetectorRef) {
     this.configForm = this.fb.group({
       name: ['', Validators.required],
-      bedrooms: [null],
-      living_rooms: [null],
-      bathrooms: [null],
+      bedrooms: [0],
+      living_rooms: [0],
+      bathrooms: [0],
       has_terrace: [false]
     });
   }
@@ -67,13 +67,20 @@ export class UnitConfigurationsComponent implements OnInit {
   }
 
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
-  openCreateModal(): void { if (!this.canCreateConfigurations) return; this.editMode = false; this.submitted = false; this.configForm.reset({ name: '', bedrooms: null, living_rooms: null, bathrooms: null, has_terrace: false }); this.showFormModal = true; }
+  openCreateModal(): void { if (!this.canCreateConfigurations) return; this.editMode = false; this.submitted = false; this.configForm.reset({ name: '', bedrooms: 0, living_rooms: 0, bathrooms: 0, has_terrace: false }); this.showFormModal = true; }
   openEditModal(item: any): void { if (!this.canEditConfigurations) return; this.editMode = true; this.submitted = false; this.selectedItem = item; this.configForm.patchValue(item); this.showFormModal = true; }
 
   save(): void {
     this.submitted = true; if (this.configForm.invalid) return;
     if (this.editMode ? !this.canEditConfigurations : !this.canCreateConfigurations) return;
-    const data = this.configForm.value;
+    const raw = this.configForm.value;
+    const data = {
+      ...raw,
+      bedrooms: Number(raw.bedrooms || 0),
+      living_rooms: Number(raw.living_rooms || 0),
+      bathrooms: Number(raw.bathrooms || 0),
+      has_terrace: Boolean(raw.has_terrace),
+    };
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`unit-configurations/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('unit-configurations', data);

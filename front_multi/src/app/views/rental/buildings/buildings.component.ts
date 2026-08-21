@@ -35,6 +35,15 @@ export class BuildingsComponent implements OnInit {
   selectedItem: any = null;
   deleteModalOpen = false; itemToDelete: any = null;
   Math = Math;
+  buildingTypes = [
+    { value: 'IMMEUBLE', label: 'Immeuble à étages', floors: null },
+    { value: 'MAISON_SIMPLE', label: 'Maison simple / plain-pied', floors: 0 },
+    { value: 'ANNEXE', label: 'Annexe / dépendance', floors: 0 },
+    { value: 'VILLA', label: 'Villa', floors: null },
+    { value: 'COUR_COMMUNE', label: 'Cour commune', floors: 0 },
+    { value: 'COMMERCIAL', label: 'Local commercial', floors: 0 },
+    { value: 'MIXTE', label: 'Mixte', floors: null },
+  ];
 
   constructor(
     private fb: FormBuilder,
@@ -78,8 +87,15 @@ export class BuildingsComponent implements OnInit {
   }
 
   onPageChange(page: number): void { if (page < 1 || page > this.totalPages) return; this.currentPage = page; this.loadData(); }
-  openCreateModal(): void { if (!this.canCreateBuildings) return; this.editMode = false; this.submitted = false; this.buildingForm.reset({ location_id: null, name: '', type: '', total_floors: null }); this.showFormModal = true; }
+  openCreateModal(): void { if (!this.canCreateBuildings) return; this.editMode = false; this.submitted = false; this.buildingForm.reset({ location_id: null, name: '', type: 'IMMEUBLE', total_floors: 1 }); this.showFormModal = true; }
   openEditModal(item: any): void { if (!this.canEditBuildings) return; this.editMode = true; this.submitted = false; this.selectedItem = item; this.buildingForm.patchValue(item); this.showFormModal = true; }
+
+  onTypeChange(): void {
+    const selectedType = this.buildingTypes.find(type => type.value === this.buildingForm.get('type')?.value);
+    if (selectedType?.floors !== null && selectedType?.floors !== undefined) {
+      this.buildingForm.patchValue({ total_floors: selectedType.floors });
+    }
+  }
 
   save(): void {
     this.submitted = true; if (this.buildingForm.invalid) return;
@@ -104,6 +120,13 @@ export class BuildingsComponent implements OnInit {
   }
 
   getLocationName(id: number): string { const l = this.locations.find(loc => loc.id === id); return l ? l.name : `ID: ${id}`; }
+  getTypeLabel(type: string): string {
+    return this.buildingTypes.find(item => item.value === type)?.label || type || '—';
+  }
+  isNoFloorBuilding(): boolean {
+    const type = this.buildingTypes.find(item => item.value === this.buildingForm.get('type')?.value);
+    return type?.floors === 0;
+  }
   getPages(): number[] { const p: number[] = []; for (let i = 1; i <= this.totalPages; i++) p.push(i); return p; }
   private clearMessages(): void { setTimeout(() => { this.successMessage = null; this.error = null; this.cdr.detectChanges(); }, 3000); }
   trackById(_index: number, item: any): any {
