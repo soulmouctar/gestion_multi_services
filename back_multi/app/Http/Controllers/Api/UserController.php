@@ -37,25 +37,6 @@ class UserController extends BaseController
         return $this->sendResponse($users, 'Users retrieved successfully');
     }
 
-    public function publicIndex(Request $request)
-    {
-        $currentUser = auth()->user();
-        $perPage = $request->get('per_page', 15);
-
-        $query = User::with('tenant', 'roles');
-
-        // ADMIN ne voit que les utilisateurs de son tenant
-        if ($currentUser && $currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN')) {
-            $query->where('tenant_id', $currentUser->tenant_id);
-        } elseif ($request->has('tenant_id')) {
-            $query->where('tenant_id', $request->tenant_id);
-        }
-
-        $users = $query->paginate($perPage);
-        $this->attachModulePermissions($users);
-        return $this->sendResponse($users, 'Users retrieved successfully');
-    }
-
     /**
      * Attache module_permissions (code, name, permissions[], is_active) à chaque user paginé
      * en une seule requête sur user_module_permissions.
@@ -129,9 +110,10 @@ class UserController extends BaseController
 
         $user->assignRole($requestedRole);
 
-        // Accorder automatiquement tous les modules du tenant à l'administrateur
         $user->load('roles');
-        $this->modulePermissionService->grantAllTenantModules($user);
+        if ($user->hasRole('ADMIN')) {
+            $this->modulePermissionService->grantAllTenantModules($user);
+        }
 
 
         return $this->sendResponse($user->fresh()->load('tenant', 'roles', 'permissions'), 'User created successfully', 201);
@@ -139,10 +121,15 @@ class UserController extends BaseController
 
     public function show($id)
     {
+        $currentUser = auth()->user();
         $user = User::with('tenant', 'roles', 'permissions')->find($id);
 
         if (!$user) {
             return $this->sendError('User not found');
+        }
+
+        if ($currentUser->hasRole('ADMIN') && !$currentUser->hasRole('SUPER_ADMIN') && $user->tenant_id !== $currentUser->tenant_id) {
+            return $this->sendError('Vous ne pouvez consulter que les utilisateurs de votre organisation', [], 403);
         }
 
         return $this->sendResponse($user, 'User retrieved successfully');
@@ -324,7 +311,15 @@ class UserController extends BaseController
             return $this->sendError('Vous ne pouvez pas vous auto-promouvoir au rôle SUPER_ADMIN', [], 403);
         }
 
-        $user->assignRole($requestedRole);
+        $previousRole = $user->roles()->first()?->name;
+        $user->syncRoles([$requestedRole]);
+        $user->load('roles');
+
+        if ($requestedRole === 'ADMIN') {
+            $this->modulePermissionService->grantAllTenantModules($user);
+        } elseif ($previousRole === 'ADMIN') {
+            $this->modulePermissionService->revokeAllUserModules($user);
+        }
 
         return $this->sendResponse($user->load('roles'), 'Role assigned successfully');
     }
@@ -440,18 +435,15 @@ class UserController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        // ── Restriction hierarchique : un user ne peut recevoir que les modules
-        //    actifs pour SON tenant (tenant.subscribed_modules).
-        //    SUPER_ADMIN bypass cette regle.
-        $allowedCodes = [];
-        if (!$currentUser->hasRole('SUPER_ADMIN') && $user->tenant_id) {
-            $allowedCodes = DB::table('tenant_modules')
+        $allowedCodes = $user->tenant_id
+            ? DB::table('tenant_modules')
                 ->join('modules', 'tenant_modules.module_id', '=', 'modules.id')
                 ->where('tenant_modules.tenant_id', $user->tenant_id)
                 ->where('tenant_modules.is_active', true)
+                ->where('modules.is_active', true)
                 ->pluck('modules.code')
-                ->toArray();
-        }
+                ->toArray()
+            : [];
 
         $rejected = [];
         DB::beginTransaction();
@@ -462,7 +454,7 @@ class UserController extends BaseController
                 $code = $modulePermission['module_code'] ?? null;
 
                 // Filtrage : seul un module actif chez le tenant passe
-                if (!$currentUser->hasRole('SUPER_ADMIN') && $allowedCodes && !in_array($code, $allowedCodes, true)) {
+                if (!in_array($code, $allowedCodes, true)) {
                     $rejected[] = $code;
                     continue;
                 }
@@ -542,6 +534,7 @@ class UserController extends BaseController
             ->pluck('module_id');
 
         $availableModules = Module::whereIn('id', $activeModuleIds)
+            ->where('is_active', true)
             ->get()
             ->map(function ($module) {
                 return [

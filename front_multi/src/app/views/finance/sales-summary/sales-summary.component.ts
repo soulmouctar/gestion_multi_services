@@ -73,6 +73,7 @@ interface Summary {
 })
 export class SalesSummaryComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  readonly currencyOptions = ['GNF', 'USD', 'EUR'];
 
   loading = true;
   error = '';
@@ -98,6 +99,7 @@ export class SalesSummaryComponent implements OnInit {
 
   expanded: Record<number, boolean> = {};
   searchTimer?: ReturnType<typeof setTimeout>;
+  activePeriod: 'all' | 'month' | '3months' | 'year' | 'custom' = 'all';
 
   constructor(
     private api: ApiService,
@@ -183,6 +185,7 @@ export class SalesSummaryComponent implements OnInit {
   }
 
   setPeriod(p: 'all' | 'month' | '3months' | 'year'): void {
+    this.activePeriod = p;
     const now = new Date();
     switch (p) {
       case 'all':     this.filters.from = ''; break;
@@ -203,6 +206,12 @@ export class SalesSummaryComponent implements OnInit {
 
   reset(): void {
     this.filters = { from: '', to: new Date().toISOString().split('T')[0], client_id: '', currency: '', status: '', search: '' };
+    this.activePeriod = 'all';
+    this.loadSummary(1);
+  }
+
+  setCustomPeriod(): void {
+    this.activePeriod = 'custom';
     this.loadSummary(1);
   }
 
@@ -225,6 +234,22 @@ export class SalesSummaryComponent implements OnInit {
   fmtPct(v: number | null | undefined): string {
     if (v === null || v === undefined) return '—';
     return (Number(v) > 0 ? '+' : '') + Number(v).toFixed(1) + ' %';
+  }
+
+  rowRevenueGnf(inv: SaleRow): number { return this.toGnf(inv.revenue, inv); }
+  rowCostGnf(inv: SaleRow): number { return this.toGnf(inv.cost, inv); }
+  rowMarginGnf(inv: SaleRow): number { return this.rowRevenueGnf(inv) - this.rowCostGnf(inv); }
+
+  isGnf(inv: SaleRow): boolean {
+    return String(inv.currency || 'GNF').toUpperCase() === 'GNF';
+  }
+
+  private toGnf(amount: number | null | undefined, inv: SaleRow): number {
+    const currency = String(inv.currency || 'GNF').toUpperCase();
+    const numericAmount = Number(amount || 0);
+    const rate = Number(inv.exchange_rate || 1);
+    if (currency === 'GNF') return Math.round(numericAmount);
+    return Math.round(numericAmount * rate);
   }
 
   statusBadge(s: string): { color: string; label: string } {

@@ -248,7 +248,7 @@ class TenantController extends BaseController
 
         // Propager le module à tous les ADMINs du tenant
         $module = Module::find($request->module_id);
-        if ($module && $request->get('is_active', true)) {
+        if ($module && $module->is_active && $request->get('is_active', true)) {
             $permissions = is_array($module->permissions) ? $module->permissions : [];
             $this->modulePermissionService->propagateModuleToAdmins(
                 $tenant->id,
@@ -296,9 +296,10 @@ class TenantController extends BaseController
             return $this->sendError('Tenant not found');
         }
 
-        // Get only activated modules for this tenant
+        // Get only activated modules for this tenant and globally active modules
         $modules = $tenant->modules()
             ->wherePivot('is_active', true)
+            ->where('modules.is_active', true)
             ->get()
             ->map(function($module) {
                 return [

@@ -360,12 +360,13 @@ export class PdfService {
     const logo = orgLogo || await this.resolveImageData(MATKOLLA_LOGO);
 
     const docDefinition = this.buildVersementReceiptDocDefinition(data, { logo });
-    const pdf = pdfMake.createPdf(docDefinition);
-    if (mode === 'download') {
-      pdf.download(filename || `recu-versement-${data.receipt_number}.pdf`);
-    } else {
-      pdf.print();
-    }
+    // Meme piege que le recu de loyer : print() passe par window.open() et se fait
+    // bloquer des que l'impression suit un appel HTTP. On passe par l'iframe.
+    await this.deliverPdfDocument(
+      pdfMake.createPdf(docDefinition),
+      mode,
+      filename || `recu-versement-${data.receipt_number}.pdf`
+    );
   }
 
   private buildVersementReceiptDocDefinition(
@@ -698,16 +699,6 @@ export class PdfService {
       : (data.summary.has_usd ? ['GNF', 'USD'] : ['GNF']);
     const currencies = rawCurrencies.slice().sort((a, b) => a === 'GNF' ? -1 : b === 'GNF' ? 1 : a.localeCompare(b));
     const hasMultipleCurrencies = currencies.length > 1;
-    const summaryRows = currencies.map(c => {
-      const total = totalFor(c);
-      return [
-        { text: c, style: 'tableCell', bold: true, color: '#0F3460' },
-        { text: fmtNum(total.debit), style: 'tableCell', alignment: 'right', color: '#DC2626' },
-        { text: fmtNum(total.credit), style: 'tableCell', alignment: 'right', color: '#16A34A' },
-        { text: fmtNum(total.balance), style: 'tableCell', alignment: 'right', bold: true, color: this.balanceColor(total.balance) },
-      ];
-    });
-
     const cellFor = (r: any, c: string): { debit: number; credit: number; balance: number } => {
       if (r.by_currency && r.by_currency[c]) return r.by_currency[c];
       // Fallback : anciens champs GNF/USD explicites.
@@ -722,6 +713,15 @@ export class PdfService {
       if (c === 'USD') return { debit: data.summary.total_debit_usd || 0, credit: data.summary.total_credit_usd || 0, balance: data.summary.final_balance_usd || 0 };
       return { debit: 0, credit: 0, balance: 0 };
     };
+    const summaryRows = currencies.map(c => {
+      const total = totalFor(c);
+      return [
+        { text: c, style: 'tableCell', bold: true, color: '#0F3460' },
+        { text: fmtNum(total.debit), style: 'tableCell', alignment: 'right', color: '#DC2626' },
+        { text: fmtNum(total.credit), style: 'tableCell', alignment: 'right', color: '#16A34A' },
+        { text: fmtNum(total.balance), style: 'tableCell', alignment: 'right', bold: true, color: this.balanceColor(total.balance) },
+      ];
+    });
 
     const headerRow: any[] = [
       { text: 'Date', style: 'tableHeader' },
@@ -1284,9 +1284,10 @@ export class PdfService {
           'Avoirs', 'Dette brute', 'Reste', 'Crédit net', 'Soldes devises', 'Statut',
         ],
         rows,
-        [86, 45, 48, 48, 46, 48, 50, 48, 48, 45, 50, 50, 50, 58, 42]
+        [74, 36, 40, 40, 38, 40, 42, 40, 40, 38, 42, 42, 42, 50, 38],
+        true
       ),
-    ], 'landscape');
+    ], 'landscape', true);
     pdfMake.createPdf(docDef).print();
   }
 
@@ -1429,15 +1430,105 @@ export class PdfService {
     ], 'landscape');
   }
 
-  async printRentalPaymentReceiptPdf(receipt: PrintableRentalPaymentReceipt): Promise<void> {
+  async printRentalPaymentReceiptPdf(
+    receipt: PrintableRentalPaymentReceipt,
+    mode: 'print' | 'download' = 'print'
+  ): Promise<void> {
     const pdfMake = await this.getPdfMake();
     if (!pdfMake?.createPdf) {
-      console.warn('pdfmake non disponible');
-      return;
+      throw new Error('Generateur PDF indisponible');
     }
     const logo = await this.resolveDefaultLogo(receipt.organisation);
     const docDef = this.buildRentalPaymentReceiptDoc(receipt, { logo });
-    pdfMake.createPdf(docDef).print();
+    const filename = `recu-loyer-${receipt.receipt_number || 'sans-numero'}.pdf`;
+    await this.deliverPdfDocument(pdfMake.createPdf(docDef), mode, filename);
+  }
+
+  /**
+   * pdfmake 0.3 : getBlob()/download()/print() sont async et ne prennent PAS de callback.
+   * print() passe par window.open(), systematiquement bloque quand l'impression suit des
+   * appels HTTP (le geste utilisateur est perdu) : la promesse est alors rejetee en silence.
+   * On genere donc le blob nous-memes, on imprime depuis une iframe cachee, et on retombe
+   * sur le telechargement si le navigateur refuse.
+   */
+  private async deliverPdfDocument(pdf: any, mode: 'print' | 'download', filename: string): Promise<void> {
+    const blob: Blob = await pdf.getBlob();
+
+    if (mode === 'download') {
+      this.saveBlobAsFile(blob, filename);
+      return;
+    }
+
+    const printed = await this.printBlobViaIframe(blob);
+    if (!printed) {
+      this.saveBlobAsFile(blob, filename);
+    }
+  }
+
+  private saveBlobAsFile(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  }
+
+  private printBlobViaIframe(blob: Blob): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const url = window.URL.createObjectURL(blob);
+      const frame = document.createElement('iframe');
+      frame.setAttribute('aria-hidden', 'true');
+      // Ni display:none ni visibility:hidden : Chrome refuse d'imprimer une iframe masquee.
+      frame.style.position = 'fixed';
+      frame.style.right = '0';
+      frame.style.bottom = '0';
+      frame.style.width = '1px';
+      frame.style.height = '1px';
+      frame.style.opacity = '0';
+      frame.style.border = '0';
+
+      let loaded = false;
+      let done = false;
+      const finish = (ok: boolean) => {
+        if (done) return;
+        done = true;
+        // L'iframe et l'URL doivent survivre a la boite de dialogue d'impression.
+        window.setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+          frame.remove();
+        }, 60000);
+        resolve(ok);
+      };
+
+      frame.onload = () => {
+        loaded = true;
+        try {
+          const win = frame.contentWindow;
+          if (!win) {
+            finish(false);
+            return;
+          }
+          win.focus();
+          win.print();
+          finish(true);
+        } catch {
+          finish(false);
+        }
+      };
+
+      frame.onerror = () => finish(false);
+
+      // Repli si le navigateur n'affiche pas les PDF en iframe (load qui ne vient jamais).
+      window.setTimeout(() => {
+        if (!loaded) finish(false);
+      }, 8000);
+
+      frame.src = url;
+      document.body.appendChild(frame);
+    });
   }
 
   private buildRentalPaymentReceiptDoc(receipt: PrintableRentalPaymentReceipt, assets: { logo?: string | null } = {}): any {
@@ -1637,12 +1728,13 @@ export class PdfService {
     organisation: PrintableOrganisation | undefined,
     assets: { logo?: string | null },
     content: any[],
-    orientation: 'portrait' | 'landscape' = 'portrait'
+    orientation: 'portrait' | 'landscape' = 'portrait',
+    compactLandscape = false
   ): any {
     return {
       pageSize: 'A4',
       pageOrientation: orientation,
-      pageMargins: [28, 128, 28, 48],
+      pageMargins: compactLandscape ? [16, 128, 16, 48] : [28, 128, 28, 48],
       defaultStyle: { font: 'Roboto', fontSize: 8.8, color: '#111827' },
       styles: {
         titleSmall: { fontSize: 10, color: '#BFDBFE', bold: true, characterSpacing: 1.4 },
@@ -1658,14 +1750,14 @@ export class PdfService {
     };
   }
 
-  private simpleTable(headers: string[], rows: any[][], widths: any[]): any {
+  private simpleTable(headers: string[], rows: any[][], widths: any[], compact = false): any {
     const bodyRows = rows.length ? rows : [[{ text: 'Aucune donnée', colSpan: headers.length, alignment: 'center', color: '#64748B', margin: [0, 8, 0, 8] }, ...headers.slice(1).map(() => '')]];
     return {
       table: {
         headerRows: 1,
         widths,
         body: [
-          headers.map(h => ({ text: h, style: 'tableHeader' })),
+          headers.map(h => ({ text: h, style: 'tableHeader', ...(compact ? { fontSize: 7.1 } : {}) })),
           ...bodyRows,
         ],
       },
@@ -1675,10 +1767,10 @@ export class PdfService {
         vLineColor: () => '#E5E7EB',
         hLineWidth: () => 0.5,
         vLineWidth: () => 0.5,
-        paddingLeft: () => 5,
-        paddingRight: () => 5,
-        paddingTop: () => 5,
-        paddingBottom: () => 5,
+        paddingLeft: () => compact ? 2 : 5,
+        paddingRight: () => compact ? 2 : 5,
+        paddingTop: () => compact ? 3 : 5,
+        paddingBottom: () => compact ? 3 : 5,
       },
     };
   }

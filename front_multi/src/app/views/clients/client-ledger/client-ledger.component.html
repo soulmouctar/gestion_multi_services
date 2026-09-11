@@ -32,15 +32,18 @@
         <svg cIcon name="cilMoney" size="sm" class="me-1"></svg> Nouveau versement
       </button>
       <button cButton color="light" size="sm" (click)="exportCsv()"
-              [disabled]="loading || !filteredRows.length" style="border-radius:10px;">
+              [disabled]="loading || documentActionLoading || !filteredRows.length" style="border-radius:10px;"
+              title="Exporter le compte au format CSV compatible Excel">
         <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg> Excel
       </button>
       <button cButton color="danger" size="sm" (click)="downloadPdf()"
-              [disabled]="loading || !filteredRows.length" style="border-radius:10px;">
+              [disabled]="loading || documentActionLoading || !filteredRows.length" style="border-radius:10px;"
+              title="Télécharger le compte client en PDF">
         <svg cIcon name="cilFile" size="sm" class="me-1"></svg> PDF
       </button>
-      <button cButton color="primary" size="sm" (click)="print()" [disabled]="loading"
-              style="border-radius:10px;">
+      <button cButton color="primary" size="sm" (click)="print()"
+              [disabled]="loading || documentActionLoading || !filteredRows.length" style="border-radius:10px;"
+              title="Préparer le compte client pour impression">
         <svg cIcon name="cilPrint" size="sm" class="me-1"></svg> Imprimer
       </button>
     </div>

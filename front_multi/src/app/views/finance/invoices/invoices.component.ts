@@ -67,6 +67,8 @@ export class InvoicesComponent implements OnInit {
   loadingClientBalance = false;
   invoiceForm: FormGroup;
   selectedInvoice: any = null;
+  private previousBalanceManual = false;
+  private settingPreviousBalance = false;
 
   get canCreateInvoice(): boolean { return this.authService.hasModulePermission('FINANCE', 'create'); }
   get canEditInvoice(): boolean   { return this.authService.hasModulePermission('FINANCE', 'edit'); }
@@ -109,12 +111,18 @@ export class InvoicesComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.refreshPreviousBalanceControl();
+        this.applyClientBalanceInInvoiceCurrency();
         this.syncComputedTotals();
       });
 
     this.invoiceForm.get('previous_balance_amount')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.syncComputedTotals());
+      .subscribe(() => {
+        if (!this.settingPreviousBalance) {
+          this.previousBalanceManual = true;
+        }
+        this.syncComputedTotals();
+      });
   }
 
   ngOnInit(): void {
@@ -224,6 +232,7 @@ export class InvoicesComponent implements OnInit {
     if (!code || code === 'GNF') {
       rateCtrl.setValue(1, { emitEvent: false });
       rateCtrl.disable({ emitEvent: false });
+      this.applyClientBalanceInInvoiceCurrency();
       this.cdr.detectChanges();
       return;
     }
@@ -231,12 +240,14 @@ export class InvoicesComponent implements OnInit {
     const cur = this.currencies.find(c => c.code === code);
     rateCtrl.setValue(cur ? cur.exchange_rate : 1, { emitEvent: false });
     rateCtrl.enable({ emitEvent: false });
+    this.applyClientBalanceInInvoiceCurrency();
     this.cdr.detectChanges();
   }
 
   onClientChanged(clientId: number | null): void {
     if (!clientId) {
       this.clientBalance = null;
+      this.previousBalanceManual = false;
       this.setPreviousBalanceAmount(0);
       this.syncComputedTotals();
       this.cdr.detectChanges();
@@ -253,7 +264,8 @@ export class InvoicesComponent implements OnInit {
         this.loadingClientBalance = false;
         this.clientBalance = r.success ? r.data : null;
         if (!preserveCurrentAmount) {
-          this.setPreviousBalanceAmount(this.clientBalance?.total_remaining || 0);
+          this.previousBalanceManual = false;
+          this.applyClientBalanceInInvoiceCurrency();
         }
         this.syncComputedTotals();
         this.cdr.detectChanges();
@@ -261,6 +273,7 @@ export class InvoicesComponent implements OnInit {
       error: () => {
         this.loadingClientBalance = false;
         this.clientBalance = null;
+        this.previousBalanceManual = false;
         this.setPreviousBalanceAmount(0);
         this.syncComputedTotals();
         this.cdr.detectChanges();
@@ -284,14 +297,17 @@ export class InvoicesComponent implements OnInit {
       : 0;
   }
 
+  get previousBalanceAppliedGnf(): number {
+    if (!this.invoiceForm.get('include_previous_balance')?.value) return 0;
+    return this.toGnf(this.previousBalanceApplied);
+  }
+
   get invoiceTotal(): number {
     return this.itemsSubtotal + this.previousBalanceApplied;
   }
 
   get amountInGnf(): number {
-    const rate = +(this.invoiceForm.getRawValue().exchange_rate || 1);
-    const cur = this.invoiceForm.get('currency')?.value;
-    return cur === 'GNF' ? this.invoiceTotal : Math.round(this.invoiceTotal * rate);
+    return Math.round(this.toGnf(this.itemsSubtotal) + this.previousBalanceAppliedGnf);
   }
 
   openCreateModal(): void {
@@ -299,6 +315,7 @@ export class InvoicesComponent implements OnInit {
     this.submitted = false;
     this.selectedInvoice = null;
     this.clientBalance = null;
+    this.previousBalanceManual = false;
     this.lineItemsError = '';
     this.invoiceForm.reset({
       client_id: null,
@@ -327,6 +344,7 @@ export class InvoicesComponent implements OnInit {
 
     const currency = invoice.currency || 'GNF';
     const includePreviousBalance = Number(invoice.previous_balance_amount || 0) > 0;
+    this.previousBalanceManual = true;
     this.invoiceForm.patchValue({
       client_id: invoice.client_id,
       invoice_number: invoice.invoice_number || '',
@@ -691,7 +709,30 @@ export class InvoicesComponent implements OnInit {
   }
 
   private setPreviousBalanceAmount(amount: number): void {
+    this.settingPreviousBalance = true;
     this.invoiceForm.get('previous_balance_amount')?.setValue(Number(amount || 0), { emitEvent: false });
+    this.settingPreviousBalance = false;
     this.refreshPreviousBalanceControl();
+  }
+
+  private applyClientBalanceInInvoiceCurrency(): void {
+    if (!this.invoiceForm.get('include_previous_balance')?.value || this.previousBalanceManual) return;
+    this.setPreviousBalanceAmount(this.selectedCurrencyPreviousBalance());
+    this.syncComputedTotals();
+  }
+
+  selectedCurrencyPreviousBalance(): number {
+    const currency = String(this.invoiceForm.get('currency')?.value || 'GNF').toUpperCase();
+    const balances = Array.isArray(this.clientBalance?.balances_by_currency)
+      ? this.clientBalance.balances_by_currency
+      : [];
+    const row = balances.find((balance: any) => String(balance.currency || 'GNF').toUpperCase() === currency);
+    return Number(row?.total_remaining || 0);
+  }
+
+  private toGnf(amount: number): number {
+    const currency = this.invoiceForm.get('currency')?.value || 'GNF';
+    const rate = Number(this.invoiceForm.getRawValue().exchange_rate || 1);
+    return currency === 'GNF' ? Math.round(amount || 0) : Math.round((amount || 0) * rate);
   }
 }

@@ -75,6 +75,7 @@ export class ClientLedgerComponent implements OnInit {
 
   clientId!: number;
   loading   = true;
+  documentActionLoading = false;
   client: any = null;
   summary: any = {
     total_debit_gnf: 0, total_credit_gnf: 0, final_balance_gnf: 0,
@@ -219,11 +220,21 @@ export class ClientLedgerComponent implements OnInit {
     private authService: AuthService,
   ) {}
 
-  downloadPdf(): void {
-    void this.pdfService.downloadProfessionalLedgerPdf(
-      this.buildPrintableLedgerData(),
-      `compte_${(this.client?.name || 'client').replace(/\s+/g, '_')}.pdf`
-    );
+  async downloadPdf(): Promise<void> {
+    if (this.documentActionLoading || !this.filteredRows.length) return;
+    this.documentActionLoading = true;
+    try {
+      await this.pdfService.downloadProfessionalLedgerPdf(
+        this.buildPrintableLedgerData(),
+        `compte_${(this.client?.name || 'client').replace(/\s+/g, '_')}.pdf`
+      );
+    } catch (error) {
+      console.error('Erreur export PDF compte client', error);
+      await Swal.fire({ icon: 'error', title: 'Export PDF impossible', text: 'Le compte client n’a pas pu être généré.' });
+    } finally {
+      this.documentActionLoading = false;
+      this.cdr.markForCheck();
+    }
   }
 
   private buildPrintableLedgerData(): PrintableLedgerData {
@@ -728,8 +739,18 @@ export class ClientLedgerComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  print(): void {
-    void this.pdfService.printProfessionalLedgerPdf(this.buildPrintableLedgerData());
+  async print(): Promise<void> {
+    if (this.documentActionLoading || !this.filteredRows.length) return;
+    this.documentActionLoading = true;
+    try {
+      await this.pdfService.printProfessionalLedgerPdf(this.buildPrintableLedgerData());
+    } catch (error) {
+      console.error('Erreur impression compte client', error);
+      await Swal.fire({ icon: 'error', title: 'Impression impossible', text: 'Le compte client n’a pas pu être préparé pour l’impression.' });
+    } finally {
+      this.documentActionLoading = false;
+      this.cdr.markForCheck();
+    }
   }
 
   trackByRow(_i: number, r: LedgerRow): string {

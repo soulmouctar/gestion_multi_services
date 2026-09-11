@@ -89,7 +89,7 @@ export class FinanceInterestsComponent implements OnInit {
   loadInterests(): void {
     this.loading = true;
     this.error = '';
-    let url = 'clients/financial-overview';
+    let url = 'finance/interests/overview';
     const query: string[] = [];
     if (this.filters.search) query.push(`search=${encodeURIComponent(this.filters.search)}`);
     if (this.filters.client_type) query.push(`client_type=${encodeURIComponent(this.filters.client_type)}`);

@@ -1,0 +1,344 @@
+/* Palette locale : un seul endroit à toucher pour re-teinter le module.
+   On s'appuie sur les variables CoreUI pour rester lisible en thème sombre. */
+:host {
+  --rd-surface: var(--cui-card-bg, #fff);
+  --rd-border: var(--cui-border-color, #e4e7ec);
+  --rd-muted: var(--cui-secondary-color, #6b7280);
+  --rd-track: rgba(148, 163, 184, .18);
+
+  --rd-primary: #6366f1;
+  --rd-primary-soft: rgba(99, 102, 241, .12);
+  --rd-success: #10b981;
+  --rd-success-soft: rgba(16, 185, 129, .12);
+  --rd-warning: #f59e0b;
+  --rd-warning-soft: rgba(245, 158, 11, .14);
+  --rd-info: #0ea5e9;
+  --rd-info-soft: rgba(14, 165, 233, .12);
+  --rd-danger: #ef4444;
+  --rd-danger-soft: rgba(239, 68, 68, .12);
+
+  display: block;
+}
+
+/* ── Bandeau ─────────────────────────────────────────────── */
+.rd-header {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+  color: #fff;
+  background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -3.5rem -2rem auto auto;
+    width: 14rem;
+    height: 14rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .05);
+  }
+}
+
+.rd-header__eyebrow {
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .75;
+}
+
+.rd-header__title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Chiffres clés du bandeau : deviennent une grille sur mobile
+   au lieu de se tasser sur une ligne illisible. */
+.rd-header__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  position: relative;
+  z-index: 1;
+
+  > * + * {
+    border-left: 1px solid rgba(255, 255, 255, .18);
+    padding-left: 1.25rem;
+  }
+}
+
+.rd-header__stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.rd-header__stat-label {
+  font-size: .72rem;
+  opacity: .7;
+}
+
+/* Bootstrap/CoreUI 5 ne fournit pas d'utilitaire min-width:0 ;
+   sans lui, text-truncate ne fonctionne pas dans un enfant flex. */
+.rd-min-w-0 { min-width: 0; }
+
+/* ── Cartes ──────────────────────────────────────────────── */
+.rd-card {
+  height: 100%;
+  border: 1px solid var(--rd-border);
+  border-radius: 14px;
+  background: var(--rd-surface);
+}
+
+/* Colonne flex + footer pousse en bas : les 4 cartes gardent la meme
+   hauteur meme quand leur contenu differe (barre de progression ou non). */
+.rd-kpi {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  transition: transform .18s ease, box-shadow .18s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(15, 32, 39, .1);
+  }
+}
+
+.rd-kpi__footer {
+  margin-top: auto;
+  padding-top: 1.1rem;
+}
+
+.rd-kpi__caption {
+  font-size: .72rem;
+  color: var(--rd-muted);
+  margin: .4rem 0 0;
+}
+
+.rd-kpi__icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rd-kpi__value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rd-kpi__label {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.rd-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border-radius: 14px;
+  color: #fff;
+  height: 100%;
+  min-height: 190px;
+
+  &--revenue { background: linear-gradient(135deg, #10b981, #059669); }
+  &--deposit { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+}
+
+.rd-tile__footer {
+  margin-top: auto;
+  padding-top: 1.1rem;
+}
+
+/* La carte centrale se retrouvait « en creux » entre deux tuiles colorees. */
+.rd-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem;
+  min-height: 190px;
+  background:
+    linear-gradient(180deg, var(--rd-success-soft), transparent 60%),
+    var(--rd-surface);
+}
+
+.rd-tile__amount {
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.rd-tile__badge {
+  background: rgba(255, 255, 255, .18);
+  border-radius: 12px;
+  padding: .55rem;
+  display: inline-flex;
+}
+
+/* ── Titres de section ───────────────────────────────────── */
+.rd-section-title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--rd-muted);
+  margin: 0;
+}
+
+/* ── Jauges ──────────────────────────────────────────────── */
+.rd-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rd-track);
+  overflow: hidden;
+}
+
+.rd-track__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .6s ease;
+}
+
+.rd-ring {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  flex-shrink: 0;
+
+  svg { transform: rotate(-90deg); }
+
+  circle { transition: stroke-dasharray .6s ease; }
+}
+
+.rd-ring__value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+/* ── Listes ──────────────────────────────────────────────── */
+.rd-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .7rem .9rem;
+  border-radius: 10px;
+  border-left: 3px solid transparent;
+  background: var(--cui-tertiary-bg, #f8f9fa);
+
+  + .rd-list-row { margin-top: .5rem; }
+}
+
+.rd-list-row__name {
+  font-size: .88rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.rd-list-row__meta {
+  font-size: .75rem;
+  color: var(--rd-muted);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  flex-wrap: wrap;
+}
+
+.rd-building-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .75rem .9rem;
+  border-radius: 10px;
+  transition: background .15s ease;
+
+  &:hover { background: var(--cui-tertiary-bg, #f8f9fa); }
+}
+
+.rd-building-row__rank {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--rd-primary-soft);
+  color: var(--rd-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: .85rem;
+}
+
+.rd-building-row__name {
+  font-size: .88rem;
+  font-weight: 600;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rd-building-row__stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+.rd-chart {
+  height: 260px;
+}
+
+/* ── Etats vides / erreur ────────────────────────────────── */
+.rd-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--rd-muted);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .rd-header {
+    padding: 1.25rem;
+  }
+
+  .rd-header__title { font-size: 1.3rem; }
+
+  .rd-header__stats {
+    width: 100%;
+    gap: .75rem;
+
+    > * + * { padding-left: .75rem; }
+  }
+
+  .rd-header__stat-value { font-size: 1.2rem; }
+
+  /* Les stats par bâtiment passent sous le nom au lieu de déborder. */
+  .rd-building-row {
+    flex-wrap: wrap;
+  }
+
+  .rd-building-row__stats {
+    width: 100%;
+    justify-content: space-between;
+    gap: .75rem;
+    padding-left: 3.25rem;
+  }
+}

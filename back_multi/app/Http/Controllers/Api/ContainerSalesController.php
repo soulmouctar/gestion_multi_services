@@ -104,7 +104,14 @@ class ContainerSalesController extends BaseController
                 unset($data['product_category_id']);
             }
 
-            $arrival = ContainerArrival::create($data);
+            $arrival = DB::transaction(function () use ($data, $tenantId) {
+                // Le verrou du tenant empêche deux créations simultanées de prendre le même numéro.
+                if ($tenantId !== null) {
+                    DB::table('tenants')->where('id', $tenantId)->lockForUpdate()->first();
+                }
+                $data['arrival_number'] = $this->generateNextArrivalNumber($tenantId, $data['arrival_date'] ?? null);
+                return ContainerArrival::create($data);
+            });
 
             return $this->sendResponse($arrival->load($this->arrivalRelations()), 'Arrival created successfully', 201);
         } catch (\Exception $e) {
@@ -948,6 +955,29 @@ class ContainerSalesController extends BaseController
     private function hasArrivalCategoryColumn(): bool
     {
         return Schema::hasColumn('container_arrivals', 'product_category_id');
+    }
+
+    private function generateNextArrivalNumber(?int $tenantId, ?string $arrivalDate = null): string
+    {
+        $year = $arrivalDate ? date('Y', strtotime($arrivalDate)) : date('Y');
+        $lastNumber = ContainerArrival::withTrashed()
+            ->where('tenant_id', $tenantId)
+            ->where('arrival_number', 'like', "ARR-{$year}-%")
+            ->orderByDesc('arrival_number')
+            ->value('arrival_number');
+
+        $sequence = $lastNumber && preg_match('/-(\d+)$/', $lastNumber, $matches)
+            ? ((int) $matches[1]) + 1
+            : 1;
+
+        do {
+            $candidate = sprintf('ARR-%s-%04d', $year, $sequence++);
+        } while (ContainerArrival::withTrashed()
+            ->where('tenant_id', $tenantId)
+            ->where('arrival_number', $candidate)
+            ->exists());
+
+        return $candidate;
     }
 
     private function hasArrivalBaleColumn(): bool

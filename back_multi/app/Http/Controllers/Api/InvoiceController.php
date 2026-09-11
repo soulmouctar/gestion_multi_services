@@ -467,7 +467,7 @@ class InvoiceController extends BaseController
 
     private function buildInvoicePayload(Request $request, int $tenantId, ?int $invoiceId = null): array
     {
-        $currency     = $request->currency ?? 'GNF';
+        $currency     = strtoupper((string) ($request->currency ?? 'GNF'));
         $exchangeRate = $request->exchange_rate ?? 1;
 
         if ($currency !== 'GNF' && (float) $exchangeRate === 1.0) {
@@ -520,7 +520,12 @@ class InvoiceController extends BaseController
         if ($request->filled('previous_balance_amount')) {
             $previousBalance = round((float) $request->previous_balance_amount, 2);
         } elseif ($includePrevious && $request->filled('client_id')) {
-            $previousBalance = $this->getOutstandingClientBalance((int) $request->client_id, $tenantId, $invoiceId);
+            $previousBalance = $this->getOutstandingClientBalanceForCurrency(
+                (int) $request->client_id,
+                $tenantId,
+                $currency,
+                $invoiceId
+            );
         }
 
         $totalAmount = round($itemsSubtotal + $previousBalance, 2);
@@ -616,10 +621,72 @@ class InvoiceController extends BaseController
             $invoiceQuery->where('id', '!=', $excludeInvoiceId);
         }
 
-        $invoiceBalance = (float) $invoiceQuery->sum(DB::raw('GREATEST(total_amount - paid_amount, 0)'));
+        $invoiceBalance = (float) $invoiceQuery
+            ->get()
+            ->sum(fn (Invoice $invoice) => $this->invoiceRemainingGnf($invoice));
 
         $returnCredits = (float) ProductReturn::where('tenant_id', $tenantId)
             ->where('client_id', $clientId)
+            ->whereNull('invoice_id')
+            ->where('status', 'APPROVED')
+            ->whereNull('client_advance_id')
+            ->get()
+            ->sum(function (ProductReturn $return) {
+                if ($return->total_amount_gnf !== null) {
+                    return (float) $return->total_amount_gnf;
+                }
+
+                $currency = strtoupper((string) ($return->currency ?? 'GNF'));
+                $amount = (float) $return->client_credit_amount;
+                $rate = (float) ($return->exchange_rate ?: 1);
+
+                return $currency === 'GNF' ? $amount : $amount * $rate;
+            });
+
+        $paymentCredits = (float) Payment::where('tenant_id', $tenantId)
+            ->where('client_id', $clientId)
+            ->where('status', 'COMPLETED')
+            ->where('type', 'CLIENT')
+            ->whereNull('invoice_id')
+            ->get()
+            ->sum(fn ($payment) => $payment->amount_gnf);
+
+        return max(0, round($invoiceBalance - $returnCredits - $paymentCredits, 2));
+    }
+
+    private function invoiceRemainingGnf(Invoice $invoice): float
+    {
+        $remaining = max(0, (float) $invoice->total_amount - (float) $invoice->paid_amount);
+        $currency = strtoupper((string) ($invoice->currency ?? 'GNF'));
+
+        if ($currency === 'GNF') {
+            return round($remaining, 2);
+        }
+
+        $rate = (float) ($invoice->exchange_rate ?: 1);
+        return round($remaining * $rate, 2);
+    }
+
+    private function getOutstandingClientBalanceForCurrency(int $clientId, int $tenantId, string $currency, ?int $excludeInvoiceId = null): float
+    {
+        $currency = strtoupper($currency);
+
+        $invoiceQuery = Invoice::where('tenant_id', $tenantId)
+            ->where('client_id', $clientId)
+            ->where('currency', $currency)
+            ->whereIn('status', ['IMPAYE', 'PARTIEL']);
+
+        if ($excludeInvoiceId) {
+            $invoiceQuery->where('id', '!=', $excludeInvoiceId);
+        }
+
+        $invoiceBalance = (float) $invoiceQuery
+            ->get()
+            ->sum(fn (Invoice $invoice) => $invoice->remaining_balance);
+
+        $returnCredits = (float) ProductReturn::where('tenant_id', $tenantId)
+            ->where('client_id', $clientId)
+            ->where('currency', $currency)
             ->whereNull('invoice_id')
             ->where('status', 'APPROVED')
             ->whereNull('client_advance_id')
@@ -630,8 +697,20 @@ class InvoiceController extends BaseController
             ->where('status', 'COMPLETED')
             ->where('type', 'CLIENT')
             ->whereNull('invoice_id')
+            ->where(function ($query) use ($currency) {
+                $query->where('target_currency', $currency)
+                    ->orWhere(function ($fallback) use ($currency) {
+                        $fallback->whereNull('target_currency')->where('currency', $currency);
+                    });
+            })
             ->get()
-            ->sum(fn ($payment) => $payment->amount_gnf);
+            ->sum(function (Payment $payment) use ($currency) {
+                if (strtoupper((string) $payment->target_currency) === $currency && $payment->converted_amount !== null) {
+                    return (float) $payment->converted_amount;
+                }
+
+                return (float) $payment->amount;
+            });
 
         return max(0, round($invoiceBalance - $returnCredits - $paymentCredits, 2));
     }

@@ -1,0 +1,313 @@
+<div class="p-3 p-md-4">
+
+  <!-- ── Chargement ─────────────────────────────────────── -->
+  <div *ngIf="loading" class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="mt-3 mb-0 text-body-secondary small">Chargement du tableau de bord...</p>
+  </div>
+
+  <!-- ── Erreur ─────────────────────────────────────────── -->
+  <c-card *ngIf="!loading && errorMessage" class="rd-card border-danger-subtle">
+    <c-card-body class="rd-empty">
+      <svg cIcon name="cilWarning" size="xxl" class="text-danger mb-3"></svg>
+      <h6 class="fw-semibold text-body">Tableau de bord indisponible</h6>
+      <p class="small mb-3">{{ errorMessage }}</p>
+      <button cButton color="primary" variant="outline" size="sm" (click)="load()">
+        <svg cIcon name="cilReload" size="sm" class="me-1"></svg>
+        Réessayer
+      </button>
+    </c-card-body>
+  </c-card>
+
+  <ng-container *ngIf="!loading && !errorMessage && data">
+
+    <!-- ── Bandeau ──────────────────────────────────────── -->
+    <div class="rd-header mb-4">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-4">
+        <div>
+          <div class="rd-header__eyebrow d-flex align-items-center gap-2 mb-2">
+            <svg cIcon name="cilHome" size="sm"></svg>
+            Module location immobilière
+          </div>
+          <h1 class="rd-header__title">Tableau de bord</h1>
+          <p class="mb-0 small opacity-75">
+            Période : <strong>{{ periodLabel }}</strong>
+          </p>
+        </div>
+
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <div class="rd-header__stats">
+            <div class="text-center">
+              <div class="rd-header__stat-value">{{ occupancy.total_units }}</div>
+              <div class="rd-header__stat-label">Unités</div>
+            </div>
+            <div class="text-center">
+              <div class="rd-header__stat-value">{{ activeLeases }}</div>
+              <div class="rd-header__stat-label">Baux actifs</div>
+            </div>
+            <div class="text-center">
+              <div class="rd-header__stat-value" style="color:#86efac">{{ occupancy.occupancy_rate }}%</div>
+              <div class="rd-header__stat-label">Occupation</div>
+            </div>
+          </div>
+
+          <button cButton color="light" variant="outline" size="sm" (click)="load()" title="Actualiser">
+            <svg cIcon name="cilReload" size="sm"></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Indicateurs ──────────────────────────────────── -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-xl-3" *ngFor="let k of kpis; trackBy: trackByLabel">
+        <div class="rd-card rd-kpi">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <span class="rd-kpi__icon"
+                  [style.background]="k.soft" [style.color]="k.color">
+              <svg cIcon [name]="k.icon"></svg>
+            </span>
+            <span class="badge rounded-pill" [style.background]="k.soft" [style.color]="k.color">
+              {{ k.tag }}
+            </span>
+          </div>
+
+          <div class="rd-kpi__value" [style.color]="k.color">{{ k.value }}</div>
+          <div class="rd-kpi__label mt-1">{{ k.label }}</div>
+
+          <div class="rd-kpi__footer">
+            <div class="rd-track" *ngIf="k.progress !== null">
+              <div class="rd-track__fill"
+                   [style.background]="k.color"
+                   [style.width.%]="k.progress"></div>
+            </div>
+            <p class="rd-kpi__caption">{{ k.caption }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Revenus / occupation / dépôts ────────────────── -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-lg-4">
+        <div class="rd-tile rd-tile--revenue">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+            <div>
+              <div class="rd-header__eyebrow mb-1">Revenus ce mois</div>
+              <div class="rd-tile__amount">{{ fmt(revenue.collected_month) }}</div>
+            </div>
+            <span class="rd-tile__badge"><svg cIcon name="cilCash"></svg></span>
+          </div>
+
+          <div class="rd-tile__footer">
+            <p class="small opacity-75 mb-2">
+              Attendu : <strong>{{ fmt(revenue.expected_monthly) }}</strong>
+            </p>
+            <div class="rd-track" style="background:rgba(255,255,255,.25)">
+              <div class="rd-track__fill" style="background:#fff" [style.width.%]="revenue.collection_rate"></div>
+            </div>
+            <p class="mb-0 mt-2 small opacity-90">{{ revenue.collection_rate }}% collecté</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <div class="rd-card rd-panel">
+          <h2 class="rd-section-title justify-content-center mb-4">
+            <svg cIcon name="cilChartPie" size="sm"></svg>
+            Taux d'occupation
+          </h2>
+
+          <div class="d-flex align-items-center justify-content-center gap-4 flex-wrap">
+            <div class="rd-ring">
+              <svg width="104" height="104" viewBox="0 0 104 104" aria-hidden="true">
+                <circle cx="52" cy="52" r="44" fill="none" stroke="var(--rd-track)" stroke-width="12"/>
+                <circle cx="52" cy="52" r="44" fill="none" stroke="var(--rd-success)" stroke-width="12"
+                        stroke-linecap="round"
+                        [attr.stroke-dasharray]="ringDash + ' ' + RING_CIRCUMFERENCE"/>
+              </svg>
+              <div class="rd-ring__value" style="color:var(--rd-success)">
+                {{ occupancy.occupancy_rate }}%
+              </div>
+            </div>
+
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="d-inline-block rounded-1" style="width:10px;height:10px;background:var(--rd-success)"></span>
+                <span class="small text-body-secondary">Occupé ({{ occupancy.occupied }})</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="d-inline-block rounded-1" style="width:10px;height:10px;background:var(--rd-track)"></span>
+                <span class="small text-body-secondary">Libre ({{ occupancy.free }})</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <div class="rd-tile rd-tile--deposit">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+            <div>
+              <div class="rd-header__eyebrow mb-1">Dépôts de garantie</div>
+              <div class="rd-tile__amount">{{ fmt(revenue.total_deposits) }}</div>
+            </div>
+            <span class="rd-tile__badge"><svg cIcon name="cilWallet"></svg></span>
+          </div>
+
+          <div class="rd-tile__footer d-flex gap-4 small opacity-75">
+            <span>En attente : <strong>{{ pendingLeases }}</strong></span>
+            <span>Expirés : <strong>{{ expiredLeases }}</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Évolution 12 mois (donnée déjà servie par l'API) ── -->
+    <div class="row g-3 mb-4" *ngIf="hasRevenueHistory">
+      <div class="col-12">
+        <div class="rd-card p-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h2 class="rd-section-title">
+              <svg cIcon name="cilChart" size="sm"></svg>
+              Encaissements des 12 derniers mois
+            </h2>
+            <span class="badge rounded-pill text-bg-light">
+              Total : {{ fmt(revenueHistoryTotal) }}
+            </span>
+          </div>
+          <div class="rd-chart">
+            <c-chart type="bar" [data]="revenueChartData" [options]="revenueChartOptions" height="260" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Alertes : deux colonnes au lieu de deux blocs pleine largeur ── -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-xl-6" *ngIf="expiringSoon.length">
+        <div class="rd-card p-4 h-100">
+          <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="rd-section-title">
+              <svg cIcon name="cilClock" size="sm"></svg>
+              Contrats expirant sous 90 jours
+            </h2>
+            <span class="badge rounded-pill"
+                  style="background:var(--rd-warning-soft);color:var(--rd-warning)">
+              {{ expiringSoon.length }}
+            </span>
+          </div>
+
+          <div *ngFor="let l of expiringSoon; trackBy: trackById"
+               class="rd-list-row"
+               [style.border-left-color]="urgencyColor(l.urgency)">
+            <div class="rd-min-w-0">
+              <p class="rd-list-row__name text-truncate">{{ l.renter_name }}</p>
+              <p class="rd-list-row__meta">
+                <svg cIcon name="cilPhone" size="sm"></svg>{{ l.renter_phone || '—' }}
+                <span>&bull;</span>
+                <svg cIcon name="cilCalendar" size="sm"></svg>{{ l.end_date | date:'dd/MM/yyyy' }}
+              </p>
+            </div>
+            <div class="text-end flex-shrink-0">
+              <div class="fw-bold small" [style.color]="urgencyColor(l.urgency)">
+                {{ l.days_remaining }} j
+              </div>
+              <div class="rd-list-row__meta justify-content-end">
+                {{ fmt(l.monthly_rent, l.currency) }}/mois
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-6" *ngIf="latePayments.length">
+        <div class="rd-card p-4 h-100">
+          <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="rd-section-title">
+              <svg cIcon name="cilWarning" size="sm"></svg>
+              Paiements en retard / en attente
+            </h2>
+            <span class="badge rounded-pill"
+                  style="background:var(--rd-danger-soft);color:var(--rd-danger)">
+              {{ latePayments.length }}
+            </span>
+          </div>
+
+          <div *ngFor="let p of latePayments; trackBy: trackById"
+               class="rd-list-row"
+               style="border-left-color:var(--rd-danger)">
+            <div class="rd-min-w-0">
+              <p class="rd-list-row__name text-truncate">{{ p.renter_name }}</p>
+              <p class="rd-list-row__meta">Période : {{ formatPeriod(p.period_month) }}</p>
+            </div>
+            <div class="text-end flex-shrink-0">
+              <div class="fw-bold small" style="color:var(--rd-danger)">
+                {{ fmt(p.amount, p.currency) }}
+              </div>
+              <span class="badge rounded-pill mt-1"
+                    [style.background]="p.status === 'LATE' ? 'var(--rd-danger-soft)' : 'var(--rd-warning-soft)'"
+                    [style.color]="p.status === 'LATE' ? 'var(--rd-danger)' : 'var(--rd-warning)'">
+                {{ p.status === 'LATE' ? 'En retard' : 'En attente' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Occupation par bâtiment ──────────────────────── -->
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="rd-card p-4">
+          <h2 class="rd-section-title mb-3">
+            <svg cIcon name="cilBuilding" size="sm"></svg>
+            Occupation par bâtiment
+          </h2>
+
+          <div *ngFor="let b of byBuilding; trackBy: trackByBuilding; let i = index" class="rd-building-row">
+            <span class="rd-building-row__rank">{{ i + 1 }}</span>
+
+            <div class="flex-fill rd-min-w-0">
+              <p class="rd-building-row__name">{{ b.building_name }}</p>
+              <p class="rd-list-row__meta">
+                <svg cIcon name="cilLocationPin" size="sm"></svg>{{ b.location_name || '—' }}
+              </p>
+            </div>
+
+            <div class="rd-building-row__stats">
+              <div class="text-center">
+                <div class="fw-bold small" style="color:var(--rd-success)">
+                  {{ b.occupied }}/{{ b.total_units }}
+                </div>
+                <div class="rd-list-row__meta">Occupées</div>
+              </div>
+
+              <div style="width:90px">
+                <div class="fw-bold mb-1" style="font-size:.7rem;color:var(--rd-primary)">
+                  {{ b.occupancy_rate }}%
+                </div>
+                <div class="rd-track">
+                  <div class="rd-track__fill"
+                       style="background:var(--rd-primary)"
+                       [style.width.%]="b.occupancy_rate"></div>
+                </div>
+              </div>
+
+              <div class="text-end">
+                <div class="fw-bold small" style="color:var(--rd-success)">{{ fmt(b.monthly_revenue) }}</div>
+                <div class="rd-list-row__meta justify-content-end">/mois</div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="!byBuilding.length" class="rd-empty">
+            <svg cIcon name="cilBuilding" size="xxl" class="mb-3 opacity-50"></svg>
+            <p class="mb-0 small">Aucun bâtiment enregistré pour le moment.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

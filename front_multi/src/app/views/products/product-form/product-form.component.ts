@@ -392,7 +392,7 @@ export class ProductFormComponent implements OnInit {
     ['unit_margin_amount', 'unit_margin_pct', 'carton_margin_amount', 'carton_margin_pct']
       .forEach(f => delete formData[f]);
 
-    ['purchase_price', 'selling_price', 'carton_purchase_price', 'carton_selling_price', 'weight'].forEach(f => {
+    ['purchase_price', 'selling_price', 'carton_purchase_price', 'carton_selling_price'].forEach(f => {
       if (formData[f] === '' || formData[f] === null) formData[f] = null;
     });
     ['product_category_id', 'unit_id'].forEach(f => {

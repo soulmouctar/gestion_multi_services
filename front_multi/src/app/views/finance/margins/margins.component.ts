@@ -48,6 +48,8 @@ interface ContainerMarginRow {
   quantity_sold: number;
   revenue: number;
   cost: number;
+  revenue_by_currency?: Array<{ currency: string; amount: number }>;
+  cost_currency?: string;
   revenue_gnf: number;
   cost_gnf: number;
   margin_gnf: number;
@@ -118,6 +120,11 @@ export class FinanceMarginsComponent implements OnInit {
   fmtNative(v: number, currency: string): string {
     return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0) + ' ' + currency;
   }
+  fmtNativeBreakdown(values: Array<{ currency: string; amount: number }> | null | undefined, fallbackAmount: number, fallbackCurrency: string): string {
+    const rows = (values || []).filter(row => Number(row.amount) !== 0);
+    if (!rows.length) return this.fmtNative(fallbackAmount, fallbackCurrency);
+    return rows.map(row => this.fmtNative(row.amount, row.currency)).join(' + ');
+  }
   pct(v: number | null | undefined): string {
     if (v == null) return '—';
     return `${v.toFixed(1)} %`;
@@ -147,7 +154,9 @@ export class FinanceMarginsComponent implements OnInit {
     for (const c of this.containers) {
       lines.push([
         'Conteneur', c.arrival_date, c.container_number, `"${(c.supplier_name || '').replace(/"/g, '""')}"`,
-        c.currency, String(c.revenue), String(c.cost),
+        c.currency,
+        `"${this.fmtNativeBreakdown(c.revenue_by_currency, c.revenue, c.currency).replace(/"/g, '""')}"`,
+        `"${this.fmtNative(c.cost, c.cost_currency || c.currency).replace(/"/g, '""')}"`,
         String(c.revenue_gnf), String(c.cost_gnf), String(c.margin_gnf),
         c.margin_pct != null ? String(c.margin_pct) : '',
       ].join(';'));

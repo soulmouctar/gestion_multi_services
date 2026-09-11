@@ -27,10 +27,6 @@ class Product extends Model
         'low_stock_threshold',
         'status',
         'barcode',
-        'weight',
-        'dimensions',
-        'supplier_info',
-        'notes',
         'image',
     ];
 
@@ -96,7 +92,6 @@ class Product extends Model
         'units_per_carton'      => 'integer',
         'stock_quantity'        => 'integer',
         'low_stock_threshold'   => 'integer',
-        'weight'                => 'decimal:2',
         'created_at'            => 'datetime',
         'updated_at'            => 'datetime',
     ];

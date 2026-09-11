@@ -165,6 +165,8 @@
             <th>Fournisseur</th>
             <th>Devise</th>
             <th class="text-end">Qté vendue</th>
+            <th class="text-end">Vente (natif)</th>
+            <th class="text-end">Coût (natif)</th>
             <th class="text-end">CA GNF</th>
             <th class="text-end">Coût GNF</th>
             <th class="text-end">Bénéfice</th>
@@ -179,13 +181,15 @@
             <td>{{ r.supplier_name || '—' }}</td>
             <td><span class="badge bg-light text-dark">{{ r.currency }}</span></td>
             <td class="text-end">{{ r.quantity_sold }}</td>
+            <td class="text-end">{{ fmtNativeBreakdown(r.revenue_by_currency, r.revenue, r.currency) }}</td>
+            <td class="text-end text-muted">{{ fmtNative(r.cost, r.cost_currency || r.currency) }}</td>
             <td class="text-end">{{ fmt(r.revenue_gnf) }}</td>
             <td class="text-end text-muted">{{ fmt(r.cost_gnf) }}</td>
             <td class="text-end fw-bold" [style.color]="marginColor(r.margin_gnf)">{{ fmt(r.margin_gnf) }}</td>
             <td class="text-end fw-semibold" [style.color]="marginColor(r.margin_gnf)">{{ pct(r.margin_pct) }}</td>
           </tr>
           <tr *ngIf="!containers.length">
-            <td colspan="10" class="text-center py-4 text-muted">Aucune vente conteneur sur la période.</td>
+            <td colspan="12" class="text-center py-4 text-muted">Aucune vente conteneur sur la période.</td>
           </tr>
         </tbody>
       </table>

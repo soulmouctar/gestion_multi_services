@@ -1,41 +1,187 @@
+/* Aligne l'ecran sur le module Location : memes cartes, memes jetons de couleur.
+   On s'appuie sur les variables CoreUI pour rester lisible en theme sombre. */
+:host {
+  --fp-surface: var(--cui-card-bg, #fff);
+  --fp-border: var(--cui-border-color, #e4e7ec);
+  --fp-muted: var(--cui-secondary-color, #6b7280);
+  --fp-track: rgba(148, 163, 184, .18);
+
+  --fp-primary: #6366f1;
+  --fp-success: #10b981;
+  --fp-warning: #f59e0b;
+  --fp-info: #0ea5e9;
+}
+
 .finance-payments {
   .crumb {
-    letter-spacing: 0.02em;
+    letter-spacing: .04em;
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: .7rem;
   }
 
   h1 {
     font-size: 1.35rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--cui-body-color);
+  }
+}
+
+/* ── Cartes de synthèse ──────────────────────────────────── */
+.fp-stat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.25rem;
+  border: 1px solid var(--fp-border);
+  border-radius: 14px;
+  background: var(--fp-surface);
+  transition: transform .18s ease, box-shadow .18s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(15, 32, 39, .1);
+  }
+}
+
+.fp-stat__icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fp-stat__value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.fp-stat__label {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--fp-muted);
+  margin: .35rem 0 0;
+}
+
+/* Pied colle en bas : les 4 cartes gardent la meme hauteur. */
+.fp-stat__footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  font-size: .74rem;
+  color: var(--fp-muted);
+}
+
+/* ── Filtres ─────────────────────────────────────────────── */
+.fp-filters {
+  background: var(--fp-surface);
+  border: 1px solid var(--fp-border);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+}
+
+.fp-search {
+  position: relative;
+
+  input { padding-left: 2.2rem; }
+
+  > svg {
+    position: absolute;
+    left: .75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--fp-muted);
+    pointer-events: none;
+  }
+}
+
+/* ── Tableau ─────────────────────────────────────────────── */
+.fp-table-wrap {
+  background: var(--fp-surface);
+  border: 1px solid var(--fp-border);
+  border-radius: 14px;
+  padding: .5rem .75rem;
+}
+
+.fp-table {
+  margin-bottom: 0;
+
+  thead th {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--fp-muted);
+    font-weight: 700;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--fp-border);
   }
 
-  .fp-filters {
-    background: #ffffff;
-    border: 1px solid #eef0f3;
-    border-radius: 12px;
-    padding: 14px 16px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  tbody td {
+    vertical-align: middle;
+    padding-top: .7rem;
+    padding-bottom: .7rem;
   }
+}
 
-  .fp-table-wrap {
-    background: #ffffff;
-    border: 1px solid #eef0f3;
-    border-radius: 12px;
-    padding: 8px 12px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-  }
+.fp-receipt {
+  font-weight: 700;
+  color: var(--fp-primary);
+  white-space: nowrap;
+}
 
-  table {
-    th {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      color: #6b7280;
-      font-weight: 600;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    td { font-size: 0.9rem; }
-  }
+.fp-avatar {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, .12);
+  color: var(--fp-primary);
+  font-weight: 800;
+  font-size: .78rem;
+}
+
+.fp-cell-title {
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.fp-cell-meta {
+  font-size: .76rem;
+  color: var(--fp-muted);
+  margin: 0;
+}
+
+/* Pastille de mode de paiement : meme code couleur que le dashboard Finance. */
+.fp-method {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .2rem .6rem;
+  border-radius: 999px;
+  font-size: .74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fp-method__dot {
+  width: .5rem;
+  height: .5rem;
+  border-radius: 50%;
+}
+
+.fp-min-w-0 { min-width: 0; }
+
+/* ── Etat vide ───────────────────────────────────────────── */
+.fp-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--fp-muted);
 }

@@ -55,7 +55,14 @@
     svg { width: 20px; height: 20px; }
   }
   .kpi-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
-  .kpi-value { font-size: 1.25rem; font-weight: 800; line-height: 1.1; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .kpi-value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
   .kpi-meta  { font-size: 0.7rem; color: var(--muted); margin-top: 3px; }
 
   &.k-revenue .kpi-icon { background: var(--c-revenue-bg); color: var(--c-revenue); }
@@ -179,6 +186,18 @@
   }
 
   .margin, .margin-pct { font-weight: 700; }
+  .amount-cell {
+    min-width: 118px;
+    line-height: 1.2;
+    small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+  }
   .m-good { color: #15803d; }
   .m-mid  { color: #65a30d; }
   .m-low  { color: #d97706; }

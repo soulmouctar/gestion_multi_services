@@ -194,9 +194,13 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             // Produits
             Route::get('products/low-stock', [ProductController::class, 'getLowStockProducts']);
             Route::get('products/statistics', [ProductController::class, 'getStatistics']);
+            Route::get('products/search/barcode', [ProductController::class, 'searchByBarcode']);
+            Route::get('products/export', [ProductController::class, 'export']);
+            Route::post('products/bulk-delete', [ProductController::class, 'bulkDelete']);
+            Route::post('products/bulk-update-status', [ProductController::class, 'bulkUpdateStatus']);
+            Route::get('products/{id}/sales-history', [ProductController::class, 'salesHistory']);
             Route::apiResource('products', ProductController::class);
             Route::post('products/{id}/update-stock', [ProductController::class, 'updateStock']);
-            Route::post('products/bulk-update-status', [ProductController::class, 'bulkUpdateStatus']);
             Route::post('products/{id}/image', [ProductController::class, 'uploadImage']);
             Route::delete('products/{id}/image', [ProductController::class, 'removeImage']);
 
@@ -248,8 +252,8 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::post('client-advances', [ContainerSalesController::class, 'storeAdvance']);
 
             // Photos conteneurs
-            Route::get('container-photos', [ContainerPhotoController::class, 'publicIndex']);
-            Route::post('container-photos', [ContainerPhotoController::class, 'publicStore']);
+            Route::get('container-photos', [ContainerPhotoController::class, 'index']);
+            Route::post('container-photos', [ContainerPhotoController::class, 'store']);
             Route::delete('container-photos/{id}', [ContainerPhotoController::class, 'destroy']);
         });
 
@@ -301,6 +305,7 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
 
             // Finance dashboard (optimisé : 5 requêtes au lieu de 18+)
             Route::get('finance/dashboard', [PaymentController::class, 'financeDashboard']);
+            Route::get('finance/interests/overview', [ClientController::class, 'getFinancialOverview']);
 
             // Rapport marges bénéficiaires (factures + conteneurs)
             Route::get('finance/margins', [PaymentController::class, 'marginsReport']);

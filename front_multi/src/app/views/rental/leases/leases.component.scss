@@ -1,0 +1,176 @@
+/* Meme vocabulaire visuel que le tableau de bord Location (prefixe rd-),
+   pour que les deux ecrans du module se ressemblent. */
+:host {
+  --lz-surface: var(--cui-card-bg, #fff);
+  --lz-border: var(--cui-border-color, #e4e7ec);
+  --lz-muted: var(--cui-secondary-color, #6b7280);
+  --lz-track: rgba(148, 163, 184, .18);
+
+  --lz-primary: #6366f1;
+  --lz-success: #10b981;
+  --lz-warning: #f59e0b;
+  --lz-info: #0ea5e9;
+
+  display: block;
+}
+
+/* Bootstrap/CoreUI 5 ne fournit pas min-width:0 ; sans lui, la troncature
+   de texte ne fonctionne pas dans un enfant flex. */
+.lz-min-w-0 { min-width: 0; }
+
+/* ── Cartes de synthèse ──────────────────────────────────── */
+.lz-stat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.25rem;
+  border: 1px solid var(--lz-border);
+  border-radius: 14px;
+  background: var(--lz-surface);
+  transition: transform .18s ease, box-shadow .18s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(15, 32, 39, .1);
+  }
+}
+
+.lz-stat__icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lz-stat__value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.lz-stat__label {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--lz-muted);
+  margin: .35rem 0 0;
+}
+
+/* Pied colle en bas : les 4 cartes restent de meme hauteur meme si
+   une seule porte une barre de progression. */
+.lz-stat__footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  font-size: .74rem;
+  color: var(--lz-muted);
+}
+
+.lz-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--lz-track);
+  overflow: hidden;
+}
+
+.lz-track__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .6s ease;
+}
+
+/* ── Barre d'outils ──────────────────────────────────────── */
+.lz-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+
+.lz-search {
+  position: relative;
+  flex: 1 1 240px;
+  max-width: 340px;
+
+  input { padding-left: 2.2rem; }
+
+  svg {
+    position: absolute;
+    left: .75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--lz-muted);
+    pointer-events: none;
+  }
+}
+
+/* ── Tableaux ────────────────────────────────────────────── */
+.lz-table {
+  margin-bottom: 0;
+
+  thead th {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--lz-muted);
+    border-bottom-width: 1px;
+    white-space: nowrap;
+  }
+
+  tbody td {
+    vertical-align: middle;
+    padding-top: .7rem;
+    padding-bottom: .7rem;
+  }
+}
+
+.lz-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--lz-border);
+}
+
+.lz-avatar--initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, .12);
+  color: var(--lz-primary);
+  font-weight: 800;
+  font-size: .82rem;
+  border-color: transparent;
+}
+
+.lz-cell-title {
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.lz-cell-meta {
+  font-size: .76rem;
+  color: var(--lz-muted);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+/* ── Etat vide ───────────────────────────────────────────── */
+.lz-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--lz-muted);
+}
+
+@media (max-width: 575.98px) {
+  .lz-search { max-width: none; }
+}

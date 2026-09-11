@@ -1,5 +1,6 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -23,7 +24,8 @@ import Swal from 'sweetalert2';
     ModalModule, AlertModule, SpinnerModule, ProgressModule, NavModule
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './leases.component.html'
+  templateUrl: './leases.component.html',
+  styleUrl: './leases.component.scss'
 })
 export class LeasesComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
@@ -54,7 +56,10 @@ export class LeasesComponent implements OnInit {
 
   // ===== FILTERS =====
   leaseStatusFilter = '';
+  leaseSearch = '';
   paymentMonthFilter = '';
+  /** Évite une requête par frappe dans le champ de recherche. */
+  private readonly leaseSearch$ = new Subject<string>();
 
   // ===== MODALS =====
   showLeaseModal = false;
@@ -162,6 +167,13 @@ export class LeasesComponent implements OnInit {
     this.loadAllPayments();
     this.loadStats();
 
+    this.leaseSearch$
+      .pipe(debounceTime(350), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.leasesPage = 1;
+        this.loadLeases();
+      });
+
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       if (params.get('action') === 'new-tenant') {
         this.openNewLeaseModal();
@@ -193,6 +205,7 @@ export class LeasesComponent implements OnInit {
     this.loading = true;
     let url = `leases?page=${this.leasesPage}&per_page=15`;
     if (this.leaseStatusFilter) url += `&status=${this.leaseStatusFilter}`;
+    if (this.leaseSearch.trim()) url += `&search=${encodeURIComponent(this.leaseSearch.trim())}`;
 
     this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
@@ -450,16 +463,25 @@ export class LeasesComponent implements OnInit {
     this.apiService.post<any>(`leases/${this.selectedLease.id}/payments`, this.paymentForm.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         if (r.success) {
-          Swal.fire({ icon: 'success', title: 'Paiement enregistré', text: 'Génération du reçu en cours...', timer: 1200, showConfirmButton: false });
           this.showPaymentModal = false;
           this.loadAllPayments(); this.loadStats();
           if (this.selectedLease?.id) {
             this.loadLeaseFinancialSituation(this.selectedLease.id);
           }
           const payment = r.data;
-          if (payment?.id) {
-            this.printPaymentReceipt(payment);
-          }
+          // On attend la fermeture de la modale : la boite d'impression ne peut pas
+          // s'ouvrir tant que SweetAlert bloque le scroll et garde le focus.
+          void Swal.fire({
+            icon: 'success',
+            title: 'Paiement enregistré',
+            text: payment?.id ? 'Génération du reçu en cours...' : '',
+            timer: 1200,
+            showConfirmButton: false
+          }).then(() => {
+            if (payment?.id) {
+              this.printPaymentReceipt(payment);
+            }
+          });
         }
       },
       error: (err) => Swal.fire({ icon: 'error', title: 'Erreur', text: err.message || 'Erreur' })
@@ -498,29 +520,51 @@ export class LeasesComponent implements OnInit {
   }
 
   printPaymentReceipt(payment: any): void {
+    const paymentId = payment?.id;
+    if (!paymentId) {
+      console.error('Reçu impossible : paiement sans identifiant', payment);
+      Swal.fire({ icon: 'error', title: 'Erreur', text: 'Paiement sans identifiant : reçu impossible.' });
+      return;
+    }
+
     this.receiptLoading = true;
-    this.apiService.get<any>(`lease-payments/${payment.id}/receipt`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.get<any>(`lease-payments/${paymentId}/receipt`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
-        this.receiptLoading = false;
-        if (r.success && r.data) {
-          const tenant = this.authService.currentTenant as any;
-          void this.pdfService.printRentalPaymentReceiptPdf({
-            ...r.data,
-            organisation: {
-              name: tenant?.name || 'MATKOLLA',
-              address: tenant?.address || '',
-              phone: tenant?.phone || '',
-              email: tenant?.email || '',
-              logoUrl: tenant?.logo_url || '',
-              footerText: 'Reçu de paiement locataire',
-            },
-          });
+        if (!r.success || !r.data) {
+          this.receiptLoading = false;
+          this.cdr.detectChanges();
+          Swal.fire({ icon: 'error', title: 'Erreur', text: 'Reçu introuvable pour ce paiement.' });
+          return;
         }
-        this.cdr.detectChanges();
+
+        const tenant = this.authService.currentTenant as any;
+        this.pdfService.printRentalPaymentReceiptPdf({
+          ...r.data,
+          organisation: {
+            name: tenant?.name || 'MATKOLLA',
+            address: tenant?.address || '',
+            phone: tenant?.phone || '',
+            email: tenant?.email || '',
+            logoUrl: tenant?.logo_url || '',
+            footerText: 'Reçu de paiement locataire',
+          },
+        })
+          .catch((err) => {
+            console.error('Génération du reçu impossible', err);
+            Swal.fire({ icon: 'error', title: 'Erreur', text: "Le reçu n'a pas pu être généré." });
+          })
+          .finally(() => {
+            this.receiptLoading = false;
+            this.cdr.detectChanges();
+          });
       },
-      error: () => {
+      error: (err) => {
         this.receiptLoading = false;
-        Swal.fire({ icon: 'error', title: 'Erreur', text: 'Impossible de générer le reçu.' });
+        // Le message generique masquait la vraie cause (403 module, 404 paiement,
+        // session expiree...). On remonte ce que l'API a repondu.
+        const detail = err?.message ? ` (${err.message})` : '';
+        console.error(`Reçu KO sur lease-payments/${paymentId}/receipt`, err);
+        Swal.fire({ icon: 'error', title: 'Erreur', text: `Impossible de générer le reçu${detail}` });
         this.cdr.detectChanges();
       }
     });
@@ -572,6 +616,28 @@ export class LeasesComponent implements OnInit {
 
   getPaidMonths(lease: any): number {
     return lease.payments?.filter((p: any) => p.status === 'PAID')?.length || 0;
+  }
+
+  onLeaseSearchChange(value: string): void {
+    this.leaseSearch = value;
+    this.leaseSearch$.next(value);
+  }
+
+  clearLeaseFilters(): void {
+    this.leaseSearch = '';
+    this.leaseStatusFilter = '';
+    this.leasesPage = 1;
+    this.loadLeases();
+  }
+
+  /** Part des contrats actifs, pour la jauge de la carte de synthèse. */
+  getActiveRate(): number {
+    if (!this.stats.total_leases) return 0;
+    return Math.min(100, Math.round((this.stats.active_leases / this.stats.total_leases) * 100));
+  }
+
+  initialOf(name?: string | null): string {
+    return (name || '?').trim().charAt(0).toUpperCase() || '?';
   }
 
   getCollectionRate(): number {

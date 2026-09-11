@@ -1,73 +1,102 @@
 <div class="finance-payments container-fluid px-3 px-md-4 py-3">
 
-  <!-- HEADER -->
-  <div class="fp-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+  <!-- ===== EN-TÊTE ===== -->
+  <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
     <div>
-      <div class="crumb text-muted small">Finance <span class="mx-1">›</span> Versements</div>
-      <h1 class="d-flex align-items-center gap-2 mb-0">
+      <div class="crumb text-body-secondary">Finance <span class="mx-1">›</span> Versements</div>
+      <h1 class="d-flex align-items-center gap-2 mb-1">
         <svg cIcon name="cilMoney" class="text-success"></svg>
         Versements clients
       </h1>
-      <div class="small text-muted mt-1">
+      <p class="small text-body-secondary mb-0">
         Enregistre les versements clients (mono ou multi-devises) et retrouve l'historique.
-      </div>
+      </p>
     </div>
+
     <div class="d-flex gap-2 flex-wrap">
-      <button class="btn btn-light btn-sm" (click)="load()" [disabled]="loading" style="border-radius:10px;">
+      <button cButton color="secondary" variant="outline" size="sm" (click)="load()" [disabled]="loading">
         <svg cIcon name="cilReload" size="sm" class="me-1"></svg> Actualiser
       </button>
-      <button *ngIf="canCreatePayment" class="btn btn-success btn-sm fw-semibold" (click)="openBatchForm()" style="border-radius:10px;">
+      <button *ngIf="canCreatePayment" cButton color="success" size="sm" (click)="openBatchForm()">
         <svg cIcon name="cilPlus" size="sm" class="me-1"></svg> Nouveau versement
       </button>
     </div>
   </div>
 
-  <!-- FILTERS -->
-  <div class="fp-filters mb-3">
-    <div class="row g-2 align-items-end">
-      <div class="col-md-4">
-        <label class="form-label small text-muted mb-1">Recherche</label>
-        <input type="text" class="form-control form-control-sm"
-               [(ngModel)]="filters.search"
-               placeholder="Reçu, référence, client…"
-               (keyup.enter)="applyFilters()" />
+  <!-- ===== SYNTHÈSE ===== -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3" *ngFor="let s of statCards; trackBy: trackByLabel">
+      <div class="fp-stat">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <span class="fp-stat__icon" [style.background]="s.soft" [style.color]="s.color">
+            <svg cIcon [name]="s.icon"></svg>
+          </span>
+          <span class="badge rounded-pill" [style.background]="s.soft" [style.color]="s.color">{{ s.tag }}</span>
+        </div>
+
+        <div class="fp-stat__value" [style.color]="s.color">
+          <c-spinner *ngIf="statsLoading" size="sm"></c-spinner>
+          <ng-container *ngIf="!statsLoading">{{ s.value }}</ng-container>
+        </div>
+        <p class="fp-stat__label">{{ s.label }}</p>
+
+        <div class="fp-stat__footer">{{ s.caption }}</div>
       </div>
-      <div class="col-md-2">
-        <label class="form-label small text-muted mb-1">Du</label>
-        <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_from" />
+    </div>
+  </div>
+
+  <!-- ===== FILTRES ===== -->
+  <div class="fp-filters mb-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-4">
+        <label class="form-label small text-body-secondary mb-1">Recherche</label>
+        <div class="fp-search">
+          <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+          <input type="search" class="form-control form-control-sm"
+                 placeholder="Reçu, référence, client…"
+                 [ngModel]="filters.search" (ngModelChange)="onSearchChange($event)" />
+        </div>
       </div>
-      <div class="col-md-2">
-        <label class="form-label small text-muted mb-1">Au</label>
-        <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_to" />
+
+      <div class="col-6 col-md-2">
+        <label class="form-label small text-body-secondary mb-1">Du</label>
+        <input type="date" class="form-control form-control-sm"
+               [(ngModel)]="filters.date_from" (change)="applyFilters()" />
       </div>
-      <div class="col-md-2">
-        <label class="form-label small text-muted mb-1">Devise</label>
-        <select class="form-select form-select-sm" [(ngModel)]="filters.currency">
+
+      <div class="col-6 col-md-2">
+        <label class="form-label small text-body-secondary mb-1">Au</label>
+        <input type="date" class="form-control form-control-sm"
+               [(ngModel)]="filters.date_to" (change)="applyFilters()" />
+      </div>
+
+      <div class="col-6 col-md-2">
+        <label class="form-label small text-body-secondary mb-1">Devise</label>
+        <select class="form-select form-select-sm" [(ngModel)]="filters.currency" (change)="applyFilters()">
           <option value="">Toutes</option>
-          <option value="GNF">GNF</option>
-          <option value="USD">USD</option>
-          <option value="EUR">EUR</option>
+          <option *ngFor="let c of currencyOptions" [value]="c">{{ c }}</option>
         </select>
       </div>
-      <div class="col-md-2 d-flex gap-2">
-        <button class="btn btn-primary btn-sm w-100" (click)="applyFilters()">Filtrer</button>
-        <button class="btn btn-light btn-sm" (click)="resetFilters()" title="Réinitialiser">
-          <svg cIcon name="cilX" size="sm"></svg>
+
+      <div class="col-6 col-md-2">
+        <button cButton color="secondary" variant="outline" size="sm" class="w-100"
+                [disabled]="!hasActiveFilters" (click)="resetFilters()">
+          <svg cIcon name="cilX" size="sm" class="me-1"></svg> Réinitialiser
         </button>
       </div>
     </div>
   </div>
 
-  <!-- LOADING -->
+  <!-- ===== CHARGEMENT ===== -->
   <div *ngIf="loading" class="text-center py-5">
     <c-spinner color="success"></c-spinner>
-    <div class="small text-muted mt-2">Chargement des versements…</div>
+    <p class="small text-body-secondary mt-3 mb-0">Chargement des versements…</p>
   </div>
 
-  <!-- TABLE -->
+  <!-- ===== TABLEAU ===== -->
   <div *ngIf="!loading" class="fp-table-wrap">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle fp-table">
         <thead>
           <tr>
             <th>Date</th>
@@ -75,51 +104,89 @@
             <th>Client</th>
             <th>Mode</th>
             <th class="text-end">Montant</th>
-            <th class="text-end">Équivalent GNF</th>
-            <th>Compte cible</th>
+            <th>Conversion</th>
             <th>Référence</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let p of payments; trackBy: trackById">
-            <td>{{ p.payment_date | date:'dd/MM/yyyy' }}</td>
-            <td class="fw-semibold text-primary">{{ p.receipt_number }}</td>
-            <td>{{ p.client?.name || '—' }}</td>
             <td>
-              <span class="badge bg-light text-dark">{{ methodLabel(p.method) }}</span>
+              <p class="fp-cell-title small">{{ p.payment_date | date:'dd/MM/yyyy' }}</p>
             </td>
-            <td class="text-end fw-semibold">{{ fmt(p.amount, p.currency) }}</td>
-            <td class="text-end text-muted small">{{ fmt(p.amount_gnf, 'GNF') }}</td>
+
+            <td><span class="fp-receipt">{{ p.receipt_number }}</span></td>
+
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="fp-avatar">{{ initialOf(p.client?.name) }}</span>
+                <p class="fp-cell-title fp-min-w-0 text-truncate">{{ p.client?.name || '—' }}</p>
+              </div>
+            </td>
+
+            <td>
+              <span class="fp-method"
+                    [style.background]="methodSoft(p.method)"
+                    [style.color]="methodColor(p.method)">
+                <span class="fp-method__dot" [style.background]="methodColor(p.method)"></span>
+                {{ methodLabel(p.method) }}
+              </span>
+            </td>
+
+            <!-- Montant et contre-valeur GNF réunis : deux colonnes pour la même
+                 information faisaient déborder le tableau sur 9 colonnes. -->
+            <td class="text-end">
+              <p class="fp-cell-title">{{ fmt(p.amount, p.currency) }}</p>
+              <p class="fp-cell-meta" *ngIf="p.currency !== 'GNF'">≈ {{ fmt(p.amount_gnf, 'GNF') }}</p>
+            </td>
+
             <td>
               <ng-container *ngIf="p.target_currency && p.target_currency !== p.currency; else sameCur">
-                <div class="badge bg-info-subtle text-info">
-                  → {{ p.target_currency }}
-                  <span *ngIf="p.converted_amount" class="ms-1">({{ fmt(p.converted_amount, p.target_currency) }})</span>
-                </div>
-                <div *ngIf="p.exchange_rate" class="small text-muted mt-1">
-                  Taux&nbsp;: <b>{{ p.exchange_rate }}</b>
-                </div>
+                <span class="badge rounded-pill bg-info-subtle text-info-emphasis">
+                  {{ p.currency }} → {{ p.target_currency }}
+                </span>
+                <p class="fp-cell-meta mt-1" *ngIf="p.converted_amount">
+                  {{ fmt(p.converted_amount, p.target_currency) }}
+                </p>
+                <p class="fp-cell-meta" *ngIf="p.exchange_rate">Taux : {{ p.exchange_rate }}</p>
               </ng-container>
               <ng-template #sameCur>
-                <span class="text-muted small">—</span>
+                <span class="fp-cell-meta">—</span>
               </ng-template>
             </td>
-            <td class="text-muted small">{{ p.reference || '—' }}</td>
+
+            <td><p class="fp-cell-meta">{{ p.reference || '—' }}</p></td>
+
             <td class="text-end">
-              <button class="btn btn-sm btn-outline-primary me-1" (click)="printReceipt(p, 'print')" title="Imprimer le reçu">
-                <svg cIcon name="cilPrint" size="sm"></svg>
-              </button>
-              <button class="btn btn-sm btn-outline-secondary" (click)="printReceipt(p, 'download')" title="Télécharger PDF">
-                <svg cIcon name="cilCloudDownload" size="sm"></svg>
-              </button>
+              <div class="btn-group btn-group-sm" role="group">
+                <button cButton color="primary" variant="outline" [disabled]="busyReceiptId === p.id"
+                        (click)="printReceipt(p, 'print')" title="Imprimer le reçu">
+                  <c-spinner *ngIf="busyReceiptId === p.id" size="sm"></c-spinner>
+                  <svg *ngIf="busyReceiptId !== p.id" cIcon name="cilPrint" size="sm"></svg>
+                </button>
+                <button cButton color="secondary" variant="outline" [disabled]="busyReceiptId === p.id"
+                        (click)="printReceipt(p, 'download')" title="Télécharger le PDF">
+                  <svg cIcon name="cilCloudDownload" size="sm"></svg>
+                </button>
+              </div>
             </td>
           </tr>
+
           <tr *ngIf="!payments.length">
-            <td colspan="9" class="text-center py-5 text-muted">
-              Aucun versement enregistré.
-              <div class="mt-2">
-                <button *ngIf="canCreatePayment" class="btn btn-sm btn-outline-success" (click)="openBatchForm()">
+            <td colspan="8">
+              <div class="fp-empty">
+                <svg cIcon name="cilMoney" size="xxl" class="mb-3 opacity-50"></svg>
+                <p class="mb-3">
+                  {{ hasActiveFilters
+                      ? 'Aucun versement ne correspond à ces critères.'
+                      : 'Aucun versement enregistré.' }}
+                </p>
+                <button *ngIf="hasActiveFilters" cButton color="secondary" variant="outline" size="sm"
+                        (click)="resetFilters()">
+                  Réinitialiser les filtres
+                </button>
+                <button *ngIf="!hasActiveFilters && canCreatePayment" cButton color="success" size="sm"
+                        (click)="openBatchForm()">
                   <svg cIcon name="cilPlus" size="sm" class="me-1"></svg> Créer le premier versement
                 </button>
               </div>
@@ -129,21 +196,32 @@
       </table>
     </div>
 
-    <!-- PAGINATION -->
-    <div *ngIf="lastPage > 1" class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-      <div class="small text-muted">Page {{ page }} / {{ lastPage }} — {{ total }} versement(s)</div>
+    <!-- ===== PAGINATION ===== -->
+    <div *ngIf="lastPage > 1" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 px-2 pb-2">
+      <div class="small text-body-secondary">
+        Page {{ page }} / {{ lastPage }} — {{ total }} versement(s)
+      </div>
+
       <div class="d-flex gap-1">
-        <button class="btn btn-sm btn-light" [disabled]="page <= 1" (click)="goToPage(page - 1)">
-          <svg cIcon name="cilArrowLeft" size="sm"></svg>
+        <button cButton color="secondary" variant="outline" size="sm"
+                [disabled]="page <= 1" (click)="goToPage(page - 1)">
+          <svg cIcon name="cilChevronLeft" size="sm"></svg>
         </button>
-        <button class="btn btn-sm btn-light" [disabled]="page >= lastPage" (click)="goToPage(page + 1)">
-          <svg cIcon name="cilArrowRight" size="sm"></svg>
+
+        <button *ngFor="let n of pageNumbers; trackBy: trackByPage" cButton
+                [color]="n === page ? 'primary' : 'secondary'"
+                [variant]="n === page ? undefined : 'outline'"
+                size="sm" (click)="goToPage(n)">{{ n }}</button>
+
+        <button cButton color="secondary" variant="outline" size="sm"
+                [disabled]="page >= lastPage" (click)="goToPage(page + 1)">
+          <svg cIcon name="cilChevronRight" size="sm"></svg>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL BATCH -->
+  <!-- ===== MODALE LOT ===== -->
   <app-payment-batch-form
     [visible]="showBatchForm"
     (visibleChange)="showBatchForm = $event"

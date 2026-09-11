@@ -1,44 +1,85 @@
-<!-- ===== STATS ===== -->
+<!-- ===== SYNTHÈSE ===== -->
 <div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <c-card class="text-center h-100">
-      <c-card-body>
-        <div class="text-muted small mb-1">Contrats actifs</div>
-        <div class="fs-3 fw-bold text-success">{{ stats.active_leases }}</div>
-        <div class="text-muted small">/ {{ stats.total_leases }} total</div>
-      </c-card-body>
-    </c-card>
+  <div class="col-6 col-xl-3">
+    <div class="lz-stat">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <span class="lz-stat__icon" style="background:rgba(16,185,129,.12);color:var(--lz-success)">
+          <svg cIcon name="cilDescription"></svg>
+        </span>
+        <span class="badge rounded-pill" style="background:rgba(16,185,129,.12);color:var(--lz-success)">Actifs</span>
+      </div>
+
+      <div class="lz-stat__value" style="color:var(--lz-success)">{{ stats.active_leases }}</div>
+      <p class="lz-stat__label">Contrats actifs</p>
+
+      <div class="lz-stat__footer">
+        <div class="lz-track">
+          <div class="lz-track__fill" style="background:var(--lz-success)" [style.width.%]="getActiveRate()"></div>
+        </div>
+        <div class="mt-1">sur {{ stats.total_leases }} contrat(s)</div>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-3">
-    <c-card class="text-center h-100">
-      <c-card-body>
-        <div class="text-muted small mb-1">Loyer mensuel total</div>
-        <div class="fs-5 fw-bold text-primary">{{ formatAmount(stats.monthly_rent_total) }}</div>
-      </c-card-body>
-    </c-card>
+
+  <div class="col-6 col-xl-3">
+    <div class="lz-stat">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <span class="lz-stat__icon" style="background:rgba(99,102,241,.12);color:var(--lz-primary)">
+          <svg cIcon name="cilMoney"></svg>
+        </span>
+        <span class="badge rounded-pill" style="background:rgba(99,102,241,.12);color:var(--lz-primary)">Mensuel</span>
+      </div>
+
+      <div class="lz-stat__value" style="color:var(--lz-primary);font-size:1.35rem">
+        {{ formatAmount(stats.monthly_rent_total) }}
+      </div>
+      <p class="lz-stat__label">Loyer mensuel total</p>
+
+      <div class="lz-stat__footer">Attendu ce mois : {{ formatAmount(stats.expected_this_month) }}</div>
+    </div>
   </div>
-  <div class="col-6 col-md-3">
-    <c-card class="text-center h-100">
-      <c-card-body>
-        <div class="text-muted small mb-1">Encaissé ce mois</div>
-        <div class="fs-5 fw-bold text-success">{{ formatAmount(stats.collected_this_month) }}</div>
-        <c-progress class="mt-2" [value]="getCollectionRate()" color="success" height="4"></c-progress>
-        <div class="text-muted small mt-1">{{ getCollectionRate() }}% collecté</div>
-      </c-card-body>
-    </c-card>
+
+  <div class="col-6 col-xl-3">
+    <div class="lz-stat">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <span class="lz-stat__icon" style="background:rgba(16,185,129,.12);color:var(--lz-success)">
+          <svg cIcon name="cilCash"></svg>
+        </span>
+        <span class="badge rounded-pill" style="background:rgba(16,185,129,.12);color:var(--lz-success)">Encaissé</span>
+      </div>
+
+      <div class="lz-stat__value" style="color:var(--lz-success);font-size:1.35rem">
+        {{ formatAmount(stats.collected_this_month) }}
+      </div>
+      <p class="lz-stat__label">Encaissé ce mois</p>
+
+      <div class="lz-stat__footer">
+        <div class="lz-track">
+          <div class="lz-track__fill" style="background:var(--lz-success)" [style.width.%]="getCollectionRate()"></div>
+        </div>
+        <div class="mt-1">{{ getCollectionRate() }}% collecté</div>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-3">
-    <c-card class="text-center h-100">
-      <c-card-body>
-        <div class="text-muted small mb-1">Loyers en attente</div>
-        <div class="fs-3 fw-bold text-warning">{{ stats.pending_leases }}</div>
-        <div class="text-muted small">Caution: {{ formatAmount(stats.total_deposits) }}</div>
-      </c-card-body>
-    </c-card>
+
+  <div class="col-6 col-xl-3">
+    <div class="lz-stat">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <span class="lz-stat__icon" style="background:rgba(245,158,11,.14);color:var(--lz-warning)">
+          <svg cIcon name="cilClock"></svg>
+        </span>
+        <span class="badge rounded-pill" style="background:rgba(245,158,11,.14);color:var(--lz-warning)">En attente</span>
+      </div>
+
+      <div class="lz-stat__value" style="color:var(--lz-warning)">{{ stats.pending_leases }}</div>
+      <p class="lz-stat__label">Loyers en attente</p>
+
+      <div class="lz-stat__footer">Cautions détenues : {{ formatAmount(stats.total_deposits) }}</div>
+    </div>
   </div>
 </div>
 
-<!-- ===== TABS ===== -->
+<!-- ===== ONGLETS ===== -->
 <c-card>
   <c-card-header>
     <c-nav variant="tabs" role="tablist">
@@ -57,21 +98,38 @@
 
   <c-card-body>
 
-    <!-- ===== LEASES TAB ===== -->
+    <!-- ===== ONGLET CONTRATS ===== -->
     <div *ngIf="activeTab === 'leases'">
-      <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-        <button *ngIf="canCreateLeases" cButton color="success" size="sm" (click)="openNewLeaseModal()">
-          <svg cIcon name="cilPlus" class="me-1"></svg> Nouveau contrat
-        </button>
-        <select class="form-select form-select-sm w-auto" [(ngModel)]="leaseStatusFilter" (change)="leasesPage = 1; loadLeases()">
+      <div class="lz-toolbar">
+        <!-- L'API acceptait déjà ?search= ; l'écran ne l'exposait pas. -->
+        <div class="lz-search">
+          <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+          <input type="search" class="form-control form-control-sm"
+                 placeholder="Rechercher un locataire..."
+                 [ngModel]="leaseSearch" (ngModelChange)="onLeaseSearchChange($event)">
+        </div>
+
+        <select class="form-select form-select-sm w-auto" [(ngModel)]="leaseStatusFilter"
+                (change)="leasesPage = 1; loadLeases()">
           <option *ngFor="let s of leaseStatuses; trackBy: trackById" [value]="s.value">{{ s.label }}</option>
         </select>
-        <span *ngIf="loading" class="ms-auto"><c-spinner size="sm"></c-spinner></span>
+
+        <button *ngIf="leaseSearch || leaseStatusFilter" cButton color="secondary" variant="ghost" size="sm"
+                (click)="clearLeaseFilters()">
+          Réinitialiser
+        </button>
+
+        <c-spinner *ngIf="loading" size="sm" class="ms-1"></c-spinner>
+
+        <button *ngIf="canCreateLeases" cButton color="success" size="sm" class="ms-auto"
+                (click)="openNewLeaseModal()">
+          <svg cIcon name="cilPlus" size="sm" class="me-1"></svg> Nouveau contrat
+        </button>
       </div>
 
       <div class="table-responsive">
-        <table class="table table-hover table-sm align-middle mb-0">
-          <thead class="table-light">
+        <table class="table table-hover align-middle lz-table">
+          <thead>
             <tr>
               <th>Locataire</th>
               <th>Unité</th>
@@ -86,61 +144,93 @@
               <td>
                 <div class="d-flex align-items-center gap-2">
                   <ng-container *ngIf="leasePhotoUrl(lease); else leaseInitials">
-                    <img [src]="leasePhotoUrl(lease)" alt="{{ lease.renter_name }}"
-                         (error)="hideBrokenImage($event)"
-                         style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #E5E7EB;">
-                    <div style="display:none;width:38px;height:38px;border-radius:50%;background:#EEF2FF;color:#4F46E5;
-                                align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0">
-                      {{ (lease.renter_name || '?').charAt(0).toUpperCase() }}
+                    <img [src]="leasePhotoUrl(lease)" [alt]="lease.renter_name"
+                         (error)="hideBrokenImage($event)" class="lz-avatar">
+                    <div class="lz-avatar lz-avatar--initials" style="display:none">
+                      {{ initialOf(lease.renter_name) }}
                     </div>
                   </ng-container>
                   <ng-template #leaseInitials>
-                    <div style="width:38px;height:38px;border-radius:50%;background:#EEF2FF;color:#4F46E5;
-                                display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0">
-                      {{ (lease.renter_name || '?').charAt(0).toUpperCase() }}
-                    </div>
+                    <div class="lz-avatar lz-avatar--initials">{{ initialOf(lease.renter_name) }}</div>
                   </ng-template>
-                  <div>
-                    <div class="fw-semibold">{{ lease.renter_name }}</div>
-                    <div class="text-muted small">{{ lease.renter_phone || lease.renter_email || '—' }}</div>
+
+                  <div class="lz-min-w-0">
+                    <p class="lz-cell-title">{{ lease.renter_name }}</p>
+                    <p class="lz-cell-meta">
+                      <svg cIcon name="cilPhone" size="sm"></svg>
+                      {{ lease.renter_phone || lease.renter_email || '—' }}
+                    </p>
                   </div>
                 </div>
               </td>
+
               <td>
-                <div class="small">
+                <p class="lz-cell-meta">
+                  <svg cIcon name="cilBuilding" size="sm"></svg>
                   {{ getUnitLabel(lease.housing_unit || { id: lease.housing_unit_id }) }}
-                </div>
+                </p>
               </td>
+
               <td class="text-end fw-semibold">{{ formatAmount(lease.monthly_rent, lease.currency) }}</td>
+
               <td class="text-center">
                 <c-badge [color]="getStatusColor(lease.status)">{{ getStatusLabel(lease.status) }}</c-badge>
               </td>
-              <td class="text-muted small">{{ getLeaseDuration(lease) }}</td>
+
+              <td>
+                <p class="lz-cell-meta">
+                  <svg cIcon name="cilCalendar" size="sm"></svg>
+                  {{ getLeaseDuration(lease) }}
+                </p>
+              </td>
+
               <td class="text-end">
-                <div class="d-flex gap-1 justify-content-end flex-wrap">
-                  <button *ngIf="canRegisterLeasePayments" cButton color="success" variant="outline" size="sm" (click)="openPaymentModal(lease)" title="Enregistrer paiement">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button *ngIf="canRegisterLeasePayments" cButton color="success" variant="outline"
+                          (click)="openPaymentModal(lease)" title="Enregistrer un paiement">
                     <svg cIcon name="cilCash" size="sm"></svg>
                   </button>
-                  <button cButton color="info" variant="outline" size="sm" (click)="openLeasePaymentsModal(lease)" title="Voir paiements">
+                  <button cButton color="info" variant="outline"
+                          (click)="openLeasePaymentsModal(lease)" title="Voir les paiements">
                     <svg cIcon name="cilList" size="sm"></svg>
                   </button>
-                  <button *ngIf="canEditLeases" cButton color="warning" variant="outline" size="sm" (click)="openEditLeaseModal(lease)" title="Modifier">
+                  <button *ngIf="canEditLeases" cButton color="warning" variant="outline"
+                          (click)="openEditLeaseModal(lease)" title="Modifier">
                     <svg cIcon name="cilPencil" size="sm"></svg>
                   </button>
-                  <button *ngIf="canDeleteLeases" cButton color="danger" variant="outline" size="sm" (click)="deleteLease(lease)" title="Supprimer">
+                  <button *ngIf="canDeleteLeases" cButton color="danger" variant="outline"
+                          (click)="deleteLease(lease)" title="Supprimer">
                     <svg cIcon name="cilTrash" size="sm"></svg>
                   </button>
                 </div>
               </td>
             </tr>
+
             <tr *ngIf="!loading && leases.length === 0">
-              <td colspan="6" class="text-center text-muted py-4">Aucun contrat trouvé</td>
+              <td colspan="6">
+                <div class="lz-empty">
+                  <svg cIcon name="cilDescription" size="xxl" class="mb-3 opacity-50"></svg>
+                  <p class="mb-3">
+                    {{ (leaseSearch || leaseStatusFilter)
+                        ? 'Aucun contrat ne correspond à ces critères.'
+                        : 'Aucun contrat de location enregistré.' }}
+                  </p>
+                  <button *ngIf="leaseSearch || leaseStatusFilter" cButton color="secondary" variant="outline" size="sm"
+                          (click)="clearLeaseFilters()">
+                    Réinitialiser les filtres
+                  </button>
+                  <button *ngIf="!leaseSearch && !leaseStatusFilter && canCreateLeases"
+                          cButton color="success" size="sm" (click)="openNewLeaseModal()">
+                    <svg cIcon name="cilPlus" size="sm" class="me-1"></svg> Créer le premier contrat
+                  </button>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Pagination leases -->
+      <!-- Pagination contrats -->
       <div *ngIf="leasesTotalPages > 1" class="d-flex justify-content-center gap-1 mt-3">
         <button cButton color="secondary" variant="outline" size="sm" [disabled]="leasesPage === 1" (click)="onLeasesPageChange(leasesPage - 1)">‹</button>
         <button *ngFor="let p of getPages(leasesTotalPages); trackBy: trackById" cButton
@@ -151,20 +241,21 @@
       </div>
     </div>
 
-    <!-- ===== PAYMENTS TAB ===== -->
+    <!-- ===== ONGLET PAIEMENTS ===== -->
     <div *ngIf="activeTab === 'payments'">
-      <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+      <div class="lz-toolbar">
         <input type="month" class="form-control form-control-sm w-auto" [(ngModel)]="paymentMonthFilter"
-          (change)="paymentsPage = 1; loadAllPayments()" placeholder="Filtrer par mois">
-        <button cButton color="secondary" variant="outline" size="sm" *ngIf="paymentMonthFilter"
-          (click)="paymentMonthFilter = ''; paymentsPage = 1; loadAllPayments()">
-          Effacer filtre
+               (change)="paymentsPage = 1; loadAllPayments()">
+        <button *ngIf="paymentMonthFilter" cButton color="secondary" variant="ghost" size="sm"
+                (click)="paymentMonthFilter = ''; paymentsPage = 1; loadAllPayments()">
+          Effacer le filtre
         </button>
+        <c-spinner *ngIf="receiptLoading" size="sm" class="ms-auto"></c-spinner>
       </div>
 
       <div class="table-responsive">
-        <table class="table table-hover table-sm align-middle mb-0">
-          <thead class="table-light">
+        <table class="table table-hover align-middle lz-table">
+          <thead>
             <tr>
               <th>Locataire</th>
               <th>Période</th>
@@ -172,36 +263,59 @@
               <th>Méthode</th>
               <th>Date</th>
               <th class="text-center">Statut</th>
-              <th class="text-end">Action</th>
+              <th class="text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let p of payments; trackBy: trackById">
-              <td class="fw-semibold">{{ p.lease?.renter_name || '—' }}</td>
-              <td><span class="badge bg-primary-subtle text-primary-emphasis">{{ formatPeriod(p.period_month) }}</span></td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="lz-avatar lz-avatar--initials">{{ initialOf(p.lease?.renter_name) }}</div>
+                  <p class="lz-cell-title">{{ p.lease?.renter_name || '—' }}</p>
+                </div>
+              </td>
+              <td>
+                <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis">
+                  {{ formatPeriod(p.period_month) }}
+                </span>
+              </td>
               <td class="text-end fw-semibold">{{ formatAmount(p.amount, p.currency) }}</td>
-              <td class="text-muted small">{{ getPaymentMethodLabel(p.payment_method) }}</td>
-              <td class="text-muted small">{{ p.payment_date | date:'dd/MM/yyyy' }}</td>
+              <td><p class="lz-cell-meta">{{ getPaymentMethodLabel(p.payment_method) }}</p></td>
+              <td><p class="lz-cell-meta">{{ p.payment_date | date:'dd/MM/yyyy' }}</p></td>
               <td class="text-center">
                 <c-badge [color]="getStatusColor(p.status)">{{ getStatusLabel(p.status) }}</c-badge>
               </td>
               <td class="text-end">
-                <button cButton color="info" variant="outline" size="sm" class="me-1" (click)="printPaymentReceipt(p)" title="Reçu">
-                  <svg cIcon name="cilPrint" size="sm"></svg>
-                </button>
-                <button cButton color="danger" variant="outline" size="sm" (click)="deletePayment(p)" title="Supprimer">
-                  <svg cIcon name="cilTrash" size="sm"></svg>
-                </button>
+                <div class="btn-group btn-group-sm" role="group">
+                  <button cButton color="info" variant="outline" [disabled]="receiptLoading"
+                          (click)="printPaymentReceipt(p)" title="Imprimer le reçu">
+                    <svg cIcon name="cilPrint" size="sm"></svg>
+                  </button>
+                  <button *ngIf="canDeleteLeasePayments" cButton color="danger" variant="outline"
+                          (click)="deletePayment(p)" title="Supprimer">
+                    <svg cIcon name="cilTrash" size="sm"></svg>
+                  </button>
+                </div>
               </td>
             </tr>
+
             <tr *ngIf="payments.length === 0">
-              <td colspan="7" class="text-center text-muted py-4">Aucun paiement enregistré</td>
+              <td colspan="7">
+                <div class="lz-empty">
+                  <svg cIcon name="cilCash" size="xxl" class="mb-3 opacity-50"></svg>
+                  <p class="mb-0">
+                    {{ paymentMonthFilter
+                        ? 'Aucun paiement sur cette période.'
+                        : 'Aucun paiement enregistré.' }}
+                  </p>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Pagination payments -->
+      <!-- Pagination paiements -->
       <div *ngIf="paymentsTotalPages > 1" class="d-flex justify-content-center gap-1 mt-3">
         <button cButton color="secondary" variant="outline" size="sm" [disabled]="paymentsPage === 1" (click)="onPaymentsPageChange(paymentsPage - 1)">‹</button>
         <button *ngFor="let p of getPages(paymentsTotalPages); trackBy: trackById" cButton

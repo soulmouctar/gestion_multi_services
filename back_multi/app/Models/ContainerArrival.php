@@ -12,6 +12,7 @@ class ContainerArrival extends Model
 
     protected $fillable = [
         'tenant_id',
+        'arrival_number',
         'container_id',
         'supplier_id',
         'arrival_date',

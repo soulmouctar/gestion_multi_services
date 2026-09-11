@@ -717,9 +717,11 @@ class PaymentController extends BaseController
             ->whereNull('invoice_id')
             ->where('status', 'APPROVED')
             ->whereNull('client_advance_id')
-            ->sum('client_credit_amount');
+            ->get()
+            ->sum(fn (ProductReturn $return) => $this->productReturnCreditGnf($return));
         $availableCredit = (float) $unappliedPayments->sum(fn ($payment) => $payment->amount_gnf);
         $totalRemaining = max(0, $totalInvoiced - $totalPaid - $availableCredit - (float) $returnCredits);
+        $balancesByCurrency = $this->clientBalancesByCurrency($clientId, $tenantId);
 
         $payments = Payment::where('client_id', $clientId)
             ->where('tenant_id', $tenantId)
@@ -734,6 +736,7 @@ class PaymentController extends BaseController
             'total_remaining' => $totalRemaining,
             'available_credit_gnf' => $availableCredit,
             'total_return_credits' => (float) $returnCredits,
+            'balances_by_currency' => $balancesByCurrency,
             'invoices'        => $invoices->map(fn ($i) => [
                 'id'                => $i->id,
                 'invoice_number'    => $i->invoice_number,
@@ -798,7 +801,8 @@ class PaymentController extends BaseController
                 ->whereNull('invoice_id')
                 ->where('status', 'APPROVED')
                 ->whereNull('client_advance_id')
-                ->sum('client_credit_amount');
+                ->get()
+                ->sum(fn (ProductReturn $return) => $this->productReturnCreditGnf($return));
 
             return [
                 'client_id'       => $client?->id,
@@ -1056,7 +1060,7 @@ class PaymentController extends BaseController
             $invMarginGnf = $invRevGnf - $invCostGnf;
 
             // ── Ventes conteneurs (par arrivage) ────────────────────────
-            $containerRows = \DB::table('container_sales')
+            $containerSaleRows = \DB::table('container_sales')
                 ->join('container_arrivals', 'container_sales.container_arrival_id', '=', 'container_arrivals.id')
                 ->join('containers', 'container_arrivals.container_id', '=', 'containers.id')
                 ->leftJoin('product_categories', 'container_arrivals.product_category_id', '=', 'product_categories.id')
@@ -1064,61 +1068,89 @@ class PaymentController extends BaseController
                 ->where('container_sales.tenant_id', $tenantId)
                 ->when($from, fn ($q) => $q->whereDate('container_sales.sale_date', '>=', $from))
                 ->when($to,   fn ($q) => $q->whereDate('container_sales.sale_date', '<=', $to))
-                ->groupBy(
-                    'container_sales.container_arrival_id',
-                    'containers.container_number',
-                    'container_arrivals.arrival_date',
-                    'container_arrivals.total_quantity',
-                    'container_arrivals.purchase_price',
-                    'container_arrivals.currency',
-                    'container_arrivals.exchange_rate',
-                    'product_categories.name',
-                    'suppliers.name'
-                )
                 ->selectRaw('
+                    container_sales.id as sale_id,
                     container_sales.container_arrival_id as arrival_id,
                     containers.container_number,
                     container_arrivals.arrival_date,
                     container_arrivals.total_quantity as total_quantity,
                     container_arrivals.purchase_price as arrival_purchase_price,
+                    container_arrivals.purchase_price_gnf as arrival_purchase_price_gnf,
                     container_arrivals.currency as arrival_currency,
                     container_arrivals.exchange_rate as arrival_rate,
                     product_categories.name as product_category,
                     suppliers.name as supplier_name,
-                    COALESCE(SUM(container_sales.quantity_sold), 0) as quantity_sold,
-                    COALESCE(SUM(container_sales.sale_price), 0) as revenue_native,
-                    COALESCE(SUM(
-                        CASE
-                            WHEN container_arrivals.total_quantity > 0
-                            THEN (container_sales.quantity_sold * container_arrivals.purchase_price) / container_arrivals.total_quantity
-                            ELSE 0
-                        END
-                    ), 0) as cost_native
+                    container_sales.quantity_sold,
+                    container_sales.sale_price,
+                    container_sales.currency as sale_currency,
+                    container_sales.exchange_rate as sale_rate,
+                    container_sales.sale_price_gnf
                 ')
                 ->get();
 
             $ctnRevGnf = 0.0; $ctnCostGnf = 0.0;
             $containers = [];
-            foreach ($containerRows as $row) {
-                $rate = (float) ($row->arrival_rate ?: 1);
-                $revenueNative = (float) $row->revenue_native;
-                $costNative    = (float) $row->cost_native;
-                $revGnf  = ($row->arrival_currency === 'GNF') ? $revenueNative : $revenueNative * $rate;
-                $costGnf = ($row->arrival_currency === 'GNF') ? $costNative    : $costNative    * $rate;
+            foreach ($containerSaleRows->groupBy('arrival_id') as $arrivalId => $sales) {
+                $first = $sales->first();
+                $totalQuantity = max((float) $first->total_quantity, 0.0);
+                $arrivalCurrency = strtoupper((string) ($first->arrival_currency ?? 'GNF'));
+                $arrivalRate = (float) ($first->arrival_rate ?: 1);
+                $arrivalPurchaseNative = (float) $first->arrival_purchase_price;
+                $arrivalPurchaseGnf = $first->arrival_purchase_price_gnf !== null
+                    ? (float) $first->arrival_purchase_price_gnf
+                    : ($arrivalCurrency === 'GNF' ? $arrivalPurchaseNative : $arrivalPurchaseNative * $arrivalRate);
+
+                $quantitySold = 0.0;
+                $revenueByCurrency = [];
+                $costNative = 0.0;
+                $revGnf = 0.0;
+                $costGnf = 0.0;
+
+                foreach ($sales as $sale) {
+                    $quantity = (float) $sale->quantity_sold;
+                    $saleCurrency = strtoupper((string) ($sale->sale_currency ?? 'GNF'));
+                    $saleRate = (float) ($sale->sale_rate ?: 1);
+                    $saleRevenueNative = (float) $sale->sale_price;
+                    $saleRevenueGnf = $sale->sale_price_gnf !== null
+                        ? (float) $sale->sale_price_gnf
+                        : ($saleCurrency === 'GNF' ? $saleRevenueNative : $saleRevenueNative * $saleRate);
+
+                    $saleCostNative = $totalQuantity > 0
+                        ? ($quantity * $arrivalPurchaseNative) / $totalQuantity
+                        : 0.0;
+                    $saleCostGnf = $totalQuantity > 0
+                        ? ($quantity * $arrivalPurchaseGnf) / $totalQuantity
+                        : 0.0;
+
+                    $quantitySold += $quantity;
+                    $revenueByCurrency[$saleCurrency] = ($revenueByCurrency[$saleCurrency] ?? 0) + $saleRevenueNative;
+                    $costNative += $saleCostNative;
+                    $revGnf += $saleRevenueGnf;
+                    $costGnf += $saleCostGnf;
+                }
+
                 $marginGnf = $revGnf - $costGnf;
                 $pct = $revGnf > 0 ? round(($marginGnf / $revGnf) * 100, 2) : null;
                 $ctnRevGnf  += $revGnf;
                 $ctnCostGnf += $costGnf;
                 $containers[] = [
-                    'arrival_id'        => (int) $row->arrival_id,
-                    'container_number'  => $row->container_number,
-                    'arrival_date'      => $row->arrival_date,
-                    'product_category'  => $row->product_category,
-                    'supplier_name'     => $row->supplier_name,
-                    'currency'          => $row->arrival_currency,
-                    'quantity_sold'     => (float) $row->quantity_sold,
-                    'revenue'           => round($revenueNative, 2),
+                    'arrival_id'        => (int) $arrivalId,
+                    'container_number'  => $first->container_number,
+                    'arrival_date'      => $first->arrival_date,
+                    'product_category'  => $first->product_category,
+                    'supplier_name'     => $first->supplier_name,
+                    'currency'          => $arrivalCurrency,
+                    'quantity_sold'     => round($quantitySold, 2),
+                    'revenue'           => round(array_sum($revenueByCurrency), 2),
                     'cost'              => round($costNative, 2),
+                    'revenue_by_currency' => collect($revenueByCurrency)
+                        ->map(fn ($amount, $currency) => [
+                            'currency' => $currency,
+                            'amount' => round((float) $amount, 2),
+                        ])
+                        ->values()
+                        ->all(),
+                    'cost_currency'     => $arrivalCurrency,
                     'revenue_gnf'       => round($revGnf, 2),
                     'cost_gnf'          => round($costGnf, 2),
                     'margin_gnf'        => round($marginGnf, 2),
@@ -1352,6 +1384,90 @@ class PaymentController extends BaseController
             ->where('status', 'COMPLETED')
             ->get()
             ->sum(fn ($payment) => $payment->amount_gnf);
+    }
+
+    private function productReturnCreditGnf(ProductReturn $return): float
+    {
+        if ($return->total_amount_gnf !== null) {
+            return (float) $return->total_amount_gnf;
+        }
+
+        $currency = strtoupper((string) ($return->currency ?? 'GNF'));
+        $amount = (float) $return->client_credit_amount;
+        $rate = (float) ($return->exchange_rate ?: 1);
+
+        return $currency === 'GNF' ? $amount : round($amount * $rate, 2);
+    }
+
+    private function clientBalancesByCurrency(int $clientId, int $tenantId): array
+    {
+        $balances = [];
+        $ensure = function (string $currency) use (&$balances): void {
+            $currency = strtoupper($currency ?: 'GNF');
+            if (!isset($balances[$currency])) {
+                $balances[$currency] = [
+                    'currency' => $currency,
+                    'total_invoiced' => 0.0,
+                    'total_paid' => 0.0,
+                    'available_credit' => 0.0,
+                    'return_credits' => 0.0,
+                    'total_remaining' => 0.0,
+                ];
+            }
+        };
+
+        Invoice::where('client_id', $clientId)
+            ->where('tenant_id', $tenantId)
+            ->get()
+            ->each(function (Invoice $invoice) use (&$balances, $ensure) {
+                $currency = strtoupper((string) ($invoice->currency ?? 'GNF'));
+                $ensure($currency);
+                $balances[$currency]['total_invoiced'] += (float) $invoice->total_amount;
+                $balances[$currency]['total_paid'] += (float) $invoice->paid_amount;
+            });
+
+        Payment::where('client_id', $clientId)
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'COMPLETED')
+            ->whereNull('invoice_id')
+            ->where('type', 'CLIENT')
+            ->get()
+            ->each(function (Payment $payment) use (&$balances, $ensure) {
+                $currency = strtoupper((string) ($payment->target_currency ?: $payment->currency ?: 'GNF'));
+                $ensure($currency);
+                $credit = $payment->converted_amount !== null
+                    ? (float) $payment->converted_amount
+                    : (float) $payment->amount;
+                $balances[$currency]['available_credit'] += $credit;
+            });
+
+        ProductReturn::where('client_id', $clientId)
+            ->where('tenant_id', $tenantId)
+            ->whereNull('invoice_id')
+            ->where('status', 'APPROVED')
+            ->whereNull('client_advance_id')
+            ->get()
+            ->each(function (ProductReturn $return) use (&$balances, $ensure) {
+                $currency = strtoupper((string) ($return->currency ?? 'GNF'));
+                $ensure($currency);
+                $balances[$currency]['return_credits'] += (float) $return->client_credit_amount;
+            });
+
+        foreach ($balances as &$balance) {
+            $balance['total_invoiced'] = round((float) $balance['total_invoiced'], 2);
+            $balance['total_paid'] = round((float) $balance['total_paid'], 2);
+            $balance['available_credit'] = round((float) $balance['available_credit'], 2);
+            $balance['return_credits'] = round((float) $balance['return_credits'], 2);
+            $balance['total_remaining'] = max(0, round(
+                $balance['total_invoiced']
+                - $balance['total_paid']
+                - $balance['available_credit']
+                - $balance['return_credits'],
+                2
+            ));
+        }
+
+        return array_values($balances);
     }
 
     private function getMonthlyTrend($tenantId, $request)

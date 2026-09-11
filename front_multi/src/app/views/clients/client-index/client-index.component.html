@@ -206,13 +206,13 @@
               <td class="numeric">{{ fmt(row.total_charged) }}</td>
               <td class="numeric paid">{{ fmt(row.total_paid) }}</td>
               <td>
-                <div *ngIf="currencyBalances(row).length; else noCurrencyBalance" class="d-flex flex-column gap-1">
-                  <span *ngFor="let b of currencyBalances(row)" class="small"
+                <div *ngIf="currencyBalances(row).length; else noCurrencyBalance" class="currency-balances">
+                  <span *ngFor="let b of currencyBalances(row)" class="small currency-balance"
                         [class.text-danger]="b.balance > 0"
                         [class.text-success]="b.balance < 0">
                     {{ fmt(b.balance) }} {{ b.currency }}
                   </span>
-                  <span class="small text-muted" *ngIf="row.balance_gnf_equivalent">
+                  <span class="small text-muted currency-balance" *ngIf="row.balance_gnf_equivalent">
                     ≈ {{ fmt(row.balance_gnf_equivalent) }} GNF
                   </span>
                 </div>

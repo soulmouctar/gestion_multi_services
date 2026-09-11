@@ -29,10 +29,6 @@ export interface Product {
   low_stock_threshold?: number;
   status: 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED';
   barcode?: string;
-  weight?: number;
-  dimensions?: string;
-  supplier_info?: string;
-  notes?: string;
   image?: string;
   image_url?: string;
   category?: ProductCategory;

@@ -4,16 +4,26 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Client;
 use App\Models\ClientInterestCharge;
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class ClientInterestController extends BaseController
 {
-    private function tenantId(): ?int
+    private function normalizeCurrency(?string $currency): string
     {
-        $user = Auth::user();
-        return $user->hasRole('SUPER_ADMIN') ? request()->get('tenant_id') : $user->tenant_id;
+        $currency = strtoupper(trim((string) ($currency ?: 'GNF')));
+        return $currency !== '' ? $currency : 'GNF';
+    }
+
+    private function statusFromPayment(float $paidAmount, float $amount): string
+    {
+        if ($paidAmount <= 0) {
+            return 'PENDING';
+        }
+
+        return $paidAmount >= $amount ? 'PAID' : 'PARTIAL';
     }
 
     /** Liste des frais d'intérêts d'un client (compte "SALL") */
@@ -32,11 +42,13 @@ class ClientInterestController extends BaseController
             ->orderBy('charge_date', 'desc')
             ->get();
 
+        $activeCharges = $charges->whereIn('status', ['PENDING', 'PARTIAL', 'PAID']);
+
         $summary = [
-            'total_charged'  => (float) $charges->sum('amount'),
-            'total_paid'     => (float) $charges->sum('paid_amount'),
-            'remaining'      => (float) ($charges->sum('amount') - $charges->sum('paid_amount')),
-            'pending_count'  => $charges->whereIn('status', ['PENDING', 'PARTIAL'])->count(),
+            'total_charged'  => (float) $activeCharges->sum('amount'),
+            'total_paid'     => (float) $activeCharges->sum('paid_amount'),
+            'remaining'      => max(0, (float) ($activeCharges->sum('amount') - $activeCharges->sum('paid_amount'))),
+            'pending_count'  => $activeCharges->whereIn('status', ['PENDING', 'PARTIAL'])->count(),
         ];
 
         return $this->sendResponse([
@@ -53,7 +65,9 @@ class ClientInterestController extends BaseController
             'invoice_id'       => 'nullable|exists:invoices,id',
             'principal_amount' => 'nullable|numeric|min:0',
             'interest_rate'    => 'nullable|numeric|min:0|max:100',
-            'amount'           => 'required|numeric|min:0.01',
+            'amount'           => 'nullable|numeric|min:0.01',
+            'paid_amount'      => 'nullable|numeric|min:0',
+            'status'           => 'nullable|in:PENDING,PARTIAL,PAID,CANCELLED',
             'currency'         => 'nullable|string|max:10',
             'charge_date'      => 'required|date',
             'reference'        => 'nullable|string|max:100',
@@ -70,17 +84,56 @@ class ClientInterestController extends BaseController
             return $this->sendError('Accès refusé', [], 403);
         }
 
+        $invoice = null;
+        if ($request->filled('invoice_id')) {
+            $invoice = Invoice::where('tenant_id', $client->tenant_id)
+                ->where('client_id', $client->id)
+                ->whereKey($request->invoice_id)
+                ->first();
+
+            if (!$invoice) {
+                return $this->sendError('Facture invalide pour ce client.', [], 422);
+            }
+        }
+
+        $principal = $request->filled('principal_amount')
+            ? round((float) $request->principal_amount, 2)
+            : ($invoice ? round((float) $invoice->remaining_balance, 2) : 0.0);
+        $rate = $request->filled('interest_rate') ? round((float) $request->interest_rate, 3) : 0.0;
+
+        if ($request->filled('amount')) {
+            $amount = round((float) $request->amount, 2);
+        } else {
+            if ($principal <= 0 || $rate <= 0) {
+                return $this->sendError(
+                    'Montant d\'intérêt requis.',
+                    ['amount' => ['Renseignez amount ou un principal_amount avec interest_rate.']],
+                    422
+                );
+            }
+            $amount = round(($principal * $rate) / 100, 2);
+        }
+
+        if ($amount < 0.01) {
+            return $this->sendError('Montant d\'intérêt invalide.', ['amount' => ['Le montant calculé doit être supérieur à 0.']], 422);
+        }
+
+        $paidAmount = min(max(round((float) $request->input('paid_amount', 0), 2), 0), $amount);
+        $status = $request->status === 'CANCELLED'
+            ? 'CANCELLED'
+            : $this->statusFromPayment($paidAmount, $amount);
+
         $charge = ClientInterestCharge::create([
             'tenant_id'        => $client->tenant_id,
             'client_id'        => $client->id,
-            'invoice_id'       => $request->invoice_id,
-            'principal_amount' => $request->principal_amount ?? 0,
-            'interest_rate'    => $request->interest_rate ?? 0,
-            'amount'           => $request->amount,
-            'paid_amount'      => 0,
-            'currency'         => $request->currency ?? 'GNF',
+            'invoice_id'       => $invoice?->id,
+            'principal_amount' => $principal,
+            'interest_rate'    => $rate,
+            'amount'           => $amount,
+            'paid_amount'      => $paidAmount,
+            'currency'         => $this->normalizeCurrency($request->currency ?? $invoice?->currency),
             'charge_date'      => $request->charge_date,
-            'status'           => 'PENDING',
+            'status'           => $status,
             'reference'        => $request->reference,
             'notes'            => $request->notes,
         ]);
@@ -111,19 +164,23 @@ class ClientInterestController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $charge->fill($request->only(['amount', 'paid_amount', 'status', 'notes', 'charge_date']));
-
-        // Auto-compute status if paid_amount changed
-        if ($request->has('paid_amount')) {
-            if ($charge->paid_amount <= 0) {
-                $charge->status = 'PENDING';
-            } elseif ($charge->paid_amount >= $charge->amount) {
-                $charge->status = 'PAID';
-                $charge->paid_amount = $charge->amount;
-            } else {
-                $charge->status = 'PARTIAL';
-            }
+        if ($request->has('amount')) {
+            $charge->amount = round((float) $request->amount, 2);
         }
+        if ($request->has('paid_amount')) {
+            $charge->paid_amount = round((float) $request->paid_amount, 2);
+        }
+        if ($request->has('notes')) {
+            $charge->notes = $request->notes;
+        }
+        if ($request->has('charge_date')) {
+            $charge->charge_date = $request->charge_date;
+        }
+
+        $charge->paid_amount = min(max((float) $charge->paid_amount, 0), (float) $charge->amount);
+        $charge->status = $request->status === 'CANCELLED'
+            ? 'CANCELLED'
+            : $this->statusFromPayment((float) $charge->paid_amount, (float) $charge->amount);
 
         $charge->save();
 

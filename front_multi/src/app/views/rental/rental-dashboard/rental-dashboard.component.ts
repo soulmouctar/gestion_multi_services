@@ -2,389 +2,309 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyR
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { BadgeModule, SpinnerModule } from '@coreui/angular';
+import { BadgeModule, ButtonModule, CardModule, SpinnerModule } from '@coreui/angular';
+import { ChartjsComponent } from '@coreui/angular-chartjs';
+import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
+
+interface Occupancy {
+  total_units: number;
+  occupied: number;
+  free: number;
+  occupancy_rate: number;
+}
+
+interface Revenue {
+  expected_monthly: number;
+  collected_month: number;
+  collection_rate: number;
+  total_deposits: number;
+}
+
+interface LeaseStats {
+  total: number;
+  active: number;
+  pending: number;
+  expired_count: number;
+  terminated_count: number;
+  total_deposits: number;
+}
+
+interface ExpiringLease {
+  id: number;
+  renter_name: string;
+  renter_phone: string | null;
+  end_date: string;
+  days_remaining: number;
+  monthly_rent: number;
+  currency: string;
+  urgency: 'danger' | 'warning' | 'info';
+}
+
+interface LatePayment {
+  id: number;
+  renter_name: string;
+  period_month: string;
+  amount: number;
+  currency: string;
+  status: 'LATE' | 'PENDING' | string;
+}
+
+interface BuildingOccupancy {
+  building_id: number;
+  building_name: string;
+  location_name: string | null;
+  total_units: number;
+  occupied: number;
+  occupancy_rate: number;
+  monthly_revenue: number;
+}
+
+interface MonthlyRevenuePoint {
+  month: string;
+  collected: number | string;
+  payments: number | string;
+}
+
+interface RentalDashboardData {
+  occupancy: Occupancy;
+  revenue: Revenue;
+  leases: LeaseStats;
+  expiring_soon: ExpiringLease[];
+  late_payments: LatePayment[];
+  by_building: BuildingOccupancy[];
+  monthly_revenue: MonthlyRevenuePoint[];
+  period: string;
+}
+
+interface Kpi {
+  label: string;
+  tag: string;
+  value: number;
+  icon: string;
+  color: string;
+  soft: string;
+  /** Pourcentage de la jauge, ou null si la carte n'en a pas. */
+  progress: number | null;
+  /** Ligne de contexte en pied de carte, toujours présente. */
+  caption: string;
+}
+
+const MONTHS_FR = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+];
+
+const EMPTY_OCCUPANCY: Occupancy = { total_units: 0, occupied: 0, free: 0, occupancy_rate: 0 };
+const EMPTY_REVENUE: Revenue = { expected_monthly: 0, collected_month: 0, collection_rate: 0, total_deposits: 0 };
 
 @Component({
   selector: 'app-rental-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, BadgeModule, SpinnerModule],
-  styles: [`
-    .dash-header {
-      background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-      border-radius: 16px;
-      padding: 28px 32px;
-      margin-bottom: 28px;
-      position: relative;
-      overflow: hidden;
-    }
-    .dash-header::before {
-      content: '';
-      position: absolute;
-      top: -50px; right: -30px;
-      width: 220px; height: 220px;
-      background: rgba(255,255,255,.04);
-      border-radius: 50%;
-    }
-    .kpi-card {
-      border-radius: 14px;
-      padding: 22px 20px;
-      border: none;
-      background: #fff;
-      transition: transform .2s, box-shadow .2s;
-    }
-    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.1) !important; }
-    .kpi-icon {
-      width: 50px; height: 50px;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-    }
-    .kpi-value { font-size: 2rem; font-weight: 800; line-height: 1; }
-    .kpi-label { font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
-    .revenue-card {
-      border-radius: 14px;
-      padding: 24px;
-      border: none;
-      color: #fff;
-      transition: transform .2s;
-    }
-    .revenue-card:hover { transform: translateY(-2px); }
-    .section-title {
-      font-size: .7rem;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: #6c757d;
-      margin-bottom: 14px;
-    }
-    .bar-track { height: 6px; border-radius: 3px; background: #F3F4F6; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
-    .ring-wrap {
-      position: relative;
-      width: 80px; height: 80px;
-    }
-    .ring-wrap svg { transform: rotate(-90deg); }
-    .ring-wrap .ring-value {
-      position: absolute;
-      inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 1rem;
-    }
-    .urgency-row {
-      padding: 12px 14px;
-      border-radius: 10px;
-      border-left: 3px solid;
-      margin-bottom: 8px;
-      background: #fff;
-    }
-    .building-row {
-      padding: 12px 16px;
-      border-radius: 10px;
-      transition: background .15s;
-    }
-    .building-row:hover { background: #F9FAFB; }
-    .late-row {
-      padding: 10px 14px;
-      border-radius: 10px;
-      border-left: 3px solid #EF4444;
-      background: #FFF5F5;
-      margin-bottom: 6px;
-    }
-  `],
-  template: `
-<div class="p-3 p-md-4">
-
-  <!-- Loading -->
-  <div *ngIf="loading" class="text-center py-5">
-    <c-spinner color="primary" size="sm"></c-spinner>
-    <div class="mt-2 text-muted small">Chargement du tableau de bord...</div>
-  </div>
-
-  <ng-container *ngIf="!loading && data">
-
-    <!-- ── Header ── -->
-    <div class="dash-header text-white">
-      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-        <div>
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <span style="font-size:1.4rem">🏠</span>
-            <span class="small fw-semibold opacity-75">MODULE LOCATION IMMOBILIÈRE</span>
-          </div>
-          <h3 class="fw-bold mb-1" style="font-size:1.6rem">Tableau de Bord</h3>
-          <p class="mb-0 opacity-60 small">Période : <strong class="text-white">{{ period }}</strong></p>
-        </div>
-        <div class="d-flex gap-4">
-          <div class="text-center">
-            <div class="fw-bold" style="font-size:1.5rem">{{ data.occupancy?.total_units }}</div>
-            <div class="opacity-60" style="font-size:.72rem">Unités</div>
-          </div>
-          <div style="width:1px;background:rgba(255,255,255,.15)"></div>
-          <div class="text-center">
-            <div class="fw-bold" style="font-size:1.5rem">{{ data.leases?.active }}</div>
-            <div class="opacity-60" style="font-size:.72rem">Baux actifs</div>
-          </div>
-          <div style="width:1px;background:rgba(255,255,255,.15)"></div>
-          <div class="text-center">
-            <div class="fw-bold" style="font-size:1.5rem;color:#86EFAC">{{ data.occupancy?.occupancy_rate }}%</div>
-            <div class="opacity-60" style="font-size:.72rem">Occupation</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── KPI Row ── -->
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-md-3">
-        <div class="kpi-card shadow-sm">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="kpi-icon" style="background:#EEF2FF;color:#6366F1">🏢</div>
-            <span class="badge rounded-pill" style="background:#EEF2FF;color:#6366F1;font-size:.68rem">Total</span>
-          </div>
-          <div class="kpi-value" style="color:#1e1e2d">{{ data.occupancy?.total_units }}</div>
-          <div class="kpi-label mt-1" style="color:#6366F1">Unités au total</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="kpi-card shadow-sm">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="kpi-icon" style="background:#ECFDF5;color:#10B981">🔑</div>
-            <span class="badge rounded-pill" style="background:#ECFDF5;color:#10B981;font-size:.68rem">Louées</span>
-          </div>
-          <div class="kpi-value" style="color:#10B981">{{ data.occupancy?.occupied }}</div>
-          <div class="kpi-label mt-1" style="color:#10B981">Occupées</div>
-          <div class="bar-track mt-2">
-            <div class="bar-fill" style="background:#10B981" [style.width]="data.occupancy?.occupancy_rate + '%'"></div>
-          </div>
-          <div class="text-end mt-1" style="font-size:.7rem;color:#10B981">{{ data.occupancy?.occupancy_rate }}%</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="kpi-card shadow-sm">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="kpi-icon" style="background:#FFFBEB;color:#F59E0B">🔓</div>
-            <span class="badge rounded-pill" style="background:#FFFBEB;color:#F59E0B;font-size:.68rem">Libres</span>
-          </div>
-          <div class="kpi-value" style="color:#F59E0B">{{ data.occupancy?.free }}</div>
-          <div class="kpi-label mt-1" style="color:#F59E0B">Unités libres</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="kpi-card shadow-sm">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="kpi-icon" style="background:#F0F9FF;color:#0EA5E9">📄</div>
-            <span class="badge rounded-pill" style="background:#F0F9FF;color:#0EA5E9;font-size:.68rem">Actifs</span>
-          </div>
-          <div class="kpi-value" style="color:#0EA5E9">{{ data.leases?.active }}</div>
-          <div class="kpi-label mt-1" style="color:#0EA5E9">Baux actifs</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Revenus Row ── -->
-    <div class="row g-3 mb-4">
-      <!-- Revenus mois -->
-      <div class="col-md-4">
-        <div class="revenue-card shadow-sm" style="background:linear-gradient(135deg,#10B981,#059669)">
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-              <div class="small fw-semibold opacity-75 mb-1">REVENUS CE MOIS</div>
-              <div style="font-size:1.7rem;font-weight:800;line-height:1">{{ fmt(data.revenue?.collected_month) }}</div>
-            </div>
-            <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:10px;font-size:1.2rem">💵</div>
-          </div>
-          <div class="small opacity-75 mb-2">Attendu : <strong class="text-white">{{ fmt(data.revenue?.expected_monthly) }}</strong></div>
-          <div class="bar-track" style="background:rgba(255,255,255,.25)">
-            <div class="bar-fill" style="background:#fff" [style.width]="data.revenue?.collection_rate + '%'"></div>
-          </div>
-          <div class="mt-1 small opacity-90">{{ data.revenue?.collection_rate }}% collecté</div>
-        </div>
-      </div>
-
-      <!-- Taux occupation visuel -->
-      <div class="col-md-4">
-        <div class="shadow-sm rounded-4 bg-white p-4 h-100 d-flex flex-column justify-content-center">
-          <div class="section-title text-center mb-3">Taux d'Occupation</div>
-          <div class="d-flex align-items-center justify-content-center gap-4">
-            <!-- Ring -->
-            <div class="ring-wrap">
-              <svg width="80" height="80" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="32" fill="none" stroke="#F3F4F6" stroke-width="10"/>
-                <circle cx="40" cy="40" r="32" fill="none" stroke="#10B981" stroke-width="10"
-                  [attr.stroke-dasharray]="ringDash(data.occupancy?.occupancy_rate) + ' 201'"
-                  stroke-linecap="round"/>
-              </svg>
-              <div class="ring-value" style="color:#10B981">{{ data.occupancy?.occupancy_rate }}%</div>
-            </div>
-            <!-- Legend -->
-            <div>
-              <div class="d-flex align-items-center gap-2 mb-2">
-                <div style="width:10px;height:10px;border-radius:2px;background:#10B981"></div>
-                <span class="small text-muted">Occupé ({{ data.occupancy?.occupied }})</span>
-              </div>
-              <div class="d-flex align-items-center gap-2">
-                <div style="width:10px;height:10px;border-radius:2px;background:#F3F4F6"></div>
-                <span class="small text-muted">Libre ({{ data.occupancy?.free }})</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Dépôts de garantie -->
-      <div class="col-md-4">
-        <div class="revenue-card shadow-sm" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-              <div class="small fw-semibold opacity-75 mb-1">DÉPÔTS DE GARANTIE</div>
-              <div style="font-size:1.7rem;font-weight:800;line-height:1">{{ fmt(data.revenue?.total_deposits) }}</div>
-            </div>
-            <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:10px;font-size:1.2rem">🏦</div>
-          </div>
-          <div class="d-flex gap-3 small opacity-75 mt-2">
-            <span>En attente : <strong class="text-white">{{ data.leases?.pending }}</strong></span>
-            <span>Expirés : <strong class="text-white">{{ data.leases?.expired_count }}</strong></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Baux expirant bientôt ── -->
-    <div class="row g-3 mb-4" *ngIf="data.expiring_soon?.length > 0">
-      <div class="col-12">
-        <div class="shadow-sm rounded-4 bg-white p-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="section-title mb-0">⏳ Contrats expirant dans 90 jours</div>
-            <span class="badge rounded-pill" style="background:#FEF3C7;color:#D97706;font-size:.78rem">
-              {{ data.expiring_soon.length }} contrat(s)
-            </span>
-          </div>
-          <div *ngFor="let l of data.expiring_soon" class="urgency-row"
-            [style.border-color]="l.urgency === 'danger' ? '#EF4444' : l.urgency === 'warning' ? '#F59E0B' : '#3B82F6'">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="fw-semibold" style="font-size:.9rem">{{ l.renter_name }}</div>
-                <div class="text-muted" style="font-size:.75rem">📞 {{ l.renter_phone }} &bull; Expiration : {{ l.end_date | date:'dd/MM/yyyy' }}</div>
-              </div>
-              <div class="text-end">
-                <div class="fw-bold" style="font-size:.9rem"
-                  [style.color]="l.urgency === 'danger' ? '#EF4444' : l.urgency === 'warning' ? '#F59E0B' : '#3B82F6'">
-                  {{ l.days_remaining }} jours
-                </div>
-                <div class="text-muted" style="font-size:.75rem">{{ fmt(l.monthly_rent, l.currency) }}/mois</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Paiements en retard ── -->
-    <div class="row g-3 mb-4" *ngIf="data.late_payments?.length > 0">
-      <div class="col-12">
-        <div class="shadow-sm rounded-4 bg-white p-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="section-title mb-0">🔴 Paiements en retard / en attente</div>
-            <span class="badge rounded-pill" style="background:#FEE2E2;color:#EF4444;font-size:.78rem">
-              {{ data.late_payments.length }} paiement(s)
-            </span>
-          </div>
-          <div *ngFor="let p of data.late_payments" class="late-row">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="fw-semibold" style="font-size:.88rem">{{ p.renter_name }}</div>
-                <div class="text-muted" style="font-size:.75rem">Période : {{ p.period_month }}</div>
-              </div>
-              <div class="text-end">
-                <div class="fw-bold text-danger" style="font-size:.9rem">{{ fmt(p.amount, p.currency) }}</div>
-                <span class="badge" style="font-size:.68rem"
-                  [style.background]="p.status === 'LATE' ? '#FEE2E2' : '#FEF3C7'"
-                  [style.color]="p.status === 'LATE' ? '#EF4444' : '#D97706'">
-                  {{ p.status === 'LATE' ? 'En retard' : 'En attente' }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Occupation par bâtiment ── -->
-    <div class="row g-3" *ngIf="data.by_building?.length > 0">
-      <div class="col-12">
-        <div class="shadow-sm rounded-4 bg-white p-4">
-          <div class="section-title">🏗️ Occupation par Bâtiment</div>
-          <div *ngFor="let b of data.by_building; let i = index" class="building-row">
-            <div class="d-flex align-items-center gap-3">
-              <!-- Icon numéroté -->
-              <div style="width:36px;height:36px;border-radius:10px;background:#EEF2FF;color:#6366F1;
-                display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0">
-                {{ i + 1 }}
-              </div>
-              <!-- Nom -->
-              <div class="flex-fill" style="min-width:0">
-                <div class="fw-semibold" style="font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                  {{ b.building_name }}
-                </div>
-                <div class="text-muted" style="font-size:.73rem">📍 {{ b.location_name }}</div>
-              </div>
-              <!-- Stats -->
-              <div class="d-flex align-items-center gap-4 flex-shrink-0">
-                <div class="text-center">
-                  <div class="fw-bold" style="color:#10B981;font-size:.9rem">{{ b.occupied }}/{{ b.total_units }}</div>
-                  <div class="text-muted" style="font-size:.68rem">Occupées</div>
-                </div>
-                <div style="width:80px">
-                  <div class="d-flex justify-content-between mb-1">
-                    <span style="font-size:.68rem;color:#6366F1;font-weight:700">{{ b.occupancy_rate }}%</span>
-                  </div>
-                  <div class="bar-track">
-                    <div class="bar-fill" style="background:#6366F1" [style.width]="b.occupancy_rate + '%'"></div>
-                  </div>
-                </div>
-                <div class="text-end">
-                  <div class="fw-bold" style="color:#10B981;font-size:.88rem">{{ fmt(b.monthly_revenue) }}</div>
-                  <div class="text-muted" style="font-size:.68rem">/mois</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </ng-container>
-</div>
-  `
+  imports: [
+    CommonModule, RouterModule, IconDirective,
+    CardModule, ButtonModule, BadgeModule, SpinnerModule, ChartjsComponent
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './rental-dashboard.component.html',
+  styleUrl: './rental-dashboard.component.scss'
 })
 export class RentalDashboardComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
-  loading = false;
-  data: any = null;
-  period = '';
+  /** Périmètre du cercle de progression : 2 * PI * r, avec r = 44. */
+  readonly RING_CIRCUMFERENCE = Math.round(2 * Math.PI * 44);
+
+  loading = true;
+  errorMessage = '';
+  data: RentalDashboardData | null = null;
+
+  kpis: Kpi[] = [];
+  revenueChartData: any = { labels: [], datasets: [] };
+  revenueChartOptions: any = {};
 
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+  }
 
   load(): void {
     this.loading = true;
-    this.apiService.get<any>('rental/dashboard').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (r) => {
-        if (r.success) { this.data = r.data; this.period = r.data.period; }
-        this.loading = false;
-        this.cdr.detectChanges();
+    this.errorMessage = '';
+    this.cdr.detectChanges();
+
+    this.apiService.get<RentalDashboardData>('rental/dashboard')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          if (r.success && r.data) {
+            this.data = r.data;
+            this.kpis = this.buildKpis(r.data);
+            this.buildRevenueChart(r.data.monthly_revenue || []);
+          } else {
+            this.errorMessage = r.message || 'Réponse inattendue du serveur.';
+          }
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        // Sans ce message, une erreur API laissait une page entièrement blanche.
+        error: (err) => {
+          this.errorMessage = err?.message || 'Impossible de charger le tableau de bord.';
+          this.loading = false;
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  // ===== ACCESSEURS TEMPLATE =====
+
+  get occupancy(): Occupancy { return this.data?.occupancy ?? EMPTY_OCCUPANCY; }
+  get revenue(): Revenue { return this.data?.revenue ?? EMPTY_REVENUE; }
+  get expiringSoon(): ExpiringLease[] { return this.data?.expiring_soon ?? []; }
+  get latePayments(): LatePayment[] { return this.data?.late_payments ?? []; }
+  get byBuilding(): BuildingOccupancy[] { return this.data?.by_building ?? []; }
+
+  get activeLeases(): number { return Number(this.data?.leases?.active ?? 0); }
+  get pendingLeases(): number { return Number(this.data?.leases?.pending ?? 0); }
+  get expiredLeases(): number { return Number(this.data?.leases?.expired_count ?? 0); }
+
+  get periodLabel(): string { return this.formatPeriod(this.data?.period || ''); }
+
+  get ringDash(): number {
+    const rate = Math.min(100, Math.max(0, this.occupancy.occupancy_rate || 0));
+    return Math.round(rate / 100 * this.RING_CIRCUMFERENCE);
+  }
+
+  get hasRevenueHistory(): boolean {
+    return (this.data?.monthly_revenue?.length ?? 0) > 0;
+  }
+
+  get revenueHistoryTotal(): number {
+    return (this.data?.monthly_revenue ?? [])
+      .reduce((sum, point) => sum + Number(point.collected || 0), 0);
+  }
+
+  // ===== CONSTRUCTION =====
+
+  private buildKpis(data: RentalDashboardData): Kpi[] {
+    const occ = data.occupancy ?? EMPTY_OCCUPANCY;
+    const rate = Math.min(100, Math.max(0, occ.occupancy_rate || 0));
+    const buildings = data.by_building?.length ?? 0;
+    const totalLeases = Number(data.leases?.total ?? 0);
+    const activeLeases = Number(data.leases?.active ?? 0);
+
+    return [
+      {
+        label: 'Unités au total', tag: 'Parc', value: occ.total_units,
+        icon: 'cilBuilding', color: '#6366f1', soft: 'rgba(99, 102, 241, .12)',
+        progress: null,
+        caption: buildings ? `Réparties sur ${buildings} bâtiment(s)` : 'Aucun bâtiment enregistré'
       },
-      error: () => { this.loading = false; this.cdr.detectChanges(); }
-    });
+      {
+        label: 'Unités occupées', tag: 'Louées', value: occ.occupied,
+        icon: 'cilHome', color: '#10b981', soft: 'rgba(16, 185, 129, .12)',
+        progress: rate,
+        caption: `${rate}% du parc`
+      },
+      {
+        label: 'Unités libres', tag: 'Libres', value: occ.free,
+        icon: 'cilLayers', color: '#f59e0b', soft: 'rgba(245, 158, 11, .14)',
+        progress: 100 - rate,
+        caption: `${100 - rate}% du parc`
+      },
+      {
+        label: 'Baux actifs', tag: 'Actifs', value: activeLeases,
+        icon: 'cilDescription', color: '#0ea5e9', soft: 'rgba(14, 165, 233, .12)',
+        progress: totalLeases ? Math.round((activeLeases / totalLeases) * 100) : 0,
+        caption: `sur ${totalLeases} bail/baux`
+      }
+    ];
   }
 
-  fmt(v: number, currency = 'GNF'): string {
-    return new Intl.NumberFormat('fr-GN', { minimumFractionDigits: 0 }).format(v || 0) + ' ' + currency;
+  /** L'API renvoyait déjà monthly_revenue ; il n'était affiché nulle part. */
+  private buildRevenueChart(points: MonthlyRevenuePoint[]): void {
+    const labels = points.map(p => this.formatPeriodShort(p.month));
+    const values = points.map(p => Number(p.collected || 0));
+
+    this.revenueChartData = {
+      labels,
+      datasets: [{
+        label: 'Encaissé',
+        data: values,
+        backgroundColor: 'rgba(16, 185, 129, .75)',
+        hoverBackgroundColor: '#10b981',
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 42
+      }]
+    };
+
+    this.revenueChartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => ` ${this.fmt(ctx.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 11 } }
+        },
+        y: {
+          beginAtZero: true,
+          border: { display: false },
+          grid: { color: 'rgba(148, 163, 184, .18)' },
+          ticks: {
+            font: { size: 11 },
+            callback: (value: number | string) => this.compact(Number(value))
+          }
+        }
+      }
+    };
   }
 
-  ringDash(rate: number): number {
-    return Math.round((rate || 0) / 100 * 201);
+  // ===== HELPERS =====
+
+  fmt(value: number, currency = 'GNF'): string {
+    return new Intl.NumberFormat('fr-GN', { minimumFractionDigits: 0 }).format(value || 0) + ' ' + currency;
   }
+
+  /** Axe Y lisible : 1 500 000 → « 1,5 M ». */
+  private compact(value: number): string {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000) return (value / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' M';
+    if (abs >= 1_000) return (value / 1_000).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' k';
+    return String(value);
+  }
+
+  /** « 2026-08 » → « Août 2026 ». */
+  formatPeriod(period: string): string {
+    if (!period || period.length < 7) return period || '—';
+    const [year, month] = period.split('-');
+    return `${MONTHS_FR[parseInt(month, 10) - 1] ?? month} ${year}`;
+  }
+
+  /** « 2026-08 » → « Aoû 26 », pour les libellés d'axe. */
+  private formatPeriodShort(period: string): string {
+    if (!period || period.length < 7) return period || '';
+    const [year, month] = period.split('-');
+    const label = MONTHS_FR[parseInt(month, 10) - 1] ?? month;
+    return `${label.slice(0, 3)} ${year.slice(-2)}`;
+  }
+
+  urgencyColor(urgency: string): string {
+    if (urgency === 'danger') return '#ef4444';
+    if (urgency === 'warning') return '#f59e0b';
+    return '#3b82f6';
+  }
+
+  trackById(_index: number, item: { id: number }): number { return item.id; }
+  trackByLabel(_index: number, item: Kpi): string { return item.label; }
+  trackByBuilding(_index: number, item: BuildingOccupancy): number { return item.building_id; }
 }

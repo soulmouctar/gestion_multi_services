@@ -238,7 +238,7 @@ export class UserService {
   getAvailableModules(): ModulePermission[] {
     return [
       {
-        module_code: 'COMMERCIAL',
+        module_code: 'COMMERCE',
         module_name: 'Gestion Commerciale',
         permissions: ['view', 'create', 'edit', 'delete'],
         is_active: false
@@ -279,7 +279,7 @@ export class UserService {
         is_active: false
       },
       {
-        module_code: 'CONTAINERS',
+        module_code: 'CONTAINER',
         module_name: 'Conteneurs',
         permissions: ['view', 'create', 'edit', 'delete'],
         is_active: false

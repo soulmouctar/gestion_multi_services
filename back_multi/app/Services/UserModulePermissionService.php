@@ -32,6 +32,7 @@ class UserModulePermissionService
             ->join('modules', 'tenant_modules.module_id', '=', 'modules.id')
             ->where('tenant_modules.tenant_id', $user->tenant_id)
             ->where('tenant_modules.is_active', true)
+            ->where('modules.is_active', true)
             ->select('modules.code', 'modules.name', 'modules.permissions')
             ->get();
 
@@ -73,6 +74,20 @@ class UserModulePermissionService
         DB::table('user_module_permissions')
             ->whereIn('user_id', $userIds)
             ->where('module_code', $moduleCode)
+            ->delete();
+    }
+
+    public function revokeModuleFromAllUsers(string $moduleCode): void
+    {
+        DB::table('user_module_permissions')
+            ->where('module_code', $moduleCode)
+            ->delete();
+    }
+
+    public function revokeAllUserModules(User $user): void
+    {
+        DB::table('user_module_permissions')
+            ->where('user_id', $user->id)
             ->delete();
     }
 

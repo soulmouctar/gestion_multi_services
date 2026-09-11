@@ -1,0 +1,8 @@
+.DS_Store
+**/.DS_Store
+
+# Copies temporaires créées par Finder dans les zones de code/cache.
+back_multi/routes/* 2.php
+back_multi/bootstrap/cache/* 2.php
+back_multi/storage/framework/views/* 2.php
+front_multi/src/**/* 2.*

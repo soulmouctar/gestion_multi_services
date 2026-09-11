@@ -193,6 +193,7 @@
           <table class="table table-hover align-middle mb-0">
             <thead style="background:#f8fafc">
               <tr>
+                <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase;border-bottom:2px solid #e9ecef">N° arrivage</th>
                 <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase;border-bottom:2px solid #e9ecef">Conteneur</th>
                 <th style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase;border-bottom:2px solid #e9ecef">Type Produit</th>
                 <th class="text-center" style="font-size:0.78rem;color:#64748b;font-weight:600;text-transform:uppercase;border-bottom:2px solid #e9ecef">Balles</th>
@@ -207,6 +208,9 @@
             </thead>
             <tbody>
               <tr *ngFor="let a of arrivals; trackBy: trackById">
+                <td>
+                  <span class="fw-bold" style="color:#4f46e5">{{ a.arrival_number || ('ARR-' + a.id) }}</span>
+                </td>
                 <td>
                   <span class="fw-bold" style="color:#1e293b">{{ a.container?.container_number || getContainerNumber(a.container_id) }}</span>
                 </td>
@@ -272,7 +276,7 @@
                 </td>
               </tr>
               <tr *ngIf="arrivals.length === 0">
-                <td colspan="10" class="text-center py-5">
+                <td colspan="11" class="text-center py-5">
                   <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width:56px;height:56px;border-radius:14px;background:#EEF2FF">
                     <svg cIcon name="cilLayers" size="xl" style="color:#6366F1"></svg>
                   </div>
@@ -659,6 +663,10 @@
   <c-modal-body class="p-4" *ngIf="selectedArrivalDetails as arrival">
     <div class="p-3 rounded-3 mb-4" style="background:#f8fafc;border:1px solid #e5e7eb">
       <div class="row g-3">
+        <div class="col-md-4">
+          <div class="small text-muted text-uppercase fw-semibold">N° arrivage</div>
+          <div class="fw-bold mt-1" style="color:#4f46e5">{{ arrival.arrival_number || ('ARR-' + arrival.id) }}</div>
+        </div>
         <div class="col-md-4">
           <div class="small text-muted text-uppercase fw-semibold">Conteneur</div>
           <div class="fw-bold mt-1" style="color:#1e293b">{{ arrival.container?.container_number || getContainerNumber(arrival.container_id) }}</div>

@@ -10,6 +10,15 @@ use Illuminate\Validation\Rule;
 
 class ProductController extends BaseController
 {
+    private const SORTABLE_COLUMNS = [
+        'created_at',
+        'name',
+        'sku',
+        'selling_price',
+        'stock_quantity',
+        'status',
+    ];
+
     private function tenantId(Request $request): ?int
     {
         $user = Auth::user();
@@ -31,6 +40,18 @@ class ProductController extends BaseController
         }
 
         return $query;
+    }
+
+    private function sortBy(Request $request): string
+    {
+        $sortBy = $request->get('sort_by', 'created_at');
+
+        return in_array($sortBy, self::SORTABLE_COLUMNS, true) ? $sortBy : 'created_at';
+    }
+
+    private function sortOrder(Request $request): string
+    {
+        return strtolower($request->get('sort_order', 'desc')) === 'asc' ? 'asc' : 'desc';
     }
 
     public function index(Request $request)
@@ -76,9 +97,7 @@ class ProductController extends BaseController
             }
 
             // Sort options
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortOrder = $request->get('sort_order', 'desc');
-            $query->orderBy($sortBy, $sortOrder);
+            $query->orderBy($this->sortBy($request), $this->sortOrder($request));
 
             $perPage = $request->get('per_page', 15);
             
@@ -98,70 +117,13 @@ class ProductController extends BaseController
         }
     }
 
-    public function publicIndex(Request $request)
-    {
-        try {
-            // Use fixed tenant_id for public testing
-            $tenantId = $request->get('tenant_id', 1);
-            
-            $query = Product::with('tenant', 'category', 'unit');
-            
-            // Filter by tenant
-            if ($tenantId) {
-                $query->where('tenant_id', $tenantId);
-            }
-
-            // Search functionality
-            if ($request->has('search')) {
-                $search = $request->get('search');
-                $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%")
-                      ->orWhere('sku', 'like', "%{$search}%");
-                });
-            }
-
-            // Filter by category
-            if ($request->has('category_id')) {
-                $query->where('product_category_id', $request->get('category_id'));
-            }
-
-            // Filter by status
-            if ($request->has('status')) {
-                $query->where('status', $request->get('status'));
-            }
-
-            // Filter by stock level
-            if ($request->has('low_stock')) {
-                $lowStock = $request->get('low_stock');
-                if ($lowStock === 'true' || $lowStock === true || $lowStock === '1') {
-                    $query->whereRaw('stock_quantity <= low_stock_threshold');
-                }
-                // If low_stock is false, we don't apply any filter (show all products)
-            }
-
-            // Sorting
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortOrder = $request->get('sort_order', 'desc');
-            $query->orderBy($sortBy, $sortOrder);
-
-            // Pagination
-            $perPage = $request->get('per_page', 15);
-            $products = $query->paginate($perPage);
-
-            return $this->sendResponse($products, 'Products retrieved successfully');
-        } catch (\Exception $e) {
-            return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
-        }
-    }
-
     public function store(Request $request)
     {
         try {
             $user = Auth::user();
             $tenantId = $user->tenant_id ?? $request->get('tenant_id');
             
-            if (!$tenantId && !$user->hasRole('SUPER_ADMIN')) {
+            if (!$tenantId) {
                 return $this->sendError('Tenant ID required', [], 400);
             }
 
@@ -174,8 +136,14 @@ class ProductController extends BaseController
                     'max:50',
                     Rule::unique('products', 'sku')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
                 ],
-                'product_category_id' => 'nullable|exists:product_categories,id',
-                'unit_id' => 'nullable|exists:units,id',
+                'product_category_id' => [
+                    'nullable',
+                    Rule::exists('product_categories', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+                ],
+                'unit_id' => [
+                    'nullable',
+                    Rule::exists('units', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+                ],
                 'purchase_price'        => 'nullable|numeric|min:0',
                 'carton_purchase_price' => 'nullable|numeric|min:0',
                 'selling_price'         => 'nullable|numeric|min:0',
@@ -185,10 +153,6 @@ class ProductController extends BaseController
                 'low_stock_threshold' => 'nullable|integer|min:0',
                 'status' => 'nullable|in:ACTIVE,INACTIVE,DISCONTINUED',
                 'barcode' => 'nullable|string|max:100',
-                'weight' => 'nullable|numeric|min:0',
-                'dimensions' => 'nullable|string|max:100',
-                'supplier_info' => 'nullable|string|max:500',
-                'notes' => 'nullable|string|max:1000'
             ]);
 
             if ($validator->fails()) {
@@ -210,10 +174,6 @@ class ProductController extends BaseController
                 'low_stock_threshold',
                 'status',
                 'barcode',
-                'weight',
-                'dimensions',
-                'supplier_info',
-                'notes',
             ]);
             $productData['tenant_id'] = $tenantId;
             $productData['status'] = $productData['status'] ?? 'ACTIVE';
@@ -260,8 +220,14 @@ class ProductController extends BaseController
                     ->ignore($product->id)
                     ->where(fn ($query) => $query->where('tenant_id', $product->tenant_id)),
             ],
-            'product_category_id' => 'nullable|exists:product_categories,id',
-            'unit_id' => 'nullable|exists:units,id',
+            'product_category_id' => [
+                'nullable',
+                Rule::exists('product_categories', 'id')->where(fn ($query) => $query->where('tenant_id', $product->tenant_id)),
+            ],
+            'unit_id' => [
+                'nullable',
+                Rule::exists('units', 'id')->where(fn ($query) => $query->where('tenant_id', $product->tenant_id)),
+            ],
             'purchase_price'        => 'nullable|numeric|min:0',
             'carton_purchase_price' => 'nullable|numeric|min:0',
             'selling_price'         => 'nullable|numeric|min:0',
@@ -271,10 +237,6 @@ class ProductController extends BaseController
             'low_stock_threshold' => 'nullable|integer|min:0',
             'status' => 'nullable|in:ACTIVE,INACTIVE,DISCONTINUED',
             'barcode' => 'nullable|string|max:100',
-            'weight' => 'nullable|numeric|min:0',
-            'dimensions' => 'nullable|string|max:100',
-            'supplier_info' => 'nullable|string|max:500',
-            'notes' => 'nullable|string|max:1000'
         ]);
 
         if ($validator->fails()) {
@@ -296,10 +258,6 @@ class ProductController extends BaseController
             'low_stock_threshold',
             'status',
             'barcode',
-            'weight',
-            'dimensions',
-            'supplier_info',
-            'notes',
         ]));
 
         return $this->sendResponse($product->load('category', 'unit'), 'Product updated successfully');
@@ -435,18 +393,10 @@ class ProductController extends BaseController
     public function getLowStockProducts(Request $request)
     {
         try {
-            $user = Auth::user();
-            $tenantId = $request->get('tenant_id');
-            
-            // For authenticated users, use their tenant_id if not provided
-            if ($user) {
-                $tenantId = $tenantId ?? $user->tenant_id;
-                if (!$tenantId && !$user->hasRole('SUPER_ADMIN')) {
-                    return $this->sendError('Tenant ID required', [], 400);
-                }
-            } else {
-                // For public routes, tenant_id defaults to 1
-                $tenantId = $tenantId ?? 1;
+            $tenantId = $this->tenantId($request);
+
+            if (!$tenantId) {
+                return $this->sendError('Tenant ID required', [], 400);
             }
 
             $query = Product::with('category', 'unit')
@@ -511,18 +461,10 @@ class ProductController extends BaseController
     public function getStatistics(Request $request)
     {
         try {
-            $user = Auth::user();
-            $tenantId = $request->get('tenant_id');
-            
-            // For authenticated users, use their tenant_id if not provided
-            if ($user) {
-                $tenantId = $tenantId ?? $user->tenant_id;
-                if (!$tenantId && !$user->hasRole('SUPER_ADMIN')) {
-                    return $this->sendError('Tenant ID required', [], 400);
-                }
-            } else {
-                // For public routes, tenant_id defaults to 1
-                $tenantId = $tenantId ?? 1;
+            $tenantId = $this->tenantId($request);
+
+            if (!$tenantId) {
+                return $this->sendError('Tenant ID required', [], 400);
             }
 
             // Build separate queries for each stat to avoid query state issues
@@ -558,7 +500,7 @@ class ProductController extends BaseController
         try {
             $validator = Validator::make($request->all(), [
                 'product_ids' => 'required|array',
-                'product_ids.*' => 'exists:products,id',
+                'product_ids.*' => 'integer',
                 'status' => 'required|in:ACTIVE,INACTIVE'
             ]);
 
@@ -591,160 +533,34 @@ class ProductController extends BaseController
         }
     }
 
-    public function publicBulkUpdateStatus(Request $request)
+    public function bulkDelete(Request $request)
     {
         try {
             $validator = Validator::make($request->all(), [
                 'product_ids' => 'required|array',
-                'product_ids.*' => 'exists:products,id',
-                'status' => 'required|in:ACTIVE,INACTIVE'
+                'product_ids.*' => 'integer',
             ]);
 
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
             }
 
-            // Use fixed tenant_id for public testing
-            $tenantId = $request->get('tenant_id', 1);
+            $tenantId = $this->tenantId($request);
 
-            $query = Product::whereIn('id', $request->product_ids);
-            
-            if ($tenantId) {
-                $query->where('tenant_id', $tenantId);
+            if (!$tenantId) {
+                return $this->sendError('Tenant ID required', [], 400);
             }
 
-            $updatedCount = $query->update(['status' => $request->status]);
+            $deletedCount = Product::whereIn('id', $request->product_ids)
+                ->where('tenant_id', $tenantId)
+                ->delete();
 
             return $this->sendResponse([
-                'updated_count' => $updatedCount,
-                'status' => $request->status
-            ], 'Products status updated successfully');
-
+                'deleted_count' => $deletedCount,
+            ], 'Products moved to trash successfully');
         } catch (\Exception $e) {
+            \Log::error('Error bulk deleting products: ' . $e->getMessage());
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
-        }
-    }
-
-    public function publicStore(Request $request)
-    {
-        try {
-            $tenantId = $request->get('tenant_id', 1);
-
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:150',
-                'description' => 'nullable|string|max:1000',
-                'sku' => 'nullable|string|max:50|unique:products,sku',
-                'product_category_id' => 'nullable|exists:product_categories,id',
-                'unit_id' => 'nullable|exists:units,id',
-                'purchase_price' => 'nullable|numeric|min:0',
-                'selling_price' => 'nullable|numeric|min:0',
-                'stock_quantity' => 'nullable|integer|min:0',
-                'low_stock_threshold' => 'nullable|integer|min:0',
-                'status' => 'nullable|in:ACTIVE,INACTIVE,DISCONTINUED',
-            ]);
-
-            if ($validator->fails()) {
-                return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
-            }
-
-            $productData = $request->all();
-            $productData['tenant_id'] = $tenantId;
-            $productData['status'] = $productData['status'] ?? 'ACTIVE';
-
-            $product = Product::create($productData);
-
-            return $this->sendResponse($product->load('category', 'unit'), 'Product created successfully', 201);
-            
-        } catch (\Exception $e) {
-            \Log::error('Error creating product: ' . $e->getMessage());
-            return $this->sendError('Error creating product', ['error' => $e->getMessage()], 500);
-        }
-    }
-
-    public function publicUpdate(Request $request, $id)
-    {
-        $product = Product::find($id);
-
-        if (!$product) {
-            return $this->sendError('Product not found', [], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:150',
-            'description' => 'nullable|string|max:1000',
-            'sku' => 'nullable|string|max:50|unique:products,sku,' . $id,
-            'product_category_id' => 'nullable|exists:product_categories,id',
-            'unit_id' => 'nullable|exists:units,id',
-            'purchase_price' => 'nullable|numeric|min:0',
-            'selling_price' => 'nullable|numeric|min:0',
-            'stock_quantity' => 'nullable|integer|min:0',
-            'low_stock_threshold' => 'nullable|integer|min:0',
-            'status' => 'nullable|in:ACTIVE,INACTIVE,DISCONTINUED',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
-        }
-
-        $product->update($request->all());
-
-        return $this->sendResponse($product->load('category', 'unit'), 'Product updated successfully');
-    }
-
-    public function publicDestroy($id)
-    {
-        $product = Product::find($id);
-
-        if (!$product) {
-            return $this->sendError('Product not found', [], 404);
-        }
-
-        $product->delete();
-
-        return $this->sendResponse([], 'Product deleted successfully');
-    }
-
-    public function publicUpdateStock(Request $request, $id)
-    {
-        try {
-            $product = Product::find($id);
-            
-            if (!$product) {
-                return $this->sendError('Product not found', [], 404);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'stock_quantity' => 'required|integer|min:0',
-                'operation' => 'required|in:SET,ADD,SUBTRACT',
-                'reason' => 'nullable|string|max:255'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
-            }
-
-            $currentStock = $product->stock_quantity ?? 0;
-            $newQuantity = $request->get('stock_quantity');
-            
-            switch ($request->get('operation')) {
-                case 'SET':
-                    $product->stock_quantity = $newQuantity;
-                    break;
-                case 'ADD':
-                    $product->stock_quantity = $currentStock + $newQuantity;
-                    break;
-                case 'SUBTRACT':
-                    $product->stock_quantity = max(0, $currentStock - $newQuantity);
-                    break;
-            }
-
-            $product->save();
-
-            return $this->sendResponse($product->load('category', 'unit'), 'Stock updated successfully');
-            
-        } catch (\Exception $e) {
-            \Log::error('Error updating product stock: ' . $e->getMessage());
-            return $this->sendError('Error updating stock', [], 500);
         }
     }
 
@@ -792,9 +608,7 @@ class ProductController extends BaseController
             }
 
             // Sort options
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortOrder = $request->get('sort_order', 'desc');
-            $query->orderBy($sortBy, $sortOrder);
+            $query->orderBy($this->sortBy($request), $this->sortOrder($request));
 
             $products = $query->get();
 
@@ -841,8 +655,6 @@ class ProductController extends BaseController
                 'Low Stock Threshold',
                 'Status',
                 'Barcode',
-                'Weight',
-                'Dimensions',
                 'Created At'
             ]);
 
@@ -861,8 +673,6 @@ class ProductController extends BaseController
                     $product->low_stock_threshold,
                     $product->status,
                     $product->barcode,
-                    $product->weight,
-                    $product->dimensions,
                     $product->created_at
                 ]);
             }
@@ -887,10 +697,10 @@ class ProductController extends BaseController
         return $this->sendError('PDF export not implemented yet', [], 501);
     }
 
-    public function publicSalesHistory($id)
+    public function salesHistory(Request $request, $id)
     {
         try {
-            $product = Product::find($id);
+            $product = $this->productQuery($request)->find($id);
             
             if (!$product) {
                 return $this->sendError('Product not found', [], 404);

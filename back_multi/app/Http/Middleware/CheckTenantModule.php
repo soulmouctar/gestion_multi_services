@@ -30,6 +30,7 @@ class CheckTenantModule
             ->where('tenant_modules.tenant_id', $user->tenant_id)
             ->whereIn('modules.code', $moduleCodes)
             ->where('tenant_modules.is_active', true)
+            ->where('modules.is_active', true)
             ->exists();
 
         if (!$tenantHasModule) {

@@ -81,11 +81,6 @@ export const navItems: INavData[] = [
         icon: 'nav-icon-bullet'
       },
       {
-        name: 'Intérêts',
-        url: '/finance/interests',
-        icon: 'nav-icon-bullet'
-      },
-      {
         name: 'Taux de Change',
         url: '/finance/exchange-rates',
         icon: 'nav-icon-bullet'

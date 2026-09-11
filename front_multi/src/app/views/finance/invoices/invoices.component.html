@@ -230,7 +230,7 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
           <div>
             <div class="fw-semibold" style="color:#111827;">Arriérés client</div>
-            <div class="small text-muted">Les soldes antérieurs impayés peuvent être intégrés automatiquement à la facture.</div>
+            <div class="small text-muted">Seul le solde antérieur dans la même devise que la facture est intégré.</div>
           </div>
           <div class="form-check form-switch m-0">
             <input class="form-check-input" type="checkbox" id="includePreviousBalance" formControlName="include_previous_balance">
@@ -242,14 +242,22 @@
 
         <div class="row g-3 align-items-end">
           <div class="col-md-4">
-            <label class="form-label fw-semibold small" style="color:#374151;">Solde antérieur appliqué</label>
+            <label class="form-label fw-semibold small" style="color:#374151;">
+              Solde appliqué ({{ invoiceForm.get('currency')?.value || 'GNF' }})
+            </label>
             <input cFormControl type="number" formControlName="previous_balance_amount" min="0" step="1" style="border-radius:8px;" />
           </div>
           <div class="col-md-8">
             <div class="small text-muted" *ngIf="loadingClientBalance">Chargement du solde client...</div>
             <div class="small text-muted" *ngIf="!loadingClientBalance && clientBalance">
-              Solde restant: <span class="fw-semibold">{{ clientBalance.total_remaining | number:'1.0-0' }} GNF</span>
-              <span *ngIf="clientBalance.total_return_credits"> • Avoirs retours: {{ clientBalance.total_return_credits | number:'1.0-0' }} GNF</span>
+              Solde {{ invoiceForm.get('currency')?.value || 'GNF' }}:
+              <span class="fw-semibold">
+                {{ selectedCurrencyPreviousBalance() | number:'1.0-2' }} {{ invoiceForm.get('currency')?.value || 'GNF' }}
+              </span>
+              <span *ngIf="invoiceForm.get('currency')?.value !== 'GNF'">
+                • Équivalent info: {{ previousBalanceAppliedGnf | number:'1.0-0' }} GNF
+              </span>
+              <span *ngIf="clientBalance.total_remaining"> • Solde global info: {{ clientBalance.total_remaining | number:'1.0-0' }} GNF</span>
             </div>
           </div>
         </div>
@@ -394,6 +402,9 @@
           <div class="col-md-4">
             <div class="small text-muted">Arriérés intégrés</div>
             <div class="fw-bold" style="color:#F59E0B;">{{ previousBalanceApplied | number:'1.0-0' }} {{ invoiceForm.get('currency')?.value }}</div>
+            <div class="small" *ngIf="invoiceForm.get('currency')?.value !== 'GNF'" style="color:#6B7280;">
+              ≈ {{ previousBalanceAppliedGnf | number:'1.0-0' }} GNF
+            </div>
           </div>
           <div class="col-md-4">
             <div class="small text-muted">Total facture</div>
@@ -402,7 +413,11 @@
         </div>
 
         <div class="mt-3 small" *ngIf="invoiceForm.get('currency')?.value !== 'GNF'" style="color:#3B82F6;">
-          Équivalent GNF: {{ amountInGnf | number:'1.0-0' }} GNF
+          Équivalent GNF: articles {{ itemsSubtotal | number:'1.0-0' }} {{ invoiceForm.get('currency')?.value }}
+          × {{ invoiceForm.getRawValue().exchange_rate | number:'1.0-4' }}
+          + arriérés {{ previousBalanceApplied | number:'1.0-2' }} {{ invoiceForm.get('currency')?.value }}
+          × {{ invoiceForm.getRawValue().exchange_rate | number:'1.0-4' }}
+          = {{ amountInGnf | number:'1.0-0' }} GNF
         </div>
       </div>
     </form>

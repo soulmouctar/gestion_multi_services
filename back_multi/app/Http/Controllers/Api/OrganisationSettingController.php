@@ -294,18 +294,30 @@ class OrganisationSettingController extends BaseController
 
     private function resolveTenantId(Request $request, $tenantId = null): ?int
     {
+        $user = Auth::user();
+        if (!$user) {
+            return null;
+        }
+
+        $requestedTenantId = $tenantId ?: $request->input('tenant_id');
+
+        if (!$user->hasRole('SUPER_ADMIN')) {
+            if ($requestedTenantId && (int) $requestedTenantId !== (int) $user->tenant_id) {
+                abort(response()->json([
+                    'success' => false,
+                    'message' => 'Accès refusé: tenant non autorisé',
+                ], 403));
+            }
+
+            return $user->tenant_id ? (int) $user->tenant_id : null;
+        }
+
         if ($tenantId) {
             return (int) $tenantId;
         }
 
-        $requestedTenantId = $request->input('tenant_id');
         if ($requestedTenantId) {
             return (int) $requestedTenantId;
-        }
-
-        $user = Auth::user();
-        if (!$user) {
-            return null;
         }
 
         return $user->tenant_id ? (int) $user->tenant_id : null;

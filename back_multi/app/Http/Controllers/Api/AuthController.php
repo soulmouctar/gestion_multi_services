@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\User;
+use App\Models\Tenant;
 use App\Services\UserModulePermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,29 +27,48 @@ class AuthController extends BaseController
             'name' => 'required|string|max:150',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:8|confirmed',
-            'tenant_id' => 'nullable|exists:tenants,id',
+            'tenantName' => 'required|string|max:150',
+            'tenantEmail' => 'nullable|email|max:150|unique:tenants,email',
+            'tenantPhone' => 'nullable|string|max:50',
         ]);
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'tenant_id' => $request->tenant_id,
-        ]);
+        $tenant = null;
+        $user = null;
 
-        $user->assignRole('USER');
+        DB::transaction(function () use ($request, &$tenant, &$user) {
+            $tenant = Tenant::create([
+                'name' => $request->tenantName,
+                'email' => $request->tenantEmail,
+                'phone' => $request->tenantPhone,
+                'subscription_status' => 'ACTIVE',
+            ]);
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'tenant_id' => $tenant->id,
+                'is_active' => true,
+            ]);
+
+            $user->assignRole('ADMIN');
+        });
 
         $token = $user->createToken('auth_token')->plainTextToken;
+        $user->load('tenant.modules', 'roles', 'permissions');
 
         return $this->sendResponse([
             'user' => $user,
+            'tenant' => $tenant,
             'token' => $token,
             'token_type' => 'Bearer',
-        ], 'User registered successfully', 201);
+            'tenant_active_modules' => [],
+            'user_module_permissions' => [],
+        ], 'Organisation créée avec succès', 201);
     }
 
     public function login(Request $request)
@@ -96,6 +116,7 @@ class AuthController extends BaseController
             if ($userData->tenant) {
                 $activeModules = $userData->tenant->modules()
                     ->wherePivot('is_active', true)
+                    ->where('modules.is_active', true)
                     ->get()
                     ->map(function($module) {
                         return [

@@ -94,10 +94,11 @@ export class AuthService {
     name: string;
     email: string;
     password: string;
+    password_confirmation: string;
     tenantName: string;
     tenantEmail: string;
     tenantPhone: string;
-    planId: string;
+    planId?: string;
   }): Observable<ApiResponse<AuthState>> {
     return this.http.post<ApiResponse<AuthState>>(`${this.API_URL}/register`, userData).pipe(
       tap(response => {
@@ -317,6 +318,8 @@ export class AuthService {
     );
 
     if (!tenantHasModule) return false;
+
+    if (this.isTenantAdmin) return true;
 
     const userHasPermission = user.module_permissions?.some(
       (permission: { module_code: string; is_active: boolean }) => acceptedCodes.includes(permission.module_code) && permission.is_active
