@@ -1,10 +1,9 @@
 import { Component, OnInit, OnDestroy, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { CardModule, ButtonModule, FormModule, AlertModule } from '@coreui/angular';
-import { IconModule } from '@coreui/icons-angular';
+import { AlertModule } from '@coreui/angular';
 import { AuthService } from '../../../core/services/auth.service';
 import Swal from 'sweetalert2';
 import { finalize } from 'rxjs/operators';
@@ -15,11 +14,8 @@ import { finalize } from 'rxjs/operators';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    CardModule,
-    ButtonModule,
-    FormModule,
-    AlertModule,
-    IconModule
+    RouterLink,
+    AlertModule
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']

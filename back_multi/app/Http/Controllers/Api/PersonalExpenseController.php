@@ -430,8 +430,10 @@ class PersonalExpenseController extends BaseController
                 'period'               => ['from' => $dateFrom, 'to' => $dateTo],
             ], 'Statistics retrieved');
 
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            return $this->sendError('Server Error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+            return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
         }
     }
 }

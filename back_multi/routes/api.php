@@ -254,6 +254,7 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             // Photos conteneurs
             Route::get('container-photos', [ContainerPhotoController::class, 'index']);
             Route::post('container-photos', [ContainerPhotoController::class, 'store']);
+            Route::put('container-photos/{id}', [ContainerPhotoController::class, 'update']);
             Route::delete('container-photos/{id}', [ContainerPhotoController::class, 'destroy']);
         });
 

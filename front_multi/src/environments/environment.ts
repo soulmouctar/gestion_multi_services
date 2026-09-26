@@ -3,8 +3,8 @@ export const environment = {
   // urlBase: 'http://localhost:8001',
   // apiUrl: 'http://127.0.0.1:8001/api',
   // production: false,
-  urlBase: 'http://localhost:8001',
-  apiUrl: 'http://127.0.0.1:8001/api',
+  urlBase: 'http://localhost:8002',
+  apiUrl: 'http://127.0.0.1:8002/api',
   uploadPublicPrefix: 'uploads',
 
   // urlBase: 'https://apimatkolla.ddevstock.com/',

@@ -47,6 +47,8 @@ class OrganisationSettingController extends BaseController
 
             return $this->sendResponse($settings, 'Organisation settings retrieved successfully');
             
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error retrieving organisation settings: ' . $e->getMessage());
             return $this->sendError('Error retrieving organisation settings', [], 500);
@@ -165,6 +167,8 @@ class OrganisationSettingController extends BaseController
 
             return $this->sendResponse($options, 'Options récupérées avec succès');
 
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la récupération des options: ' . $e->getMessage());
             return $this->sendError('Erreur lors de la récupération des options', [], 500);
@@ -193,6 +197,8 @@ class OrganisationSettingController extends BaseController
 
             return $this->sendResponse(['next_invoice_number' => $nextNumber], 'Prochain numéro de facture récupéré avec succès');
 
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la récupération du prochain numéro de facture: ' . $e->getMessage());
             return $this->sendError('Erreur lors de la récupération du prochain numéro de facture', [], 500);
@@ -221,6 +227,8 @@ class OrganisationSettingController extends BaseController
 
             return $this->sendResponse(['next_quote_number' => $nextNumber], 'Prochain numéro de devis récupéré avec succès');
 
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la récupération du prochain numéro de devis: ' . $e->getMessage());
             return $this->sendError('Erreur lors de la récupération du prochain numéro de devis', [], 500);
@@ -286,6 +294,8 @@ class OrganisationSettingController extends BaseController
 
             return $this->sendResponse($result, 'Test de notification effectué');
 
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Erreur lors du test de notification: ' . $e->getMessage());
             return $this->sendError('Erreur lors du test de notification', [], 500);

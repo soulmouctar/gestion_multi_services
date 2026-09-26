@@ -45,11 +45,13 @@ export class NavigationService {
           baseNavigation.push(...tenantModules);
         }
 
-        // Dépenses Personnelles toujours visible dans GESTION MULTI-MODULES
+        // Dépenses Personnelles : soumis au module EXPENSES comme les autres entrées,
+        // sinon un utilisateur sans droits voit un menu qui renvoie des 403.
         baseNavigation.push({
           name: 'Dépenses Personnelles',
           url: '/expenses',
           iconComponent: { name: 'cilWallet' },
+          requiredModule: 'EXPENSES',
           children: [
             { name: 'Mes Dépenses',   url: '/expenses/list',       icon: 'nav-icon-bullet' },
             { name: 'Catégories',     url: '/expenses/categories', icon: 'nav-icon-bullet' },

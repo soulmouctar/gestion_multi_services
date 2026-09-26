@@ -70,9 +70,9 @@ export class StatisticsSalesComponent implements OnInit, OnDestroy {
       next: (results) => {
         if (results.payStats.success && results.payStats.data) {
           const p = results.payStats.data;
-          this.stats.totalPayments = p.total_payments ?? p.total_count ?? p.total ?? 0;
-          this.stats.totalAmount   = p.total_amount ?? p.sum     ?? 0;
-          this.stats.totalRemaining = p.invoices_summary?.total_remaining ?? p.total_remaining ?? 0;
+          this.stats.totalPayments = Number(p.total_payments ?? p.total_count ?? p.total ?? 0);
+          this.stats.totalAmount   = Number(p.total_amount ?? p.sum     ?? 0);
+          this.stats.totalRemaining = Number(p.invoices_summary?.total_remaining ?? p.total_remaining ?? 0);
           this.stats.collectionRate = (this.stats.totalAmount + this.stats.totalRemaining) > 0
             ? Math.round((this.stats.totalAmount / (this.stats.totalAmount + this.stats.totalRemaining)) * 100)
             : 0;
@@ -86,6 +86,7 @@ export class StatisticsSalesComponent implements OnInit, OnDestroy {
             : [];
           this.monthlyTrend = p.monthly_trend ?? [];
           this.invoiceSummary = p.invoices_summary ?? null;
+          this.stats.totalInvoices = Number(p.invoices_summary?.total ?? p.total_invoices ?? 0);
         }
         if (results.payments.success && results.payments.data) {
           const rp = results.payments.data;

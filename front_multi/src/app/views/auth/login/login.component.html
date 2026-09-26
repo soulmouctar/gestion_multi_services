@@ -1,109 +1,77 @@
-<div class="login-container">
-  <div class="login-shell">
-    <section class="brand-panel" aria-label="Mat-Kolla Multi Services">
-      <div class="brand-content">
-        <div class="brand-logo">
-          <img [src]="logoUrl" alt="Mat-Kolla Multi Services" />
-        </div>
-        <div class="brand-copy">
-          <p class="brand-kicker">Plateforme de gestion</p>
-          <h1>Mat-Kolla Multi Services</h1>
-          <p>Commerce, finance, conteneurs, location et taxi dans un espace de travail unifié.</p>
-        </div>
-        <div class="brand-meta">
-          <span>Multi-tenant</span>
-          <span>Accès sécurisé</span>
-          <span>Interface professionnelle</span>
-        </div>
+<div class="login-page">
+  <main class="login-card" role="main">
+    <img class="login-logo" [src]="logoUrl" alt="Mat-Kolla Multi Services" />
+
+    <h1 class="login-title">Connexion</h1>
+
+    <c-alert *ngIf="successMessage" color="success" [dismissible]="false" class="login-alert">
+      {{ successMessage }}
+    </c-alert>
+
+    <c-alert *ngIf="errorMessage" color="danger" [dismissible]="false" class="login-alert">
+      {{ errorMessage }}
+    </c-alert>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+      <div class="field">
+        <label for="email">Adresse email</label>
+        <input
+          id="email"
+          type="email"
+          autocomplete="email"
+          formControlName="email"
+          placeholder="exemple@email.com"
+          [class.invalid]="submitted && email?.errors" />
+        <p class="field-error" *ngIf="submitted && email?.errors">
+          <ng-container *ngIf="email?.errors?.['required']">L'email est requis</ng-container>
+          <ng-container *ngIf="email?.errors?.['email']">Format d'email invalide</ng-container>
+        </p>
       </div>
-    </section>
 
-    <main class="login-panel">
-      <div class="mobile-logo">
-        <img [src]="logoUrl" alt="Mat-Kolla Multi Services" />
-      </div>
-
-      <div class="login-card">
-        <div class="login-header">
-          <p class="login-eyebrow">Bienvenue</p>
-          <h2 class="login-title">Connexion</h2>
-          <p class="login-subtitle">Accédez à votre espace de travail</p>
-        </div>
-
-        <c-alert *ngIf="successMessage" color="success" [dismissible]="false" class="mb-4">
-          {{ successMessage }}
-        </c-alert>
-        
-        <c-alert *ngIf="errorMessage" color="danger" [dismissible]="false" class="mb-4">
-          {{ errorMessage }}
-        </c-alert>
-
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
-          <div class="form-group">
-            <label for="email" class="form-label">Adresse email</label>
-            <div class="input-group">
-              <span class="input-group-text">
-                <svg cIcon name="cil-envelope-closed"></svg>
-              </span>
-              <input 
-                type="email" 
-                class="form-control"
-                id="email" 
-                formControlName="email"
-                placeholder="exemple@email.com"
-                [class.is-invalid]="submitted && email?.errors">
-            </div>
-            <div *ngIf="submitted && email?.errors" class="invalid-feedback d-block">
-              <div *ngIf="email?.errors?.['required']">L'email est requis</div>
-              <div *ngIf="email?.errors?.['email']">Format d'email invalide</div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="password" class="form-label">Mot de passe</label>
-            <div class="input-group password-group">
-              <span class="input-group-text">
-                <svg cIcon name="cil-lock-locked"></svg>
-              </span>
-              <input 
-                [type]="showPassword ? 'text' : 'password'"
-                class="form-control"
-                id="password" 
-                formControlName="password"
-                placeholder="••••••••"
-                [class.is-invalid]="submitted && password?.errors">
-              <button
-                type="button"
-                class="password-toggle"
-                (click)="togglePasswordVisibility()"
-                [attr.aria-label]="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">
-                {{ showPassword ? 'Masquer' : 'Afficher' }}
-              </button>
-            </div>
-            <div *ngIf="submitted && password?.errors" class="invalid-feedback d-block">
-              <div *ngIf="password?.errors?.['required']">Le mot de passe est requis</div>
-              <div *ngIf="password?.errors?.['minlength']">Minimum 6 caractères</div>
-            </div>
-          </div>
-
-          <div class="form-options">
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="remember" formControlName="remember">
-              <label class="form-check-label" for="remember">Se souvenir de moi</label>
-            </div>
-            <a routerLink="/auth/forgot-password" class="forgot-password">Mot de passe oublié?</a>
-          </div>
-
-          <button 
-            type="submit" 
-            class="btn btn-primary btn-login w-100"
-            [disabled]="isLoading">
-            <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
-            <span *ngIf="!isLoading">Se connecter</span>
-            <span *ngIf="isLoading">Connexion en cours...</span>
+      <div class="field">
+        <label for="password">Mot de passe</label>
+        <div class="password-wrap">
+          <input
+            id="password"
+            [type]="showPassword ? 'text' : 'password'"
+            autocomplete="current-password"
+            formControlName="password"
+            placeholder="••••••••"
+            [class.invalid]="submitted && password?.errors" />
+          <button
+            type="button"
+            class="eye"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+            [attr.aria-pressed]="showPassword">
+            <svg *ngIf="!showPassword" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" />
+              <circle cx="12" cy="12" r="2.6" />
+            </svg>
+            <svg *ngIf="showPassword" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2 12s3.6-6.5 10-6.5c1.9 0 3.5.5 4.9 1.2M22 12s-3.6 6.5-10 6.5c-1.9 0-3.5-.5-4.9-1.2" />
+              <path d="m4 4 16 16" />
+            </svg>
           </button>
-        </form>
+        </div>
+        <p class="field-error" *ngIf="submitted && password?.errors">
+          <ng-container *ngIf="password?.errors?.['required']">Le mot de passe est requis</ng-container>
+          <ng-container *ngIf="password?.errors?.['minlength']">Minimum 6 caractères</ng-container>
+        </p>
       </div>
-    </main>
-  </div>
+
+      <div class="field-row">
+        <label class="remember">
+          <input type="checkbox" formControlName="remember" />
+          <span>Se souvenir de moi</span>
+        </label>
+        <a routerLink="/auth/forgot-password">Mot de passe oublié ?</a>
+      </div>
+
+      <button type="submit" class="submit" [disabled]="isLoading">
+        <span class="spin" *ngIf="isLoading" aria-hidden="true"></span>
+        {{ isLoading ? 'Connexion…' : 'Se connecter' }}
+      </button>
+    </form>
+  </main>
 </div>

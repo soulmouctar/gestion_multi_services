@@ -296,6 +296,8 @@ class BankingController extends BaseController
                 'Transaction created',
                 201
             );
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             $this->deleteFile($proofPath);
@@ -368,6 +370,8 @@ class BankingController extends BaseController
                 $this->appendProofUrl($transaction->load('bankAccount')),
                 'Transaction updated'
             );
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->sendError('Error', ['error' => $e->getMessage()], 500);
@@ -558,6 +562,8 @@ class BankingController extends BaseController
                 'period'               => ['from' => $dateFrom, 'to' => $dateTo],
             ], 'Statistics retrieved');
 
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
         }

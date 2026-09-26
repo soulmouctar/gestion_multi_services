@@ -903,12 +903,20 @@ export class OrganisationUsersComponent implements OnInit {
       };
       this.userService.createUser(data, this.selectedPhoto).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r: any) => {
-          this.users.push(r.data);
+          const created = r.data;
+          this.users.push(created);
           this.filterUsers();
           this.saving = false;
           this.closeModal();
-          this.alertService.showSuccess('Succès', 'Utilisateur créé avec succès');
+          this.alertService.showSuccess(
+            'Utilisateur créé',
+            "Aucun module ne lui est encore attribué : il ne verra rien tant que vous n'aurez pas défini ses accès."
+          );
           this.cdr.detectChanges();
+          // Ouvre directement le panneau d'attribution des modules pour le nouvel utilisateur.
+          if (this.canManagePermissions && created) {
+            this.openPermModal(created);
+          }
         },
         error: (e: any) => {
           this.saving = false;

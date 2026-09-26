@@ -138,11 +138,11 @@ class ProductController extends BaseController
                 ],
                 'product_category_id' => [
                     'nullable',
-                    Rule::exists('product_categories', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+                    Rule::exists('product_categories', 'id'),
                 ],
                 'unit_id' => [
                     'nullable',
-                    Rule::exists('units', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+                    Rule::exists('units', 'id'),
                 ],
                 'purchase_price'        => 'nullable|numeric|min:0',
                 'carton_purchase_price' => 'nullable|numeric|min:0',
@@ -222,11 +222,11 @@ class ProductController extends BaseController
             ],
             'product_category_id' => [
                 'nullable',
-                Rule::exists('product_categories', 'id')->where(fn ($query) => $query->where('tenant_id', $product->tenant_id)),
+                Rule::exists('product_categories', 'id'),
             ],
             'unit_id' => [
                 'nullable',
-                Rule::exists('units', 'id')->where(fn ($query) => $query->where('tenant_id', $product->tenant_id)),
+                Rule::exists('units', 'id'),
             ],
             'purchase_price'        => 'nullable|numeric|min:0',
             'carton_purchase_price' => 'nullable|numeric|min:0',

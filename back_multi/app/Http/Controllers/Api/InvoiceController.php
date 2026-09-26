@@ -79,6 +79,16 @@ class InvoiceController extends BaseController
         try {
             $payload = $this->buildInvoicePayload($request, $tenantId);
 
+            // Integrite : refuser une facture vide (aucune ligne et aucun montant)
+            if (empty($payload['line_items']) && (float) $payload['total_amount'] <= 0) {
+                DB::rollBack();
+                return $this->sendError(
+                    'Facture invalide : ajoutez au moins une ligne ou un solde anterieur.',
+                    ['line_items' => ['Au moins une ligne est requise.']],
+                    422
+                );
+            }
+
             $invoice = Invoice::create([
                 'tenant_id'                => $tenantId,
                 'client_id'                => $request->client_id,
