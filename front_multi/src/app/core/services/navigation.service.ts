@@ -272,7 +272,9 @@ export class NavigationService {
 
   private filterNavigationItems(items: NavigationItem[], user: User): NavigationItem[] {
     const userRole = this.getUserRole(user);
-    const isAdmin = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+    // Seul le SUPER_ADMIN court-circuite le filtrage : l'ADMIN doit passer par
+    // hasModuleAccess pour que les modules qu'on lui retire disparaissent du menu.
+    const bypassFiltering = userRole === 'SUPER_ADMIN';
 
     return items
       .map(item => {
@@ -296,7 +298,7 @@ export class NavigationService {
           return true;
         }
 
-        if (isAdmin) {
+        if (bypassFiltering) {
           return !item.children || item.children.length > 0 || !item.requiredPermission;
         }
 

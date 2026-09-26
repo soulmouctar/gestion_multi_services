@@ -73,25 +73,22 @@ export class PermissionService {
       return;
     }
 
-    // For ADMIN, provide all modules with all permissions (same as SUPER_ADMIN for now)
+    // L'ADMIN n'a plus de liste codee en dur : ses modules proviennent des
+    // permissions reellement enregistrees, pour que les activations et
+    // desactivations faites dans l'interface aient un effet. USERS reste
+    // toujours accorde afin qu'il ne puisse pas se verrouiller.
     if (this.authService.isTenantAdmin) {
-      const adminPermissions: UserPermissions = {
-        userId,
-        role: 'ADMIN',
-        modules: [
-          { module_code: 'ADMIN', module_name: 'Administration', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
-          { module_code: 'COMMERCIAL', module_name: 'Gestion Commerciale', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
-          { module_code: 'FINANCE', module_name: 'Gestion Financière', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
-          { module_code: 'PRODUCTS_STOCK', module_name: 'Produits & Stock', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
-          { module_code: 'CLIENTS_SUPPLIERS', module_name: 'Clients & Fournisseurs', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
-          { module_code: 'USERS', module_name: 'Utilisateurs', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
-          { module_code: 'CONTAINERS', module_name: 'Conteneurs', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
-          { module_code: 'RENTAL', module_name: 'Location', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
-          { module_code: 'TAXI', module_name: 'Gestion Taxi', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] },
-          { module_code: 'STATISTICS', module_name: 'Statistiques', is_active: true, permissions: ['create', 'read', 'update', 'delete', 'view'] }
-        ]
-      };
-      this.userPermissions.next(adminPermissions);
+      const stored = this.authService.currentUser?.module_permissions || [];
+      const modules = [...stored];
+      if (!modules.some(m => m.module_code === 'USERS')) {
+        modules.push({
+          module_code: 'USERS',
+          module_name: 'Utilisateurs',
+          is_active: true,
+          permissions: ['create', 'read', 'update', 'delete', 'view']
+        } as any);
+      }
+      this.userPermissions.next({ userId, role: 'ADMIN', modules });
       return;
     }
 

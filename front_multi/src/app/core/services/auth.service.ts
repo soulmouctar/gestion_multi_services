@@ -319,7 +319,10 @@ export class AuthService {
 
     if (!tenantHasModule) return false;
 
-    if (this.isTenantAdmin) return true;
+    // L'ADMIN garde toujours USERS, sinon il pourrait se verrouiller hors de la
+    // gestion des utilisateurs. Pour tous les autres modules il est soumis aux
+    // permissions qui lui ont ete attribuees, comme n'importe quel utilisateur.
+    if (this.isTenantAdmin && acceptedCodes.includes('USERS')) return true;
 
     const userHasPermission = user.module_permissions?.some(
       (permission: { module_code: string; is_active: boolean }) => acceptedCodes.includes(permission.module_code) && permission.is_active
@@ -379,14 +382,17 @@ export class AuthService {
 
     if (this.isSuperAdmin) return this.getTenantActiveModules();
 
-    if (this.isTenantAdmin) return user.tenant_active_modules || [];
-
     const tenantModules: { code: string; name: string; is_active: boolean }[] = user.tenant_active_modules || [];
     const userPermissions: { module_code: string; is_active: boolean }[] = user.module_permissions || [];
 
-    return tenantModules.filter(module =>
-      userPermissions.some(perm => this.getModuleCodeAliases(module.code).includes(perm.module_code) && perm.is_active)
-    );
+    // L'ADMIN passe par le meme filtre que les autres, sinon les modules qu'on
+    // lui retire resteraient dans son menu. USERS lui reste toujours accorde
+    // pour qu'il ne puisse pas se verrouiller hors de la gestion des comptes.
+    return tenantModules.filter(module => {
+      const aliases = this.getModuleCodeAliases(module.code);
+      if (this.isTenantAdmin && aliases.includes('USERS')) return true;
+      return userPermissions.some(perm => aliases.includes(perm.module_code) && perm.is_active);
+    });
   }
 
   private getModuleCodeAliases(moduleCode: string): string[] {

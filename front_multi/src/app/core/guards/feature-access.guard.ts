@@ -32,7 +32,9 @@ export class FeatureAccessGuard implements CanActivate, CanActivateChild {
       return true;
     }
 
-    if (this.authService.isSuperAdmin || this.authService.isTenantAdmin) {
+    // Seul le SUPER_ADMIN court-circuite : l'ADMIN passe par hasModuleAccess,
+    // qui lui garantit deja USERS mais applique ses permissions pour le reste.
+    if (this.authService.isSuperAdmin) {
       return true;
     }
 

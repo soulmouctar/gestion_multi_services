@@ -69,6 +69,8 @@ export const routes: Routes = [
       },
       {
         path: 'commercial',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'COMMERCE' },
         loadChildren: () => import('./views/commercial/routes').then(m => m.routes)
       },
       {
@@ -82,56 +84,80 @@ export const routes: Routes = [
       },
       {
         path: 'finance',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'FINANCE' },
         loadChildren: () => import('./views/finance/routes').then(m => m.routes)
       },
       {
         path: 'clients',
         canActivateChild: [FeatureAccessGuard],
+        data: { module: 'CLIENTS_SUPPLIERS' },
         loadChildren: () => import('./views/clients/routes').then(m => m.routes)
       },
       {
         path: 'products',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'PRODUCTS_STOCK' },
         loadChildren: () => import('./views/products/routes').then(m => m.routes)
       },
       {
         path: 'payments',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'FINANCE' },
         loadChildren: () => import('./views/payments/routes').then(m => m.routes)
       },
       {
         path: 'suppliers',
         canActivateChild: [FeatureAccessGuard],
+        data: { module: 'CLIENTS_SUPPLIERS' },
         loadChildren: () => import('./views/suppliers/routes').then(m => m.routes)
       },
       {
         path: 'product-categories',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'PRODUCTS_STOCK' },
         loadChildren: () => import('./views/product-categories/routes').then(m => m.routes)
       },
       {
         path: 'units',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'PRODUCTS_STOCK' },
         loadChildren: () => import('./views/units/routes').then(m => m.routes)
       },
       {
         path: 'containers',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'CONTAINER' },
         loadChildren: () => import('./views/containers/routes').then(m => m.routes)
       },
       {
         path: 'rental',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'RENTAL' },
         loadChildren: () => import('./views/rental/routes').then(m => m.routes)
       },
       {
         path: 'taxi',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'TAXI' },
         loadChildren: () => import('./views/taxi/routes').then(m => m.routes)
       },
       {
         path: 'statistics',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'STATISTICS' },
         loadChildren: () => import('./views/statistics/routes').then(m => m.routes)
       },
       {
         path: 'expenses',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'EXPENSES' },
         loadChildren: () => import('./views/expenses/routes').then(m => m.routes)
       },
       {
         path: 'banking',
+        canActivateChild: [FeatureAccessGuard],
+        data: { module: 'BANKING' },
         loadChildren: () => import('./views/banking/routes').then(m => m.routes)
       },
       {

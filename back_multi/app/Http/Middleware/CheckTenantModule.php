@@ -41,8 +41,9 @@ class CheckTenantModule
             ], 403);
         }
 
-        // ADMIN peut accéder à tous les modules actifs du tenant (pour la gestion des utilisateurs)
-        if ($user->hasRole('ADMIN')) {
+        // L'ADMIN garde toujours USERS : sans ce garde-fou il pourrait se retirer
+        // l'acces a la gestion des utilisateurs et ne plus jamais se le rendre.
+        if ($user->hasRole('ADMIN') && in_array('USERS', $moduleCodes, true)) {
             return $next($request);
         }
 
