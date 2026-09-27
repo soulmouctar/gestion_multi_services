@@ -141,13 +141,14 @@ export class NavigationService {
               iconComponent: { name: 'cilPeople' },
               requiredModule: 'CLIENTS_SUPPLIERS',
               children: [
+                { name: 'Fournisseurs',             url: '/suppliers/list',           icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_suppliers' },
                 { name: 'Clients textile',          url: '/clients/textile',          icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_textile' },
-                { name: 'Clients pneus',            url: '/clients/pneus',            icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_pneus' },
                 { name: 'Clients cosmétiques',      url: '/clients/cosmetiques',      icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_cosmetiques' },
                 { name: 'Clients machine à coudre', url: '/clients/machine-a-coudre', icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general' },
+                { name: 'Clients pneus',            url: '/clients/pneus',            icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_pneus' },
                 { name: 'Tous les clients',         url: '/clients/list',             icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general' },
                 { name: 'INDEX comptes clients',    url: '/clients/index',            icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_clients_general' },
-                { name: 'Fournisseurs',             url: '/suppliers/list',           icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_suppliers' },
+                { name: 'INDEX comptes fournisseurs', url: '/suppliers/index',        icon: 'nav-icon-bullet', requiredModule: 'CLIENTS_SUPPLIERS', requiredPermission: 'view_suppliers' },
               ]
             });
             break;

@@ -511,3 +511,32 @@
   .filter-panel .section-kicker,
   .data-header .section-kicker { position: static; width: auto; height: auto; clip-path: none; }
 }
+
+/* Barre de periode : meme grammaire que l'index fournisseurs. */
+.period-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem .7rem;
+  margin-bottom: .7rem;
+}
+.period-bar button {
+  padding: .35rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #29354a;
+  background: #fff;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.period-bar button:hover { background: #f5f8fc; }
+.period-bar button.on { color: #fff; border-color: #1d4ed8; background: #1d4ed8; }
+.period-bar label { display: inline-flex; align-items: center; gap: .3rem; color: var(--muted); font-size: .77rem; }
+.period-bar input {
+  padding: .3rem .45rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: .78rem;
+}

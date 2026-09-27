@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Supplier;
+use App\Models\SupplierCurrencyAccount;
 use App\Models\SupplierPayment;
 use App\Models\ContainerArrival;
 use App\Models\Currency;
@@ -172,7 +173,10 @@ class SupplierController extends BaseController
             'currency'  => $request->currency ?? 'GNF',
         ]);
 
-        return $this->sendResponse($supplier, 'Supplier created successfully', 201);
+        // Comptes GNF et USD ouverts d'office, comme pour un client.
+        SupplierCurrencyAccount::provisionDefaults($supplier->id, $supplier->tenant_id);
+
+        return $this->sendResponse($supplier->load('currencyAccounts'), 'Supplier created successfully', 201);
     }
 
     public function show($id)
@@ -316,6 +320,34 @@ class SupplierController extends BaseController
         ], 'Payments retrieved successfully');
     }
 
+    /**
+     * Comptes-devises d'un fournisseur (GNF, USD, ...).
+     *
+     * Les comptes par defaut sont crees a la volee : un fournisseur enregistre
+     * avant la mise en place des comptes en dispose ainsi immediatement.
+     */
+    public function currencyAccounts(Request $request, $id)
+    {
+        $user     = Auth::user();
+        $supplier = Supplier::find($id);
+
+        if (!$supplier) {
+            return $this->sendError('Supplier not found', [], 404);
+        }
+        if (!$user->hasRole('SUPER_ADMIN') && $supplier->tenant_id !== $user->tenant_id) {
+            return $this->sendError('Accès refusé', [], 403);
+        }
+
+        SupplierCurrencyAccount::provisionDefaults($supplier->id, $supplier->tenant_id);
+
+        $accounts = SupplierCurrencyAccount::where('supplier_id', $supplier->id)
+            ->orderByDesc('is_primary')
+            ->orderBy('currency')
+            ->get();
+
+        return $this->sendResponse($accounts, 'Comptes-devises du fournisseur');
+    }
+
     public function storePayment(Request $request, $id)
     {
         $user     = Auth::user();
@@ -362,7 +394,27 @@ class SupplierController extends BaseController
         }
         $converted = $this->convertBetweenCurrencies($amount, $currency, $targetCurrency, $exchangeRate);
 
-        $amountGnf = $this->resolveGnf($amount, $currency, null, $exchangeRate);
+        // Deux taux distincts, qu'il ne faut pas confondre :
+        //  - $exchangeRate sert a convertir la devise recue vers la devise du
+        //    compte impute (USD -> USD donne 1) ;
+        //  - $gnfRate sert a exprimer le versement en GNF pour les recaps.
+        // Les melanger faisait qu'un versement de 2 000 USD sur un compte USD
+        // etait enregistre a 2 000 GNF au lieu de son equivalent reel.
+        $gnfRate = $currency === 'GNF'
+            ? 1.0
+            : ($targetCurrency === 'GNF' && $exchangeRate && $exchangeRate > 1
+                ? $exchangeRate
+                : $this->resolveExchangeRateForTenant($supplier->tenant_id, $currency, null));
+
+        if ($currency !== 'GNF' && (!$gnfRate || $gnfRate <= 1)) {
+            return $this->sendError(
+                "Taux {$currency} → GNF introuvable : configurez la devise dans Finance › Devises.",
+                ['exchange_rate' => ["Aucun taux {$currency} vers GNF n'est defini."]],
+                422
+            );
+        }
+
+        $amountGnf = $this->resolveGnf($amount, $currency, null, $gnfRate);
 
         $payment = SupplierPayment::create([
             'tenant_id'      => $supplier->tenant_id,
@@ -381,12 +433,17 @@ class SupplierController extends BaseController
             'status'         => 'COMPLETED',
         ]);
 
-        // Recalculer et retourner la balance mise à jour
+        // Le versement est impute au compte-devise du fournisseur : c'est lui
+        // qui porte le solde durable, comme pour les comptes clients.
+        $account = SupplierCurrencyAccount::getOrCreate($id, $supplier->tenant_id, $targetCurrency);
+        $account->applyCredit((float) ($converted['amount'] ?? $amount));
+
         $balance = $this->computeBalance($id, $supplier->tenant_id);
 
         return $this->sendResponse([
             'payment' => $payment,
             'balance' => $balance,
+            'account' => $account->fresh(),
         ], 'Payment recorded successfully', 201);
     }
 
@@ -457,6 +514,17 @@ class SupplierController extends BaseController
         $totalDebtGnf = $arrivalsWithCost->sum('cost_gnf');
 
         $byCurrency = [];
+        foreach ($purchases as $purchase) {
+            $currency = $this->normalizeCurrency($purchase->currency ?? 'GNF');
+            $this->addCurrencyMovement(
+                $byCurrency,
+                $currency,
+                (float) $purchase->total_amount,
+                0.0,
+                $this->resolveGnf((float) $purchase->total_amount, $currency, $purchase->total_amount_gnf, $purchase->exchange_rate),
+                0.0
+            );
+        }
         foreach ($arrivals as $arrival) {
             $currency = $this->normalizeCurrency($arrival->currency ?? 'GNF');
             $amount = (float) $arrival->purchase_price;
@@ -601,17 +669,57 @@ class SupplierController extends BaseController
 
     // ────────────────────────────────────────────────────── Helpers privés ──────
 
-    private function computeBalance(int $supplierId, int $tenantId): array
+    /**
+     * Solde d'un fournisseur, eventuellement borne a une periode.
+     *
+     * Sans bornes, on obtient la situation cumulee depuis toujours ; avec
+     * bornes, l'activite de la periode (utile pour un point mensuel ou annuel).
+     */
+    /**
+     * Bornes de periode communes aux tableaux de calcul.
+     *  period=year  -> annee civile en cours
+     *  period=month -> mois en cours
+     *  from/to      -> intervalle explicite
+     */
+    private function resolvePeriod(Request $request): array
+    {
+        $period = $request->get('period');
+
+        if ($period === 'year') {
+            return [now()->startOfYear()->toDateString(), now()->endOfYear()->toDateString()];
+        }
+        if ($period === 'month') {
+            return [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()];
+        }
+
+        return [$request->get('from') ?: null, $request->get('to') ?: null];
+    }
+
+    private function computeBalance(int $supplierId, int $tenantId, ?string $from = null, ?string $to = null): array
     {
         $arrivals = ContainerArrival::where('supplier_id', $supplierId)
             ->where('tenant_id', $tenantId)
+            ->when($from, fn ($q) => $q->whereDate('arrival_date', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('arrival_date', '<=', $to))
             ->get();
 
         $payments = SupplierPayment::where('supplier_id', $supplierId)
             ->where('tenant_id', $tenantId)
+            ->when($from, fn ($q) => $q->whereDate('payment_date', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))
             ->get();
 
-        $totalDebt = $arrivals->sum(fn ($a) => $this->resolveGnf($a->purchase_price, $a->currency, $a->purchase_price_gnf, $a->exchange_rate));
+        // Achats hors conteneur : ils pesent sur la dette au meme titre qu'un
+        // arrivage, sinon un fournisseur de cosmetiques ou de pneus apparaitrait
+        // sans dette alors qu'on lui a pris de la marchandise.
+        $purchases = \App\Models\SupplierPurchase::where('supplier_id', $supplierId)
+            ->where('tenant_id', $tenantId)
+            ->when($from, fn ($q) => $q->whereDate('purchase_date', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('purchase_date', '<=', $to))
+            ->get();
+
+        $totalDebt = $arrivals->sum(fn ($a) => $this->resolveGnf($a->purchase_price, $a->currency, $a->purchase_price_gnf, $a->exchange_rate))
+            + $purchases->sum(fn ($p) => $this->resolveGnf($p->total_amount, $p->currency, $p->total_amount_gnf, $p->exchange_rate));
         $totalPaid = $payments->sum(fn ($p) => $this->resolveGnf($p->amount, $p->currency, $p->amount_gnf, $p->exchange_rate));
 
         $byCurrency = [];
@@ -674,10 +782,13 @@ class SupplierController extends BaseController
             ? ($request->get('tenant_id') ?? $user->tenant_id)
             : $user->tenant_id;
 
+        // Periode facultative : from/to, ou l'annee en cours via period=year.
+        [$from, $to] = $this->resolvePeriod($request);
+
         $suppliers = Supplier::where('tenant_id', $tenantId)->orderBy('name')->get();
 
-        $rows = $suppliers->map(function ($supplier) use ($tenantId) {
-            $b = $this->computeBalance($supplier->id, $tenantId);
+        $rows = $suppliers->map(function ($supplier) use ($tenantId, $from, $to) {
+            $b = $this->computeBalance($supplier->id, $tenantId, $from, $to);
             return [
                 'id'               => $supplier->id,
                 'name'             => $supplier->name,

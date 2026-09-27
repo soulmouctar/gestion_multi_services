@@ -8,10 +8,8 @@ import {
   ModalModule, SpinnerModule, ProgressModule
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-import { HttpClient } from '@angular/common/http';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -90,7 +88,6 @@ export class BankingTransactionsComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
-    private http: HttpClient,
     private route: ActivatedRoute,
     private authService: AuthService,
     private cdr: ChangeDetectorRef
@@ -333,8 +330,8 @@ export class BankingTransactionsComponent implements OnInit {
         fd.append('proof_file', this.proofFile, this.proofFile.name);
       }
 
-      // Let the interceptor add Authorization; don't set any custom headers here
-      this.http.post<any>(`${environment.apiUrl}/banking/transactions`, fd).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      // ApiService also attaches the selected tenant for Super Admin users.
+      this.apiService.post<any>('banking/transactions', fd).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (r) => {
           this.uploading = false;
           if (r.success) {
@@ -345,7 +342,7 @@ export class BankingTransactionsComponent implements OnInit {
         },
         error: (e) => {
           this.uploading = false;
-          const msg = e?.message || e?.message || 'Erreur serveur';
+          const msg = e?.message || 'Erreur serveur';
           Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
         }
       });
@@ -358,7 +355,7 @@ export class BankingTransactionsComponent implements OnInit {
     const pt = this.form.get('proof_type')?.value;
     if (pt) fd.append('proof_type', pt);
 
-    this.http.post<any>(`${environment.apiUrl}/banking/transactions/${txId}/upload-proof`, fd).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.apiService.post<any>(`banking/transactions/${txId}/upload-proof`, fd).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: callback,
       error: () => callback() // proceed even if proof upload fails
     });

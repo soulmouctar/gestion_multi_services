@@ -110,6 +110,19 @@
         </button>
       </div>
 
+      <!-- Periode d'analyse : cumul, annee/mois en cours, ou intervalle libre -->
+      <div class="period-bar" role="group" aria-label="Période d'analyse">
+        <button type="button" [class.on]="period === 'all'"   (click)="setPeriod('all')">Depuis toujours</button>
+        <button type="button" [class.on]="period === 'year'"  (click)="setPeriod('year')">Année en cours</button>
+        <button type="button" [class.on]="period === 'month'" (click)="setPeriod('month')">Mois en cours</button>
+        <button type="button" [class.on]="period === 'custom'" (click)="setPeriod('custom')">Entre 2 dates</button>
+
+        <ng-container *ngIf="period === 'custom'">
+          <label>Du <input type="date" [(ngModel)]="periodFrom" (change)="applyPeriodRange()" /></label>
+          <label>Au <input type="date" [(ngModel)]="periodTo" (change)="applyPeriodRange()" /></label>
+        </ng-container>
+      </div>
+
       <div class="filter-grid">
         <label class="field field-search">
           <span>Rechercher</span>

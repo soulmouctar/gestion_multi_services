@@ -78,6 +78,20 @@ export class ClientIndexComponent implements OnInit {
     this.loadOverview();
   }
 
+  /** Periode d'analyse : cumul depuis toujours, annee/mois en cours, ou intervalle. */
+  period: 'all' | 'year' | 'month' | 'custom' = 'all';
+  periodFrom = '';
+  periodTo = '';
+
+  setPeriod(p: 'all' | 'year' | 'month' | 'custom'): void {
+    this.period = p;
+    if (p !== 'custom') this.loadOverview();
+  }
+
+  applyPeriodRange(): void {
+    if (this.periodFrom || this.periodTo) this.loadOverview();
+  }
+
   loadOverview(): void {
     this.loading = true;
     this.error = '';
@@ -85,6 +99,12 @@ export class ClientIndexComponent implements OnInit {
     const qs: string[] = [];
     if (this.filters.search) qs.push(`search=${encodeURIComponent(this.filters.search)}`);
     if (this.filters.client_type) qs.push(`client_type=${this.filters.client_type}`);
+    if (this.period === 'year' || this.period === 'month') {
+      qs.push(`period=${this.period}`);
+    } else if (this.period === 'custom') {
+      if (this.periodFrom) qs.push(`from=${this.periodFrom}`);
+      if (this.periodTo) qs.push(`to=${this.periodTo}`);
+    }
     if (qs.length) url += '?' + qs.join('&');
 
     this.apiService.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

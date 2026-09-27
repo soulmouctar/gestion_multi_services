@@ -459,7 +459,9 @@ export class InvoicesComponent implements OnInit {
           description: item.description || 'Ligne de facture',
           quantity: Number(item.quantity || 0),
           unitPrice: Number(item.unit_price || 0),
-          total: Number(item.total || (Number(item.quantity || 0) * Number(item.unit_price || 0))),
+          // Montant affiche = brut ; le rabais est totalise plus bas.
+          total: Number(item.quantity || 0) * Number(item.unit_price || 0),
+          discount: Number(item.discount_amount || 0),
         }))
       : [{
           description: invoice.notes || 'Ligne de facture',
@@ -469,6 +471,8 @@ export class InvoicesComponent implements OnInit {
         }];
 
     const subtotal = Number(invoice.items_subtotal_amount || invoice.total_amount || 0) - Number(invoice.previous_balance_amount || 0);
+    const totalDiscount = (Array.isArray(invoice.items) ? invoice.items : [])
+      .reduce((sum: number, it: any) => sum + Number(it.discount_amount || 0), 0);
     const total = Number(invoice.total_amount || 0);
     const totalGnf = invoice.total_amount_gnf || (invoice.currency !== 'GNF' ? Math.round(total * Number(invoice.exchange_rate || 1)) : total);
     const tenant = this.authService.currentTenant;
@@ -495,6 +499,7 @@ export class InvoicesComponent implements OnInit {
       },
       items,
       subtotal,
+      totalDiscount,
       previousBalance: Number(invoice.previous_balance_amount || 0),
       total,
       currency: invoice.currency || 'GNF',
@@ -511,7 +516,9 @@ export class InvoicesComponent implements OnInit {
           description: item.description || 'Ligne de facture',
           quantity: Number(item.quantity || 0),
           unitPrice: Number(item.unit_price || 0),
-          total: Number(item.total || (Number(item.quantity || 0) * Number(item.unit_price || 0))),
+          // Montant affiche = brut ; le rabais est totalise plus bas.
+          total: Number(item.quantity || 0) * Number(item.unit_price || 0),
+          discount: Number(item.discount_amount || 0),
         }))
       : [{
           description: invoice.notes || 'Ligne de facture',
@@ -521,6 +528,8 @@ export class InvoicesComponent implements OnInit {
         }];
 
     const subtotal = Number(invoice.items_subtotal_amount || invoice.total_amount || 0) - Number(invoice.previous_balance_amount || 0);
+    const totalDiscount = (Array.isArray(invoice.items) ? invoice.items : [])
+      .reduce((sum: number, it: any) => sum + Number(it.discount_amount || 0), 0);
     const total = Number(invoice.total_amount || 0);
     const totalGnf = invoice.total_amount_gnf || (invoice.currency !== 'GNF' ? Math.round(total * Number(invoice.exchange_rate || 1)) : total);
     const tenant = this.authService.currentTenant;
@@ -547,6 +556,7 @@ export class InvoicesComponent implements OnInit {
       },
       items,
       subtotal,
+      totalDiscount,
       previousBalance: Number(invoice.previous_balance_amount || 0),
       total,
       currency: invoice.currency || 'GNF',

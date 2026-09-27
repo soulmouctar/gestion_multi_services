@@ -292,6 +292,14 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::get('suppliers/{id}/history', [SupplierController::class, 'getHistory']);
             Route::get('suppliers/{id}/financial-relations', [SupplierController::class, 'getFinancialRelations']);
             Route::get('suppliers/{id}/payments', [SupplierController::class, 'getPayments']);
+        // Comptes-devises du fournisseur, symetrique de clients/{id}/currency-accounts
+        Route::get('suppliers/{id}/currency-accounts', [SupplierController::class, 'currencyAccounts']);
+
+        // Achats fournisseurs hors arrivages (cosmetiques, pneus, textile, machines).
+        Route::get('supplier-purchases',                 [\App\Http\Controllers\Api\SupplierPurchaseController::class, 'index']);
+        Route::post('suppliers/{id}/purchases',          [\App\Http\Controllers\Api\SupplierPurchaseController::class, 'store']);
+        Route::put('supplier-purchases/{id}',            [\App\Http\Controllers\Api\SupplierPurchaseController::class, 'update']);
+        Route::delete('supplier-purchases/{id}',         [\App\Http\Controllers\Api\SupplierPurchaseController::class, 'destroy']);
             Route::post('suppliers/{id}/payments', [SupplierController::class, 'storePayment']);
             Route::delete('suppliers/{supplierId}/payments/{paymentId}', [SupplierController::class, 'deletePayment']);
             Route::post('suppliers/{id}/photo', [SupplierController::class, 'uploadPhoto']);

@@ -111,7 +111,19 @@ class ContainerSalesController extends BaseController
                     DB::table('tenants')->where('id', $tenantId)->lockForUpdate()->first();
                 }
                 $data['arrival_number'] = $this->generateNextArrivalNumber($tenantId, $data['arrival_date'] ?? null);
-                return ContainerArrival::create($data);
+                $created = ContainerArrival::create($data);
+
+                // L'arrivage est un achat : il augmente ce que nous devons au
+                // fournisseur, dans la devise de la transaction.
+                if ($created->supplier_id && $tenantId) {
+                    \App\Models\SupplierCurrencyAccount::getOrCreate(
+                        (int) $created->supplier_id,
+                        (int) $tenantId,
+                        strtoupper($created->currency ?: 'GNF')
+                    )->applyDebit((float) $created->purchase_price);
+                }
+
+                return $created;
             });
 
             return $this->sendResponse($arrival->load($this->arrivalRelations()), 'Arrival created successfully', 201);

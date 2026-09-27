@@ -9,6 +9,8 @@ interface PrintableInvoiceItem {
   quantity: number;
   unitPrice: number;
   total: number;
+  /** Rabais consenti sur la ligne, dans la devise de la facture. */
+  discount?: number;
 }
 
 interface PrintableOrganisation {
@@ -33,7 +35,10 @@ interface PrintableInvoiceData {
   clientEmail?: string;
   organisation?: PrintableOrganisation;
   items: PrintableInvoiceItem[];
+  /** Sous-total NET, rabais deja deduits. */
   subtotal: number;
+  /** Somme des rabais accordes sur les lignes. */
+  totalDiscount?: number;
   previousBalance?: number;
   total: number;
   currency: string;
@@ -2110,9 +2115,23 @@ export class PdfService {
           { text: this.formatMoney(invoiceData.subtotal, invoiceData.currency), style: 'td', alignment: 'right' },
           { text: this.formatMoney(invoiceData.subtotal, invoiceData.currency), style: 'td', alignment: 'right', bold: true }
         ]];
-    const totalsBody: any[] = [
-      infoLine('Sous-total', this.formatMoney(invoiceData.subtotal, invoiceData.currency)),
-    ];
+    // Sans ligne de rabais, les lignes de la facture ne s'additionnent pas au
+    // sous-total : on affiche donc le brut, la remise, puis le net.
+    const totalDiscount = Number(invoiceData.totalDiscount || 0);
+    const grossSubtotal = Number(invoiceData.subtotal || 0) + totalDiscount;
+
+    const totalsBody: any[] = totalDiscount > 0
+      ? [
+          infoLine('Sous-total brut', this.formatMoney(grossSubtotal, invoiceData.currency)),
+          [
+            { text: 'Rabais accordé', color: '#047857' },
+            { text: `− ${this.formatMoney(totalDiscount, invoiceData.currency)}`, alignment: 'right', bold: true, color: '#047857' },
+          ],
+          infoLine('Sous-total net', this.formatMoney(invoiceData.subtotal, invoiceData.currency)),
+        ]
+      : [
+          infoLine('Sous-total', this.formatMoney(invoiceData.subtotal, invoiceData.currency)),
+        ];
     if (Number(invoiceData.previousBalance || 0) !== 0) {
       totalsBody.push(infoLine('Solde antérieur', this.formatMoney(invoiceData.previousBalance || 0, invoiceData.currency)));
     }

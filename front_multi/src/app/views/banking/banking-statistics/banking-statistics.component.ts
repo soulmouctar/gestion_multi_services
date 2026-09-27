@@ -29,6 +29,10 @@ export class BankingStatisticsComponent implements OnInit {
   accounts: any[] = [];
   period       = 'month';
 
+  monthlyFlowChartData: ChartData<'line'> = { labels: [], datasets: [] };
+  accountBalanceChartData: ChartData<'bar'> = { labels: [], datasets: [] };
+  transactionTypeChartData: ChartData<'doughnut'> = { labels: [], datasets: [] };
+
   private readonly palette = ['#10B981', '#EF4444', '#3B82F6', '#8B5CF6', '#F59E0B', '#06B6D4', '#EC4899', '#84CC16'];
 
   filters = {
@@ -130,10 +134,16 @@ export class BankingStatisticsComponent implements OnInit {
     this.apiService.get<any>('banking/statistics', { params }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.stats   = r.success ? r.data : null;
+        this.buildChartData();
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => { this.loading = false; this.cdr.detectChanges(); }
+      error: () => {
+        this.stats = null;
+        this.buildChartData();
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -231,9 +241,9 @@ export class BankingStatisticsComponent implements OnInit {
     return `${names[Number(m) - 1] || month} ${y.substr(2)}`;
   }
 
-  get monthlyFlowChartData(): ChartData<'line'> {
+  private buildChartData(): void {
     const rows = this.stats?.by_month || [];
-    return {
+    this.monthlyFlowChartData = {
       labels: rows.map((m: any) => this.monthLabel(m.month)),
       datasets: [
         {
@@ -260,29 +270,25 @@ export class BankingStatisticsComponent implements OnInit {
         }
       ]
     };
-  }
 
-  get accountBalanceChartData(): ChartData<'bar'> {
-    const rows = (this.stats?.accounts || []).filter((a: any) => a.is_active);
-    return {
-      labels: rows.map((a: any) => a.bank_name),
+    const accountRows = (this.stats?.accounts || []).filter((a: any) => a.is_active);
+    this.accountBalanceChartData = {
+      labels: accountRows.map((a: any) => a.bank_name),
       datasets: [{
         label: 'Solde',
-        data: rows.map((a: any) => Number(a.current_balance || 0)),
-        backgroundColor: rows.map((a: any, i: number) => a.brand_color || this.palette[i % this.palette.length]),
+        data: accountRows.map((a: any) => Number(a.current_balance || 0)),
+        backgroundColor: accountRows.map((a: any, i: number) => a.brand_color || this.palette[i % this.palette.length]),
         borderRadius: 8,
         maxBarThickness: 36,
       }]
     };
-  }
 
-  get transactionTypeChartData(): ChartData<'doughnut'> {
-    const rows = this.stats?.by_type || [];
-    return {
-      labels: rows.map((t: any) => this.txTypeLabel(t.transaction_type)),
+    const typeRows = this.stats?.by_type || [];
+    this.transactionTypeChartData = {
+      labels: typeRows.map((t: any) => this.txTypeLabel(t.transaction_type)),
       datasets: [{
-        data: rows.map((t: any) => Number(t.total || 0)),
-        backgroundColor: rows.map((t: any) => {
+        data: typeRows.map((t: any) => Number(t.total || 0)),
+        backgroundColor: typeRows.map((t: any) => {
           const colorMap: Record<string, string> = {
             'DEPOT': '#10B981', 'RETRAIT': '#EF4444',
             'REMISE_CHEQUE': '#06B6D4', 'VIREMENT_ENTRANT': '#3B82F6', 'VIREMENT_SORTANT': '#F59E0B'

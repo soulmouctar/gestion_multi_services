@@ -962,9 +962,38 @@ class ClientController extends BaseController
         return $this->sendResponse($stats, 'Client statistics retrieved successfully');
     }
 
+    /** Bornes de periode pour l'index clients (from/to ou period=year|month). */
+    private function resolveOverviewPeriod(Request $request): array
+    {
+        $period = $request->get('period');
+        if ($period === 'year')  return [now()->startOfYear()->toDateString(),  now()->endOfYear()->toDateString()];
+        if ($period === 'month') return [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()];
+        return [$request->get('from') ?: null, $request->get('to') ?: null];
+    }
+
     public function getFinancialOverview(Request $request)
     {
         $tenantId = $this->tenantId($request);
+
+        // Periode facultative : from/to explicites, ou period=year|month.
+        // Sans bornes on obtient la situation cumulee ; avec bornes, l'activite
+        // de la periode demandee.
+        [$from, $to] = $this->resolveOverviewPeriod($request);
+        $byCreated = function ($q) use ($from, $to) {
+            if ($from) $q->whereDate('created_at', '>=', $from);
+            if ($to)   $q->whereDate('created_at', '<=', $to);
+            return $q;
+        };
+        $byPayment = function ($q) use ($from, $to) {
+            if ($from) $q->whereDate('payment_date', '>=', $from);
+            if ($to)   $q->whereDate('payment_date', '<=', $to);
+            return $q;
+        };
+        $bySale = function ($q) use ($from, $to) {
+            if ($from) $q->whereDate('sale_date', '>=', $from);
+            if ($to)   $q->whereDate('sale_date', '<=', $to);
+            return $q;
+        };
 
         $clientsQuery = Client::query()->where('tenant_id', $tenantId);
 
@@ -993,12 +1022,14 @@ class ClientController extends BaseController
 
         $invoiceTotals = Invoice::query()
             ->where('tenant_id', $tenantId)
+            ->tap($byCreated)
             ->select('client_id', DB::raw("COALESCE(SUM({$invoiceAmountColumn}), 0) as total"))
             ->groupBy('client_id')
             ->pluck('total', 'client_id');
 
         $invoicePayments = Payment::query()
             ->where('tenant_id', $tenantId)
+            ->tap($byPayment)
             ->where('status', 'COMPLETED')
             ->whereNotNull('invoice_id')
             ->select('client_id', DB::raw("COALESCE(SUM({$paymentAmountColumn}), 0) as total"))
@@ -1007,6 +1038,7 @@ class ClientController extends BaseController
 
         $clientAccountPayments = Payment::query()
             ->where('tenant_id', $tenantId)
+            ->tap($byPayment)
             ->where('status', 'COMPLETED')
             ->whereNull('invoice_id')
             ->select('client_id', DB::raw("COALESCE(SUM({$paymentAmountColumn}), 0) as total"))
@@ -1015,6 +1047,7 @@ class ClientController extends BaseController
 
         $containerSales = ContainerSale::query()
             ->where('tenant_id', $tenantId)
+            ->tap($bySale)
             ->select(
                 'client_id',
                 DB::raw("COALESCE(SUM({$containerSaleAmountColumn}), 0) as total_sales"),
@@ -1027,6 +1060,7 @@ class ClientController extends BaseController
 
         $containerPayments = ContainerSalePayment::query()
             ->where('tenant_id', $tenantId)
+            ->tap($byPayment)
             ->where(function ($query) {
                 $query->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE');
             })
@@ -1070,22 +1104,26 @@ class ClientController extends BaseController
 
         $invoiceCurrencyRows = Invoice::query()
             ->where('tenant_id', $tenantId)
+            ->tap($byCreated)
             ->get(['client_id', 'total_amount', 'total_amount_gnf', 'currency', 'exchange_rate'])
             ->groupBy('client_id');
 
         $paymentCurrencyRows = Payment::query()
             ->where('tenant_id', $tenantId)
+            ->tap($byPayment)
             ->where('status', 'COMPLETED')
             ->get(['client_id', 'amount', 'currency', 'target_currency', 'converted_amount', 'amount_gnf', 'exchange_rate'])
             ->groupBy('client_id');
 
         $containerCurrencyRows = ContainerSale::query()
             ->where('tenant_id', $tenantId)
+            ->tap($bySale)
             ->get(['client_id', 'quantity_sold', 'sale_price', 'sale_price_gnf', 'currency', 'exchange_rate'])
             ->groupBy('client_id');
 
         $containerPaymentCurrencyRows = ContainerSalePayment::query()
             ->where('tenant_id', $tenantId)
+            ->tap($byPayment)
             ->where(function ($query) {
                 $query->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE');
             })

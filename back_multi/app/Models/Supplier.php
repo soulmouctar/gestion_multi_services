@@ -25,6 +25,12 @@ class Supplier extends Model
 
     protected $appends = ['photo_url'];
 
+    /** Comptes-devises du fournisseur (GNF, USD, ...). */
+    public function currencyAccounts()
+    {
+        return $this->hasMany(SupplierCurrencyAccount::class);
+    }
+
     public function getPhotoUrlAttribute(): ?string
     {
         if (!$this->photo) return null;

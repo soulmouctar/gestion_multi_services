@@ -1,0 +1,121 @@
+<div class="sx">
+
+  <section class="sx-hero">
+    <div class="hero-icon"><svg cIcon name="cilTruck"></svg></div>
+    <div>
+      <p class="kicker">Pilotage achats</p>
+      <h1>Situation consolidée des fournisseurs</h1>
+      <p class="sub">Achats portés au compte, versements effectués et reste à régler, par devise.</p>
+    </div>
+  </section>
+
+  <c-alert *ngIf="error" color="danger" [dismissible]="false">{{ error }}</c-alert>
+
+  <!-- Période -->
+  <section class="sx-filters">
+    <div class="periods" role="group" aria-label="Période">
+      <button type="button" [class.on]="period === 'all'" (click)="onPeriodChange('all')">Depuis toujours</button>
+      <button type="button" [class.on]="period === 'year'" (click)="onPeriodChange('year')">Année en cours</button>
+      <button type="button" [class.on]="period === 'month'" (click)="onPeriodChange('month')">Mois en cours</button>
+      <button type="button" [class.on]="period === 'custom'" (click)="onPeriodChange('custom')">Entre 2 dates</button>
+    </div>
+
+    <div class="range" *ngIf="period === 'custom'">
+      <label>Du <input type="date" [(ngModel)]="from" (change)="applyCustom()" /></label>
+      <label>Au <input type="date" [(ngModel)]="to" (change)="applyCustom()" /></label>
+    </div>
+
+    <div class="tools">
+      <input class="search" type="search" placeholder="Nom, catégorie ou téléphone…"
+             [(ngModel)]="search" (input)="applySearch()" />
+      <div class="pivot" role="group" aria-label="Devise d'affichage">
+        <span>Afficher en</span>
+        <button *ngFor="let p of pivots" type="button" [class.on]="pivot === p" (click)="pivot = p">{{ p }}</button>
+      </div>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="sx-loading">
+    <c-spinner color="primary"></c-spinner><span>Chargement…</span>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- Récapitulatif -->
+    <section class="sx-kpis">
+      <div class="kpi">
+        <span class="lbl">Achats portés au compte</span>
+        <strong class="val">{{ fmt(totalDebt()) }} <em>GNF</em></strong>
+      </div>
+      <div class="kpi">
+        <span class="lbl">Total versé</span>
+        <strong class="val ok">{{ fmt(totalPaid()) }} <em>GNF</em></strong>
+      </div>
+      <div class="kpi kpi-main">
+        <span class="lbl">Reste à régler</span>
+        <strong class="val">{{ fmt(totalBalance()) }} <em>{{ pivot }}</em></strong>
+        <span class="sub">{{ filtered.length }} fournisseur(s)</span>
+      </div>
+    </section>
+
+    <!-- Tableau -->
+    <section class="sx-panel">
+      <div class="sx-scroll">
+        <table class="sx-table">
+          <thead>
+            <tr>
+              <th class="c-name">Fournisseur</th>
+              <th class="num">Achats GNF</th>
+              <th class="num">Versé GNF</th>
+              <th class="num">Achats USD</th>
+              <th class="num">Versé USD</th>
+              <th class="num">Reste ({{ pivot }})</th>
+              <th class="center">État</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of filtered; trackBy: trackRow">
+              <td class="c-name">
+                <div class="who">
+                  <span class="av">{{ (r.name || '?').charAt(0) }}</span>
+                  <div>
+                    <strong>{{ r.name }}</strong>
+                    <span>{{ r.category || '—' }}<ng-container *ngIf="r.phone1"> · {{ r.phone1 }}</ng-container></span>
+                  </div>
+                </div>
+              </td>
+              <td class="num">{{ fmt(bucket(r, 'GNF')?.total_debit) }}</td>
+              <td class="num paid">{{ fmt(bucket(r, 'GNF')?.total_credit) }}</td>
+              <td class="num">{{ bucket(r, 'USD') ? fmt(bucket(r, 'USD')?.total_debit) : '—' }}</td>
+              <td class="num paid">{{ bucket(r, 'USD') ? fmt(bucket(r, 'USD')?.total_credit) : '—' }}</td>
+              <td class="num strong" [class.due]="state(r) === 'du'" [class.credit]="state(r) === 'avance'">
+                {{ fmt(balance(r)) }}
+              </td>
+              <td class="center">
+                <span class="tag" [class.t-due]="state(r) === 'du'"
+                      [class.t-credit]="state(r) === 'avance'" [class.t-ok]="state(r) === 'solde'">
+                  {{ state(r) === 'du' ? 'À régler' : state(r) === 'avance' ? 'Avance' : 'Soldé' }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="!filtered.length">
+              <td colspan="7" class="empty">Aucun fournisseur pour cette période.</td>
+            </tr>
+          </tbody>
+          <tfoot *ngIf="filtered.length">
+            <tr>
+              <td><strong>Total</strong><span>{{ filtered.length }} fournisseur(s)</span></td>
+              <td class="num">{{ fmt(totalDebt()) }}</td>
+              <td class="num paid">{{ fmt(totalPaid()) }}</td>
+              <td class="num">—</td>
+              <td class="num">—</td>
+              <td class="num strong">{{ fmt(totalBalance()) }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+  </ng-container>
+</div>
