@@ -73,7 +73,7 @@
 
 <c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static" size="lg">
   <c-modal-header>
-    <h5 cModalTitle class="fw-bold">{{ editMode ? '✏️ Modifier l\'unité de logement' : '🏠 Nouvelle unité de logement' }}</h5>
+    <h5 cModalTitle class="fw-bold">{{ editMode ? ' Modifier l\'unité de logement' : ' Nouvelle unité de logement' }}</h5>
     <button type="button" class="btn-close" (click)="showFormModal = false"></button>
   </c-modal-header>
   <c-modal-body>
@@ -122,7 +122,7 @@
 
           <!-- Inline floor creation form -->
           <div *ngIf="showInlineFloor" class="mt-2 p-3 rounded" style="background:#e8f5e9;border:1px solid #4caf50">
-            <div class="fw-semibold small text-success mb-2">➕ Créer un étage</div>
+            <div class="fw-semibold small text-success mb-2"><svg cIcon name="cilPlus" class="ic"></svg> Créer un étage</div>
             <div class="d-flex gap-2 align-items-center">
               <div class="flex-grow-1">
                 <input type="number" class="form-control form-control-sm" [(ngModel)]="inlineFloorNumber"
@@ -137,7 +137,7 @@
                 Créer l'étage
               </button>
               <button type="button" cButton color="secondary" size="sm" variant="ghost"
-                (click)="showInlineFloor = false" style="border-radius:8px">✕</button>
+                (click)="showInlineFloor = false" style="border-radius:8px"><svg cIcon name="cilX" class="ic"></svg></button>
             </div>
             <div class="form-text text-muted">0 = Rez-de-chaussée · 1 = 1er étage · 2 = 2ème étage...</div>
           </div>
@@ -191,8 +191,8 @@
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Statut</label>
           <select cSelect formControlName="status" style="border-radius:8px">
-            <option value="LIBRE">🟢 Libre</option>
-            <option value="OCCUPE">🟡 Occupé</option>
+            <option value="LIBRE"> Libre</option>
+            <option value="OCCUPE"> Occupé</option>
           </select>
         </div>
 

@@ -46,7 +46,7 @@
   </div>
 
   <div *ngIf="!loading && error" class="empty-state">
-    <div class="empty-icon">⚠️</div>
+    <div class="empty-icon"><svg cIcon name="cilWarning" class="ic"></svg></div>
     <h2>Impossible de charger les statistiques</h2>
     <p>Vérifie le backend, puis relance le chargement.</p>
     <button cButton color="primary" (click)="loadDashboard()">Réessayer</button>
@@ -58,7 +58,7 @@
         <c-card class="metric-card metric-primary h-100">
           <c-card-body>
             <div class="metric-top">
-              <span class="metric-icon">👥</span>
+              <span class="metric-icon"><svg cIcon name="cilPeople" class="ic"></svg></span>
               <c-badge color="primary">Tenant</c-badge>
             </div>
             <div class="metric-value">{{ fmt(stats.totalTenants) }}</div>
@@ -70,7 +70,7 @@
         <c-card class="metric-card metric-success h-100">
           <c-card-body>
             <div class="metric-top">
-              <span class="metric-icon">✅</span>
+              <span class="metric-icon"><svg cIcon name="cilCheckCircle" class="ic"></svg></span>
               <c-badge color="success">Actif</c-badge>
             </div>
             <div class="metric-value">{{ fmt(stats.activeSubscriptions) }}</div>
@@ -94,7 +94,7 @@
         <c-card class="metric-card metric-info h-100">
           <c-card-body>
             <div class="metric-top">
-              <span class="metric-icon">💰</span>
+              <span class="metric-icon"><svg cIcon name="cilMoney" class="ic"></svg></span>
               <c-badge color="info">Mois</c-badge>
             </div>
             <div class="metric-value">{{ fmt(stats.totalRevenue) }}</div>

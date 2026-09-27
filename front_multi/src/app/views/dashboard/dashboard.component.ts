@@ -2,16 +2,60 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyR
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { CardModule, SpinnerModule, AlertModule, ButtonModule } from '@coreui/angular';
+import { SpinnerModule, AlertModule } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../core/services/api.service';
+
+interface Debtor {
+  client_id: number;
+  name: string;
+  phone: string | null;
+  client_type: string | null;
+  due_gnf: number;
+}
+
+interface Movement {
+  kind: 'payment' | 'invoice';
+  label: string;
+  amount_gnf: number;
+  date: string;
+  method?: string;
+  status?: string;
+}
+
+interface BusinessDashboard {
+  receivables: {
+    total_gnf: number;
+    from_invoices_gnf: number;
+    from_containers_gnf: number;
+    client_credit_gnf: number;
+    debtor_count: number;
+  };
+  cash: { today_gnf: number; month_gnf: number };
+  alerts: {
+    overdue_invoices: number;
+    overdue_amount_gnf: number;
+    low_stock_products: number;
+    out_of_stock_products: number;
+    vehicle_docs_expiring: number;
+    leases_ending: number;
+  };
+  modules: {
+    containers_pending: number;
+    taxi_collected_today_gnf: number;
+    housing_occupied: number;
+    housing_free: number;
+  };
+  top_debtors: Debtor[];
+  cash_trend: { month: string; total_gnf: number }[];
+  recent: Movement[];
+  generated_at: string;
+}
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [
-    CommonModule, RouterLink, CardModule, SpinnerModule, AlertModule, ButtonModule, IconDirective
-  ],
+  imports: [CommonModule, RouterLink, SpinnerModule, AlertModule, IconDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
@@ -21,122 +65,65 @@ export class DashboardComponent implements OnInit {
 
   loading = true;
   error: string | null = null;
-  stats: any = null;
-  activities: any[] = [];
-  subscriptionTrends: any[] = [];
-  revenueChart: { labels: string[], datasets: any[] } | null = null;
-  revenueLabels: string[] = [];
-  revenueData: number[] = [];
-  moduleUsage: any[] = [];
-
-  // Subscription trends data
-  subscriptionLabels: string[] = [];
-  subscriptionNewData: number[] = [];
-  subscriptionCancelledData: number[] = [];
+  data: BusinessDashboard | null = null;
 
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    this.loadDashboardData();
+    this.load();
   }
 
-  loadDashboardData(): void {
-    this.loadStats();
-    this.loadActivities();
-    this.loadSubscriptionTrends();
-    this.loadRevenueChart();
-    this.loadModuleUsage();
-  }
-
-  loadStats(): void {
-    this.apiService.get<any>('dashboard/stats').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (r) => {
-        if (r.success && r.data) {
-          this.stats = r.data;
-        }
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.error = 'Erreur lors du chargement des statistiques';
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  loadActivities(): void {
-    this.apiService.get<any>('dashboard/activities').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (r) => {
-        if (r.success && r.data) {
-          this.activities = r.data;
-        }
-        this.cdr.detectChanges();
-      },
-      error: () => { }
-    });
-  }
-
-  loadSubscriptionTrends(): void {
-    this.apiService.get<any>('dashboard/subscription-trends').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (r) => {
-        if (r.success && r.data) {
-          // Handle object with labels/datasets structure
-          if (r.data.labels && Array.isArray(r.data.labels)) {
-            this.subscriptionLabels = r.data.labels;
-          }
-          if (r.data.datasets && r.data.datasets[0] && Array.isArray(r.data.datasets[0].data)) {
-            this.subscriptionNewData = r.data.datasets[0].data;
-          }
-          if (r.data.datasets && r.data.datasets[1] && Array.isArray(r.data.datasets[1].data)) {
-            this.subscriptionCancelledData = r.data.datasets[1].data;
-          }
-        }
-        this.cdr.detectChanges();
-      },
-      error: () => { }
-    });
-  }
-
-  loadRevenueChart(): void {
-    this.apiService.get<any>('dashboard/revenue-chart').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (r) => {
-        if (r.success && r.data) {
-          this.revenueChart = r.data;
-          if (r.data.labels && Array.isArray(r.data.labels)) {
-            this.revenueLabels = r.data.labels;
-          }
-          if (r.data.datasets && r.data.datasets[0] && Array.isArray(r.data.datasets[0].data)) {
-            this.revenueData = r.data.datasets[0].data;
-          }
-        }
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.loading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  loadModuleUsage(): void {
-    this.apiService.get<any>('dashboard/module-usage').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (r) => {
-        if (r.success && r.data && Array.isArray(r.data)) {
-          this.moduleUsage = r.data;
-        }
-        this.cdr.detectChanges();
-      },
-      error: () => { }
-    });
-  }
-
-  refreshData(): void {
+  load(): void {
     this.loading = true;
     this.error = null;
-    this.loadDashboardData();
-  }
-  trackById(_index: number, item: any): any {
-    return item?.id ?? _index;
+    this.cdr.markForCheck();
+
+    this.apiService.get<BusinessDashboard>('dashboard/business')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r: any) => {
+          this.data = r?.data ?? null;
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: (e: any) => {
+          // On affiche l'erreur : un tableau de bord vide sans explication
+          // laisserait croire qu'il n'y a simplement rien a montrer.
+          this.error = e?.error?.message || e?.message || 'Impossible de charger le tableau de bord';
+          this.loading = false;
+          this.cdr.markForCheck();
+        }
+      });
   }
 
+  /** Montant compact : 1 250 000 → « 1,25 M ». Les grands nombres sont illisibles bruts. */
+  short(v: number | null | undefined): string {
+    const n = Number(v || 0);
+    const abs = Math.abs(n);
+    if (abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2).replace('.', ',') + ' Md';
+    if (abs >= 1_000_000) return (n / 1_000_000).toFixed(2).replace('.', ',') + ' M';
+    if (abs >= 1_000) return Math.round(n / 1_000) + ' k';
+    return String(Math.round(n));
+  }
+
+  full(v: number | null | undefined): string {
+    return new Intl.NumberFormat('fr-FR').format(Math.round(Number(v || 0)));
+  }
+
+  /** Hauteur relative d'une barre du graphique, en pourcentage. */
+  barHeight(v: number): number {
+    const max = Math.max(...(this.data?.cash_trend ?? []).map(m => m.total_gnf), 1);
+    return Math.max(2, Math.round((Number(v || 0) / max) * 100));
+  }
+
+  get hasAlerts(): boolean {
+    const a = this.data?.alerts;
+    if (!a) return false;
+    return a.overdue_invoices > 0 || a.low_stock_products > 0 || a.out_of_stock_products > 0
+      || a.vehicle_docs_expiring > 0 || a.leases_ending > 0;
+  }
+
+  trackDebtor(_i: number, d: Debtor) { return d.client_id; }
+  trackMovement(_i: number, m: Movement) { return m.kind + m.label + m.date; }
+  trackMonth(_i: number, m: { month: string }) { return m.month; }
 }

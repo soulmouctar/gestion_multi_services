@@ -19,7 +19,8 @@ import { AuthService } from '../../../core/services/auth.service';
     ModalModule, AlertModule, SpinnerModule
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './taxi-list.component.html'
+  templateUrl: './taxi-list.component.html',
+  styleUrl: './taxi-list.component.scss'
 })
 export class TaxiListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);

@@ -348,7 +348,7 @@
             <ng-template #leasePhotoPlaceholder>
               <div style="width:84px;height:84px;border-radius:50%;background:#EEF2FF;color:#4F46E5;
                           display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.6rem;">
-                👤
+                <svg cIcon name="cilUser" class="ic"></svg>
               </div>
             </ng-template>
             <label class="btn btn-sm btn-outline-primary">
@@ -463,7 +463,7 @@
 
     <div *ngIf="!loadingPaidMonths && unpaidMonths.length > 0" class="mb-3">
       <div class="fw-semibold small text-danger mb-1">
-        ⚠ {{ unpaidMonths.length }} mois impayé(s) — Sélectionnez le mois à régler :
+        <svg cIcon name="cilWarning" class="ic"></svg> {{ unpaidMonths.length }} mois impayé(s) — Sélectionnez le mois à régler :
       </div>
       <div class="d-flex flex-wrap gap-1">
         <button *ngFor="let m of unpaidMonths; trackBy: trackById"
@@ -479,7 +479,7 @@
 
     <div *ngIf="!loadingPaidMonths && unpaidMonths.length === 0 && paidPeriods.length > 0"
       class="alert alert-success small mb-3">
-      ✅ Tous les loyers sont à jour. Le paiement sera enregistré comme avance sur
+      <svg cIcon name="cilCheckCircle" class="ic"></svg> Tous les loyers sont à jour. Le paiement sera enregistré comme avance sur
       <strong>{{ formatPeriod(advancePaymentMonth || paymentForm.get('period_month')?.value) }}</strong>.
     </div>
 
@@ -489,7 +489,7 @@
           <label cLabel class="fw-semibold">
             Période payée *
             <span *ngIf="isPeriodAlreadyPaid(paymentForm.get('period_month')?.value)"
-              class="text-warning small ms-1">⚠ déjà enregistré</span>
+              class="text-warning small ms-1"><svg cIcon name="cilWarning" class="ic"></svg> déjà enregistré</span>
           </label>
           <!-- Show formatted current selection + allow manual override -->
           <div class="input-group">

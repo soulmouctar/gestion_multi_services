@@ -194,6 +194,8 @@ export interface PrintableVersementReceiptData {
     previous_balance: number;
     payment_amount: number;
     remaining_balance: number;
+    /** Versements deja encaisses mais pas encore imputes a une facture. */
+    available_credit?: number;
   } | null;
   organisation: PrintableOrganisation & { footer_text?: string };
   generated_at?: string;
@@ -383,6 +385,7 @@ export class PdfService {
     const previousBalance = Number(data.arrears?.previous_balance || 0);
     const remainingBalance = Number(data.arrears?.remaining_balance || 0);
     const paymentAmount = Number(data.arrears?.payment_amount || totalPrimary || 0);
+    const availableCredit = Number(data.arrears?.available_credit || 0);
 
     const equivHeader = isNativeMode ? `Équiv. ${primaryCurrency}` : 'Équiv. GNF';
     const entriesHeader = [
@@ -572,6 +575,12 @@ export class PdfService {
                 { text: 'Nouveau solde restant', color: '#0F3460', bold: true, margin: [10, 10, 10, 10], fillColor: '#F0F9FF' },
                 { text: this.formatMoney(remainingBalance, arrearsCurrency), alignment: 'right', bold: true, color: remainingBalance > 0 ? '#EF4444' : '#10B981', fontSize: 12, margin: [10, 10, 10, 10], fillColor: '#F0F9FF' },
               ],
+              // Avoir du client : versements encaisses non encore imputes.
+              // N'apparait que s'il y en a, pour ne pas alourdir le recu.
+              ...(availableCredit > 0 ? [[
+                { text: 'Solde disponible (avoir en compte)', color: '#0E7490', bold: true, margin: [10, 10, 10, 10], fillColor: '#ECFEFF' },
+                { text: this.formatMoney(availableCredit, arrearsCurrency), alignment: 'right', bold: true, color: '#0E7490', fontSize: 12, margin: [10, 10, 10, 10], fillColor: '#ECFEFF' },
+              ]] : []),
             ],
           },
           layout: {

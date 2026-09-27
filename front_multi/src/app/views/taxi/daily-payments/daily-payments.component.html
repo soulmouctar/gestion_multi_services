@@ -310,7 +310,7 @@
           </tr>
           <tr *ngIf="payments.length === 0">
             <td colspan="8" class="text-center py-5" style="color:#94a3b8;">
-              <div style="font-size:2.5rem;margin-bottom:12px;">💰</div>
+              <div style="font-size:2.5rem;margin-bottom:12px;"><svg cIcon name="cilMoney" class="ic-lg"></svg></div>
               <p class="mb-0">Aucun versement trouvé pour cette période</p>
             </td>
           </tr>
@@ -359,7 +359,7 @@
         <label cLabel class="fw-semibold mb-1" style="font-size:.875rem;color:#374151;">Affectation (Chauffeur — Taxi) *</label>
         <select cSelect formControlName="taxi_assignment_id"
                 style="border-radius:8px;"
-                (change)="onAssignmentChange($event)"
+                (change)="onAssignmentChange()"
                 [class.is-invalid]="submitted && paymentForm.get('taxi_assignment_id')?.invalid">
           <option [ngValue]="null">-- Sélectionner une affectation --</option>
           <option *ngFor="let a of assignments; trackBy: trackById" [ngValue]="a.id">
@@ -380,10 +380,14 @@
 
       <div class="row mb-3">
         <div class="col-6">
-          <label cLabel class="fw-semibold mb-1" style="font-size:.875rem;color:#374151;">Montant attendu (GNF) *</label>
-          <input cFormControl type="number" formControlName="expected_amount" min="0"
-                 style="border-radius:8px;"
-                 [class.is-invalid]="submitted && paymentForm.get('expected_amount')?.invalid" />
+          <label cLabel class="fw-semibold mb-1" style="font-size:.875rem;color:#374151;">Montant attendu (GNF)</label>
+          <input cFormControl type="text" readonly tabindex="-1"
+                 [value]="fmt(paymentForm.get('expected_amount')?.value || 0)"
+                 aria-describedby="aideMontantAttendu"
+                 style="border-radius:8px;background:#f1f5f9;color:#475569;font-weight:600;cursor:not-allowed;" />
+          <small id="aideMontantAttendu" class="d-block mt-1" style="font-size:.75rem;color:#94a3b8;">
+            Tarif convenu de l'affectation — non modifiable
+          </small>
         </div>
         <div class="col-6">
           <label cLabel class="fw-semibold mb-1" style="font-size:.875rem;color:#374151;">Montant versé (GNF) *</label>

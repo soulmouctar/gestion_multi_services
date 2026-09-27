@@ -1,8 +1,16 @@
 /* You can add global styles to this file, and also import other style files */
 
+// ---------------------------------------------------------------------------
+// Typographie : une seule police pour toute l'application.
+// Inter est auto-hebergee (@fontsource, chargee via angular.json) : aucun
+// appel reseau externe, donc un rendu identique meme hors ligne.
+// ---------------------------------------------------------------------------
+$app-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
 // Import styles with default layout.
 @use "@coreui/coreui/scss/coreui" as * with (
-  $enable-deprecation-messages: false
+  $enable-deprecation-messages: false,
+  $font-family-sans-serif: $app-font
 );
 
 // Import Chart.js custom tooltips styles
@@ -21,3 +29,37 @@
 // We use those styles to show code examples, you should remove them in your application.
 @use "examples";
 
+
+// ---------------------------------------------------------------------------
+// Garde-fou : tout element qui n'herite pas (inputs, boutons, tableaux natifs)
+// repasse sur la police de l'application. Les blocs de code gardent le mono.
+// ---------------------------------------------------------------------------
+html, body,
+button, input, select, textarea, optgroup {
+  font-family: $app-font;
+}
+
+code, pre, kbd, samp, .font-mono {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+
+// ---------------------------------------------------------------------------
+// Icones inline : deux tailles standard pour toute l'application.
+// .ic    accompagne un texte (badges, libelles, liens)
+// .ic-lg illustre un etat vide ou un en-tete de section
+// La couleur suit celle du texte parent, donc l'icone s'harmonise partout.
+// ---------------------------------------------------------------------------
+svg.ic,
+svg.ic-lg {
+  display: inline-block;
+  color: currentColor;
+  fill: currentColor;
+  vertical-align: -.125em;
+  flex: none;
+}
+
+svg.ic    { width: 1em;    height: 1em;    margin-right: .35em; }
+svg.ic-lg { width: 2.5rem; height: 2.5rem; margin: 0 0 .5rem; vertical-align: middle; opacity: .35; }
+
+// Une icone seule dans son conteneur n'a pas besoin de marge a droite
+svg.ic:only-child { margin-right: 0; }

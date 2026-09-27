@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, DestroyRef, inject } from '@angular/core';
+import { IconDirective } from '@coreui/icons-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
@@ -9,7 +10,8 @@ import { ApiService } from '../../../core/services/api.service';
 @Component({
   selector: 'app-statistics-inventory',
   standalone: true,
-  imports: [CommonModule, ProgressModule],
+  imports: [
+    IconDirective,CommonModule, ProgressModule],
   templateUrl: './statistics-inventory.component.html'
 })
 export class StatisticsInventoryComponent implements OnInit, OnDestroy {

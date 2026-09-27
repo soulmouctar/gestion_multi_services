@@ -21,7 +21,7 @@ import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div>
         <div class="d-flex align-items-center gap-2 mb-1">
-          <span style="font-size:1.2rem">👥</span>
+          <span style="font-size:1.2rem"><svg cIcon name="cilPeople" class="ic"></svg></span>
           <span class="small fw-semibold opacity-75 text-uppercase" style="letter-spacing:.06em">Module Location</span>
         </div>
         <h4 class="fw-bold mb-1" style="font-size:1.5rem">Registre des Locataires</h4>
@@ -162,7 +162,7 @@ import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
           </tr>
           <tr *ngIf="tenants.length === 0">
               <td colspan="10" class="text-center py-5">
-              <div style="font-size:2rem" class="mb-2">👥</div>
+              <div style="font-size:2rem" class="mb-2"><svg cIcon name="cilPeople" class="ic-lg"></svg></div>
               <div class="text-muted fw-semibold">Aucun locataire trouvé</div>
               <div class="text-muted small mt-1">Modifiez vos critères de recherche ou ajoutez des locataires via les baux.</div>
               <button class="btn btn-primary btn-sm mt-3" style="border-radius:8px" (click)="goToLeaseCreation()">

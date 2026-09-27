@@ -167,7 +167,6 @@
               <th class="client-column sortable" (click)="sortBy('name')">
                 <span>Client</span><svg cIcon [name]="sortIcon('name')"></svg>
               </th>
-              <th>Catégorie</th>
               <th class="numeric sortable" (click)="sortBy('total_charged')">
                 <span>Total facturé</span><svg cIcon [name]="sortIcon('total_charged')"></svg>
               </th>
@@ -192,17 +191,20 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of filteredRows; trackBy: trackById">
+            <tr *ngFor="let row of filteredRows; trackBy: trackById"
+                [class.row-empty]="!row.total_charged && !row.total_paid && !row.rest_to_pay_gnf">
               <td class="client-column">
                 <div class="client-cell">
                   <span class="client-avatar">{{ initials(row.name) }}</span>
                   <div>
                     <strong>{{ row.name }}</strong>
-                    <span>{{ row.phone1 || row.email || 'Coordonnées non renseignées' }}</span>
+                    <span class="client-sub">
+                      <span class="type-badge">{{ clientTypeLabel(row.client_type) }}</span>
+                      <span class="client-contact">{{ row.phone1 || row.email || 'Coordonnées non renseignées' }}</span>
+                    </span>
                   </div>
                 </div>
               </td>
-              <td><span class="type-badge">{{ clientTypeLabel(row.client_type) }}</span></td>
               <td class="numeric">{{ fmt(row.total_charged) }}</td>
               <td class="numeric paid">{{ fmt(row.total_paid) }}</td>
               <td>
@@ -247,7 +249,7 @@
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="2">
+              <td>
                 <strong>Total de la sélection</strong>
                 <span>{{ filteredRows.length }} client(s)</span>
               </td>

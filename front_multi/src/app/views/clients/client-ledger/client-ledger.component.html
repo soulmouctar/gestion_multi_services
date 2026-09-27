@@ -65,8 +65,8 @@
       <div class="row align-items-center g-3">
         <div class="col-12 col-md-6">
           <div class="banner-label">
-            <span *ngIf="balanceStatusGnf === 'debt'">⚠️ Le client doit</span>
-            <span *ngIf="balanceStatusGnf === 'credit'">✅ Avance en sa faveur</span>
+            <span *ngIf="balanceStatusGnf === 'debt'"><svg cIcon name="cilWarning" class="ic"></svg> Le client doit</span>
+            <span *ngIf="balanceStatusGnf === 'credit'"><svg cIcon name="cilCheckCircle" class="ic"></svg> Avance en sa faveur</span>
             <span *ngIf="balanceStatusGnf === 'zero'">✓ Compte soldé</span>
           </div>
           <div class="banner-value">{{ fmt(balanceGnfAbs) }}</div>

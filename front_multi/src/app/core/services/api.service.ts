@@ -364,6 +364,7 @@ export class ApiService {
       'housing-units',
       'unit-configurations',
       'organisation-settings',
+      'dashboard/business',
       'invoices',
       'lease-payments',
     ].some(prefix => endpoint.startsWith(prefix));

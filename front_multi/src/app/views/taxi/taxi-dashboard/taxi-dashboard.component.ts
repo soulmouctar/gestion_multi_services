@@ -1,4 +1,5 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { IconDirective } from '@coreui/icons-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -8,7 +9,8 @@ import { ApiService } from '../../../core/services/api.service';
 @Component({
   selector: 'app-taxi-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, SpinnerModule],
+  imports: [
+    IconDirective,CommonModule, RouterModule, SpinnerModule],
   styles: [`
     .dash-header {
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -136,7 +138,7 @@ import { ApiService } from '../../../core/services/api.service';
 
   <!-- Error state -->
   <div *ngIf="!loading && !data" class="empty-state">
-    <div style="font-size:3rem">🚕</div>
+    <div style="font-size:3rem"><svg cIcon name="cilCarAlt" class="ic-lg"></svg></div>
     <p class="mt-2">Impossible de charger le tableau de bord</p>
     <button class="btn btn-outline-primary btn-sm mt-2" (click)="load()">Réessayer</button>
   </div>
@@ -148,7 +150,7 @@ import { ApiService } from '../../../core/services/api.service';
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div style="position:relative;z-index:1">
           <div class="d-flex align-items-center gap-2 mb-1">
-            <span style="font-size:1.5rem">🚕</span>
+            <span style="font-size:1.5rem"><svg cIcon name="cilCarAlt" class="ic-lg"></svg></span>
             <span class="fw-semibold" style="font-size:.72rem;letter-spacing:.1em;opacity:.7">MODULE TAXI & TRANSPORT</span>
           </div>
           <h2 class="fw-bold mb-1" style="font-size:1.7rem">Tableau de Bord</h2>
@@ -157,11 +159,11 @@ import { ApiService } from '../../../core/services/api.service';
           </p>
           <!-- Quick nav links -->
           <div class="d-flex flex-wrap gap-2">
-            <a routerLink="../vehicles" class="quick-link">🚗 Véhicules</a>
-            <a routerLink="../drivers" class="quick-link">👤 Conducteurs</a>
-            <a routerLink="../daily-payments" class="quick-link">💰 Versements</a>
-            <a routerLink="../vehicle-expenses" class="quick-link">🔧 Dépenses</a>
-            <a routerLink="../documents" class="quick-link">📄 Documents</a>
+            <a routerLink="../vehicles" class="quick-link"><svg cIcon name="cilCarAlt" class="ic"></svg> Véhicules</a>
+            <a routerLink="../drivers" class="quick-link"><svg cIcon name="cilUser" class="ic"></svg> Conducteurs</a>
+            <a routerLink="../daily-payments" class="quick-link"><svg cIcon name="cilMoney" class="ic"></svg> Versements</a>
+            <a routerLink="../vehicle-expenses" class="quick-link"><svg cIcon name="cilSettings" class="ic"></svg> Dépenses</a>
+            <a routerLink="../documents" class="quick-link"><svg cIcon name="cilFile" class="ic"></svg> Documents</a>
           </div>
         </div>
         <!-- Header KPIs -->
@@ -192,7 +194,7 @@ import { ApiService } from '../../../core/services/api.service';
       <div class="col-6 col-md-3">
         <div class="kpi-card shadow-sm">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon" style="background:#EEF2FF;color:#6366F1">🚗</div>
+            <div class="kpi-icon" style="background:#EEF2FF;color:#6366F1"><svg cIcon name="cilCarAlt" class="ic"></svg></div>
             <span class="badge rounded-pill px-2" style="background:#EEF2FF;color:#6366F1;font-size:.62rem">Total</span>
           </div>
           <div class="kpi-value" style="color:#1e1e2d">{{ data.fleet?.total ?? 0 }}</div>
@@ -202,7 +204,7 @@ import { ApiService } from '../../../core/services/api.service';
       <div class="col-6 col-md-3">
         <div class="kpi-card shadow-sm">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon" style="background:#ECFDF5;color:#10B981">✅</div>
+            <div class="kpi-icon" style="background:#ECFDF5;color:#10B981"><svg cIcon name="cilCheckCircle" class="ic"></svg></div>
             <span class="badge rounded-pill px-2" style="background:#ECFDF5;color:#10B981;font-size:.62rem">Service</span>
           </div>
           <div class="kpi-value" style="color:#10B981">{{ data.fleet?.active ?? 0 }}</div>
@@ -216,7 +218,7 @@ import { ApiService } from '../../../core/services/api.service';
       <div class="col-6 col-md-3">
         <div class="kpi-card shadow-sm">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon" style="background:#FFFBEB;color:#F59E0B">🔧</div>
+            <div class="kpi-icon" style="background:#FFFBEB;color:#F59E0B"><svg cIcon name="cilSettings" class="ic"></svg></div>
             <span class="badge rounded-pill px-2" style="background:#FFFBEB;color:#F59E0B;font-size:.62rem">Maint.</span>
           </div>
           <div class="kpi-value" style="color:#F59E0B">{{ data.fleet?.maintenance ?? 0 }}</div>
@@ -226,7 +228,7 @@ import { ApiService } from '../../../core/services/api.service';
       <div class="col-6 col-md-3">
         <div class="kpi-card shadow-sm">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon" style="background:#F0FDF4;color:#22C55E">👤</div>
+            <div class="kpi-icon" style="background:#F0FDF4;color:#22C55E"><svg cIcon name="cilUser" class="ic"></svg></div>
             <span class="badge rounded-pill px-2" style="background:#F0FDF4;color:#22C55E;font-size:.62rem">Actifs</span>
           </div>
           <div class="kpi-value" style="color:#22C55E">{{ data.drivers?.active ?? 0 }}</div>
@@ -244,7 +246,7 @@ import { ApiService } from '../../../core/services/api.service';
               <div style="font-size:.65rem;font-weight:700;letter-spacing:.08em;opacity:.8">AUJOURD'HUI</div>
               <div style="font-size:1.4rem;font-weight:800;line-height:1.1">{{ fmt(data.today?.collected) }}</div>
             </div>
-            <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:8px;font-size:1.1rem">🕐</div>
+            <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:8px;font-size:1.1rem"><svg cIcon name="cilClock" class="ic"></svg></div>
           </div>
           <div style="font-size:.76rem;opacity:.8">
             <strong class="text-white">{{ data.today?.payment_count ?? 0 }}</strong> versement(s)
@@ -258,7 +260,7 @@ import { ApiService } from '../../../core/services/api.service';
               <div style="font-size:.65rem;font-weight:700;letter-spacing:.08em;opacity:.8">CE MOIS</div>
               <div style="font-size:1.4rem;font-weight:800;line-height:1.1">{{ fmt(data.month?.collected) }}</div>
             </div>
-            <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:8px;font-size:1.1rem">💰</div>
+            <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:8px;font-size:1.1rem"><svg cIcon name="cilMoney" class="ic"></svg></div>
           </div>
           <div style="font-size:.76rem;opacity:.8">
             Dépenses : <strong class="text-white">{{ fmt(data.month?.expenses) }}</strong>
@@ -275,7 +277,7 @@ import { ApiService } from '../../../core/services/api.service';
               <div style="font-size:1.4rem;font-weight:800;line-height:1.1">{{ fmt(data.month?.net) }}</div>
             </div>
             <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:8px;font-size:1.1rem">
-              {{ (data.month?.net ?? 0) >= 0 ? '📈' : '📉' }}
+              {{ (data.month?.net ?? 0) >= 0 ? '' : '' }}
             </div>
           </div>
           <div style="font-size:.76rem;opacity:.8">Recettes − Dépenses du mois</div>
@@ -321,14 +323,14 @@ import { ApiService } from '../../../core/services/api.service';
               <div class="section-title mb-0">Alertes Documents</div>
             </div>
             <span class="badge rounded-pill px-3 py-2" style="background:#FEF3C7;color:#D97706;font-size:.78rem">
-              ⚠️ {{ data.document_alerts.length }} véhicule(s)
+              <svg cIcon name="cilWarning" class="ic"></svg> {{ data.document_alerts.length }} véhicule(s)
             </span>
           </div>
           <div class="row g-2">
             <div class="col-md-6 col-lg-4" *ngFor="let v of data.document_alerts">
               <div class="doc-alert-card">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span class="fw-bold" style="font-size:.9rem">🚕 {{ v.plate_number }}</span>
+                  <span class="fw-bold" style="font-size:.9rem"><svg cIcon name="cilCarAlt" class="ic"></svg> {{ v.plate_number }}</span>
                   <span class="text-muted small">{{ v.brand }} {{ v.vehicle_model }}</span>
                 </div>
                 <div *ngFor="let a of v.alerts" class="d-flex align-items-center mb-1">
@@ -352,7 +354,7 @@ import { ApiService } from '../../../core/services/api.service';
       <!-- Top conducteurs -->
       <div class="col-md-6" *ngIf="data.top_drivers?.length > 0">
         <div class="shadow-sm rounded-4 bg-white p-4 h-100">
-          <div class="section-title">🏆 Top Conducteurs — {{ period }}</div>
+          <div class="section-title"><svg cIcon name="cilStar" class="ic"></svg> Top Conducteurs — {{ period }}</div>
           <div *ngFor="let d of data.top_drivers; let i = index"
             class="driver-row d-flex align-items-center gap-3 mb-1">
             <div class="rank-badge"
@@ -375,7 +377,7 @@ import { ApiService } from '../../../core/services/api.service';
       <!-- Performance véhicules -->
       <div [class]="data.top_drivers?.length > 0 ? 'col-md-6' : 'col-12'">
         <div class="shadow-sm rounded-4 bg-white p-4 h-100">
-          <div class="section-title">🚗 Performance Véhicules — {{ period }}</div>
+          <div class="section-title"><svg cIcon name="cilCarAlt" class="ic"></svg> Performance Véhicules — {{ period }}</div>
           <div *ngIf="data.vehicle_performance?.length > 0">
             <div *ngFor="let v of data.vehicle_performance"
               class="vehicle-row d-flex align-items-center gap-3 mb-1">

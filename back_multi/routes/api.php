@@ -181,6 +181,12 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
 
         // Dashboard
         Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
+        // Tableau de bord decisionnel : tout est agrege en un seul appel.
+        // Reserve aux administrateurs : il expose les creances globales, les
+        // encaissements et les principaux debiteurs de l'organisation.
+        Route::middleware('role:SUPER_ADMIN|ADMIN')->group(function () {
+            Route::get('/dashboard/business', [\App\Http\Controllers\Api\BusinessDashboardController::class, 'index']);
+        });
         Route::get('/dashboard/activities', [DashboardController::class, 'getRecentActivities']);
         Route::get('/dashboard/subscription-trends', [DashboardController::class, 'getSubscriptionTrends']);
         Route::get('/dashboard/revenue-chart', [DashboardController::class, 'getRevenueChart']);
@@ -294,10 +300,15 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         });
 
         // ── CORBEILLE (SoftDeletes) ────────────────────────────────
-        Route::get('trash',                        [TrashController::class, 'summary']);
-        Route::get('trash/{entity}',               [TrashController::class, 'index']);
-        Route::post('trash/{entity}/{id}/restore', [TrashController::class, 'restore']);
-        Route::delete('trash/{entity}/{id}/force', [TrashController::class, 'forceDestroy']);
+        // La corbeille expose les enregistrements supprimes de TOUS les modules :
+        // elle doit rester une fonction d'administration, sinon un utilisateur
+        // limite aux clients y verrait factures, paiements, vehicules, etc.
+        Route::middleware('role:SUPER_ADMIN|ADMIN')->group(function () {
+            Route::get('trash',                        [TrashController::class, 'summary']);
+            Route::get('trash/{entity}',               [TrashController::class, 'index']);
+            Route::post('trash/{entity}/{id}/restore', [TrashController::class, 'restore']);
+            Route::delete('trash/{entity}/{id}/force', [TrashController::class, 'forceDestroy']);
+        });
         Route::delete('trash/{entity}/empty',      [TrashController::class, 'emptyAll']);
 
         Route::middleware('tenant.module:FINANCE')->group(function () {

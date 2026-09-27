@@ -25,6 +25,9 @@ class CommercialDashboardController extends BaseController
                     COUNT(*) as total_arrivals,
                     COALESCE(SUM(purchase_price), 0) as total_purchase_value
                 ')
+                // Les ventes en suppression douce ne doivent plus compter :
+                // supprimer un arrivage les retire, le tableau de bord doit suivre.
+                ->whereNull('deleted_at')
                 ->where('tenant_id', $tenantId)
                 ->first();
 

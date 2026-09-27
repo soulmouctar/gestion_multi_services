@@ -5,7 +5,7 @@
        style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;padding:24px 28px;color:#fff">
     <div>
       <div class="d-flex align-items-center gap-2 mb-1">
-        <span style="font-size:1.2rem">📷</span>
+        <span style="font-size:1.2rem"><svg cIcon name="cilCamera" class="ic"></svg></span>
         <span style="font-size:.68rem;font-weight:700;letter-spacing:.1em;opacity:.7">CONTENEURS</span>
       </div>
       <h4 class="fw-bold mb-0">Photos des Conteneurs</h4>
@@ -70,7 +70,7 @@
   <!-- Empty state -->
   <div *ngIf="!loading && containerPhotos.length === 0"
        class="text-center py-5" style="background:#fff;border-radius:14px;border:1px solid #f0f0f0">
-    <div style="font-size:3rem">📷</div>
+    <div style="font-size:3rem"><svg cIcon name="cilCamera" class="ic-lg"></svg></div>
     <p class="mt-2 fw-semibold text-muted">Aucune photo trouvée</p>
     <button (click)="openAddModal()"
       style="background:linear-gradient(135deg,#1a1a2e,#0f3460);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-weight:600;cursor:pointer;font-size:.875rem">
@@ -97,7 +97,7 @@
 <!-- Modal Ajout/Édition -->
 <c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
   <c-modal-header>
-    <h5 cModalTitle class="fw-bold">{{ editMode ? '✏️ Modifier la photo' : '📷 Ajouter une photo' }}</h5>
+    <h5 cModalTitle class="fw-bold">{{ editMode ? ' Modifier la photo' : ' Ajouter une photo' }}</h5>
     <button type="button" class="btn-close" (click)="showFormModal = false"></button>
   </c-modal-header>
   <c-modal-body>
@@ -145,7 +145,7 @@
             </span>
           </div>
           <div class="mt-2 p-2 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;font-size:.75rem" *ngIf="selectedFile">
-            📎 <strong>{{ selectedFile.name }}</strong> — {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB
+            <svg cIcon name="cilPaperclip" class="ic"></svg> <strong>{{ selectedFile.name }}</strong> — {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB
           </div>
           <div class="form-text">Formats : JPG, PNG, GIF — max 5 MB</div>
         </div>
@@ -183,7 +183,7 @@
 <!-- Modal Aperçu -->
 <c-modal [visible]="previewModalOpen" (visibleChange)="previewModalOpen = $event" size="lg">
   <c-modal-header>
-    <h5 cModalTitle class="fw-bold">📷 {{ getContainerNumber(previewItem?.container_id) }}</h5>
+    <h5 cModalTitle class="fw-bold"><svg cIcon name="cilCamera" class="ic"></svg> {{ getContainerNumber(previewItem?.container_id) }}</h5>
     <button type="button" class="btn-close" (click)="previewModalOpen = false"></button>
   </c-modal-header>
   <c-modal-body class="text-center p-3">

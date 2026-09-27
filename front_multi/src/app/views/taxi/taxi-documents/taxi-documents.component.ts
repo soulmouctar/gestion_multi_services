@@ -58,7 +58,7 @@ interface DocStatus { label: string; color: string; icon: string; }
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
       <div style="position:relative;z-index:1">
         <div class="d-flex align-items-center gap-2 mb-1">
-          <span style="font-size:1.3rem">📄</span>
+          <span style="font-size:1.3rem"><svg cIcon name="cilFile" class="ic"></svg></span>
           <span style="font-size:.68rem;font-weight:700;letter-spacing:.1em;opacity:.7">GESTION DOCUMENTAIRE</span>
         </div>
         <h3 class="fw-bold mb-1" style="font-size:1.4rem">Documents &amp; Assurances</h3>
@@ -99,7 +99,7 @@ interface DocStatus { label: string; color: string; icon: string; }
 
   <!-- Empty -->
   <div *ngIf="!loading && vehicles.length === 0" class="text-center py-5 text-muted">
-    <div style="font-size:3rem">📄</div>
+    <div style="font-size:3rem"><svg cIcon name="cilFile" class="ic-lg"></svg></div>
     <p class="mt-2">Aucun véhicule enregistré.</p>
   </div>
 
@@ -117,7 +117,7 @@ interface DocStatus { label: string; color: string; icon: string; }
             <div class="rounded-3 d-flex align-items-center justify-content-center"
               style="width:44px;height:44px;font-size:1.3rem;flex-shrink:0"
               [style.background]="hasExpired(v) ? '#fef2f2' : hasCritical(v) ? '#fffbeb' : '#f0fdf4'">
-              🚕
+              <svg cIcon name="cilCarAlt" class="ic"></svg>
             </div>
             <div>
               <div class="fw-bold" style="font-size:1rem;color:#1a1a2e;letter-spacing:.03em">
@@ -150,7 +150,7 @@ interface DocStatus { label: string; color: string; icon: string; }
         <div class="d-flex gap-2 flex-wrap">
           <!-- Assurance -->
           <div class="doc-block" [class]="'doc-block ' + v.insurance_expiry_status">
-            <div class="doc-title">🛡️ Assurance</div>
+            <div class="doc-title"><svg cIcon name="cilShieldAlt" class="ic"></svg> Assurance</div>
             <div class="doc-date" [style.color]="docColor2(v.insurance_expiry_status)">
               {{ v.insurance_expiry ? (v.insurance_expiry | date:'dd/MM/yyyy') : '—' }}
             </div>
@@ -165,7 +165,7 @@ interface DocStatus { label: string; color: string; icon: string; }
           </div>
           <!-- Visite technique -->
           <div class="doc-block" [class]="'doc-block ' + v.technical_inspection_expiry_status">
-            <div class="doc-title">🔧 Visite tech.</div>
+            <div class="doc-title"><svg cIcon name="cilSettings" class="ic"></svg> Visite tech.</div>
             <div class="doc-date" [style.color]="docColor2(v.technical_inspection_expiry_status)">
               {{ v.technical_inspection_expiry ? (v.technical_inspection_expiry | date:'dd/MM/yyyy') : '—' }}
             </div>
@@ -180,7 +180,7 @@ interface DocStatus { label: string; color: string; icon: string; }
           </div>
           <!-- Permis circulation -->
           <div class="doc-block" [class]="'doc-block ' + v.circulation_permit_expiry_status">
-            <div class="doc-title">📋 Permis circ.</div>
+            <div class="doc-title"><svg cIcon name="cilDescription" class="ic"></svg> Permis circ.</div>
             <div class="doc-date" [style.color]="docColor2(v.circulation_permit_expiry_status)">
               {{ v.circulation_permit_expiry ? (v.circulation_permit_expiry | date:'dd/MM/yyyy') : '—' }}
             </div>
@@ -198,10 +198,10 @@ interface DocStatus { label: string; color: string; icon: string; }
         <!-- Mileage & notes -->
         <div class="d-flex gap-3 mt-3 pt-3" style="border-top:1px solid #f0f0f0">
           <div *ngIf="v.mileage" class="text-muted" style="font-size:.75rem">
-            🛣️ <strong>{{ v.mileage | number }}</strong> km
+            <svg cIcon name="cilLocationPin" class="ic"></svg> <strong>{{ v.mileage | number }}</strong> km
           </div>
           <div *ngIf="v.notes" class="text-muted text-truncate" style="font-size:.75rem;max-width:300px">
-            📝 {{ v.notes }}
+            <svg cIcon name="cilPencil" class="ic"></svg> {{ v.notes }}
           </div>
         </div>
       </div>
@@ -212,30 +212,30 @@ interface DocStatus { label: string; color: string; icon: string; }
 <!-- Modal mise à jour documents -->
 <c-modal [visible]="showModal" (visibleChange)="showModal = $event" backdrop="static">
   <c-modal-header>
-    <h5 cModalTitle class="fw-bold">📄 Documents — {{ selectedVehicle?.plate_number }}</h5>
+    <h5 cModalTitle class="fw-bold"><svg cIcon name="cilFile" class="ic"></svg> Documents — {{ selectedVehicle?.plate_number }}</h5>
     <button type="button" class="btn-close" (click)="showModal = false"></button>
   </c-modal-header>
   <c-modal-body *ngIf="form">
     <form [formGroup]="form">
       <div class="row g-3">
         <div class="col-12">
-          <label class="form-label fw-semibold small">🛡️ Expiration assurance</label>
+          <label class="form-label fw-semibold small"><svg cIcon name="cilShieldAlt" class="ic"></svg> Expiration assurance</label>
           <input type="date" class="form-control" formControlName="insurance_expiry" style="border-radius:8px">
         </div>
         <div class="col-12">
-          <label class="form-label fw-semibold small">🔧 Expiration visite technique</label>
+          <label class="form-label fw-semibold small"><svg cIcon name="cilSettings" class="ic"></svg> Expiration visite technique</label>
           <input type="date" class="form-control" formControlName="technical_inspection_expiry" style="border-radius:8px">
         </div>
         <div class="col-12">
-          <label class="form-label fw-semibold small">📋 Expiration permis de circulation</label>
+          <label class="form-label fw-semibold small"><svg cIcon name="cilDescription" class="ic"></svg> Expiration permis de circulation</label>
           <input type="date" class="form-control" formControlName="circulation_permit_expiry" style="border-radius:8px">
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Statut du véhicule</label>
           <select class="form-select" formControlName="status" style="border-radius:8px">
-            <option value="ACTIVE">🟢 Actif</option>
-            <option value="MAINTENANCE">🟡 En maintenance</option>
-            <option value="INACTIVE">⚫ Inactif</option>
+            <option value="ACTIVE"> Actif</option>
+            <option value="MAINTENANCE"> En maintenance</option>
+            <option value="INACTIVE"> Inactif</option>
           </select>
         </div>
         <div class="col-md-6">

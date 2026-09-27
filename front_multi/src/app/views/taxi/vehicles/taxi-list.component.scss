@@ -1,0 +1,178 @@
+/* Tableau des vehicules — meme grammaire visuelle que l'index clients :
+   en-tete collant, chiffres alignes, colonne d'alerte mise en avant. */
+
+:host {
+  --vt-border: #e6ebf2;
+  --vt-line: #eef2f7;
+  --vt-head: #f8fafc;
+  --vt-text: #29354a;
+  --vt-muted: #8a96a7;
+  --vt-navy: #172033;
+  --vt-warn: #b45309;
+  --vt-warn-soft: #fffbeb;
+}
+
+.veh-panel {
+  overflow: hidden;
+  border: 1px solid var(--vt-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(15, 42, 67, .04);
+}
+
+.veh-scroll {
+  overflow: auto hidden;
+  max-height: calc(100vh - 290px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.veh-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.veh-table th:nth-child(1), .veh-table td:nth-child(1) { width: 23.5%; }
+.veh-table th:nth-child(2), .veh-table td:nth-child(2) { width: 7.4%; }
+.veh-table th:nth-child(3), .veh-table td:nth-child(3) { width: 8.1%; }
+.veh-table th:nth-child(4), .veh-table td:nth-child(4) { width: 11.2%; }
+.veh-table th:nth-child(5), .veh-table td:nth-child(5),
+.veh-table th:nth-child(6), .veh-table td:nth-child(6),
+.veh-table th:nth-child(7), .veh-table td:nth-child(7) { width: 11.2%; }
+.veh-table th:nth-child(8), .veh-table td:nth-child(8) { width: 9.1%; }
+.veh-table th:nth-child(9), .veh-table td:nth-child(9) { width: 7.1%; }
+
+/* Les intitules des trois echeances peuvent tenir sur deux lignes :
+   cela evite d'elargir ces colonnes juste pour le libelle. */
+.veh-table th:nth-child(5),
+.veh-table th:nth-child(6),
+.veh-table th:nth-child(7) { white-space: normal; line-height: 1.2; }
+
+.veh-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 44px;
+  padding: .6rem .7rem;
+  color: #69778b;
+  background: var(--vt-head);
+  box-shadow: inset 0 -1px 0 var(--vt-border);
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.veh-table td {
+  height: 58px;
+  padding: .55rem .7rem;
+  border-bottom: 1px solid var(--vt-line);
+  color: var(--vt-text);
+  background: #fff;
+  font-size: .9rem;
+  white-space: nowrap;
+}
+
+.veh-table th:first-child, .veh-table td:first-child { padding-left: 1.1rem; }
+.veh-table th:last-child,  .veh-table td:last-child  { padding-right: 1.1rem; }
+.veh-table tbody tr:last-child td { border-bottom: 0; }
+.veh-table tbody tr:hover td { background: #f9fbfd; }
+
+/* Chiffres et dates : meme largeur de glyphe, donc colonnes alignees */
+.veh-table th.num, .veh-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+.veh-table th.center, .veh-table td.center { text-align: center; }
+
+/* Separation avant le bloc des echeances */
+.veh-table th:nth-child(5), .veh-table td:nth-child(5) { border-left: 1px solid var(--vt-line); }
+
+/* Cellule vehicule */
+.veh-cell { display: flex; align-items: center; gap: .65rem; min-width: 0; }
+
+.veh-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: #5b6b82;
+  background: #f1f5f9;
+}
+.veh-icon svg { width: 17px; height: 17px; }
+
+.veh-cell > div { display: flex; min-width: 0; flex-direction: column; }
+.veh-cell strong {
+  overflow: hidden;
+  color: var(--vt-navy);
+  font-size: .93rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+  text-overflow: ellipsis;
+}
+.veh-cell span {
+  overflow: hidden;
+  margin-top: .1rem;
+  color: var(--vt-muted);
+  font-size: .78rem;
+  text-overflow: ellipsis;
+}
+
+/* Echeance proche : la date passe en ambre avec un pictogramme d'alerte */
+.veh-table td.expiring {
+  color: var(--vt-warn);
+  background: var(--vt-warn-soft);
+  font-weight: 650;
+}
+.veh-table tbody tr:hover td.expiring { background: #fef7e7; }
+.warn-ic { width: 13px; height: 13px; margin-right: .2rem; vertical-align: -2px; }
+
+.muted-dash { color: #c3ccd8; }
+
+/* Statut */
+.veh-status {
+  display: inline-block;
+  padding: .2rem .6rem;
+  border-radius: 20px;
+  color: #6b7280;
+  background: #f3f4f6;
+  font-size: .72rem;
+  font-weight: 700;
+}
+.veh-status.is-active { color: #047857; background: #ecfdf5; }
+.veh-status.is-maint  { color: #b45309; background: #fffbeb; }
+
+/* Actions */
+.veh-actions { display: inline-flex; gap: .3rem; }
+
+.act {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.act svg { width: 15px; height: 15px; }
+.act:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+
+.act-edit { color: #b45309; }
+.act-edit:hover { border-color: #fcd9a4; background: #fffbeb; }
+.act-del { color: #b91c1c; }
+.act-del:hover { border-color: #f6c2c2; background: #fef2f2; }
+
+@media (max-width: 1200px) {
+  .veh-scroll { max-height: calc(100vh - 260px); }
+}

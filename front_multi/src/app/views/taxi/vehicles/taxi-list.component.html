@@ -4,7 +4,7 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h4 class="fw-bold mb-0" style="color:#1a1a2e">
-        <span class="me-2">🚕</span>Véhicules Taxi
+        <svg cIcon name="cilCarAlt" class="me-2" style="width:22px;height:22px;vertical-align:-4px;color:#1a1a2e;"></svg>Véhicules Taxi
       </h4>
       <small class="text-muted">{{ totalItems }} véhicule(s) enregistré(s)</small>
     </div>
@@ -26,96 +26,86 @@
   <!-- Vehicles grid/table -->
   <div *ngIf="!loading">
     <div *ngIf="taxis.length === 0" class="text-center py-5 text-muted">
-      <div style="font-size:3rem">🚕</div>
+      <svg cIcon name="cilCarAlt" style="width:46px;height:46px;color:#cbd5e1;"></svg>
       <p class="mt-2">Aucun véhicule trouvé</p>
       <button *ngIf="canCreateVehicles" cButton color="primary" variant="outline" size="sm" (click)="openCreateModal()">Ajouter le premier véhicule</button>
     </div>
 
-    <div *ngIf="taxis.length > 0" class="row g-3">
-      <div class="col-md-6 col-lg-4" *ngFor="let item of taxis; trackBy: trackById">
-        <div class="rounded-4 p-4 h-100 shadow-sm" style="background:#fff;border:1px solid #f0f0f0;transition:all .2s"
-          onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'"
-          onmouseleave="this.style.transform='';this.style.boxShadow=''">
-
-          <!-- Top: plaque + statut -->
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-              <div class="fw-bold" style="font-size:1.1rem;color:#1a1a2e;letter-spacing:.05em">
-                {{ item.plate_number }}
-              </div>
-              <div class="text-muted small" *ngIf="item.brand || item.vehicle_model">
-                {{ item.brand }} {{ item.vehicle_model }}
-              </div>
-              <div class="text-muted small" *ngIf="!item.brand && !item.vehicle_model">—</div>
-            </div>
-            <span class="badge rounded-pill px-3 py-2"
-              [style.background]="item.status === 'ACTIVE' ? '#ECFDF5' : item.status === 'MAINTENANCE' ? '#FFFBEB' : '#F9FAFB'"
-              [style.color]="item.status === 'ACTIVE' ? '#10B981' : item.status === 'MAINTENANCE' ? '#F59E0B' : '#6B7280'"
-              style="font-size:.72rem;font-weight:700">
-              {{ statusInfo(item.status).label }}
-            </span>
-          </div>
-
-          <!-- Details grid -->
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <div class="rounded-3 p-2 text-center" style="background:#F8FAFC">
-                <div class="fw-bold" style="color:#1a1a2e;font-size:.9rem">{{ item.year || '—' }}</div>
-                <div class="text-muted" style="font-size:.65rem">Année</div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="rounded-3 p-2 text-center" style="background:#F8FAFC">
-                <div class="fw-bold" style="color:#1a1a2e;font-size:.9rem">{{ item.color || '—' }}</div>
-                <div class="text-muted" style="font-size:.65rem">Couleur</div>
-              </div>
-            </div>
-            <div class="col-12">
-              <div class="rounded-3 p-2 text-center" style="background:#F8FAFC">
-                <div class="fw-bold" style="color:#6366F1;font-size:.9rem">
-                  {{ item.mileage ? (item.mileage | number) + ' km' : '—' }}
+    <div *ngIf="taxis.length > 0" class="veh-panel">
+      <div class="veh-scroll">
+        <table class="veh-table">
+          <thead>
+            <tr>
+              <th class="col-veh">Véhicule</th>
+              <th class="num">Année</th>
+              <th>Couleur</th>
+              <th class="num">Kilométrage</th>
+              <th class="num">Assurance</th>
+              <th class="num">Visite tech.</th>
+              <th class="num">Permis circ.</th>
+              <th class="center">Statut</th>
+              <th class="center"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of taxis; trackBy: trackById">
+              <td class="col-veh">
+                <div class="veh-cell">
+                  <span class="veh-icon"><svg cIcon name="cilCarAlt"></svg></span>
+                  <div>
+                    <strong>{{ item.plate_number }}</strong>
+                    <span>{{ item.brand }} {{ item.vehicle_model }}</span>
+                  </div>
                 </div>
-                <div class="text-muted" style="font-size:.65rem">Kilométrage</div>
-              </div>
-            </div>
-          </div>
+              </td>
+              <td class="num">{{ item.year || '—' }}</td>
+              <td>{{ item.color || '—' }}</td>
+              <td class="num">{{ item.mileage ? (item.mileage | number) + ' km' : '—' }}</td>
 
-          <!-- Documents expiry indicators -->
-          <div class="d-flex gap-1 flex-wrap mb-3" *ngIf="item.insurance_expiry || item.technical_inspection_expiry || item.circulation_permit_expiry">
-            <span *ngIf="item.insurance_expiry" class="badge rounded-pill"
-              [style.background]="isExpiringSoon(item.insurance_expiry) ? '#FEF3C7' : '#ECFDF5'"
-              [style.color]="isExpiringSoon(item.insurance_expiry) ? '#D97706' : '#10B981'"
-              style="font-size:.62rem">
-              🛡️ Assur. {{ item.insurance_expiry | date:'dd/MM/yy' }}
-            </span>
-            <span *ngIf="item.technical_inspection_expiry" class="badge rounded-pill"
-              [style.background]="isExpiringSoon(item.technical_inspection_expiry) ? '#FEF3C7' : '#ECFDF5'"
-              [style.color]="isExpiringSoon(item.technical_inspection_expiry) ? '#D97706' : '#10B981'"
-              style="font-size:.62rem">
-              🔧 V.Tech {{ item.technical_inspection_expiry | date:'dd/MM/yy' }}
-            </span>
-            <span *ngIf="item.circulation_permit_expiry" class="badge rounded-pill"
-              [style.background]="isExpiringSoon(item.circulation_permit_expiry) ? '#FEF3C7' : '#ECFDF5'"
-              [style.color]="isExpiringSoon(item.circulation_permit_expiry) ? '#D97706' : '#10B981'"
-              style="font-size:.62rem">
-              📋 Permis {{ item.circulation_permit_expiry | date:'dd/MM/yy' }}
-            </span>
-          </div>
+              <td class="num" [class.expiring]="isExpiringSoon(item.insurance_expiry)"
+                  [attr.title]="isExpiringSoon(item.insurance_expiry) ? 'Échéance proche' : null">
+                <ng-container *ngIf="item.insurance_expiry; else noDate">
+                  {{ item.insurance_expiry | date:'dd/MM/yy' }}
+                </ng-container>
+              </td>
+              <td class="num" [class.expiring]="isExpiringSoon(item.technical_inspection_expiry)"
+                  [attr.title]="isExpiringSoon(item.technical_inspection_expiry) ? 'Échéance proche' : null">
+                <ng-container *ngIf="item.technical_inspection_expiry; else noDate">
+                  {{ item.technical_inspection_expiry | date:'dd/MM/yy' }}
+                </ng-container>
+              </td>
+              <td class="num" [class.expiring]="isExpiringSoon(item.circulation_permit_expiry)"
+                  [attr.title]="isExpiringSoon(item.circulation_permit_expiry) ? 'Échéance proche' : null">
+                <ng-container *ngIf="item.circulation_permit_expiry; else noDate">
+                  {{ item.circulation_permit_expiry | date:'dd/MM/yy' }}
+                </ng-container>
+              </td>
 
-          <!-- Actions -->
-          <div class="d-flex gap-2">
-            <button *ngIf="canEditVehicles" cButton color="warning" variant="outline" size="sm" (click)="openEditModal(item)"
-              style="border-radius:8px;flex:1;font-size:.8rem">
-              <svg cIcon name="cilPencil" class="me-1"></svg> Modifier
-            </button>
-            <button *ngIf="canDeleteVehicles" cButton color="danger" variant="ghost" size="sm" (click)="confirmDelete(item)"
-              style="border-radius:8px;font-size:.8rem">
-              <svg cIcon name="cilTrash"></svg>
-            </button>
-          </div>
-        </div>
+              <td class="center">
+                <span class="veh-status" [class.is-active]="item.status === 'ACTIVE'"
+                      [class.is-maint]="item.status === 'MAINTENANCE'">
+                  {{ statusInfo(item.status).label }}
+                </span>
+              </td>
+              <td class="center">
+                <div class="veh-actions">
+                  <button *ngIf="canEditVehicles" type="button" class="act act-edit"
+                          (click)="openEditModal(item)" title="Modifier" aria-label="Modifier le véhicule">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  <button *ngIf="canDeleteVehicles" type="button" class="act act-del"
+                          (click)="confirmDelete(item)" title="Supprimer" aria-label="Supprimer le véhicule">
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
+
+    <ng-template #noDate><span class="muted-dash">—</span></ng-template>
 
     <!-- Pagination -->
     <nav *ngIf="totalPages > 1" class="d-flex justify-content-center mt-4">
@@ -137,7 +127,7 @@
 <!-- Modal Création/Édition -->
 <c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static" size="lg">
   <c-modal-header>
-    <h5 cModalTitle class="fw-bold">{{ editMode ? '✏️ Modifier le véhicule' : '🚕 Nouveau véhicule' }}</h5>
+    <h5 cModalTitle class="fw-bold"><svg cIcon [name]="editMode ? 'cilPencil' : 'cilCarAlt'" class="me-2" style="width:18px;height:18px;vertical-align:-3px;"></svg>{{ editMode ? 'Modifier le véhicule' : 'Nouveau véhicule' }}</h5>
     <button type="button" class="btn-close" (click)="showFormModal = false"></button>
   </c-modal-header>
   <c-modal-body>
@@ -193,15 +183,15 @@
         </div>
 
         <div class="col-md-4">
-          <label class="form-label fw-semibold small">🛡️ Expiration assurance</label>
+          <label class="form-label fw-semibold small"><svg cIcon name="cilShieldAlt" class="me-1" style="width:13px;height:13px;vertical-align:-2px;color:#64748b;"></svg>Expiration assurance</label>
           <input cFormControl type="date" formControlName="insurance_expiry" style="border-radius:8px" />
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold small">🔧 Expiration visite technique</label>
+          <label class="form-label fw-semibold small"><svg cIcon name="cilSettings" class="me-1" style="width:13px;height:13px;vertical-align:-2px;color:#64748b;"></svg>Expiration visite technique</label>
           <input cFormControl type="date" formControlName="technical_inspection_expiry" style="border-radius:8px" />
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold small">📋 Expiration permis circulation</label>
+          <label class="form-label fw-semibold small"><svg cIcon name="cilDescription" class="me-1" style="width:13px;height:13px;vertical-align:-2px;color:#64748b;"></svg>Expiration permis circulation</label>
           <input cFormControl type="date" formControlName="circulation_permit_expiry" style="border-radius:8px" />
         </div>
         <div class="col-12">

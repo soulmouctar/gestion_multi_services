@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BaseController;
 use App\Models\ContainerArrival;
 use App\Models\ContainerSale;
 use App\Models\ContainerSalePayment;
+use App\Models\Client;
 use App\Models\ClientAdvance;
 use App\Models\Currency;
 use App\Models\ExchangeRate;
@@ -172,15 +173,44 @@ class ContainerSalesController extends BaseController
         return $this->sendResponse($arrival->load($this->arrivalRelations()), 'Arrival updated successfully');
     }
 
-    public function deleteArrival($id)
+    public function deleteArrival(Request $request, $id)
     {
-        $arrival = ContainerArrival::find($id);
+        $tenantId = $this->tenantId($request);
+
+        $arrival = ContainerArrival::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->find($id);
+
         if (!$arrival) {
             return $this->sendError('Arrival not found', [], 404);
         }
 
-        $arrival->delete();
-        return $this->sendResponse([], 'Arrival deleted successfully');
+        DB::beginTransaction();
+        try {
+            // ContainerArrival et ContainerSale utilisent SoftDeletes : la cascade
+            // ON DELETE des cles etrangeres ne se declenche donc jamais. Sans ce
+            // nettoyage explicite, les ventes de l'arrivage resteraient actives et
+            // continueraient a peser dans les soldes clients et les statistiques.
+            $saleIds = ContainerSale::where('container_arrival_id', $arrival->id)
+                ->pluck('id');
+
+            $deletedPayments = 0;
+            if ($saleIds->isNotEmpty()) {
+                $deletedPayments = ContainerSalePayment::whereIn('container_sale_id', $saleIds)->delete();
+                ContainerSale::whereIn('id', $saleIds)->delete();
+            }
+
+            $arrival->delete();
+            DB::commit();
+
+            return $this->sendResponse([
+                'deleted_sales'    => $saleIds->count(),
+                'deleted_payments' => $deletedPayments,
+            ], 'Arrivage supprime avec ses ventes associees');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Log::error('deleteArrival: ' . $e->getMessage());
+            return $this->sendError('Suppression impossible', ['error' => $e->getMessage()], 500);
+        }
     }
 
     // ==================== VENTES ====================
@@ -456,9 +486,11 @@ class ContainerSalesController extends BaseController
         }
     }
 
-    public function deletePayment($id)
+    public function deletePayment(Request $request, $id)
     {
-        $payment = ContainerSalePayment::find($id);
+        $tenantId = $this->tenantId($request);
+        $payment = ContainerSalePayment::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->find($id);
         if (!$payment) {
             return $this->sendError('Payment not found', [], 404);
         }
@@ -604,7 +636,10 @@ class ContainerSalesController extends BaseController
     {
         try {
             $tenantId = $this->tenantId($request);
-            $clients = DB::table('clients')
+            // Modele Eloquent et non DB::table : photo_url est un accesseur
+            // (absent d'un stdClass, d'ou l'erreur 500) et les clients mis a la
+            // corbeille doivent rester exclus.
+            $clients = Client::query()
                 ->where('tenant_id', $tenantId)
                 ->when($request->filled('search'), function ($query) use ($request) {
                     $search = $request->search;

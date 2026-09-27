@@ -898,6 +898,14 @@ class ClientController extends BaseController
         $totalCreditUsd = (float) ($summaryByCurrency['USD']['total_credit'] ?? 0);
         $hasUsd = isset($summaryByCurrency['USD']);
 
+        // Versements encaisses mais pas encore affectes a une facture.
+        $availableCreditGnf = (float) \App\Models\Payment::where('tenant_id', $client->tenant_id)
+            ->where('client_id', $client->id)
+            ->where('status', 'COMPLETED')
+            ->where('type', 'CLIENT')
+            ->whereNull('invoice_id')
+            ->sum('amount_gnf');
+
         return $this->sendResponse([
             'client' => [
                 'id'          => $client->id,
@@ -923,6 +931,10 @@ class ClientController extends BaseController
                 'final_balance_usd'  => round($totalDebitUsd - $totalCreditUsd, 2),
                 'has_usd'            => $hasUsd,
                 'rows_count'         => $rows->count(),
+                // Solde disponible : versements du client non encore imputes a une
+                // facture. Le recu de versement l'imprime pour que le client sache
+                // ce qui lui reste en compte apres le paiement.
+                'available_credit_gnf' => $availableCreditGnf,
                 // Nouveau : suivi dynamique multi-devises
                 'currencies'         => $currencies,
                 'by_currency'        => $summaryByCurrency,

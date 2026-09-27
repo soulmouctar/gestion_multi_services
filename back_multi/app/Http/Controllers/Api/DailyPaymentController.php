@@ -17,6 +17,16 @@ class DailyPaymentController extends BaseController
         return $user->hasRole('SUPER_ADMIN') ? $request->get('tenant_id') : $user->tenant_id;
     }
 
+    /**
+     * Montant attendu d'un versement : c'est le tarif journalier convenu avec le
+     * chauffeur de l'affectation. Il n'est jamais pris depuis la requete, pour
+     * qu'un client ne puisse pas declarer un attendu different du contrat.
+     */
+    private function agreedDailyRate(TaxiAssignment $assignment): float
+    {
+        return (float) ($assignment->driver->daily_rate ?? 0);
+    }
+
     private function assignmentForTenant(int $assignmentId, int $tenantId): ?TaxiAssignment
     {
         return TaxiAssignment::with('driver', 'taxi')
@@ -65,7 +75,7 @@ class DailyPaymentController extends BaseController
         $validator = Validator::make($request->all(), [
             'taxi_assignment_id' => 'required|exists:taxi_assignments,id',
             'payment_date'       => 'required|date',
-            'expected_amount'    => 'required|numeric|min:0',
+            // expected_amount n'est pas accepte depuis le client : il decoule de l'affectation.
             'paid_amount'        => 'required|numeric|min:0',
             'status'             => 'nullable|in:PAID,PARTIAL,UNPAID,EXCUSED',
             'notes'              => 'nullable|string|max:1000',
@@ -98,7 +108,7 @@ class DailyPaymentController extends BaseController
         }
 
         $paid     = (float) $request->paid_amount;
-        $expected = (float) $request->expected_amount;
+        $expected = $this->agreedDailyRate($assignment);
         $balance  = $request->status === 'EXCUSED' ? 0 : max(0, $expected - $paid);
 
         // Auto-detect status if not provided
@@ -152,7 +162,7 @@ class DailyPaymentController extends BaseController
         }
 
         $validator = Validator::make($request->all(), [
-            'expected_amount' => 'sometimes|numeric|min:0',
+            // expected_amount ignore : il reste celui du contrat d'affectation.
             'paid_amount'     => 'sometimes|numeric|min:0',
             'payment_date'    => 'sometimes|date',
             'status'          => 'nullable|in:PAID,PARTIAL,UNPAID,EXCUSED',
@@ -163,7 +173,7 @@ class DailyPaymentController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $data = $request->only(['expected_amount', 'paid_amount', 'status', 'notes', 'payment_date']);
+        $data = $request->only(['paid_amount', 'status', 'notes', 'payment_date']);
 
         if (!empty($data['payment_date'])) {
             if (!$this->isDateInsideAssignment($payment->taxiAssignment, $data['payment_date'])) {
@@ -182,7 +192,12 @@ class DailyPaymentController extends BaseController
 
         // Recalculate balance and auto-status
         $paid     = isset($data['paid_amount'])     ? (float)$data['paid_amount']     : $payment->paid_amount;
-        $expected = isset($data['expected_amount']) ? (float)$data['expected_amount'] : $payment->expected_amount;
+        // Toujours reprendre le tarif convenu : un versement ne peut pas
+        // s'ecarter du contrat, meme via une modification.
+        $expected = $payment->taxiAssignment
+            ? $this->agreedDailyRate($payment->taxiAssignment)
+            : (float) $payment->expected_amount;
+        $data['expected_amount'] = $expected;
         $data['balance'] = ($data['status'] ?? $payment->status) === 'EXCUSED'
             ? 0
             : max(0, $expected - $paid);

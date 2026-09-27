@@ -41,7 +41,7 @@
 
     <!-- État vide -->
     <div *ngIf="!loading && assignments.length === 0" class="text-center py-5" style="color:#94a3b8;">
-      <div style="font-size:2.5rem;margin-bottom:12px;">🚕</div>
+      <div style="font-size:2.5rem;margin-bottom:12px;"><svg cIcon name="cilCarAlt" class="ic-lg"></svg></div>
       <p class="mb-0">Aucune affectation enregistrée</p>
       <small>Cliquez sur « Nouvelle affectation » pour commencer</small>
     </div>
@@ -65,7 +65,7 @@
             <td class="px-4 py-3">
               <div style="display:inline-flex;align-items:center;gap:8px;">
                 <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                  <svg cIcon name="cilCar" style="width:16px;height:16px;fill:#fff;"></svg>
+                  <svg cIcon name="cilCarAlt" style="width:16px;height:16px;fill:#fff;"></svg>
                 </div>
                 <span class="fw-bold" style="color:#0f3460;">{{ assignment.taxi?.plate_number || 'N/A' }}</span>
               </div>

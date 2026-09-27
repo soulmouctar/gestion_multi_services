@@ -1,4 +1,5 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { IconDirective } from '@coreui/icons-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -9,7 +10,8 @@ import { AlertService } from '../../../core/services/alert.service';
 @Component({
   selector: 'app-organisation-users',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [
+    IconDirective,CommonModule, ReactiveFormsModule, FormsModule],
   styles: [`
     .page-header {
       background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%);
@@ -451,7 +453,7 @@ import { AlertService } from '../../../core/services/alert.service';
                 <div (click)="triggerPhotoInput(photoInput)"
                      style="width:64px;height:64px;border-radius:50%;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;border:2px dashed #c7d2fe;background:#eef2ff;flex-shrink:0;">
                   <img *ngIf="photoPreview" [src]="photoPreview" alt="Aperçu" style="width:100%;height:100%;object-fit:cover;" />
-                  <span *ngIf="!photoPreview" style="font-size:1.2rem;">📷</span>
+                  <span *ngIf="!photoPreview" style="font-size:1.2rem;"><svg cIcon name="cilCamera" class="ic"></svg></span>
                 </div>
                 <div>
                   <div style="font-size:.85rem;font-weight:600;color:#1e293b;margin-bottom:4px;">
@@ -538,7 +540,7 @@ import { AlertService } from '../../../core/services/alert.service';
 
           <label class="role-option" [class.selected]="selectedRole === 'USER'" (click)="selectedRole = 'USER'">
             <input type="radio" name="role" value="USER" [checked]="selectedRole === 'USER'" />
-            <div class="role-icon" style="background:#dbeafe;">👤</div>
+            <div class="role-icon" style="background:#dbeafe;"><svg cIcon name="cilUser" class="ic"></svg></div>
             <div>
               <div class="role-title">Utilisateur</div>
               <div class="role-desc">Accès limité aux modules activés par l'administrateur</div>
@@ -547,7 +549,7 @@ import { AlertService } from '../../../core/services/alert.service';
 
           <label class="role-option" [class.selected]="selectedRole === 'ADMIN'" (click)="selectedRole = 'ADMIN'">
             <input type="radio" name="role" value="ADMIN" [checked]="selectedRole === 'ADMIN'" />
-            <div class="role-icon" style="background:#fef3c7;">🛡️</div>
+            <div class="role-icon" style="background:#fef3c7;"><svg cIcon name="cilShieldAlt" class="ic"></svg></div>
             <div>
               <div class="role-title">Administrateur</div>
               <div class="role-desc">Gère l'organisation, les utilisateurs et les modules</div>
@@ -597,7 +599,7 @@ import { AlertService } from '../../../core/services/alert.service';
             <input type="text" placeholder="Rechercher un module..." [(ngModel)]="permSearchQuery" [ngModelOptions]="{standalone:true}" />
           </div>
           <button class="bulk-btn" (click)="toggleAllModules(true)" [disabled]="loadingPerms">✓ Tout activer</button>
-          <button class="bulk-btn danger" (click)="toggleAllModules(false)" [disabled]="loadingPerms">✕ Tout désactiver</button>
+          <button class="bulk-btn danger" (click)="toggleAllModules(false)" [disabled]="loadingPerms"><svg cIcon name="cilX" class="ic"></svg> Tout désactiver</button>
         </div>
 
         <div *ngIf="loadingPerms" class="perm-empty">Chargement des modules…</div>
@@ -1161,19 +1163,19 @@ export class OrganisationUsersComponent implements OnInit {
 
   moduleIcon(code: string): string {
     const map: Record<string, string> = {
-      COMMERCIAL: '🛒',
-      FINANCE: '💰',
-      CLIENTS_SUPPLIERS: '👥',
-      PRODUCTS_STOCK: '📦',
-      CONTAINERS: '🚚',
-      RENTAL: '🏠',
-      TAXI: '🚕',
-      STATISTICS: '📊',
-      USERS: '👤',
-      BANKING: '🏦',
-      EXPENSES: '💳',
+      COMMERCIAL: '<svg cIcon name="cilCart" class="ic"></svg>',
+      FINANCE: '<svg cIcon name="cilMoney" class="ic"></svg>',
+      CLIENTS_SUPPLIERS: '<svg cIcon name="cilPeople" class="ic"></svg>',
+      PRODUCTS_STOCK: '<svg cIcon name="cilInbox" class="ic"></svg>',
+      CONTAINERS: '<svg cIcon name="cilTruck" class="ic"></svg>',
+      RENTAL: '<svg cIcon name="cilHome" class="ic"></svg>',
+      TAXI: '<svg cIcon name="cilCarAlt" class="ic"></svg>',
+      STATISTICS: '<svg cIcon name="cilChartPie" class="ic"></svg>',
+      USERS: '<svg cIcon name="cilUser" class="ic"></svg>',
+      BANKING: '<svg cIcon name="cilBank" class="ic"></svg>',
+      EXPENSES: '<svg cIcon name="cilCreditCard" class="ic"></svg>',
     };
-    return map[code] || '⚙️';
+    return map[code] || '<svg cIcon name="cilSettings" class="ic"></svg>';
   }
 
   moduleColor(code: string): string {

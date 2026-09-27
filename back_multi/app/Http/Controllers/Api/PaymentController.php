@@ -10,10 +10,13 @@ use App\Models\ClientCurrencyAccount;
 use App\Models\PersonalExpense;
 use App\Models\Supplier;
 use App\Models\ProductReturn;
+use App\Models\ContainerSale;
+use App\Models\ContainerSalePayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class PaymentController extends BaseController
@@ -711,7 +714,10 @@ class PaymentController extends BaseController
             ->get();
 
         $totalInvoiced  = $invoices->sum(fn ($invoice) => $this->invoiceTotalGnf($invoice));
-        $totalPaid      = (float) $linkedPayments->sum(fn ($payment) => $payment->amount_gnf);
+        // Paiements imputes a une facture. Le total encaisse (total_paid) y ajoute
+        // les versements non imputes, sinon l'index et la fiche client affichent
+        // deux montants differents sous le meme libelle "Total paye".
+        $paidOnInvoices = (float) $linkedPayments->sum(fn ($payment) => $payment->amount_gnf);
         $returnCredits  = ProductReturn::where('client_id', $clientId)
             ->where('tenant_id', $tenantId)
             ->whereNull('invoice_id')
@@ -720,7 +726,10 @@ class PaymentController extends BaseController
             ->get()
             ->sum(fn (ProductReturn $return) => $this->productReturnCreditGnf($return));
         $availableCredit = (float) $unappliedPayments->sum(fn ($payment) => $payment->amount_gnf);
-        $totalRemaining = max(0, $totalInvoiced - $totalPaid - $availableCredit - (float) $returnCredits);
+        $container      = $this->containerTotalsGnf((int) $clientId, $tenantId);
+        $totalInvoiced += $container['sold'];
+        $totalPaid      = $paidOnInvoices + $availableCredit + $container['paid'];
+        $totalRemaining = max(0, $totalInvoiced - $totalPaid - (float) $returnCredits);
         $balancesByCurrency = $this->clientBalancesByCurrency($clientId, $tenantId);
 
         $payments = Payment::where('client_id', $clientId)
@@ -733,6 +742,7 @@ class PaymentController extends BaseController
             'client'          => ['id' => $client->id, 'name' => $client->name, 'phone' => $client->phone1],
             'total_invoiced'  => $totalInvoiced,
             'total_paid'      => $totalPaid,
+            'paid_on_invoices' => $paidOnInvoices,
             'total_remaining' => $totalRemaining,
             'available_credit_gnf' => $availableCredit,
             'total_return_credits' => (float) $returnCredits,
@@ -783,7 +793,7 @@ class PaymentController extends BaseController
         $balances = $invoices->map(function ($clientInvoices) use ($tenantId) {
             $client = $clientInvoices->first()->client;
             $totalInvoiced = $clientInvoices->sum(fn ($invoice) => $this->invoiceTotalGnf($invoice));
-            $totalPaid = (float) Payment::when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+            $paidOnInvoices = (float) Payment::when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
                 ->where('client_id', $client?->id)
                 ->where('status', 'COMPLETED')
                 ->whereNotNull('invoice_id')
@@ -804,14 +814,19 @@ class PaymentController extends BaseController
                 ->get()
                 ->sum(fn (ProductReturn $return) => $this->productReturnCreditGnf($return));
 
+            $container = $this->containerTotalsGnf((int) $client?->id, $tenantId);
+            $totalInvoiced += $container['sold'];
+            $totalPaid = $paidOnInvoices + $availableCredit + $container['paid'];
+
             return [
                 'client_id'       => $client?->id,
                 'client_name'     => $client?->name ?? 'Inconnu',
                 'client_phone'    => $client?->phone1,
                 'total_invoiced'  => $totalInvoiced,
                 'total_paid'      => $totalPaid,
+                'paid_on_invoices' => $paidOnInvoices,
                 'available_credit_gnf' => $availableCredit,
-                'total_remaining' => max(0, $totalInvoiced - $totalPaid - $availableCredit - $returnCredits),
+                'total_remaining' => max(0, $totalInvoiced - $totalPaid - $returnCredits),
                 'invoice_count'   => $clientInvoices->count(),
             ];
         })->values()->sortByDesc('total_remaining')->values();
@@ -1065,6 +1080,7 @@ class PaymentController extends BaseController
                 ->join('containers', 'container_arrivals.container_id', '=', 'containers.id')
                 ->leftJoin('product_categories', 'container_arrivals.product_category_id', '=', 'product_categories.id')
                 ->leftJoin('suppliers', 'container_arrivals.supplier_id', '=', 'suppliers.id')
+                ->whereNull('container_sales.deleted_at')
                 ->where('container_sales.tenant_id', $tenantId)
                 ->when($from, fn ($q) => $q->whereDate('container_sales.sale_date', '>=', $from))
                 ->when($to,   fn ($q) => $q->whereDate('container_sales.sale_date', '<=', $to))
@@ -1196,14 +1212,75 @@ class PaymentController extends BaseController
         }
     }
 
+    /**
+     * Cout unitaire d'une ligne selon son sale_type.
+     *
+     * Doit rester identique a InvoiceController::unitCost() : les deux servent
+     * a valoriser les memes lignes de facture. Cette version ignorait
+     * DEMI_CARTON et DOUZAINE et renvoyait le prix unitaire, ce qui sous-evaluait
+     * le cout (jusqu'a 12 fois pour une douzaine) et gonflait donc la marge.
+     */
+
+    /**
+     * Reste global a recouvrer, exprime en GNF.
+     *
+     * Doit rester coherent avec getClientBalance()/getFinancialOverview() :
+     * les trois repondent a la meme question "combien nous doit-on encore ?".
+     */
+    private function outstandingReceivableGnf(int $tenantId): float
+    {
+        $amountCol = Schema::hasColumn('invoices', 'total_amount_gnf') ? 'total_amount_gnf' : 'total_amount';
+
+        $invoiced = (float) (Invoice::where('tenant_id', $tenantId)
+            ->selectRaw("SUM(COALESCE({$amountCol}, total_amount) - COALESCE(paid_amount, 0)) as remaining")
+            ->value('remaining') ?? 0);
+
+        $unapplied = (float) Payment::where('tenant_id', $tenantId)
+            ->where('status', 'COMPLETED')
+            ->where('type', 'CLIENT')
+            ->whereNull('invoice_id')
+            ->sum('amount_gnf');
+
+        return max(0, round($invoiced - $unapplied, 2));
+    }
+
+    /**
+     * Ventes conteneurs d'un client, en GNF : montant vendu et montant encaisse.
+     *
+     * Les fiches clients ignoraient ces ventes alors que l'index (getFinancialOverview)
+     * les comptait : pour un meme client, les deux ecrans affichaient des dettes
+     * differentes. Les modeles utilisent SoftDeletes, donc une vente supprimee avec
+     * son arrivage sort automatiquement du calcul.
+     */
+    private function containerTotalsGnf(int $clientId, ?int $tenantId): array
+    {
+        $sold = (float) ContainerSale::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->where('client_id', $clientId)
+            ->sum('sale_price_gnf');
+
+        $paid = (float) ContainerSalePayment::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->where('client_id', $clientId)
+            ->where(fn ($q) => $q->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE'))
+            ->sum('amount_gnf');
+
+        return ['sold' => $sold, 'paid' => $paid];
+    }
+
     private function unitCostForItem($item): float
     {
-        $p = $item->product;
+        $p = $item->product ?? null;
         if (!$p) return 0.0;
-        if ($item->sale_type === 'CARTON' && (float) $p->carton_purchase_price > 0) {
-            return (float) $p->carton_purchase_price;
+
+        $unitsPerCarton = max(1, (int) ($p->units_per_carton ?: 1));
+        $unitCost       = (float) ($p->purchase_price ?? 0);
+        $cartonCost     = (float) ($p->carton_purchase_price ?: ($unitCost * $unitsPerCarton));
+
+        switch ($item->sale_type) {
+            case 'CARTON':      return $cartonCost;
+            case 'DEMI_CARTON': return $cartonCost / 2;
+            case 'DOUZAINE':    return $unitCost * 12;
+            default:            return $unitCost;
         }
-        return (float) ($p->purchase_price ?? 0);
     }
 
     public function getStatistics(Request $request)
@@ -1245,9 +1322,11 @@ class PaymentController extends BaseController
                     'paye'    => Invoice::where('tenant_id', $tenantId)->where('status', 'PAYE')->count(),
                     'partiel' => Invoice::where('tenant_id', $tenantId)->where('status', 'PARTIEL')->count(),
                     'impaye'  => Invoice::where('tenant_id', $tenantId)->where('status', 'IMPAYE')->count(),
-                    'total_remaining' => Invoice::where('tenant_id', $tenantId)
-                        ->selectRaw('SUM(total_amount - paid_amount) as remaining')
-                        ->value('remaining') ?? 0,
+                    // Reste a recouvrer, aligne sur les fiches clients :
+                    //  - en GNF (sommer des montants de devises differentes fausserait le total)
+                    //  - diminue des versements clients non encore imputes a une facture,
+                    //    car cet argent est deja encaisse.
+                    'total_remaining' => $this->outstandingReceivableGnf($tenantId),
                 ],
             ];
 

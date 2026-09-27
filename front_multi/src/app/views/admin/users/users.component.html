@@ -4,7 +4,7 @@
   <div style="background:linear-gradient(135deg,#1a237e 0%,#283593 50%,#3949ab 100%);border-radius:16px;padding:24px 28px;margin-bottom:24px;color:white">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div>
-        <h4 class="mb-1 fw-bold" style="font-size:1.4rem">👥 Gestion des Utilisateurs</h4>
+        <h4 class="mb-1 fw-bold" style="font-size:1.4rem"><svg cIcon name="cilPeople" class="ic"></svg> Gestion des Utilisateurs</h4>
         <p class="mb-0" style="opacity:.8;font-size:.875rem">{{ filteredUsers.length }} utilisateur(s) affiché(s) sur {{ users.length }} total</p>
       </div>
       <button *ngIf="canCreateUsers" cButton color="light" (click)="openUserModal()" [disabled]="loading"
@@ -38,8 +38,8 @@
             </select>
           </div>
           <div class="col-md-2 d-flex gap-2">
-            <button cButton color="primary" style="border-radius:8px;flex:1" (click)="applyFilters()" [disabled]="loading">🔍</button>
-            <button cButton color="secondary" variant="outline" style="border-radius:8px;flex:1" (click)="clearFilters()" [disabled]="loading">✕</button>
+            <button cButton color="primary" style="border-radius:8px;flex:1" (click)="applyFilters()" [disabled]="loading"><svg cIcon name="cilSearch" class="ic"></svg></button>
+            <button cButton color="secondary" variant="outline" style="border-radius:8px;flex:1" (click)="clearFilters()" [disabled]="loading"><svg cIcon name="cilX" class="ic"></svg></button>
           </div>
         </div>
       </form>
@@ -56,7 +56,7 @@
       </div>
 
       <div *ngIf="!loading && filteredUsers.length === 0" class="text-center py-5 text-muted">
-        <div style="font-size:3rem">👤</div>
+        <div style="font-size:3rem"><svg cIcon name="cilUser" class="ic-lg"></svg></div>
         <p>Aucun utilisateur trouvé</p>
       </div>
 
@@ -162,7 +162,7 @@
 <!-- ===== CREATE/EDIT USER MODAL ===== -->
 <c-modal [visible]="userModalOpen" (visibleChange)="userModalOpen = $event" size="lg">
   <c-modal-header style="border-bottom:1px solid #f0f0f0">
-    <h5 cModalTitle class="fw-bold">{{ editMode ? '✏️ Modifier' : '➕ Créer' }} un Utilisateur</h5>
+    <h5 cModalTitle class="fw-bold">{{ editMode ? ' Modifier' : ' Créer' }} un Utilisateur</h5>
     <button cButtonClose (click)="closeUserModal()" [disabled]="loading"></button>
   </c-modal-header>
   <c-modal-body>
@@ -184,7 +184,7 @@
                         cursor:pointer;font-size:1.6rem">
               <img *ngIf="photoPreview" [src]="photoPreview" alt="Aperçu"
                    style="width:100%;height:100%;object-fit:cover" />
-              <span *ngIf="!photoPreview">📷</span>
+              <span *ngIf="!photoPreview"><svg cIcon name="cilCamera" class="ic"></svg></span>
             </div>
             <!-- Infos & boutons -->
             <div>
@@ -196,12 +196,12 @@
                 <button type="button" (click)="triggerPhotoInput(photoInput)"
                         style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe;border-radius:8px;
                                padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;">
-                  📁 Choisir une photo
+                  <svg cIcon name="cilFolderOpen" class="ic"></svg> Choisir une photo
                 </button>
                 <button *ngIf="photoPreview" type="button" (click)="removePhoto()"
                         style="background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:8px;
                                padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;">
-                  ✕ Supprimer
+                  <svg cIcon name="cilX" class="ic"></svg> Supprimer
                 </button>
               </div>
             </div>
@@ -268,7 +268,7 @@
 <!-- ===== PASSWORD MODAL ===== -->
 <c-modal [visible]="passwordModalOpen" (visibleChange)="passwordModalOpen = $event" size="lg">
   <c-modal-header style="border-bottom:1px solid #f0f0f0">
-    <h5 cModalTitle class="fw-bold">🔐 Modifier le mot de passe — {{ selectedUserForPassword?.name }}</h5>
+    <h5 cModalTitle class="fw-bold"><svg cIcon name="cilLockLocked" class="ic"></svg> Modifier le mot de passe — {{ selectedUserForPassword?.name }}</h5>
     <button cButtonClose (click)="closePasswordModal()" [disabled]="loading"></button>
   </c-modal-header>
   <c-modal-body>
@@ -307,7 +307,7 @@
 <!-- ===== PERMISSIONS MODAL ===== -->
 <c-modal [visible]="permissionModalOpen" (visibleChange)="permissionModalOpen = $event" size="lg">
   <c-modal-header>
-    <h5 cModalTitle class="fw-bold">🛡️ Modules — {{ selectedUserForPermissions?.name }}</h5>
+    <h5 cModalTitle class="fw-bold"><svg cIcon name="cilShieldAlt" class="ic"></svg> Modules — {{ selectedUserForPermissions?.name }}</h5>
     <button cButtonClose (click)="closePermissionModal()" [disabled]="loading"></button>
   </c-modal-header>
   <c-modal-body>

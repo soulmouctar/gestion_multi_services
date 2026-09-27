@@ -80,7 +80,7 @@ export class ClientLedgerComponent implements OnInit {
   summary: any = {
     total_debit_gnf: 0, total_credit_gnf: 0, final_balance_gnf: 0,
     total_debit_usd: 0, total_credit_usd: 0, final_balance_usd: 0,
-    has_usd: false, rows_count: 0,
+    has_usd: false, rows_count: 0, available_credit_gnf: 0,
     total_debit: 0, total_credit: 0, final_balance: 0,
     currencies: ['GNF'] as string[],
     by_currency: {} as Record<string, { total_debit: number; total_credit: number; final_balance: number }>,
@@ -643,6 +643,8 @@ export class ClientLedgerComponent implements OnInit {
         previous_balance: totalRemaining + totalPrimary,
         payment_amount: totalPrimary,
         remaining_balance: totalRemaining,
+        // Avoir restant au client apres ce versement (versements non imputes).
+        available_credit: Math.max(0, Number(this.summary.available_credit_gnf || 0)),
       };
     } else if (this.client?.id) {
       try {

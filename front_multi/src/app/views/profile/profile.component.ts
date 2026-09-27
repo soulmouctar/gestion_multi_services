@@ -1,4 +1,5 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { IconDirective } from '@coreui/icons-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -9,6 +10,7 @@ import { AuthService } from '../../core/services/auth.service';
   selector: 'app-profile',
   standalone: true,
   imports: [
+    IconDirective,
     CommonModule,
     ReactiveFormsModule,
     CardModule,

@@ -6,7 +6,7 @@
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div>
         <div class="d-flex align-items-center gap-2 mb-1">
-          <span style="font-size:1.2rem">🏢</span>
+          <span style="font-size:1.2rem"><svg cIcon name="cilBuilding" class="ic"></svg></span>
           <span class="small fw-semibold opacity-75 text-uppercase" style="letter-spacing:.06em">Module Location</span>
         </div>
         <h4 class="fw-bold mb-1" style="font-size:1.5rem">Bâtiments</h4>
@@ -59,7 +59,7 @@
               <div class="d-flex align-items-center gap-2">
                 <div style="width:34px;height:34px;border-radius:10px;background:#EEF2FF;color:#6366F1;
                   display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0">
-                  🏢
+                  <svg cIcon name="cilBuilding" class="ic"></svg>
                 </div>
                 <span class="fw-semibold" style="font-size:.9rem">{{ item.name }}</span>
               </div>
@@ -101,7 +101,7 @@
           </tr>
           <tr *ngIf="buildings.length === 0">
             <td colspan="6" class="text-center py-5">
-              <div style="font-size:2rem" class="mb-2">🏢</div>
+              <div style="font-size:2rem" class="mb-2"><svg cIcon name="cilBuilding" class="ic-lg"></svg></div>
               <div class="text-muted fw-semibold">Aucun bâtiment trouvé</div>
               <div class="text-muted small mt-1">Cliquez sur "Nouveau bâtiment" pour en ajouter un.</div>
             </td>
@@ -193,7 +193,7 @@
     <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
   </c-modal-header>
   <c-modal-body class="p-4">
-    <div class="text-center mb-3" style="font-size:2.2rem">⚠️</div>
+    <div class="text-center mb-3" style="font-size:2.2rem"><svg cIcon name="cilWarning" class="ic-lg"></svg></div>
     <p class="text-center fw-semibold mb-1">Supprimer le bâtiment</p>
     <p class="text-center text-muted mb-2">
       <strong class="text-dark">{{ itemToDelete?.name }}</strong>

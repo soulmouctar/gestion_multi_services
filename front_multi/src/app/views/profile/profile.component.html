@@ -67,7 +67,7 @@
                           display:flex;align-items:center;justify-content:center;
                           opacity:0;transition:.2s"
                    onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0'">
-                <span style="color:#fff;font-size:1.4rem">📷</span>
+                <span style="color:#fff;font-size:1.4rem"><svg cIcon name="cilCamera" class="ic"></svg></span>
               </div>
             </div>
 
@@ -81,19 +81,19 @@
                 <button type="button" (click)="triggerPhotoInput(avatarInput)"
                         style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe;border-radius:8px;
                                padding:6px 16px;font-size:.82rem;font-weight:600;cursor:pointer">
-                  📁 Choisir une photo
+                  <svg cIcon name="cilFolderOpen" class="ic"></svg> Choisir une photo
                 </button>
                 <button *ngIf="selectedPhoto" type="button" (click)="saveAvatar()"
                         [disabled]="savingAvatar"
                         style="background:#0f3460;color:#fff;border:none;border-radius:8px;
                                padding:6px 16px;font-size:.82rem;font-weight:600;cursor:pointer">
                   <span *ngIf="savingAvatar" class="spinner-border spinner-border-sm me-1"></span>
-                  {{ savingAvatar ? 'Enregistrement...' : '✓ Enregistrer la photo' }}
+                  {{ savingAvatar ? 'Enregistrement...' : ' Enregistrer la photo' }}
                 </button>
                 <button *ngIf="selectedPhoto" type="button" (click)="removePhotoPreview()"
                         style="background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:8px;
                                padding:6px 14px;font-size:.82rem;font-weight:600;cursor:pointer">
-                  ✕ Annuler
+                  <svg cIcon name="cilX" class="ic"></svg> Annuler
                 </button>
               </div>
             </div>

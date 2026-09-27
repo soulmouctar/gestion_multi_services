@@ -26,9 +26,9 @@
   justify-content: space-between;
   gap: 2rem;
   overflow: hidden;
-  min-height: 180px;
-  margin-bottom: 1.25rem;
-  padding: 2rem;
+  min-height: 112px;
+  margin-bottom: .85rem;
+  padding: 1.15rem 1.5rem;
   border-radius: 18px;
   color: #fff;
   background:
@@ -81,8 +81,8 @@
   text-transform: uppercase;
 }
 .eyebrow { margin-bottom: .35rem; color: #93c5fd; }
-.page-hero h1 { margin: 0 0 .4rem; font-size: clamp(1.45rem, 2.2vw, 2rem); font-weight: 750; letter-spacing: -.025em; }
-.page-hero p { max-width: 650px; margin: 0; color: rgba(255, 255, 255, .72); font-size: .88rem; }
+.page-hero h1 { margin: 0 0 .25rem; font-size: clamp(1.15rem, 1.6vw, 1.45rem); font-weight: 750; letter-spacing: -.025em; }
+.page-hero p { max-width: 640px; margin: 0; color: rgba(255, 255, 255, .72); font-size: .8rem; line-height: 1.35; }
 
 .updated-at {
   display: flex;
@@ -156,9 +156,9 @@
 .kpi-grid > * { min-width: 0; }   /* idem au niveau des cartes */
 .kpi-card {
   position: relative;
-  min-height: 142px;
+  min-height: 104px;
   overflow: hidden;
-  padding: 1rem;
+  padding: .7rem .85rem;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
@@ -173,14 +173,14 @@
 .kpi-icon { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 8px; color: var(--tone); background: var(--tone-soft); }
 .kpi-icon svg { width: 16px; height: 16px; }
 .kpi-label { color: #526176; font-size: .72rem; font-weight: 700; }
-.kpi-value { margin-top: .9rem; color: var(--navy); font-size: 1.65rem; font-weight: 750; line-height: 1; }
-.kpi-meta { margin-top: .5rem; color: #8491a3; font-size: .67rem; line-height: 1.35; }
+.kpi-value { margin-top: .5rem; color: var(--navy); font-size: 1.45rem; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; }
+.kpi-meta { margin-top: .3rem; color: #8491a3; font-size: .67rem; line-height: 1.35; }
 .kpi-balance {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: .75rem;
-  padding: 1.1rem 1.15rem;
+  gap: .45rem;
+  padding: .8rem .95rem;
   border: 0;
   color: #fff;
   background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
@@ -256,11 +256,11 @@
   background: var(--surface);
   box-shadow: 0 5px 18px rgba(15, 42, 67, .04);
 }
-.filter-panel { margin-bottom: 1.25rem; padding: 1.1rem 1.25rem 1.25rem; }
+.filter-panel { margin-bottom: .85rem; padding: .75rem 1rem .85rem; }
 .filter-heading, .data-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.filter-heading { margin-bottom: 1rem; }
+.filter-heading { margin-bottom: .6rem; }
 .section-kicker { color: #2563eb; }
-.filter-heading h2, .data-header h2 { margin: .12rem 0 0; color: var(--navy); font-size: 1rem; font-weight: 750; }
+.filter-heading h2, .data-header h2 { margin: .1rem 0 0; color: var(--navy); font-size: .92rem; font-weight: 700; }
 .reset-btn {
   display: inline-flex;
   align-items: center;
@@ -298,11 +298,14 @@
 .data-panel { overflow: hidden; max-width: 100%; }
 .data-panel .table-responsive {
   overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
+  /* auto (et non hidden) : indispensable pour que l'en-tete sticky fonctionne
+     et pour garder la ligne de total visible sur les longues listes */
+  overflow-y: auto;
+  max-height: calc(100vh - 340px);
+  overscroll-behavior: contain;
   max-width: 100%;
 }
-.data-header { padding: 1.15rem 1.25rem; border-bottom: 1px solid var(--border); }
+.data-header { padding: .7rem 1rem; border-bottom: 1px solid var(--border); }
 .data-header p { margin: .2rem 0 0; color: var(--muted); font-size: .7rem; }
 .legend { display: flex; flex-wrap: wrap; gap: .8rem; color: var(--muted); font-size: .67rem; }
 .legend span { display: inline-flex; align-items: center; gap: .35rem; }
@@ -313,40 +316,43 @@
 
 .index-table {
   width: 100%;
-  min-width: 1150px;
+  min-width: 980px;   /* en dessous, defilement horizontal plutot que colonnes illisibles */
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
 }
-.index-table th:nth-child(1), .index-table td:nth-child(1) { width: 220px; }
-.index-table th:nth-child(2), .index-table td:nth-child(2) { width: 95px; }
-.index-table th:nth-child(3), .index-table td:nth-child(3),
-.index-table th:nth-child(4), .index-table td:nth-child(4) { width: 105px; }
-.index-table th:nth-child(5), .index-table td:nth-child(5) { width: 145px; }
-.index-table th:nth-child(6), .index-table td:nth-child(6) { width: 105px; }
-.index-table th:nth-child(7), .index-table td:nth-child(7) { width: 95px; }
-.index-table th:nth-child(8), .index-table td:nth-child(8) { width: 110px; }
-.index-table th:nth-child(9), .index-table td:nth-child(9) { width: 115px; }
-.index-table th:nth-child(10), .index-table td:nth-child(10) { width: 95px; }
-.index-table th:nth-child(11), .index-table td:nth-child(11) { width: 55px; }
+.index-table th:nth-child(1), .index-table td:nth-child(1) { width: 21%; }
+.index-table th:nth-child(2), .index-table td:nth-child(2) { width: 10%; }
+.index-table th:nth-child(3), .index-table td:nth-child(3) { width: 9.8%; }
+.index-table th:nth-child(4), .index-table td:nth-child(4) { width: 12.5%; }
+.index-table th:nth-child(5), .index-table td:nth-child(5) { width: 7%; }
+.index-table th:nth-child(6), .index-table td:nth-child(6) { width: 6%; }
+.index-table th:nth-child(7), .index-table td:nth-child(7) { width: 9.8%; }
+.index-table th:nth-child(8), .index-table td:nth-child(8) { width: 10.6%; }
+.index-table th:nth-child(9), .index-table td:nth-child(9) { width: 8.3%; }
+.index-table th:nth-child(10), .index-table td:nth-child(10) { width: 5%; }
 .index-table th {
-  height: 48px;
-  padding: .7rem .75rem;
+  position: sticky;   /* l'en-tete reste visible pendant le defilement */
+  top: 0;
+  z-index: 2;
+  height: 44px;
+  padding: .6rem .7rem;
   border-bottom: 1px solid var(--border);
   color: #69778b;
   background: #f8fafc;
-  font-size: .78rem;
-  font-weight: 750;
-  letter-spacing: .04em;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .02em;
   text-transform: uppercase;
   white-space: nowrap;
+  box-shadow: inset 0 -1px 0 var(--border);
 }
 .index-table th:first-child, .index-table td:first-child { padding-left: 1.25rem; }
 .index-table th:last-child, .index-table td:last-child { padding-right: 1.25rem; }
 .index-table th svg { width: 14px; height: 14px; margin-left: .2rem; color: #94a3b8; }
 .index-table td {
-  height: 68px;
-  padding: .65rem .75rem;
+  height: 58px;
+  padding: .55rem .7rem;
   border-bottom: 1px solid #edf1f5;
   color: #364255;
   background: #fff;
@@ -437,4 +443,71 @@
   .index-table { min-width: 1150px; }
   .index-table th, .index-table td { height: auto; padding: .35rem; font-size: 8px; }
   .client-avatar { display: none; }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Lisibilite des montants
+   - tabular-nums : les chiffres ont tous la meme largeur, donc les colonnes
+     de montants s'alignent verticalement et se comparent d'un coup d'oeil
+   - separateur discret avant le bloc de montants pour eviter que les nombres
+     de deux colonnes voisines se lisent comme un seul
+   --------------------------------------------------------------------------- */
+.index-table td.numeric,
+.index-table th.numeric,
+.index-table tfoot td {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.index-table th:nth-child(2),
+.index-table td:nth-child(2) {
+  border-left: 1px solid #eef2f7;
+}
+
+.index-table td.numeric, .index-table th.numeric { padding-right: 1.05rem; padding-left: .55rem; }
+
+/* Colonne finale mise en avant : c'est l'information que l'on vient chercher */
+.index-table th:nth-child(8),
+.index-table td:nth-child(8) {
+  background: #fcfdfe;
+  border-left: 1px solid #eef2f7;
+}
+.index-table tbody tr:hover td:nth-child(8) { background: #f6f9fc; }
+.index-table td:nth-child(8) { font-weight: 700; }
+
+/* Lignes sans activite : presentes mais visuellement en retrait */
+.index-table tbody tr.row-empty td { color: #9aa6b6; }
+.index-table tbody tr.row-empty .client-cell strong { color: #5d6b7e; font-weight: 600; }
+
+@media (max-width: 1400px) {
+  .data-panel .table-responsive { max-height: calc(100vh - 310px); }
+}
+
+/* Le badge de categorie ne doit jamais deborder sur la colonne des montants */
+/* Sous-titre de la cellule client : categorie + contact sur une ligne */
+.client-sub { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.client-sub .type-badge { flex: none; font-size: .68rem; padding: .1rem .4rem; }
+.client-contact { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Nom du client : utiliser toute la largeur disponible de sa colonne */
+.client-cell strong,
+.client-cell span:last-child { max-width: 100%; }
+
+/* Le sur-titre de section coute une ligne entiere pour une information que le
+   titre porte deja : on le masque a l'ecran, il reste lisible par les lecteurs
+   d'ecran et a l'impression. */
+.filter-panel .section-kicker,
+.data-header .section-kicker {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media print {
+  .filter-panel .section-kicker,
+  .data-header .section-kicker { position: static; width: auto; height: auto; clip-path: none; }
 }

@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div>
         <h4 class="mb-1 fw-bold" style="color:#fff;">
-          <svg cIcon name="cilCar" class="me-2" style="width:22px;height:22px;fill:#fff;"></svg>
+          <svg cIcon name="cilCarAlt" class="me-2" style="width:22px;height:22px;fill:#fff;"></svg>
           Dépenses Véhicules
         </h4>
         <p class="mb-0" style="color:rgba(255,255,255,.65);font-size:.9rem;">
@@ -49,7 +49,7 @@
           <div style="position:absolute;top:-10px;right:-10px;width:70px;height:70px;border-radius:50%;background:#fef2f2;opacity:.7"></div>
           <div class="d-flex align-items-center gap-2 mb-2">
             <div style="width:36px;height:36px;border-radius:10px;background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <span style="font-size:1.1rem">💸</span>
+              <span style="font-size:1.1rem"><svg cIcon name="cilCreditCard" class="ic"></svg></span>
             </div>
             <span style="font-size:.75rem;font-weight:600;color:#ef4444;text-transform:uppercase;letter-spacing:.04em">Total dépenses</span>
           </div>
@@ -67,7 +67,7 @@
           <div style="position:absolute;top:-10px;right:-10px;width:70px;height:70px;border-radius:50%;background:#ecfeff;opacity:.7"></div>
           <div class="d-flex align-items-center gap-2 mb-2">
             <div style="width:36px;height:36px;border-radius:10px;background:#ecfeff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <span style="font-size:1.1rem">🧾</span>
+              <span style="font-size:1.1rem"><svg cIcon name="cilNotes" class="ic"></svg></span>
             </div>
             <span style="font-size:.75rem;font-weight:600;color:#06b6d4;text-transform:uppercase;letter-spacing:.04em">Nombre</span>
           </div>
@@ -85,7 +85,7 @@
           <div style="position:absolute;top:-10px;right:-10px;width:70px;height:70px;border-radius:50%;background:#fffbeb;opacity:.7"></div>
           <div class="d-flex align-items-center gap-2 mb-2">
             <div style="width:36px;height:36px;border-radius:10px;background:#fffbeb;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <span style="font-size:1.1rem">📊</span>
+              <span style="font-size:1.1rem"><svg cIcon name="cilChartPie" class="ic"></svg></span>
             </div>
             <span style="font-size:.75rem;font-weight:600;color:#f59e0b;text-transform:uppercase;letter-spacing:.04em">Moyenne</span>
           </div>
@@ -103,7 +103,7 @@
           <div style="position:absolute;top:-10px;right:-10px;width:70px;height:70px;border-radius:50%;background:#eff6ff;opacity:.7"></div>
           <div class="d-flex align-items-center gap-2 mb-2">
             <div style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <span style="font-size:1.1rem">🚕</span>
+              <span style="font-size:1.1rem"><svg cIcon name="cilCarAlt" class="ic"></svg></span>
             </div>
             <span style="font-size:.75rem;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:.04em">Véhicules</span>
           </div>
@@ -273,7 +273,7 @@
           </tr>
           <tr *ngIf="expenses.length === 0">
             <td colspan="7" class="text-center py-5" style="color:#94a3b8;">
-              <div style="font-size:2.5rem;margin-bottom:12px;">🔧</div>
+              <div style="font-size:2.5rem;margin-bottom:12px;"><svg cIcon name="cilSettings" class="ic-lg"></svg></div>
               <p class="mb-0">Aucune dépense enregistrée</p>
               <small>Cliquez sur « Nouvelle dépense » pour commencer</small>
             </td>

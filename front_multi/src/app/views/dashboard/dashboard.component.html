@@ -1,254 +1,147 @@
-<div class="p-3 p-md-4">
+<div class="dash">
 
-  <!-- Header -->
-  <div class="mb-4" style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;padding:28px 32px;color:white;">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <h2 style="font-size:1.6rem;font-weight:700;margin:0 0 4px;">Tableau de Bord</h2>
-        <p style="margin:0;opacity:0.75;font-size:0.9rem;">Vue d'ensemble de votre activite</p>
-      </div>
-      <button (click)="refreshData()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:white;padding:8px 18px;font-size:0.875rem;font-weight:600;cursor:pointer;">
-        Actualiser
-      </button>
+  <div class="dash-head">
+    <div>
+      <h1>Tableau de bord</h1>
+      <p *ngIf="data">Situation au {{ data.generated_at | date:'dd/MM/yyyy à HH:mm' }}</p>
     </div>
+    <button type="button" class="refresh" (click)="load()" [disabled]="loading">
+      <svg cIcon name="cilReload"></svg> Actualiser
+    </button>
   </div>
 
-  <!-- Alert -->
-  <div *ngIf="error" class="alert alert-danger d-flex align-items-center justify-content-between mb-4" style="border-radius:10px;" role="alert">
-    <span>{{ error }}</span>
-    <button type="button" class="btn-close" (click)="error = null"></button>
+  <c-alert *ngIf="error" color="danger" [dismissible]="false">{{ error }}</c-alert>
+
+  <div *ngIf="loading" class="dash-loading">
+    <c-spinner color="primary"></c-spinner>
+    <span>Chargement…</span>
   </div>
 
-  <!-- Loading -->
-  <div *ngIf="loading" class="text-center py-5">
-    <div class="spinner-border text-primary" role="status" style="width:2.5rem;height:2.5rem;"></div>
-    <p class="mt-3 text-muted">Chargement du tableau de bord...</p>
-  </div>
+  <ng-container *ngIf="!loading && data">
 
-  <!-- Content -->
-  <div *ngIf="!loading">
+    <!-- Argent : ce qu'on me doit, ce que j'ai encaissé -->
+    <section class="kpis" aria-label="Situation financière">
+      <a routerLink="/clients/index" class="kpi kpi-main">
+        <span class="kpi-label">Reste à recouvrer</span>
+        <strong class="kpi-value" [title]="full(data.receivables.total_gnf) + ' GNF'">
+          {{ short(data.receivables.total_gnf) }} <em>GNF</em>
+        </strong>
+        <span class="kpi-sub">
+          {{ data.receivables.debtor_count }} client(s) débiteur(s)
+          <ng-container *ngIf="data.receivables.client_credit_gnf > 0">
+            · {{ short(data.receivables.client_credit_gnf) }} GNF d'avoirs déduits
+          </ng-container>
+        </span>
+      </a>
 
-    <!-- KPI Cards -->
-    <div class="row g-3 mb-4" *ngIf="stats">
-      <!-- Utilisateurs -->
-      <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:44px;height:44px;border-radius:10px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg cIcon name="cilPeople" style="color:#4F46E5;width:22px;height:22px;"></svg>
-            </div>
-            <div>
-              <div style="font-size:1.65rem;font-weight:700;line-height:1;color:#1e293b;">{{ stats.total_users || 0 }}</div>
-              <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Utilisateurs</div>
-            </div>
+      <div class="kpi">
+        <span class="kpi-label">Encaissé ce mois</span>
+        <strong class="kpi-value kpi-ok" [title]="full(data.cash.month_gnf) + ' GNF'">
+          {{ short(data.cash.month_gnf) }} <em>GNF</em>
+        </strong>
+        <span class="kpi-sub">Tous modes de règlement</span>
+      </div>
+
+      <div class="kpi">
+        <span class="kpi-label">Encaissé aujourd'hui</span>
+        <strong class="kpi-value kpi-ok" [title]="full(data.cash.today_gnf) + ' GNF'">
+          {{ short(data.cash.today_gnf) }} <em>GNF</em>
+        </strong>
+        <span class="kpi-sub">{{ data.generated_at | date:'dd/MM/yyyy' }}</span>
+      </div>
+    </section>
+
+    <!-- Ce qui demande une action -->
+    <section class="alerts" aria-label="Alertes">
+      <h2>À traiter</h2>
+
+      <p *ngIf="!hasAlerts" class="all-clear">
+        <svg cIcon name="cilCheckCircle"></svg> Rien ne requiert d'action immédiate.
+      </p>
+
+      <div *ngIf="hasAlerts" class="alert-row">
+        <a *ngIf="data.alerts.overdue_invoices > 0" routerLink="/finance/invoices" class="chip chip-danger">
+          <strong>{{ data.alerts.overdue_invoices }}</strong>
+          facture(s) en retard
+          <em>{{ short(data.alerts.overdue_amount_gnf) }} GNF</em>
+        </a>
+        <a *ngIf="data.alerts.out_of_stock_products > 0" routerLink="/products/list" class="chip chip-danger">
+          <strong>{{ data.alerts.out_of_stock_products }}</strong> produit(s) en rupture
+        </a>
+        <a *ngIf="data.alerts.low_stock_products > 0" routerLink="/products/list" class="chip chip-warn">
+          <strong>{{ data.alerts.low_stock_products }}</strong> produit(s) en stock bas
+        </a>
+        <a *ngIf="data.alerts.vehicle_docs_expiring > 0" routerLink="/taxi/vehicles" class="chip chip-warn">
+          <strong>{{ data.alerts.vehicle_docs_expiring }}</strong> véhicule(s) — document à renouveler
+        </a>
+        <a *ngIf="data.alerts.leases_ending > 0" routerLink="/rental/leases" class="chip chip-warn">
+          <strong>{{ data.alerts.leases_ending }}</strong> bail/baux arrivant à terme
+        </a>
+      </div>
+    </section>
+
+    <!-- Exploitation par métier -->
+    <section class="modules" aria-label="Activité par module">
+      <a routerLink="/containers/list" class="mod">
+        <svg cIcon name="cilTruck"></svg>
+        <div><strong>{{ data.modules.containers_pending }}</strong><span>Conteneur(s) non livré(s)</span></div>
+      </a>
+      <a routerLink="/taxi/daily-payments" class="mod">
+        <svg cIcon name="cilCarAlt"></svg>
+        <div><strong>{{ short(data.modules.taxi_collected_today_gnf) }} GNF</strong><span>Versements taxi du jour</span></div>
+      </a>
+      <a routerLink="/rental/housing-units" class="mod">
+        <svg cIcon name="cilHome"></svg>
+        <div><strong>{{ data.modules.housing_occupied }} / {{ data.modules.housing_occupied + data.modules.housing_free }}</strong><span>Logement(s) occupé(s)</span></div>
+      </a>
+    </section>
+
+    <!-- Débiteurs + tendance -->
+    <div class="two-col">
+      <section class="panel">
+        <h2>Clients à relancer</h2>
+        <table class="debtors" *ngIf="data.top_debtors.length; else noDebtors">
+          <tbody>
+            <tr *ngFor="let d of data.top_debtors; trackBy: trackDebtor">
+              <td class="d-name">
+                <a [routerLink]="['/clients/ledger', d.client_id]">{{ d.name }}</a>
+                <span>{{ d.phone || d.client_type || '—' }}</span>
+              </td>
+              <td class="d-due" [title]="full(d.due_gnf) + ' GNF'">{{ short(d.due_gnf) }} GNF</td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #noDebtors><p class="empty">Aucun impayé.</p></ng-template>
+      </section>
+
+      <section class="panel">
+        <h2>Encaissements — 6 derniers mois</h2>
+        <div class="chart" *ngIf="data.cash_trend.length">
+          <div class="bar-wrap" *ngFor="let m of data.cash_trend; trackBy: trackMonth"
+               [title]="m.month + ' : ' + full(m.total_gnf) + ' GNF'">
+            <div class="bar" [style.height.%]="barHeight(m.total_gnf)"></div>
+            <span class="bar-val">{{ m.total_gnf > 0 ? short(m.total_gnf) : '' }}</span>
+            <span class="bar-lbl">{{ m.month }}</span>
           </div>
         </div>
-      </div>
-      <!-- Produits -->
-      <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:44px;height:44px;border-radius:10px;background:#F0FDF4;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg cIcon name="cilBasket" style="color:#16A34A;width:22px;height:22px;"></svg>
-            </div>
-            <div>
-              <div style="font-size:1.65rem;font-weight:700;line-height:1;color:#1e293b;">{{ stats.total_products || 0 }}</div>
-              <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Produits</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Clients -->
-      <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:44px;height:44px;border-radius:10px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg cIcon name="cilUser" style="color:#2563EB;width:22px;height:22px;"></svg>
-            </div>
-            <div>
-              <div style="font-size:1.65rem;font-weight:700;line-height:1;color:#1e293b;">{{ stats.total_clients || 0 }}</div>
-              <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Clients</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Revenus -->
-      <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.07);transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:44px;height:44px;border-radius:10px;background:#FFFBEB;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg cIcon name="cilDollar" style="color:#D97706;width:22px;height:22px;"></svg>
-            </div>
-            <div>
-              <div style="font-size:1.1rem;font-weight:700;line-height:1.2;color:#1e293b;">{{ stats.total_revenue | currency:'GNF':'symbol':'1.0-0' }}</div>
-              <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Revenus</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
 
-    <!-- Activities + Module Usage -->
-    <div class="row g-3 mb-4">
-      <!-- Activites Recentes -->
-      <div class="col-12 col-md-6">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
-            <div style="width:32px;height:32px;border-radius:8px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;">
-              <svg cIcon name="cilBell" style="color:#4F46E5;width:16px;height:16px;"></svg>
-            </div>
-            <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Activites Recentes</span>
-          </div>
-          <div style="padding:16px 20px;">
-            <div *ngIf="activities.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
-              Aucune activite recente
-            </div>
-            <div *ngFor="let activity of activities; trackBy: trackById" style="border-bottom:1px solid #f8f9fa;padding-bottom:12px;margin-bottom:12px;">
-              <div class="d-flex justify-content-between align-items-start gap-2">
-                <div>
-                  <div style="font-weight:600;font-size:0.875rem;color:#1e293b;">{{ activity.title }}</div>
-                  <div style="font-size:0.8rem;color:#6c757d;margin-top:2px;">{{ activity.description }}</div>
-                </div>
-                <span style="font-size:0.75rem;color:#adb5bd;white-space:nowrap;">{{ activity.created_at | date:'dd/MM HH:mm' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- Derniers mouvements -->
+    <section class="panel">
+      <h2>Derniers mouvements</h2>
+      <ul class="moves" *ngIf="data.recent.length; else noMoves">
+        <li *ngFor="let m of data.recent; trackBy: trackMovement">
+          <span class="mv-ic" [class.is-in]="m.kind === 'payment'">
+            <svg cIcon [name]="m.kind === 'payment' ? 'cilArrowBottom' : 'cilFile'"></svg>
+          </span>
+          <span class="mv-label">{{ m.label }}</span>
+          <span class="mv-date">{{ m.date | date:'dd/MM/yy' }}</span>
+          <span class="mv-amount" [class.is-in]="m.kind === 'payment'">{{ short(m.amount_gnf) }} GNF</span>
+        </li>
+      </ul>
+      <ng-template #noMoves><p class="empty">Aucun mouvement récent.</p></ng-template>
+    </section>
 
-      <!-- Usage des Modules -->
-      <div class="col-12 col-md-6">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
-            <div style="width:32px;height:32px;border-radius:8px;background:#F0FDF4;display:flex;align-items:center;justify-content:center;">
-              <svg cIcon name="cilChart" style="color:#16A34A;width:16px;height:16px;"></svg>
-            </div>
-            <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Usage des Modules</span>
-          </div>
-          <div style="padding:16px 20px;">
-            <div *ngIf="moduleUsage.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
-              Aucune donnee d'usage disponible
-            </div>
-            <div *ngFor="let module of moduleUsage; trackBy: trackById" class="mb-3">
-              <div class="d-flex justify-content-between mb-1">
-                <span style="font-size:0.875rem;font-weight:500;color:#374151;">{{ module.module_name }}</span>
-                <span style="font-size:0.8rem;font-weight:600;color:#6c757d;">{{ module.percentage }}%</span>
-              </div>
-              <div class="progress" style="height:7px;border-radius:4px;">
-                <div class="progress-bar"
-                     [style.width.%]="module.percentage"
-                     [class]="'bg-' + (module.percentage > 70 ? 'success' : module.percentage > 40 ? 'warning' : 'danger')"
-                     style="border-radius:4px;">
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tendances + Revenus -->
-    <div class="row g-3 mb-4">
-      <!-- Tendances d'Abonnement -->
-      <div class="col-12 col-md-6">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
-          <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
-            <div style="width:32px;height:32px;border-radius:8px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;">
-              <svg cIcon name="cilGraph" style="color:#2563EB;width:16px;height:16px;"></svg>
-            </div>
-            <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Tendances d'Abonnement</span>
-          </div>
-          <div style="padding:16px 20px;">
-            <div *ngIf="subscriptionLabels.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
-              Aucune donnee de tendance disponible
-            </div>
-            <div *ngIf="subscriptionLabels.length > 0" class="table-responsive">
-              <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
-                <thead style="background:#f8fafc;">
-                  <tr>
-                    <th style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;"></th>
-                    <th *ngFor="let label of subscriptionLabels; trackBy: trackById" style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;">{{ label }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style="padding:10px 12px;">
-                      <span style="background:#ECFDF5;color:#10B981;padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:600;">Nouveaux</span>
-                    </td>
-                    <td *ngFor="let value of subscriptionNewData; trackBy: trackById" style="padding:10px 12px;font-weight:600;color:#10B981;">{{ value }}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding:10px 12px;">
-                      <span style="background:#FEF2F2;color:#EF4444;padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:600;">Annules</span>
-                    </td>
-                    <td *ngFor="let value of subscriptionCancelledData; trackBy: trackById" style="padding:10px 12px;font-weight:600;color:#EF4444;">{{ value }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Graphique des Revenus -->
-      <div class="col-12 col-md-6">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
-          <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
-            <div style="width:32px;height:32px;border-radius:8px;background:#FFFBEB;display:flex;align-items:center;justify-content:center;">
-              <svg cIcon name="cilDollar" style="color:#D97706;width:16px;height:16px;"></svg>
-            </div>
-            <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Graphique des Revenus</span>
-          </div>
-          <div style="padding:16px 20px;">
-            <div *ngIf="revenueLabels.length === 0" class="text-center text-muted py-3" style="font-size:0.875rem;">
-              Aucune donnee de revenus disponible
-            </div>
-            <div *ngIf="revenueLabels.length > 0" class="table-responsive">
-              <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
-                <thead style="background:#f8fafc;">
-                  <tr>
-                    <th *ngFor="let label of revenueLabels; trackBy: trackById" style="font-size:0.75rem;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border:none;">{{ label }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td *ngFor="let value of revenueData; trackBy: trackById" style="padding:10px 12px;font-weight:600;color:#10B981;">
-                      {{ value | number:'1.0-0' }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Actions Rapides -->
-    <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
-      <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
-        <div style="width:32px;height:32px;border-radius:8px;background:#F5F3FF;display:flex;align-items:center;justify-content:center;">
-          <svg cIcon name="cilSpeedometer" style="color:#7C3AED;width:16px;height:16px;"></svg>
-        </div>
-        <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Actions Rapides</span>
-      </div>
-      <div style="padding:16px 20px;">
-        <div class="d-flex flex-wrap gap-2">
-          <a routerLink="/products/list" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#2563EB,#1d4ed8);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:0.875rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilBasket" style="width:14px;height:14px;"></svg> Gestion Produits
-          </a>
-<a routerLink="/finance/currencies-advanced" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0891B2,#0e7490);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:0.875rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilDollar" style="width:14px;height:14px;"></svg> Gestion Devises
-          </a>
-          <a routerLink="/organisation/settings-advanced" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#D97706,#b45309);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:0.875rem;font-weight:600;text-decoration:none;">
-            <svg cIcon name="cilSettings" style="width:14px;height:14px;"></svg> Parametres Avances
-          </a>
-          <button (click)="refreshData()" style="display:inline-flex;align-items:center;gap:6px;background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:8px 16px;font-size:0.875rem;font-weight:600;cursor:pointer;color:#495057;">
-            <svg cIcon name="cilReload" style="width:14px;height:14px;"></svg> Actualiser
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </div>
+  </ng-container>
 </div>

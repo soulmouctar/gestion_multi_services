@@ -192,6 +192,7 @@ export class DailyPaymentsComponent implements OnInit {
     this.submitted = false;
     this.selectedItem = null;
     this.paymentForm.reset({ taxi_assignment_id: null, payment_date: this.today(), expected_amount: 0, paid_amount: 0, status: '', notes: '' });
+    this.applyAgreedRate(this.paymentForm.get('taxi_assignment_id')?.value);
     this.showFormModal = true;
   }
 
@@ -203,7 +204,7 @@ export class DailyPaymentsComponent implements OnInit {
     this.paymentForm.patchValue({
       taxi_assignment_id: item.taxi_assignment_id,
       payment_date:       item.payment_date?.substring(0, 10) || '',
-      expected_amount:    item.expected_amount,
+      expected_amount:    this.agreedRate(item.taxi_assignment_id) || item.expected_amount,
       paid_amount:        item.paid_amount,
       status:             item.status,
       notes:              item.notes || ''
@@ -211,12 +212,23 @@ export class DailyPaymentsComponent implements OnInit {
     this.showFormModal = true;
   }
 
-  onAssignmentChange(event: any): void {
-    const id = event?.target?.value;
-    if (!id) { this.paymentForm.patchValue({ expected_amount: 0 }); return; }
-    const a = this.assignments.find(x => x.id == id);
-    const rate = a?.driver?.daily_rate || this.drivers.find(d => d.id === a?.driver_id)?.daily_rate || 0;
-    this.paymentForm.patchValue({ expected_amount: rate });
+  /** Tarif journalier convenu pour une affectation. Source unique de verite,
+   *  utilisee a la fois pour le libelle du select et pour le montant attendu. */
+  agreedRate(assignmentId: any): number {
+    if (!assignmentId) return 0;
+    const a = this.assignments.find(x => x.id == assignmentId);
+    return Number(a?.driver?.daily_rate ?? this.drivers.find(d => d.id === a?.driver_id)?.daily_rate ?? 0);
+  }
+
+  onAssignmentChange(): void {
+    // On lit le FormControl, pas event.target.value : avec [ngValue] le DOM
+    // expose "1: 1" et non l'identifiant, ce qui faisait echouer la recherche.
+    this.applyAgreedRate(this.paymentForm.get('taxi_assignment_id')?.value);
+  }
+
+  /** Le montant attendu n'est jamais saisi : il decoule de l'affectation. */
+  private applyAgreedRate(assignmentId: any): void {
+    this.paymentForm.patchValue({ expected_amount: this.agreedRate(assignmentId) });
   }
 
   save(): void {
@@ -224,7 +236,11 @@ export class DailyPaymentsComponent implements OnInit {
     if (this.paymentForm.invalid) return;
     if (this.editMode ? !this.canEditPayments : !this.canCreatePayments) return;
 
-    const data = this.paymentForm.value;
+    const data = {
+      ...this.paymentForm.value,
+      // recalcule cote client pour qu'une valeur bricolee dans le DOM ne passe pas
+      expected_amount: this.agreedRate(this.paymentForm.get('taxi_assignment_id')?.value)
+    };
     const obs = this.editMode && this.selectedItem
       ? this.apiService.put<any>(`daily-payments/${this.selectedItem.id}`, data)
       : this.apiService.post<any>('daily-payments', data);
