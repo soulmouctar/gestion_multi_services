@@ -1,0 +1,152 @@
+<div class="sp">
+
+  <section class="sp-head">
+    <div>
+      <h1>Achats fournisseurs</h1>
+      <p>Marchandises prises hors arrivage de conteneur — textile, cosmétiques, pneus, machines à coudre.</p>
+    </div>
+    <button type="button" class="btn-main" (click)="openForm()">
+      <svg cIcon name="cilPlus"></svg> Nouvel achat
+    </button>
+  </section>
+
+  <c-alert *ngIf="error" color="danger" [dismissible]="false">{{ error }}</c-alert>
+  <c-alert *ngIf="success" color="success" [dismissible]="false">{{ success }}</c-alert>
+
+  <!-- Formulaire -->
+  <section class="sp-form" *ngIf="showForm">
+    <h2>Enregistrer un achat</h2>
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="grid">
+        <label class="f">
+          <span>Fournisseur *</span>
+          <select formControlName="supplier_id">
+            <option [ngValue]="null">— Sélectionner —</option>
+            <option *ngFor="let s of suppliers" [ngValue]="s.id">{{ s.name }}</option>
+          </select>
+        </label>
+
+        <label class="f f-wide">
+          <span>Désignation *</span>
+          <input type="text" formControlName="designation" placeholder="Cartons de parfum, lot de pneus…" />
+        </label>
+
+        <label class="f">
+          <span>Catégorie</span>
+          <select formControlName="category">
+            <option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</option>
+          </select>
+        </label>
+
+        <label class="f">
+          <span>Quantité *</span>
+          <input type="number" formControlName="quantity" min="0.01" step="0.01" />
+        </label>
+
+        <label class="f">
+          <span>Prix unitaire *</span>
+          <input type="number" formControlName="unit_price" min="0" step="0.01" />
+        </label>
+
+        <label class="f">
+          <span>Devise *</span>
+          <select formControlName="currency">
+            <option value="GNF">GNF</option>
+            <option value="USD">USD</option>
+          </select>
+        </label>
+
+        <label class="f" *ngIf="form.value.currency !== 'GNF'">
+          <span>Taux vers GNF</span>
+          <input type="number" formControlName="exchange_rate" min="1" step="0.0001" placeholder="ex. 9200" />
+        </label>
+
+        <label class="f">
+          <span>Date d'achat *</span>
+          <input type="date" formControlName="purchase_date" />
+        </label>
+
+        <label class="f">
+          <span>Référence</span>
+          <input type="text" formControlName="reference" placeholder="Bon, facture…" />
+        </label>
+      </div>
+
+      <p class="total-hint">
+        Total porté au compte : <strong>{{ fmt(computedTotal) }} {{ form.value.currency }}</strong>
+      </p>
+
+      <div class="actions">
+        <button type="button" class="btn-ghost" (click)="closeForm()" [disabled]="saving">Annuler</button>
+        <button type="submit" class="btn-main" [disabled]="saving">
+          {{ saving ? 'Enregistrement…' : 'Enregistrer l\'achat' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Filtres -->
+  <section class="sp-filters">
+    <label>Fournisseur
+      <select [(ngModel)]="filterSupplier" (change)="load()">
+        <option value="">Tous</option>
+        <option *ngFor="let s of suppliers" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </label>
+    <label>Catégorie
+      <select [(ngModel)]="filterCategory" (change)="load()">
+        <option value="">Toutes</option>
+        <option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</option>
+      </select>
+    </label>
+    <label>Du <input type="date" [(ngModel)]="from" (change)="load()" /></label>
+    <label>Au <input type="date" [(ngModel)]="to" (change)="load()" /></label>
+  </section>
+
+  <div *ngIf="loading" class="sp-loading">
+    <c-spinner color="primary"></c-spinner><span>Chargement…</span>
+  </div>
+
+  <!-- Tableau -->
+  <section class="sp-panel" *ngIf="!loading">
+    <div class="sp-scroll">
+      <table class="sp-table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Fournisseur</th>
+            <th>Désignation</th>
+            <th>Catégorie</th>
+            <th class="num">Qté</th>
+            <th class="num">P.U.</th>
+            <th class="num">Total</th>
+            <th class="num">Équiv. GNF</th>
+            <th>Date</th>
+            <th class="center"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of rows; trackBy: trackRow">
+            <td class="ref">{{ r.purchase_number }}</td>
+            <td>{{ r.supplier?.name || '—' }}</td>
+            <td class="desig">{{ r.designation }}</td>
+            <td><span class="cat">{{ categoryLabel(r.category) }}</span></td>
+            <td class="num">{{ fmt(r.quantity) }}</td>
+            <td class="num">{{ fmt(r.unit_price) }}</td>
+            <td class="num strong">{{ fmt(r.total_amount) }} {{ r.currency }}</td>
+            <td class="num muted">{{ fmt(r.total_amount_gnf) }}</td>
+            <td>{{ r.purchase_date | date:'dd/MM/yy' }}</td>
+            <td class="center">
+              <button type="button" class="del" (click)="remove(r)" title="Supprimer" aria-label="Supprimer l'achat">
+                <svg cIcon name="cilTrash"></svg>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!rows.length">
+            <td colspan="10" class="empty">Aucun achat enregistré pour ces critères.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

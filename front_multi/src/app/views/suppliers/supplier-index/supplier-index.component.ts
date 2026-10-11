@@ -2,7 +2,6 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyR
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { SpinnerModule, AlertModule } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
@@ -36,7 +35,7 @@ type PeriodKey = 'all' | 'year' | 'month' | 'custom';
 @Component({
   selector: 'app-supplier-index',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, SpinnerModule, AlertModule, IconDirective],
+  imports: [CommonModule, FormsModule, SpinnerModule, AlertModule, IconDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './supplier-index.component.html',
   styleUrl: './supplier-index.component.scss'

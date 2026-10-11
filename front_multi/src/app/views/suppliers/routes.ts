@@ -16,6 +16,15 @@ export const routes: Routes = [
     }
   },
   {
+    path: 'purchases',
+    loadComponent: () => import('./supplier-purchases/supplier-purchases.component').then(m => m.SupplierPurchasesComponent),
+    data: {
+      title: 'Achats fournisseurs',
+      module: 'CLIENTS_SUPPLIERS',
+      permission: 'view_suppliers'
+    }
+  },
+  {
     path: 'list',
     loadComponent: () => import('./suppliers-list/suppliers-list.component').then(m => m.SuppliersListComponent),
     title: 'Liste des Fournisseurs',

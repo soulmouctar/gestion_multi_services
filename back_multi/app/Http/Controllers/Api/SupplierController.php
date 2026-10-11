@@ -511,7 +511,18 @@ class SupplierController extends BaseController
             return $this->resolveGnf($p->amount, $p->currency, $p->amount_gnf, $p->exchange_rate);
         });
 
-        $totalDebtGnf = $arrivalsWithCost->sum('cost_gnf');
+        // Achats hors conteneur du fournisseur : ils comptent dans la dette
+        // au meme titre que les arrivages.
+        $purchases = \App\Models\SupplierPurchase::where('supplier_id', $id)
+            ->where('tenant_id', $tid)
+            ->orderBy('purchase_date', 'asc')
+            ->get();
+
+        $totalPurchasesGnf = $purchases->sum(fn ($p) => $this->resolveGnf(
+            (float) $p->total_amount, $p->currency, $p->total_amount_gnf, $p->exchange_rate
+        ));
+
+        $totalDebtGnf = $arrivalsWithCost->sum('cost_gnf') + $totalPurchasesGnf;
 
         $byCurrency = [];
         foreach ($purchases as $purchase) {
@@ -723,6 +734,17 @@ class SupplierController extends BaseController
         $totalPaid = $payments->sum(fn ($p) => $this->resolveGnf($p->amount, $p->currency, $p->amount_gnf, $p->exchange_rate));
 
         $byCurrency = [];
+        foreach ($purchases as $purchase) {
+            $currency = $this->normalizeCurrency($purchase->currency ?? 'GNF');
+            $this->addCurrencyMovement(
+                $byCurrency,
+                $currency,
+                (float) $purchase->total_amount,
+                0.0,
+                $this->resolveGnf((float) $purchase->total_amount, $currency, $purchase->total_amount_gnf, $purchase->exchange_rate),
+                0.0
+            );
+        }
         foreach ($arrivals as $arrival) {
             $currency = $this->normalizeCurrency($arrival->currency ?? 'GNF');
             $amount = (float) $arrival->purchase_price;

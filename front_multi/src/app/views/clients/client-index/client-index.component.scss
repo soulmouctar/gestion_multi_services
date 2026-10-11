@@ -361,7 +361,7 @@
   word-break: normal;
 }
 .index-table th { white-space: normal; word-break: normal; }
-.index-table td.nowrap-cell, .index-table td.numeric { white-space: nowrap; }
+.index-table td.numeric { white-space: nowrap; }
 .index-table tbody tr:hover td { background: #f9fbfd; }
 .index-table .sortable { cursor: pointer; user-select: none; }
 .index-table .sortable:hover { color: #2563eb; background: #f1f5f9; }
@@ -513,30 +513,15 @@
 }
 
 /* Barre de periode : meme grammaire que l'index fournisseurs. */
-.period-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .35rem .7rem;
-  margin-bottom: .7rem;
-}
+.period-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .7rem; margin-bottom: .7rem; }
 .period-bar button {
-  padding: .35rem .7rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: #29354a;
-  background: #fff;
-  font-size: .78rem;
-  font-weight: 600;
-  cursor: pointer;
+  padding: .35rem .7rem; border: 1px solid var(--border); border-radius: 8px;
+  color: #29354a; background: #fff; font-size: .78rem; font-weight: 600; cursor: pointer;
 }
 .period-bar button:hover { background: #f5f8fc; }
 .period-bar button.on { color: #fff; border-color: #1d4ed8; background: #1d4ed8; }
 .period-bar label { display: inline-flex; align-items: center; gap: .3rem; color: var(--muted); font-size: .77rem; }
 .period-bar input {
-  padding: .3rem .45rem;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  font-family: inherit;
-  font-size: .78rem;
+  padding: .3rem .45rem; border: 1px solid var(--border); border-radius: 7px;
+  font-family: inherit; font-size: .78rem;
 }
