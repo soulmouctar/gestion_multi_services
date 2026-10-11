@@ -13,7 +13,7 @@
   transform: translate(-50%, -50%);
   width: min(920px, 96vw);
   max-height: 92vh;
-  background: #fff;
+  background: var(--app-surface);
   border-radius: 14px;
   box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
   z-index: 1060;
@@ -25,21 +25,21 @@
 
 .pbf-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--app-border-soft);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  background: linear-gradient(180deg, var(--app-surface-2) 0%, var(--app-surface) 100%);
 }
 
 .pbf-close {
   background: transparent;
   border: none;
-  color: #6b7280;
+  color: var(--app-text-muted);
   padding: 6px 10px;
   border-radius: 8px;
   cursor: pointer;
-  &:hover:not(:disabled) { background: #f1f5f9; color: #111827; }
+  &:hover:not(:disabled) { background: var(--app-surface-3); color: var(--app-heading); }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
@@ -50,15 +50,15 @@
 
 .pbf-locked {
   padding: 8px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
-  background: #f9fafb;
-  color: #111827;
+  background: var(--app-surface-2);
+  color: var(--app-heading);
   font-weight: 600;
 }
 
 .pbf-entries-header {
-  border-top: 1px dashed #e5e7eb;
+  border-top: 1px dashed var(--app-border);
   padding-top: 14px;
 }
 
@@ -70,27 +70,27 @@
 
 .pbf-entry {
   padding: 12px;
-  border: 1px solid #eef0f3;
+  border: 1px solid var(--app-border-soft);
   border-radius: 10px;
-  background: #fbfcfd;
+  background: var(--app-surface-2);
 }
 
 .pbf-totals {
   padding: 10px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--app-border);
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--app-surface-2);
 }
 
 .pbf-footer {
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--app-border-soft);
   padding-top: 14px;
   margin-top: 8px;
 }
 
 .is-required {
   border-color: #f59e0b;
-  background-color: #fffbeb;
+  background-color: var(--app-amber-bg);
 }
 
 @keyframes pbf-fade {

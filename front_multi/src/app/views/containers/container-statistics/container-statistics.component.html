@@ -29,13 +29,13 @@
     <svg cIcon name="cilWarning" class="me-2"></svg>{{ error }}
   </c-alert>
 
-  <div class="mb-4 p-4" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+  <div class="mb-4 p-4" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
     <div class="d-flex align-items-center gap-2 mb-3">
       <div class="d-flex align-items-center justify-content-center"
-           style="width:32px;height:32px;border-radius:8px;background:#EEF2FF">
+           style="width:32px;height:32px;border-radius:8px;background:var(--app-indigo-bg)">
         <svg cIcon name="cilFilter" style="color:#6366F1;width:15px;height:15px"></svg>
       </div>
-      <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">Période d'analyse</h6>
+      <h6 class="fw-bold mb-0" style="color:var(--app-heading);font-size:.9rem">Période d'analyse</h6>
     </div>
     <form [formGroup]="filterForm" (ngSubmit)="applyFilters()">
       <div class="row g-3 align-items-end">
@@ -63,60 +63,60 @@
   <div *ngIf="!loading">
     <div class="row g-3 mb-4" *ngIf="generalStats">
       <div class="col-md-3 col-sm-6">
-        <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+        <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <div class="d-flex align-items-center gap-3">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;border-radius:10px;background:#EFF6FF">
+                 style="width:44px;height:44px;border-radius:10px;background:var(--app-blue-bg)">
               <svg cIcon name="cilStorage" style="color:#3B82F6"></svg>
             </div>
             <div>
               <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:#3B82F6">{{ generalStats.total_containers || 0 }}</div>
-              <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Conteneurs totaux</div>
+              <div style="font-size:.7rem;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.04em">Conteneurs totaux</div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="col-md-3 col-sm-6">
-        <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+        <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <div class="d-flex align-items-center gap-3">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;border-radius:10px;background:#ECFDF5">
+                 style="width:44px;height:44px;border-radius:10px;background:var(--app-green-bg)">
               <svg cIcon name="cilPlus" style="color:#10B981"></svg>
             </div>
             <div>
               <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:#10B981">{{ generalStats.containers_created || 0 }}</div>
-              <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Créés sur la période</div>
+              <div style="font-size:.7rem;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.04em">Créés sur la période</div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="col-md-3 col-sm-6">
-        <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+        <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <div class="d-flex align-items-center gap-3">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;border-radius:10px;background:#FFF7ED">
+                 style="width:44px;height:44px;border-radius:10px;background:var(--app-orange-bg)">
               <svg cIcon name="cilCamera" style="color:#F97316"></svg>
             </div>
             <div>
               <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:#F97316">{{ generalStats.containers_with_photos || 0 }}</div>
-              <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Conteneurs avec photos</div>
+              <div style="font-size:.7rem;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.04em">Conteneurs avec photos</div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="col-md-3 col-sm-6">
-        <div class="p-3 h-100" style="background:linear-gradient(135deg,#EEF2FF,#E0E7FF);border-radius:12px;box-shadow:0 1px 8px rgba(99,102,241,0.18)">
+        <div class="p-3 h-100" style="background:linear-gradient(135deg,var(--app-indigo-bg),var(--app-indigo-bg-2));border-radius:12px;box-shadow:0 1px 8px rgba(99,102,241,0.18)">
           <div class="d-flex align-items-center gap-3">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
                  style="width:44px;height:44px;border-radius:10px;background:rgba(99,102,241,0.16)">
-              <svg cIcon name="cilSpeedometer" style="color:#4F46E5"></svg>
+              <svg cIcon name="cilSpeedometer" style="color:var(--app-indigo-fg-strong)"></svg>
             </div>
             <div>
-              <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:#4F46E5">{{ photoCoverageRate }}%</div>
-              <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Couverture photo</div>
+              <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:var(--app-indigo-fg-strong)">{{ photoCoverageRate }}%</div>
+              <div style="font-size:.7rem;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.04em">Couverture photo</div>
             </div>
           </div>
         </div>
@@ -154,37 +154,37 @@
 
       <div class="row g-3 mb-3">
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Nombre de ventes</div>
             <div class="fw-bold" style="font-size:1.1rem;color:#6366F1">{{ salesStats.total_sales_count || 0 }}</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Quantité vendue</div>
             <div class="fw-bold" style="font-size:1.1rem;color:#0EA5E9">{{ salesStats.total_quantity_sold || 0 }} unités</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Chiffre d'affaires</div>
-            <div class="fw-bold" style="font-size:1.1rem;color:#0f3460">{{ formatAmount(salesStats.total_sales_value) }}</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:var(--app-brand-fg)">{{ formatAmount(salesStats.total_sales_value) }}</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Montant collecté</div>
             <div class="fw-bold" style="font-size:1.1rem;color:#10B981">{{ formatAmount(salesStats.total_collected) }}</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Balles reçues</div>
             <div class="fw-bold" style="font-size:1.1rem;color:#8B5CF6">{{ salesStats.total_bales_received || 0 }}</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Conteneurs vendus ce mois</div>
             <div class="fw-bold" style="font-size:1.1rem;color:#0891B2">{{ salesStats.containers_sold_this_month || 0 }}</div>
           </div>
@@ -193,37 +193,37 @@
 
       <div class="row g-3 mb-4">
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Coût des ventes</div>
-            <div class="fw-bold" style="font-size:1.1rem;color:#DC2626">{{ formatAmount(salesStats.cost_of_goods_sold) }}</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:var(--app-red-fg)">{{ formatAmount(salesStats.cost_of_goods_sold) }}</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Reste à encaisser</div>
             <div class="fw-bold" style="font-size:1.1rem;color:#F59E0B">{{ formatAmount(salesStats.total_pending) }}</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Panier moyen</div>
-            <div class="fw-bold" style="font-size:1.1rem;color:#7C3AED">{{ formatAmount(salesStats.average_sale_value) }}</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:var(--app-violet-fg)">{{ formatAmount(salesStats.average_sale_value) }}</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Prix moyen / unité</div>
-            <div class="fw-bold" style="font-size:1.1rem;color:#2563EB">{{ formatAmount(salesStats.average_unit_sale_price) }}</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:var(--app-blue-fg)">{{ formatAmount(salesStats.average_unit_sale_price) }}</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Balles vendues</div>
-            <div class="fw-bold" style="font-size:1.1rem;color:#4F46E5">{{ salesStats.total_bales_sold || 0 }}</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:var(--app-indigo-fg-strong)">{{ salesStats.total_bales_sold || 0 }}</div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="p-3 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-3 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="small text-muted text-uppercase fw-semibold mb-1">Balles restantes</div>
             <div class="fw-bold" style="font-size:1.1rem;color:#D97706">{{ salesStats.total_bales_remaining || 0 }}</div>
           </div>
@@ -232,9 +232,9 @@
 
       <div class="row g-3 mb-4">
         <div class="col-lg-4">
-          <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-4 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
+              <h6 class="fw-bold mb-0" style="color:var(--app-heading);font-size:.9rem">
                 <svg cIcon name="cilChartPie" class="me-1" style="color:#10B981"></svg>
                 Répartition Des Gains
               </h6>
@@ -247,10 +247,10 @@
         </div>
 
         <div class="col-lg-8">
-          <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <div class="p-4 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
-                <svg cIcon name="cilChartLine" class="me-1" style="color:#047857"></svg>
+              <h6 class="fw-bold mb-0" style="color:var(--app-heading);font-size:.9rem">
+                <svg cIcon name="cilChartLine" class="me-1" style="color:var(--app-green-fg)"></svg>
                 Graphique Des Arrivages Rentables
               </h6>
               <span class="small text-muted">Top 10</span>
@@ -262,9 +262,9 @@
         </div>
       </div>
 
-      <div class="p-4 mb-4" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)" *ngIf="salesStats.containers_sold_monthly?.length">
+      <div class="p-4 mb-4" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)" *ngIf="salesStats.containers_sold_monthly?.length">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
+          <h6 class="fw-bold mb-0" style="color:var(--app-heading);font-size:.9rem">
             <svg cIcon name="cilCalendar" class="me-1" style="color:#0891B2"></svg>
             Conteneurs vendus par mois
           </h6>
@@ -272,7 +272,7 @@
         </div>
         <div class="table-responsive">
           <table class="table table-sm align-middle mb-0">
-            <thead style="background:#f8fafc">
+            <thead style="background:var(--app-surface-2)">
               <tr>
                 <th>Mois</th>
                 <th class="text-end">Conteneurs vendus</th>
@@ -295,20 +295,20 @@
 
     <div class="row g-3 mb-4">
       <div class="col-lg-6">
-        <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-          <h6 class="fw-bold mb-4" style="color:#1a1a2e;font-size:.9rem">
+        <div class="p-4 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <h6 class="fw-bold mb-4" style="color:var(--app-heading);font-size:.9rem">
             <svg cIcon name="cilChart" class="me-1" style="color:#3B82F6"></svg>
             Répartition des capacités
           </h6>
           <div *ngIf="capacityStats.length === 0" class="text-center text-muted py-4">Aucune donnée disponible</div>
           <div *ngFor="let stat of capacityStats; trackBy: trackById" class="mb-4">
             <div class="d-flex justify-content-between align-items-center mb-1">
-              <span class="fw-semibold" style="font-size:.85rem;color:#1e293b">{{ stat.label }}</span>
-              <span class="px-2 py-0 rounded-pill" style="font-size:.72rem;background:#EFF6FF;color:#3B82F6;font-weight:600">
+              <span class="fw-semibold" style="font-size:.85rem;color:var(--app-text-strong)">{{ stat.label }}</span>
+              <span class="px-2 py-0 rounded-pill" style="font-size:.72rem;background:var(--app-blue-bg);color:#3B82F6;font-weight:600">
                 {{ stat.count }} conteneur(s)
               </span>
             </div>
-            <div class="progress" style="height:8px;border-radius:8px;background:#f1f5f9">
+            <div class="progress" style="height:8px;border-radius:8px;background:var(--app-surface-3)">
               <div class="progress-bar" [style.width.%]="stat.percentage || 0" [class]="'bg-' + getCapacityColor(stat.percentage || 0)"></div>
             </div>
             <div class="text-end mt-1" style="font-size:.72rem;color:#94a3b8">{{ stat.percentage || 0 }}%</div>
@@ -317,19 +317,19 @@
       </div>
 
       <div class="col-lg-6">
-        <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-          <h6 class="fw-bold mb-4" style="color:#1a1a2e;font-size:.9rem">
+        <div class="p-4 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <h6 class="fw-bold mb-4" style="color:var(--app-heading);font-size:.9rem">
             <svg cIcon name="cilList" class="me-1" style="color:#6366F1"></svg>
             Qualité et statuts
           </h6>
           <div *ngIf="statusStats.length === 0" class="text-center text-muted py-4">Aucune donnée disponible</div>
           <div *ngFor="let stat of statusStats; trackBy: trackById" class="d-flex justify-content-between align-items-center mb-3 p-3 rounded"
-               style="background:#f8fafc">
+               style="background:var(--app-surface-2)">
             <div class="d-flex align-items-center gap-2">
               <c-badge [color]="getStatusColor(stat.label)" style="font-size:.72rem">{{ stat.label }}</c-badge>
-              <span style="font-size:.85rem;color:#475569">{{ stat.count }} élément(s)</span>
+              <span style="font-size:.85rem;color:var(--app-text-2)">{{ stat.count }} élément(s)</span>
             </div>
-            <span class="fw-semibold" style="font-size:.85rem;color:#6B7280">{{ stat.percentage }}%</span>
+            <span class="fw-semibold" style="font-size:.85rem;color:var(--app-text-muted)">{{ stat.percentage }}%</span>
           </div>
         </div>
       </div>
@@ -337,9 +337,9 @@
 
     <div class="row g-3 mb-4">
       <div class="col-lg-8">
-        <div class="p-4" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+        <div class="p-4" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
+            <h6 class="fw-bold mb-0" style="color:var(--app-heading);font-size:.9rem">
               <svg cIcon name="cilChartLine" class="me-1" style="color:#0EA5E9"></svg>
               Créations mensuelles
             </h6>
@@ -348,7 +348,7 @@
           <div *ngIf="monthlyStats.length === 0" class="text-center text-muted py-4">Aucune tendance disponible</div>
           <div *ngIf="monthlyStats.length > 0" class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-              <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+              <thead style="background:var(--app-surface-2);font-size:.72rem;text-transform:uppercase;color:var(--app-text-muted)">
                 <tr>
                   <th class="ps-2 py-2" style="font-weight:600">Mois</th>
                   <th class="py-2" style="font-weight:600">Nouveaux conteneurs</th>
@@ -357,9 +357,9 @@
               </thead>
               <tbody>
                 <tr *ngFor="let stat of monthlyStats; trackBy: trackById">
-                  <td class="ps-2 py-2 fw-semibold" style="font-size:.85rem;color:#1e293b">{{ stat.month }}</td>
+                  <td class="ps-2 py-2 fw-semibold" style="font-size:.85rem;color:var(--app-text-strong)">{{ stat.month }}</td>
                   <td class="py-2">
-                    <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:.72rem;background:#EFF6FF;color:#3B82F6">
+                    <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:.72rem;background:var(--app-blue-bg);color:#3B82F6">
                       {{ stat.count || 0 }}
                     </span>
                   </td>
@@ -372,17 +372,17 @@
       </div>
 
       <div class="col-lg-4">
-        <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-          <h6 class="fw-bold mb-4" style="color:#1a1a2e;font-size:.9rem">
+        <div class="p-4 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <h6 class="fw-bold mb-4" style="color:var(--app-heading);font-size:.9rem">
             <svg cIcon name="cilStar" class="me-1" style="color:#F59E0B"></svg>
             Top conteneurs par photos
           </h6>
           <div *ngIf="topContainers.length === 0" class="text-center text-muted py-4">Aucun classement disponible</div>
           <div *ngFor="let container of topContainers; let i = index; trackBy: trackById"
                class="d-flex justify-content-between align-items-center mb-3 p-3 rounded"
-               style="background:#f8fafc;border-left:3px solid #3B82F6">
+               style="background:var(--app-surface-2);border-left:3px solid #3B82F6">
             <div>
-              <div class="fw-semibold mb-0" style="font-size:.875rem;color:#1e293b">
+              <div class="fw-semibold mb-0" style="font-size:.875rem;color:var(--app-text-strong)">
                 <span class="me-1 fw-bold" style="color:#3B82F6">#{{ i + 1 }}</span>{{ container.container_number }}
               </div>
               <small class="text-muted">{{ container.photos_count || 0 }} photo(s)</small>
@@ -398,20 +398,20 @@
 
     <div class="row g-3 mb-4">
       <div class="col-lg-7">
-        <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+        <div class="p-4 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
-              <svg cIcon name="cilChartLine" class="me-1" style="color:#047857"></svg>
+            <h6 class="fw-bold mb-0" style="color:var(--app-heading);font-size:.9rem">
+              <svg cIcon name="cilChartLine" class="me-1" style="color:var(--app-green-fg)"></svg>
               Arrivages Les Plus Rentables
             </h6>
-            <span class="px-2 py-1 rounded-pill" style="background:#ECFDF5;color:#047857;font-size:.75rem;font-weight:700">
+            <span class="px-2 py-1 rounded-pill" style="background:var(--app-green-bg);color:var(--app-green-fg);font-size:.75rem;font-weight:700">
               {{ topProfitableArrivals.length }} arrivage(s)
             </span>
           </div>
           <div *ngIf="topProfitableArrivals.length === 0" class="text-center text-muted py-4">Aucun classement de rentabilité disponible</div>
           <div *ngIf="topProfitableArrivals.length > 0" class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-              <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+              <thead style="background:var(--app-surface-2);font-size:.72rem;text-transform:uppercase;color:var(--app-text-muted)">
                 <tr>
                   <th class="py-2" style="font-weight:600">Arrivage</th>
                   <th class="py-2" style="font-weight:600">Vendu</th>
@@ -423,20 +423,20 @@
               <tbody>
                 <tr *ngFor="let arrival of topProfitableArrivals; let i = index; trackBy: trackById">
                   <td class="py-2">
-                    <div class="fw-semibold" style="font-size:.85rem;color:#1e293b">
-                      <span class="me-1 fw-bold" style="color:#047857">#{{ i + 1 }}</span>{{ arrival.container_number }}
+                    <div class="fw-semibold" style="font-size:.85rem;color:var(--app-text-strong)">
+                      <span class="me-1 fw-bold" style="color:var(--app-green-fg)">#{{ i + 1 }}</span>{{ arrival.container_number }}
                     </div>
                     <small class="text-muted">{{ arrival.supplier_name || 'Sans fournisseur' }} • {{ arrival.arrival_date | date:'dd/MM/yyyy' }}</small>
                   </td>
                   <td class="py-2">
-                    <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:.72rem;background:#EFF6FF;color:#2563EB">
+                    <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:.72rem;background:var(--app-blue-bg);color:var(--app-blue-fg)">
                       {{ arrival.quantity_sold }} / {{ arrival.total_quantity }}
                     </span>
                   </td>
-                  <td class="py-2 text-end fw-semibold" style="font-size:.82rem;color:#0f3460">{{ formatAmount(arrival.total_sales_value) }}</td>
+                  <td class="py-2 text-end fw-semibold" style="font-size:.82rem;color:var(--app-brand-fg)">{{ formatAmount(arrival.total_sales_value) }}</td>
                   <td class="py-2 text-end fw-bold" style="font-size:.82rem;color:#059669">{{ formatAmount(arrival.generated_interest) }}</td>
                   <td class="py-2 text-end">
-                    <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:.72rem;background:#ECFDF5;color:#059669">
+                    <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:.72rem;background:var(--app-green-bg);color:#059669">
                       {{ arrival.margin_rate }}%
                     </span>
                   </td>
@@ -448,34 +448,34 @@
       </div>
 
       <div class="col-lg-5">
-        <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-          <h6 class="fw-bold mb-4" style="color:#1a1a2e;font-size:.9rem">
+        <div class="p-4 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <h6 class="fw-bold mb-4" style="color:var(--app-heading);font-size:.9rem">
             <svg cIcon name="cilDollar" class="me-1" style="color:#10B981"></svg>
             Synthèse paiements
           </h6>
           <div class="row g-3" *ngIf="paymentStats">
             <div class="col-6">
-              <div class="p-3 rounded" style="background:#ECFDF5">
+              <div class="p-3 rounded" style="background:var(--app-green-bg)">
                 <div class="small text-muted text-uppercase fw-semibold mb-1">Clients payés</div>
                 <div class="fw-bold" style="color:#10B981">{{ formatAmount(paymentStats.totalClientPaid) }}</div>
               </div>
             </div>
             <div class="col-6">
-              <div class="p-3 rounded" style="background:#FEF3C7">
+              <div class="p-3 rounded" style="background:var(--app-amber-bg-2)">
                 <div class="small text-muted text-uppercase fw-semibold mb-1">Clients en attente</div>
                 <div class="fw-bold" style="color:#D97706">{{ formatAmount(paymentStats.totalClientPending) }}</div>
               </div>
             </div>
             <div class="col-6">
-              <div class="p-3 rounded" style="background:#DBEAFE">
+              <div class="p-3 rounded" style="background:var(--app-blue-bg-2)">
                 <div class="small text-muted text-uppercase fw-semibold mb-1">Fournisseurs payés</div>
-                <div class="fw-bold" style="color:#2563EB">{{ formatAmount(paymentStats.totalSupplierPaid) }}</div>
+                <div class="fw-bold" style="color:var(--app-blue-fg)">{{ formatAmount(paymentStats.totalSupplierPaid) }}</div>
               </div>
             </div>
             <div class="col-6">
-              <div class="p-3 rounded" style="background:#FEE2E2">
+              <div class="p-3 rounded" style="background:var(--app-red-bg-2)">
                 <div class="small text-muted text-uppercase fw-semibold mb-1">Fournisseurs en attente</div>
-                <div class="fw-bold" style="color:#DC2626">{{ formatAmount(paymentStats.totalSupplierPending) }}</div>
+                <div class="fw-bold" style="color:var(--app-red-fg)">{{ formatAmount(paymentStats.totalSupplierPending) }}</div>
               </div>
             </div>
           </div>
@@ -486,8 +486,8 @@
 
     <div class="row g-3 mb-4">
       <div class="col-lg-6">
-        <div class="p-4 h-100" style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
-          <h6 class="fw-bold mb-4" style="color:#1a1a2e;font-size:.9rem">
+        <div class="p-4 h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
+          <h6 class="fw-bold mb-4" style="color:var(--app-heading);font-size:.9rem">
             <svg cIcon name="cilDollar" class="me-1" style="color:#10B981"></svg>
             Conteneurs récemment modifiés
           </h6>
@@ -495,7 +495,7 @@
           <div *ngFor="let container of recentContainers; trackBy: trackById"
                class="d-flex justify-content-between align-items-center py-2 border-bottom">
             <div>
-              <div class="fw-semibold" style="font-size:.85rem;color:#1e293b">{{ container.container_number }}</div>
+              <div class="fw-semibold" style="font-size:.85rem;color:var(--app-text-strong)">{{ container.container_number }}</div>
               <small class="text-muted">Dernière mise à jour</small>
             </div>
             <small class="text-muted">{{ container.updated_at | date:'dd/MM/yyyy HH:mm' }}</small>
@@ -504,9 +504,9 @@
       </div>
     </div>
 
-    <div style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);overflow:hidden">
-      <div class="px-4 py-3" style="border-bottom:1px solid #f0f0f0">
-        <h6 class="fw-bold mb-0" style="color:#1a1a2e;font-size:.9rem">
+    <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);overflow:hidden">
+      <div class="px-4 py-3" style="border-bottom:1px solid var(--app-border-soft)">
+        <h6 class="fw-bold mb-0" style="color:var(--app-heading);font-size:.9rem">
           <svg cIcon name="cilSpeedometer" class="me-1" style="color:#6366F1"></svg>
           Indicateurs calculés
         </h6>
@@ -514,52 +514,52 @@
       <div class="p-4">
         <div class="row g-3 mb-4">
           <div class="col-md-3 col-6">
-            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5)">
+            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,var(--app-green-bg),var(--app-green-bg-2))">
               <div class="fw-bold mb-1" style="font-size:1.5rem;color:#10B981">{{ collectionRate }}%</div>
               <small class="text-muted fw-semibold" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Taux de versement</small>
             </div>
           </div>
           <div class="col-md-3 col-6">
-            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE)">
+            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,var(--app-blue-bg),var(--app-blue-bg-2))">
               <div class="fw-bold mb-1" style="font-size:1.5rem;color:#3B82F6">{{ averageCapacity }}</div>
               <small class="text-muted fw-semibold" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Capacité moyenne</small>
             </div>
           </div>
           <div class="col-md-3 col-6">
-            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,#FFFBEB,#FEF3C7)">
+            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,var(--app-amber-bg),var(--app-amber-bg-2))">
               <div class="fw-bold mb-1" style="font-size:1.5rem;color:#F59E0B">{{ activityRate }}%</div>
               <small class="text-muted fw-semibold" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Taux d'activité</small>
             </div>
           </div>
           <div class="col-md-3 col-6">
-            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,#EEF2FF,#E0E7FF)">
+            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,var(--app-indigo-bg),var(--app-indigo-bg-2))">
               <div class="fw-bold mb-1" style="font-size:1.5rem;color:#6366F1">{{ marginRate }}%</div>
               <small class="text-muted fw-semibold" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Marge estimée</small>
             </div>
           </div>
         </div>
 
-        <div class="p-3 rounded" style="background:#f8fafc">
-          <h6 class="fw-semibold mb-3" style="color:#1a1a2e;font-size:.875rem">Lecture rapide</h6>
+        <div class="p-3 rounded" style="background:var(--app-surface-2)">
+          <h6 class="fw-semibold mb-3" style="color:var(--app-heading);font-size:.875rem">Lecture rapide</h6>
           <div class="row g-2">
             <div class="col-md-6">
               <div class="d-flex align-items-start gap-2 mb-2">
                 <svg cIcon name="cilCheckCircle" style="color:#10B981;flex-shrink:0;width:16px;height:16px"></svg>
-                <span style="font-size:.85rem;color:#475569">La couverture photo mesure la qualité documentaire du parc.</span>
+                <span style="font-size:.85rem;color:var(--app-text-2)">La couverture photo mesure la qualité documentaire du parc.</span>
               </div>
               <div class="d-flex align-items-start gap-2">
                 <svg cIcon name="cilChartLine" style="color:#3B82F6;flex-shrink:0;width:16px;height:16px"></svg>
-                <span style="font-size:.85rem;color:#475569">Le taux d'activité compare les créations récentes au stock total.</span>
+                <span style="font-size:.85rem;color:var(--app-text-2)">Le taux d'activité compare les créations récentes au stock total.</span>
               </div>
             </div>
             <div class="col-md-6">
               <div class="d-flex align-items-start gap-2 mb-2">
                 <svg cIcon name="cilDollar" style="color:#F59E0B;flex-shrink:0;width:16px;height:16px"></svg>
-                <span style="font-size:.85rem;color:#475569">L'intérêt versé montre ce que les ventes ont déjà réellement rapporté.</span>
+                <span style="font-size:.85rem;color:var(--app-text-2)">L'intérêt versé montre ce que les ventes ont déjà réellement rapporté.</span>
               </div>
               <div class="d-flex align-items-start gap-2">
                 <svg cIcon name="cilSpeedometer" style="color:#6366F1;flex-shrink:0;width:16px;height:16px"></svg>
-                <span style="font-size:.85rem;color:#475569">L'intérêt généré compare le chiffre d'affaires au coût des quantités réellement vendues.</span>
+                <span style="font-size:.85rem;color:var(--app-text-2)">L'intérêt généré compare le chiffre d'affaires au coût des quantités réellement vendues.</span>
               </div>
             </div>
           </div>

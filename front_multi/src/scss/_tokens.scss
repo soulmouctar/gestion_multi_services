@@ -1,0 +1,84 @@
+// ---------------------------------------------------------------------------
+// Jetons de couleur de l'application (--app-*).
+//
+// Les ecrans n'ecrivent plus de couleur en dur : ils referencent un jeton, et
+// chaque jeton a une valeur claire et une valeur sombre definies ici, une seule
+// fois. CoreUI pose data-coreui-theme sur <html> ; c'est ce qui bascule le jeu.
+//
+//   surfaces  : --app-surface (carte) puis -2/-3/-4, de plus en plus marquees
+//   textes    : --app-heading > -text-strong > -text > -text-2 > -text-muted
+//   bordures  : --app-border-soft < --app-border < --app-border-strong
+//   accents   : --app-{teinte}-bg | -bg-2 | -border | -fg | -fg-strong
+//               (fond pastel, fond pastel soutenu, lisere, texte, texte fonce)
+// ---------------------------------------------------------------------------
+@use "sass:map";
+
+// teinte : (rgb de reference pour les fonds sombres,
+//           clair  : bg, bg-2, border, fg, fg-strong,
+//           sombre : fg, fg-strong)
+$accents: (
+  "red":    (rgb: "239, 68, 68",   bg: #fef2f2, bg-2: #fee2e2, border: #fecaca, fg: #dc2626, fg-strong: #b91c1c, d-fg: #f87171, d-fg-strong: #fca5a5),
+  "orange": (rgb: "249, 115, 22",  bg: #fff7ed, bg-2: #ffedd5, border: #fed7aa, fg: #ea580c, fg-strong: #c2410c, d-fg: #fb923c, d-fg-strong: #fdba74),
+  "amber":  (rgb: "245, 158, 11",  bg: #fffbeb, bg-2: #fef3c7, border: #fde68a, fg: #b45309, fg-strong: #92400e, d-fg: #fbbf24, d-fg-strong: #fcd34d),
+  "green":  (rgb: "16, 185, 129",  bg: #ecfdf5, bg-2: #dcfce7, border: #a7f3d0, fg: #047857, fg-strong: #065f46, d-fg: #34d399, d-fg-strong: #6ee7b7),
+  "cyan":   (rgb: "6, 182, 212",   bg: #f0f9ff, bg-2: #cffafe, border: #bae6fd, fg: #0e7490, fg-strong: #155e75, d-fg: #22d3ee, d-fg-strong: #67e8f9),
+  "blue":   (rgb: "59, 130, 246",  bg: #eff6ff, bg-2: #dbeafe, border: #bfdbfe, fg: #2563eb, fg-strong: #1d4ed8, d-fg: #60a5fa, d-fg-strong: #93c5fd),
+  "indigo": (rgb: "99, 102, 241",  bg: #eef2ff, bg-2: #e0e7ff, border: #c7d2fe, fg: #5a67d8, fg-strong: #4f46e5, d-fg: #818cf8, d-fg-strong: #a5b4fc),
+  "violet": (rgb: "139, 92, 246",  bg: #f5f3ff, bg-2: #ede9fe, border: #ddd6fe, fg: #7c3aed, fg-strong: #6d28d9, d-fg: #a78bfa, d-fg-strong: #c4b5fd),
+  "pink":   (rgb: "236, 72, 153",  bg: #fdf2f8, bg-2: #fce7f3, border: #fbcfe8, fg: #db2777, fg-strong: #be185d, d-fg: #f472b6, d-fg-strong: #f9a8d4)
+);
+
+:root {
+  --app-surface:      #fff;
+  --app-surface-2:    #f8fafc;
+  --app-surface-3:    #f3f4f6;
+  --app-surface-4:    #e5e7eb;
+
+  --app-heading:      #111827;
+  --app-text-strong:  #1e293b;
+  --app-text:         #374151;
+  --app-text-2:       #475569;
+  --app-text-muted:   #64748b;
+  --app-brand-fg:     #0f3460;
+
+  --app-border-soft:  #f0f0f0;
+  --app-border:       #e5e7eb;
+  --app-border-strong:#d1d5db;
+
+  @each $name, $c in $accents {
+    --app-#{$name}-bg:        #{map.get($c, bg)};
+    --app-#{$name}-bg-2:      #{map.get($c, bg-2)};
+    --app-#{$name}-border:    #{map.get($c, border)};
+    --app-#{$name}-fg:        #{map.get($c, fg)};
+    --app-#{$name}-fg-strong: #{map.get($c, fg-strong)};
+  }
+}
+
+[data-coreui-theme="dark"] {
+  // Calees sur la palette sombre de CoreUI (--cui-body-bg : #212631)
+  --app-surface:      #212631;
+  --app-surface-2:    #272d3a;
+  --app-surface-3:    #2e3543;
+  --app-surface-4:    #3a4252;
+
+  --app-heading:      #f1f5f9;
+  --app-text-strong:  #e5e9f0;
+  --app-text:         #d3d9e2;
+  --app-text-2:       #b7c0cd;
+  --app-text-muted:   #98a3b3;
+  --app-brand-fg:     #9cc2ff;
+
+  --app-border-soft:  #2c3340;
+  --app-border:       #363e4d;
+  --app-border-strong:#4a5466;
+
+  // Pastels : l'accent en transparence sur la surface sombre, pour garder la
+  // teinte sans plaque claire ; les textes passent sur une nuance lumineuse.
+  @each $name, $c in $accents {
+    --app-#{$name}-bg:        rgba(#{map.get($c, rgb)}, .14);
+    --app-#{$name}-bg-2:      rgba(#{map.get($c, rgb)}, .24);
+    --app-#{$name}-border:    rgba(#{map.get($c, rgb)}, .4);
+    --app-#{$name}-fg:        #{map.get($c, d-fg)};
+    --app-#{$name}-fg-strong: #{map.get($c, d-fg-strong)};
+  }
+}

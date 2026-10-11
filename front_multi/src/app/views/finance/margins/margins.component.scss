@@ -7,18 +7,18 @@
   h1 {
     font-size: 1.35rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--app-heading);
   }
   .fm-filters {
-    background: #ffffff;
-    border: 1px solid #eef0f3;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border-soft);
     border-radius: 12px;
     padding: 14px 16px;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   }
   .fm-kpi {
-    background: #ffffff;
-    border: 1px solid #eef0f3;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border-soft);
     border-radius: 12px;
     padding: 14px 16px;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
@@ -26,14 +26,14 @@
     .kpi-label {
       font-size: 11px;
       text-transform: uppercase;
-      color: #6b7280;
+      color: var(--app-text-muted);
       letter-spacing: 0.03em;
       font-weight: 600;
     }
     .kpi-value {
       font-size: 1.35rem;
       font-weight: 700;
-      color: #111827;
+      color: var(--app-heading);
       margin-top: 2px;
     }
     .kpi-hint {
@@ -41,22 +41,22 @@
       font-size: 12px;
     }
     &.kpi-highlight {
-      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-      border-color: #d1fae5;
+      background: linear-gradient(180deg, var(--app-surface-2) 0%, var(--app-surface) 100%);
+      border-color: var(--app-green-border);
     }
   }
   .fm-tabs .nav-link {
-    color: #6b7280;
+    color: var(--app-text-muted);
     font-weight: 500;
     &.active {
-      color: #0f3460;
+      color: var(--app-brand-fg);
       font-weight: 600;
       border-bottom: 2px solid #10B981;
     }
   }
   .fm-table {
-    background: #ffffff;
-    border: 1px solid #eef0f3;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border-soft);
     border-radius: 12px;
     padding: 8px 12px;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
@@ -64,9 +64,9 @@
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.03em;
-      color: #6b7280;
+      color: var(--app-text-muted);
       font-weight: 600;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid var(--app-border);
     }
     td {
       font-size: 0.9rem;

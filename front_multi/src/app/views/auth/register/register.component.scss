@@ -13,7 +13,7 @@
 
 .card-header {
   background: transparent;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--app-border);
   padding: 2rem 1.5rem 1rem;
 }
 
@@ -46,18 +46,18 @@
 }
 
 .text-decoration-none:hover {
-  color: #5a67d8;
+  color: var(--app-indigo-fg);
   text-decoration: underline;
 }
 
 h6 {
-  color: #495057;
+  color: var(--app-text);
   font-weight: 600;
   margin-bottom: 1rem;
 }
 
 hr {
-  border-color: #e9ecef;
+  border-color: var(--app-border);
   margin: 2rem 0;
 }
 

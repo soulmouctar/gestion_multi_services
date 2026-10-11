@@ -12,7 +12,7 @@
       <p class="mb-0 opacity-60" style="font-size:.82rem">{{ totalItems }} photo(s) enregistrée(s)</p>
     </div>
     <button (click)="openAddModal()"
-      style="background:#fff;color:#0f3460;border:none;border-radius:10px;padding:9px 20px;font-weight:700;font-size:.875rem;cursor:pointer;display:inline-flex;align-items:center;gap:7px">
+      style="background:var(--app-surface);color:var(--app-brand-fg);border:none;border-radius:10px;padding:9px 20px;font-weight:700;font-size:.875rem;cursor:pointer;display:inline-flex;align-items:center;gap:7px">
       <svg cIcon name="cilPlus" style="width:15px;height:15px"></svg> Ajouter une photo
     </button>
   </div>
@@ -29,18 +29,18 @@
   <!-- Grid de photos -->
   <div *ngIf="!loading && containerPhotos.length > 0" class="row g-3 mb-4">
     <div class="col-6 col-md-4 col-lg-3" *ngFor="let item of containerPhotos; trackBy: trackById">
-      <div style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);overflow:hidden;transition:all .2s"
+      <div style="background:var(--app-surface);border-radius:12px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.04);overflow:hidden;transition:all .2s"
            onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'"
            onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.04)'">
         <!-- Image -->
-        <div style="height:160px;overflow:hidden;cursor:pointer;background:#f8fafc" (click)="previewImage(item)">
+        <div style="height:160px;overflow:hidden;cursor:pointer;background:var(--app-surface-2)" (click)="previewImage(item)">
           <img [src]="getImageUrl(item.image_path)" alt="Photo conteneur"
                style="width:100%;height:100%;object-fit:cover"
                onerror="this.src='assets/img/placeholder.png'" />
         </div>
         <!-- Info -->
         <div class="p-3">
-          <div class="fw-semibold mb-1" style="font-size:.85rem;color:#1a1a2e">
+          <div class="fw-semibold mb-1" style="font-size:.85rem;color:var(--app-heading)">
             {{ getContainerNumber(item.container_id) }}
           </div>
           <div class="text-muted" style="font-size:.72rem">{{ item.created_at | date:'dd/MM/yyyy' }}</div>
@@ -50,15 +50,15 @@
           <!-- Actions -->
           <div class="d-flex gap-1 mt-2">
             <button (click)="openEditModal(item)" title="Modifier"
-              style="flex:1;background:#FFF7ED;color:#F59E0B;border:none;border-radius:8px;padding:5px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center">
+              style="flex:1;background:var(--app-orange-bg);color:#F59E0B;border:none;border-radius:8px;padding:5px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center">
               <svg cIcon name="cilPencil" style="width:13px;height:13px"></svg>
             </button>
             <button (click)="previewImage(item)" title="Aperçu"
-              style="flex:1;background:#EFF6FF;color:#3B82F6;border:none;border-radius:8px;padding:5px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center">
+              style="flex:1;background:var(--app-blue-bg);color:#3B82F6;border:none;border-radius:8px;padding:5px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center">
               <svg cIcon name="cilZoom" style="width:13px;height:13px"></svg>
             </button>
             <button (click)="confirmDelete(item)" title="Supprimer"
-              style="flex:1;background:#FEF2F2;color:#EF4444;border:none;border-radius:8px;padding:5px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center">
+              style="flex:1;background:var(--app-red-bg);color:#EF4444;border:none;border-radius:8px;padding:5px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center">
               <svg cIcon name="cilTrash" style="width:13px;height:13px"></svg>
             </button>
           </div>
@@ -69,7 +69,7 @@
 
   <!-- Empty state -->
   <div *ngIf="!loading && containerPhotos.length === 0"
-       class="text-center py-5" style="background:#fff;border-radius:14px;border:1px solid #f0f0f0">
+       class="text-center py-5" style="background:var(--app-surface);border-radius:14px;border:1px solid var(--app-border-soft)">
     <div style="font-size:3rem"><svg cIcon name="cilCamera" class="ic-lg"></svg></div>
     <p class="mt-2 fw-semibold text-muted">Aucune photo trouvée</p>
     <button (click)="openAddModal()"
@@ -144,7 +144,7 @@
               L'image est obligatoire
             </span>
           </div>
-          <div class="mt-2 p-2 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;font-size:.75rem" *ngIf="selectedFile">
+          <div class="mt-2 p-2 rounded" style="background:var(--app-green-bg);border:1px solid var(--app-green-border);font-size:.75rem" *ngIf="selectedFile">
             <svg cIcon name="cilPaperclip" class="ic"></svg> <strong>{{ selectedFile.name }}</strong> — {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB
           </div>
           <div class="form-text">Formats : JPG, PNG, GIF — max 5 MB</div>
@@ -168,7 +168,7 @@
     <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
   </c-modal-header>
   <c-modal-body class="text-center py-4">
-    <div style="width:60px;height:60px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+    <div style="width:60px;height:60px;border-radius:50%;background:var(--app-red-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
       <svg cIcon name="cilTrash" style="color:#EF4444;width:24px;height:24px"></svg>
     </div>
     <p class="fw-semibold mb-1">Supprimer cette photo ?</p>

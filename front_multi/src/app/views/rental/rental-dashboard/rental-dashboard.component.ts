@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { BadgeModule, ButtonModule, CardModule, SpinnerModule } from '@coreui/angular';
 import { ChartjsComponent } from '@coreui/angular-chartjs';
+import { syncChartsWithTheme } from '../../../core/utils/chart-theme';
 import { IconDirective } from '@coreui/icons-angular';
 import { ApiService } from '../../../core/services/api.service';
 
@@ -126,6 +127,7 @@ export class RentalDashboardComponent implements OnInit {
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    syncChartsWithTheme();
     this.load();
   }
 
@@ -275,12 +277,9 @@ export class RentalDashboardComponent implements OnInit {
     return new Intl.NumberFormat('fr-GN', { minimumFractionDigits: 0 }).format(value || 0) + ' ' + currency;
   }
 
-  /** Axe Y lisible : 1 500 000 → « 1,5 M ». */
+  /** Axe Y : montant complet, sans abreviation : 1 500 000 (jamais « 1,5 M »). */
   private compact(value: number): string {
-    const abs = Math.abs(value);
-    if (abs >= 1_000_000) return (value / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' M';
-    if (abs >= 1_000) return (value / 1_000).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' k';
-    return String(value);
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value) || 0);
   }
 
   /** « 2026-08 » → « Août 2026 ». */

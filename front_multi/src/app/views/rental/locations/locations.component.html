@@ -11,7 +11,7 @@
         <span style="background:rgba(255,255,255,0.15);border-radius:50px;padding:5px 16px;font-size:0.85rem;">
           Total: <strong>{{ totalItems }}</strong>
         </span>
-        <button *ngIf="canCreateLocations" (click)="openCreateModal()" style="display:inline-flex;align-items:center;gap:6px;background:white;color:#0f3460;border:none;border-radius:8px;padding:8px 18px;font-size:0.875rem;font-weight:700;cursor:pointer;">
+        <button *ngIf="canCreateLocations" (click)="openCreateModal()" style="display:inline-flex;align-items:center;gap:6px;background:var(--app-surface);color:var(--app-brand-fg);border:none;border-radius:8px;padding:8px 18px;font-size:0.875rem;font-weight:700;cursor:pointer;">
           + Nouvel emplacement
         </button>
       </div>
@@ -29,15 +29,15 @@
   </div>
 
   <!-- Card -->
-  <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+  <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
 
     <!-- Card Header -->
-    <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;">
-      <div style="width:32px;height:32px;border-radius:8px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;">
-        <svg cIcon name="cilHome" style="color:#2563EB;width:16px;height:16px;"></svg>
+    <div style="padding:16px 20px;border-bottom:1px solid var(--app-border-soft);display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:8px;background:var(--app-blue-bg);display:flex;align-items:center;justify-content:center;">
+        <svg cIcon name="cilHome" style="color:var(--app-blue-fg);width:16px;height:16px;"></svg>
       </div>
-      <span style="font-weight:600;font-size:0.95rem;color:#1e293b;">Liste des Emplacements</span>
-      <span style="margin-left:auto;background:#EEF2FF;color:#4F46E5;padding:3px 12px;border-radius:50px;font-size:0.78rem;font-weight:600;">{{ totalItems }} au total</span>
+      <span style="font-weight:600;font-size:0.95rem;color:var(--app-text-strong);">Liste des Emplacements</span>
+      <span style="margin-left:auto;background:var(--app-indigo-bg);color:var(--app-indigo-fg-strong);padding:3px 12px;border-radius:50px;font-size:0.78rem;font-weight:600;">{{ totalItems }} au total</span>
     </div>
 
     <!-- Loading -->
@@ -50,45 +50,45 @@
     <div *ngIf="!loading">
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-          <thead style="background:#f8fafc;">
+          <thead style="background:var(--app-surface-2);">
             <tr>
-              <th style="padding:12px 20px;font-size:0.75rem;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border:none;">Nom</th>
-              <th style="padding:12px 20px;font-size:0.75rem;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border:none;">Date de creation</th>
-              <th style="padding:12px 20px;font-size:0.75rem;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border:none;width:140px;">Actions</th>
+              <th style="padding:12px 20px;font-size:0.75rem;font-weight:600;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.5px;border:none;">Nom</th>
+              <th style="padding:12px 20px;font-size:0.75rem;font-weight:600;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.5px;border:none;">Date de creation</th>
+              <th style="padding:12px 20px;font-size:0.75rem;font-weight:600;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.5px;border:none;width:140px;">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of locations; trackBy: trackById">
               <td style="padding:14px 20px;">
                 <div class="d-flex align-items-center gap-3">
-                  <div style="width:36px;height:36px;border-radius:9px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <svg cIcon name="cilHome" style="color:#2563EB;width:16px;height:16px;"></svg>
+                  <div style="width:36px;height:36px;border-radius:9px;background:var(--app-blue-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg cIcon name="cilHome" style="color:var(--app-blue-fg);width:16px;height:16px;"></svg>
                   </div>
-                  <span style="font-weight:600;color:#1e293b;font-size:0.875rem;">{{ item.name }}</span>
+                  <span style="font-weight:600;color:var(--app-text-strong);font-size:0.875rem;">{{ item.name }}</span>
                 </div>
               </td>
               <td style="padding:14px 20px;">
-                <span style="font-size:0.85rem;color:#6c757d;">{{ item.created_at | date:'dd/MM/yyyy' }}</span>
+                <span style="font-size:0.85rem;color:var(--app-text-muted);">{{ item.created_at | date:'dd/MM/yyyy' }}</span>
               </td>
               <td style="padding:14px 20px;">
                 <div class="d-flex gap-2">
                   <button *ngIf="canEditLocations" (click)="openEditModal(item)" title="Modifier"
-                    style="width:32px;height:32px;border:1px solid #dee2e6;border-radius:8px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6c757d;transition:all .15s;"
-                    onmouseenter="this.style.borderColor='#2563EB';this.style.color='#2563EB';this.style.background='#EFF6FF'"
-                    onmouseleave="this.style.borderColor='#dee2e6';this.style.color='#6c757d';this.style.background='white'">
+                    style="width:32px;height:32px;border:1px solid var(--app-border);border-radius:8px;background:var(--app-surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--app-text-muted);transition:all .15s;"
+                    onmouseenter="this.style.borderColor='#2563EB';this.style.color='#2563EB';this.style.background='var(--app-blue-bg)'"
+                    onmouseleave="this.style.borderColor='var(--app-border)';this.style.color='var(--app-text-muted)';this.style.background='var(--app-surface)'">
                     <svg cIcon name="cilPencil" style="width:14px;height:14px;"></svg>
                   </button>
                   <button *ngIf="canDeleteLocations" (click)="confirmDelete(item)" title="Supprimer"
-                    style="width:32px;height:32px;border:1px solid #dee2e6;border-radius:8px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6c757d;transition:all .15s;"
-                    onmouseenter="this.style.borderColor='#EF4444';this.style.color='#EF4444';this.style.background='#FEF2F2'"
-                    onmouseleave="this.style.borderColor='#dee2e6';this.style.color='#6c757d';this.style.background='white'">
+                    style="width:32px;height:32px;border:1px solid var(--app-border);border-radius:8px;background:var(--app-surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--app-text-muted);transition:all .15s;"
+                    onmouseenter="this.style.borderColor='#EF4444';this.style.color='#EF4444';this.style.background='var(--app-red-bg)'"
+                    onmouseleave="this.style.borderColor='var(--app-border)';this.style.color='var(--app-text-muted)';this.style.background='var(--app-surface)'">
                     <svg cIcon name="cilTrash" style="width:14px;height:14px;"></svg>
                   </button>
                 </div>
               </td>
             </tr>
             <tr *ngIf="locations.length === 0">
-              <td colspan="3" class="text-center py-5" style="color:#6c757d;font-size:0.875rem;">
+              <td colspan="3" class="text-center py-5" style="color:var(--app-text-muted);font-size:0.875rem;">
                 <svg cIcon name="cilHome" style="width:2.5rem;height:2.5rem;color:#dee2e6;display:block;margin:0 auto 12px;"></svg>
                 Aucun emplacement trouve
               </td>
@@ -98,16 +98,16 @@
       </div>
 
       <!-- Pagination -->
-      <div *ngIf="totalPages > 1" class="d-flex justify-content-center py-3" style="border-top:1px solid #f0f0f0;">
+      <div *ngIf="totalPages > 1" class="d-flex justify-content-center py-3" style="border-top:1px solid var(--app-border-soft);">
         <ul class="pagination pagination-sm mb-0" style="gap:4px;">
           <li class="page-item" [class.disabled]="currentPage === 1">
-            <a class="page-link" (click)="onPageChange(currentPage - 1)" style="border-radius:6px;cursor:pointer;border-color:#dee2e6;">Precedent</a>
+            <a class="page-link" (click)="onPageChange(currentPage - 1)" style="border-radius:6px;cursor:pointer;border-color:var(--app-border);">Precedent</a>
           </li>
           <li *ngFor="let page of getPages(); trackBy: trackById" class="page-item" [class.active]="page === currentPage">
             <a class="page-link" (click)="onPageChange(page)" style="border-radius:6px;cursor:pointer;">{{ page }}</a>
           </li>
           <li class="page-item" [class.disabled]="currentPage === totalPages">
-            <a class="page-link" (click)="onPageChange(currentPage + 1)" style="border-radius:6px;cursor:pointer;border-color:#dee2e6;">Suivant</a>
+            <a class="page-link" (click)="onPageChange(currentPage + 1)" style="border-radius:6px;cursor:pointer;border-color:var(--app-border);">Suivant</a>
           </li>
         </ul>
       </div>
@@ -117,14 +117,14 @@
 
 <!-- Modal Creer / Modifier -->
 <c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0;padding:20px 24px;">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);padding:20px 24px;">
     <h5 cModalTitle style="font-weight:700;margin:0;">{{ editMode ? 'Modifier l\'emplacement' : 'Nouvel emplacement' }}</h5>
     <button type="button" class="btn-close" (click)="showFormModal = false"></button>
   </c-modal-header>
   <c-modal-body style="padding:24px;">
     <form [formGroup]="locationForm">
       <div class="mb-3">
-        <label cLabel style="font-size:0.8rem;font-weight:600;color:#495057;display:block;margin-bottom:6px;">Nom *</label>
+        <label cLabel style="font-size:0.8rem;font-weight:600;color:var(--app-text);display:block;margin-bottom:6px;">Nom *</label>
         <input cFormControl type="text" formControlName="name" placeholder="Nom de l'emplacement"
           [class.is-invalid]="submitted && locationForm.get('name')?.invalid"
           style="border-radius:8px;" />
@@ -134,7 +134,7 @@
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #f0f0f0;padding:16px 24px;gap:10px;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);padding:16px 24px;gap:10px;">
     <button cButton color="secondary" (click)="showFormModal = false" style="border-radius:8px;">Annuler</button>
     <button *ngIf="editMode ? canEditLocations : canCreateLocations" cButton color="primary" (click)="save()" style="border-radius:8px;background:linear-gradient(135deg,#2563EB,#1d4ed8);border:none;">
       {{ editMode ? 'Mettre a jour' : 'Creer' }}
@@ -144,22 +144,22 @@
 
 <!-- Modal Suppression -->
 <c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0;padding:20px 24px;">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);padding:20px 24px;">
     <h5 cModalTitle style="font-weight:700;margin:0;">Confirmer la suppression</h5>
     <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
   </c-modal-header>
   <c-modal-body style="padding:24px;">
     <div class="d-flex align-items-start gap-3">
-      <div style="width:44px;height:44px;border-radius:10px;background:#FEF2F2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <div style="width:44px;height:44px;border-radius:10px;background:var(--app-red-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         <svg cIcon name="cilTrash" style="color:#EF4444;width:20px;height:20px;"></svg>
       </div>
       <div>
-        <p style="margin:0 0 6px;font-weight:600;color:#1e293b;">Supprimer l'emplacement <strong>{{ itemToDelete?.name }}</strong> ?</p>
+        <p style="margin:0 0 6px;font-weight:600;color:var(--app-text-strong);">Supprimer l'emplacement <strong>{{ itemToDelete?.name }}</strong> ?</p>
         <p style="margin:0;font-size:0.875rem;color:#EF4444;">Cette action est irreversible.</p>
       </div>
     </div>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #f0f0f0;padding:16px 24px;gap:10px;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);padding:16px 24px;gap:10px;">
     <button cButton color="secondary" (click)="deleteModalOpen = false" style="border-radius:8px;">Annuler</button>
     <button *ngIf="canDeleteLocations" cButton color="danger" (click)="deleteItem()" style="border-radius:8px;">Supprimer</button>
   </c-modal-footer>

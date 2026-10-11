@@ -39,7 +39,7 @@
   </div>
 
   <!-- Tableau -->
-  <div *ngIf="!loading" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+  <div *ngIf="!loading" style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
 
     <div *ngIf="exchangeRates.length === 0" class="text-center py-5">
       <svg cIcon name="cilSwapHorizontal" style="color:#D1D5DB;width:40px;height:40px;" class="mb-3"></svg>
@@ -49,29 +49,29 @@
     <div class="table-responsive" *ngIf="exchangeRates.length > 0">
       <table class="table table-hover align-middle mb-0" style="font-size:13px;">
         <thead>
-          <tr style="background:#F9FAFB;border-bottom:2px solid #F3F4F6;">
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Devise</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Taux</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date du taux</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date création</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;width:130px;">Actions</th>
+          <tr style="background:var(--app-surface-2);border-bottom:2px solid var(--app-border-soft);">
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Devise</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Taux</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date du taux</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date création</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;width:130px;">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let rate of exchangeRates; trackBy: trackById" style="border-color:#F3F4F6;">
+          <tr *ngFor="let rate of exchangeRates; trackBy: trackById" style="border-color:var(--app-border-soft);">
             <td class="px-4 py-3">
               <span class="fw-bold px-2 py-1 rounded-2"
-                    style="background:#F5F3FF;color:#7C3AED;font-size:12px;letter-spacing:.5px;">
+                    style="background:var(--app-violet-bg);color:var(--app-violet-fg);font-size:12px;letter-spacing:.5px;">
                 {{ getCurrencyName(rate.currency_id) }}
               </span>
             </td>
             <td class="px-4 py-3">
               <span class="fw-bold px-2 py-1 rounded-2"
-                    style="background:#F0F9FF;color:#0EA5E9;font-size:13px;">
+                    style="background:var(--app-cyan-bg);color:#0EA5E9;font-size:13px;">
                 {{ rate.rate }}
               </span>
             </td>
-            <td class="px-4 py-3 small" style="color:#374151;">
+            <td class="px-4 py-3 small" style="color:var(--app-text);">
               {{ rate.rate_date | date:'dd/MM/yyyy' }}
             </td>
             <td class="px-4 py-3 small" style="color:#9CA3AF;">
@@ -80,13 +80,13 @@
             <td class="px-4 py-3">
               <div class="d-flex gap-2">
                 <button *ngIf="canEditRate" class="btn btn-sm d-flex align-items-center justify-content-center"
-                        style="width:32px;height:32px;padding:0;background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;"
+                        style="width:32px;height:32px;padding:0;background:var(--app-amber-bg);color:#F59E0B;border:1px solid var(--app-amber-border);border-radius:8px;"
                         (click)="openEditModal(rate)"
                         title="Modifier">
                   <svg cIcon name="cilPencil" style="width:14px;height:14px;"></svg>
                 </button>
                 <button *ngIf="canDeleteRate" class="btn btn-sm d-flex align-items-center justify-content-center"
-                        style="width:32px;height:32px;padding:0;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:8px;"
+                        style="width:32px;height:32px;padding:0;background:var(--app-red-bg);color:#EF4444;border:1px solid var(--app-red-border);border-radius:8px;"
                         (click)="confirmDelete(rate)"
                         title="Supprimer">
                   <svg cIcon name="cilTrash" style="width:14px;height:14px;"></svg>
@@ -100,7 +100,7 @@
 
     <!-- Pagination -->
     <div *ngIf="totalPages > 1" class="d-flex justify-content-between align-items-center px-4 py-3"
-         style="border-top:1px solid #F3F4F6;">
+         style="border-top:1px solid var(--app-border-soft);">
       <span class="small" style="color:#9CA3AF;">
         Page {{ currentPage }} sur {{ totalPages }} — {{ totalItems }} résultat(s)
       </span>
@@ -126,8 +126,8 @@
 
 <!-- Modal Formulaire -->
 <c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #F3F4F6;">
-    <h5 cModalTitle class="fw-bold" style="color:#111827;">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);">
+    <h5 cModalTitle class="fw-bold" style="color:var(--app-heading);">
       {{ editMode ? 'Modifier le taux de change' : 'Nouveau taux de change' }}
     </h5>
     <button type="button" class="btn-close" (click)="showFormModal = false"></button>
@@ -136,7 +136,7 @@
     <form [formGroup]="rateForm">
 
       <div class="mb-3">
-        <label class="form-label fw-semibold small" style="color:#374151;">Devise *</label>
+        <label class="form-label fw-semibold small" style="color:var(--app-text);">Devise *</label>
         <select cSelect formControlName="currency_id"
                 style="border-radius:8px;"
                 [class.is-invalid]="submitted && rateForm.get('currency_id')?.invalid">
@@ -149,7 +149,7 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label fw-semibold small" style="color:#374151;">Taux *</label>
+        <label class="form-label fw-semibold small" style="color:var(--app-text);">Taux *</label>
         <input cFormControl type="number" formControlName="rate" step="0.0001"
                placeholder="Ex: 9500.0000"
                style="border-radius:8px;"
@@ -160,7 +160,7 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label fw-semibold small" style="color:#374151;">Date *</label>
+        <label class="form-label fw-semibold small" style="color:var(--app-text);">Date *</label>
         <input cFormControl type="date" formControlName="rate_date"
                style="border-radius:8px;"
                [class.is-invalid]="submitted && rateForm.get('rate_date')?.invalid" />
@@ -171,9 +171,9 @@
 
     </form>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #F3F4F6;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);">
     <button class="btn"
-            style="border-radius:8px;background:#F3F4F6;color:#374151;border:none;"
+            style="border-radius:8px;background:var(--app-surface-3);color:var(--app-text);border:none;"
             (click)="showFormModal = false">
       Annuler
     </button>
@@ -187,23 +187,23 @@
 
 <!-- Modal Suppression -->
 <c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #F3F4F6;">
-    <h5 cModalTitle class="fw-bold" style="color:#111827;">Confirmer la suppression</h5>
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);">
+    <h5 cModalTitle class="fw-bold" style="color:var(--app-heading);">Confirmer la suppression</h5>
     <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
   </c-modal-header>
   <c-modal-body class="p-4 text-center">
     <div class="mb-3 d-flex justify-content-center">
       <div class="rounded-circle d-flex align-items-center justify-content-center"
-           style="width:56px;height:56px;background:#FEF2F2;">
+           style="width:56px;height:56px;background:var(--app-red-bg);">
         <svg cIcon name="cilTrash" style="color:#EF4444;width:26px;height:26px;"></svg>
       </div>
     </div>
-    <h6 class="fw-bold mb-2" style="color:#111827;">Supprimer ce taux de change ?</h6>
+    <h6 class="fw-bold mb-2" style="color:var(--app-heading);">Supprimer ce taux de change ?</h6>
     <p class="small mb-0" style="color:#EF4444;">Cette action est irréversible.</p>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #F3F4F6;justify-content:center;gap:12px;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);justify-content:center;gap:12px;">
     <button class="btn"
-            style="border-radius:8px;background:#F3F4F6;color:#374151;border:none;min-width:100px;"
+            style="border-radius:8px;background:var(--app-surface-3);color:var(--app-text);border:none;min-width:100px;"
             (click)="deleteModalOpen = false">
       Annuler
     </button>

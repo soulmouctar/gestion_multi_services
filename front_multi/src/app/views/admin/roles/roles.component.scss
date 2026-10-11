@@ -5,7 +5,7 @@
 
 // Card customizations
 .card {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
@@ -18,19 +18,19 @@
 // Table customizations
 .table {
   th {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
+    background-color: var(--app-surface-2);
+    border-bottom: 2px solid var(--app-border);
     font-weight: 600;
-    color: #495057;
+    color: var(--app-text);
   }
 
   td {
     vertical-align: middle;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--app-border);
   }
 
   tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--app-surface-2);
   }
 }
 
@@ -73,19 +73,19 @@
 
 // Modal customizations
 .modal-header {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background-color: var(--app-surface-2);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .modal-footer {
-  background-color: #f8f9fa;
-  border-top: 1px solid #dee2e6;
+  background-color: var(--app-surface-2);
+  border-top: 1px solid var(--app-border);
 }
 
 // Form customizations
 .form-check {
   padding: 0.5rem 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--app-border-soft);
 
   &:last-child {
     border-bottom: none;
@@ -156,7 +156,7 @@
   }
 
   &::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--app-surface-3);
     border-radius: 3px;
   }
 
@@ -194,7 +194,7 @@
   
   &.bg-warning {
     background-color: #ffc107 !important;
-    color: #000 !important;
+    color: var(--app-heading) !important;
   }
   
   &.bg-primary {
@@ -207,6 +207,6 @@
   
   &.bg-info {
     background-color: #0dcaf0 !important;
-    color: #000 !important;
+    color: var(--app-heading) !important;
   }
 }

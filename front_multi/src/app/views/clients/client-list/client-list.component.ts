@@ -404,36 +404,36 @@ export class ClientListComponent implements OnInit {
   }
 
   getEntryColor(type: string, direction: string): { bg: string; color: string } {
-    if (direction === 'credit') return { bg: '#ECFDF5', color: '#059669' };
+    if (direction === 'credit') return { bg: 'var(--app-green-bg)', color: '#059669' };
     const colors: Record<string, { bg: string; color: string }> = {
-      invoice:        { bg: '#EFF6FF', color: '#1D4ED8' },
-      container_sale: { bg: '#F5F3FF', color: '#7C3AED' },
+      invoice:        { bg: 'var(--app-blue-bg)', color: 'var(--app-blue-fg-strong)' },
+      container_sale: { bg: 'var(--app-violet-bg)', color: 'var(--app-violet-fg)' },
     };
-    return colors[type] ?? { bg: '#F3F4F6', color: '#6B7280' };
+    return colors[type] ?? { bg: 'var(--app-surface-3)', color: 'var(--app-text-muted)' };
   }
 
   getStatusBadge(entry: any): { label: string; bg: string; color: string } | null {
     if (entry.type === 'invoice') {
       const map: any = {
-        PAYE:   { label: 'Payée',    bg: '#ECFDF5', color: '#059669' },
-        PARTIEL:{ label: 'Partielle',bg: '#FFFBEB', color: '#D97706' },
-        IMPAYE: { label: 'Impayée',  bg: '#FEF2F2', color: '#DC2626' },
+        PAYE:   { label: 'Payée',    bg: 'var(--app-green-bg)', color: '#059669' },
+        PARTIEL:{ label: 'Partielle',bg: 'var(--app-amber-bg)', color: '#D97706' },
+        IMPAYE: { label: 'Impayée',  bg: 'var(--app-red-bg)', color: 'var(--app-red-fg)' },
       };
       return map[entry.status] ?? null;
     }
     if (entry.type === 'container_sale') {
       const map: any = {
-        PAYE_TOTAL: { label: 'Payé',    bg: '#ECFDF5', color: '#059669' },
-        PARTIEL:    { label: 'Partiel', bg: '#FFFBEB', color: '#D97706' },
-        IMPAYE:     { label: 'Impayé',  bg: '#FEF2F2', color: '#DC2626' },
+        PAYE_TOTAL: { label: 'Payé',    bg: 'var(--app-green-bg)', color: '#059669' },
+        PARTIEL:    { label: 'Partiel', bg: 'var(--app-amber-bg)', color: '#D97706' },
+        IMPAYE:     { label: 'Impayé',  bg: 'var(--app-red-bg)', color: 'var(--app-red-fg)' },
       };
       return map[entry.status] ?? null;
     }
     if (entry.type === 'advance') {
       const map: any = {
-        DISPONIBLE: { label: 'Disponible', bg: '#ECFDF5', color: '#059669' },
-        UTILISE:    { label: 'Utilisé',    bg: '#F3F4F6', color: '#6B7280' },
-        PARTIEL:    { label: 'Partiel',    bg: '#FFFBEB', color: '#D97706' },
+        DISPONIBLE: { label: 'Disponible', bg: 'var(--app-green-bg)', color: '#059669' },
+        UTILISE:    { label: 'Utilisé',    bg: 'var(--app-surface-3)', color: 'var(--app-text-muted)' },
+        PARTIEL:    { label: 'Partiel',    bg: 'var(--app-amber-bg)', color: '#D97706' },
       };
       return map[entry.status] ?? null;
     }
@@ -514,11 +514,11 @@ export class ClientListComponent implements OnInit {
   getFinancialStatusStyle(status: string | undefined): { bg: string; color: string } {
     switch (status) {
       case 'DEBITEUR':
-        return { bg: '#FEF2F2', color: '#DC2626' };
+        return { bg: 'var(--app-red-bg)', color: 'var(--app-red-fg)' };
       case 'AVANCE':
-        return { bg: '#ECFDF5', color: '#059669' };
+        return { bg: 'var(--app-green-bg)', color: '#059669' };
       default:
-        return { bg: '#EFF6FF', color: '#2563EB' };
+        return { bg: 'var(--app-blue-bg)', color: 'var(--app-blue-fg)' };
     }
   }
 

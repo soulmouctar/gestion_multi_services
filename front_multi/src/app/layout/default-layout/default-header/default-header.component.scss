@@ -11,14 +11,9 @@
   flex: 0 0 auto;
 }
 
-.app-header-links,
 .app-header-actions {
   align-items: center;
   gap: 0.25rem;
-}
-
-.app-header-links {
-  flex: 0 1 auto;
 }
 
 .header-spacer {
@@ -34,7 +29,7 @@
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 0.9rem;
-  border: 1px solid #dbe4f0;
+  border: 1px solid var(--app-border);
   background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
   color: #fff;
   overflow: hidden;
@@ -75,7 +70,7 @@
   height: 0.65rem;
   border-radius: 999px;
   background: #16a34a;
-  border: 2px solid #fff;
+  border: 2px solid var(--app-surface);
 }
 
 .header-mobile-tenant {
@@ -89,7 +84,7 @@
 }
 
 .header-tenant-bar {
-  background: #fff;
+  background: var(--app-surface);
 }
 
 @media (max-width: 1199.98px) {

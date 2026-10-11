@@ -662,7 +662,7 @@ export class PaymentsListComponent implements OnInit {
   isIncoming(type: string): boolean { return this.paymentService.isIncoming(type as any); }
 
   getStatusBg(status: string): string {
-    return ({ COMPLETED: '#ECFDF5', PENDING: '#FFFBEB', FAILED: '#FEF2F2', CANCELLED: '#F3F4F6' } as any)[status] ?? '#F3F4F6';
+    return ({ COMPLETED: 'var(--app-green-bg)', PENDING: 'var(--app-amber-bg)', FAILED: 'var(--app-red-bg)', CANCELLED: 'var(--app-surface-3)' } as any)[status] ?? 'var(--app-surface-3)';
   }
   getStatusColor(status: string): string {
     return ({ COMPLETED: '#10B981', PENDING: '#F59E0B', FAILED: '#EF4444', CANCELLED: '#6B7280' } as any)[status] ?? '#6B7280';

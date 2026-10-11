@@ -1,10 +1,10 @@
 /* Achats fournisseurs — meme grammaire que les autres tableaux de l'application. */
 
 :host {
-  --p-border: #e6ebf2;
-  --p-line: #eef2f7;
-  --p-navy: #172033;
-  --p-text: #29354a;
+  --p-border: var(--app-border);
+  --p-line: var(--app-border-soft);
+  --p-navy: var(--app-heading);
+  --p-text: var(--app-text-strong);
   --p-muted: #8a96a7;
 }
 
@@ -34,8 +34,8 @@
 .btn-main:hover:not(:disabled) { background: #1a43b8; }
 .btn-main:disabled, .btn-ghost:disabled { opacity: .6; cursor: not-allowed; }
 .btn-main svg { width: 14px; height: 14px; }
-.btn-ghost { color: var(--p-text); border: 1px solid var(--p-border); background: #fff; }
-.btn-ghost:hover:not(:disabled) { background: #f5f8fc; }
+.btn-ghost { color: var(--p-text); border: 1px solid var(--p-border); background: var(--app-surface); }
+.btn-ghost:hover:not(:disabled) { background: var(--app-surface-2); }
 
 /* Formulaire */
 .sp-form {
@@ -43,21 +43,21 @@
   padding: 1rem 1.15rem;
   border: 1px solid var(--p-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--app-surface);
 }
 .sp-form h2 { margin: 0 0 .8rem; color: var(--p-navy); font-size: .82rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .7rem .9rem; }
 .f { display: flex; flex-direction: column; gap: .25rem; }
 .f-wide { grid-column: span 2; }
-.f span { color: #5f6e82; font-size: .75rem; font-weight: 600; }
+.f span { color: var(--app-text-muted); font-size: .75rem; font-weight: 600; }
 .f input, .f select {
   height: 38px;
   padding: 0 .6rem;
   border: 1px solid var(--p-border);
   border-radius: 8px;
   color: var(--p-text);
-  background: #fff;
+  background: var(--app-surface);
   font-family: inherit;
   font-size: .86rem;
 }
@@ -77,7 +77,7 @@
   padding: .7rem .9rem;
   border: 1px solid var(--p-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--app-surface);
 }
 .sp-filters label { display: inline-flex; align-items: center; gap: .35rem; color: var(--p-muted); font-size: .78rem; }
 .sp-filters input, .sp-filters select {
@@ -96,7 +96,7 @@
   overflow: hidden;
   border: 1px solid var(--p-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--app-surface);
   box-shadow: 0 4px 14px rgba(15, 42, 67, .04);
 }
 .sp-scroll { overflow: auto; max-height: calc(100vh - 380px); overscroll-behavior: contain; }
@@ -109,8 +109,8 @@
   z-index: 2;
   height: 42px;
   padding: .55rem .7rem;
-  color: #69778b;
-  background: #f8fafc;
+  color: var(--app-text-muted);
+  background: var(--app-surface-2);
   box-shadow: inset 0 -1px 0 var(--p-border);
   font-size: .69rem;
   font-weight: 700;
@@ -130,7 +130,7 @@
 .sp-table th:first-child, .sp-table td:first-child { padding-left: 1.05rem; }
 .sp-table th:last-child, .sp-table td:last-child { padding-right: 1.05rem; }
 .sp-table tbody tr:last-child td { border-bottom: 0; }
-.sp-table tbody tr:hover td { background: #f9fbfd; }
+.sp-table tbody tr:hover td { background: var(--app-surface-2); }
 
 .sp-table .num, .sp-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .sp-table .center, .sp-table th.center { text-align: center; }
@@ -144,8 +144,8 @@
   display: inline-block;
   padding: .15rem .5rem;
   border-radius: 20px;
-  color: #475569;
-  background: #eef2f7;
+  color: var(--app-text-2);
+  background: var(--app-surface-3);
   font-size: .71rem;
   font-weight: 600;
 }
@@ -157,11 +157,11 @@
   height: 30px;
   border: 1px solid transparent;
   border-radius: 8px;
-  color: #b91c1c;
+  color: var(--app-red-fg-strong);
   background: transparent;
   cursor: pointer;
 }
-.del:hover { border-color: #f6c2c2; background: #fef2f2; }
+.del:hover { border-color: var(--app-red-border); background: var(--app-red-bg); }
 .del svg { width: 15px; height: 15px; }
 
 .empty { color: var(--p-muted); text-align: center; }

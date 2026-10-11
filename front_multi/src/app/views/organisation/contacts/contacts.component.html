@@ -22,7 +22,7 @@
 
   <!-- Vide -->
   <div *ngIf="!loading && contacts.length === 0"
-       class="bg-white text-center py-5" style="border-radius:12px; border:1px solid #f0f0f0;">
+       class="bg-white text-center py-5" style="border-radius:12px; border:1px solid var(--app-border-soft);">
     <svg cIcon name="cilAddressBook" size="3xl" class="mb-3 opacity-25"></svg>
     <h5 class="text-muted">Aucun contact configuré</h5>
     <p class="text-muted small">Ajoutez votre premier contact pour commencer</p>
@@ -35,8 +35,8 @@
   <div *ngIf="!loading && contacts.length > 0" class="row g-3">
     <div class="col-12 col-md-6 col-xl-4" *ngFor="let contact of contacts; trackBy: trackById">
       <div class="bg-white h-100 d-flex flex-column"
-           style="border-radius:12px; border:1px solid #f0f0f0; transition:box-shadow .2s;"
-           [style.border-color]="contact.is_default ? '#3B82F6' : '#f0f0f0'"
+           style="border-radius:12px; border:1px solid var(--app-border-soft); transition:box-shadow .2s;"
+           [style.border-color]="contact.is_default ? '#3B82F6' : 'var(--app-border-soft)'"
            onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.08)'"
            onmouseout="this.style.boxShadow='none'">
 
@@ -44,7 +44,7 @@
         <div class="d-flex align-items-center justify-content-between px-3 py-3 border-bottom">
           <div class="d-flex align-items-center gap-2">
             <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:32px; height:32px; background:#EFF6FF;">
+                 style="width:32px; height:32px; background:var(--app-blue-bg);">
               <svg cIcon [name]="getContactTypeIcon(contact.type)" size="sm" style="color:#3B82F6;"></svg>
             </div>
             <span class="fw-semibold small">{{ getContactTypeLabel(contact.type) }}</span>
@@ -52,7 +52,7 @@
           <div class="d-flex align-items-center gap-1">
             <span *ngIf="contact.is_default"
                   class="badge px-2 py-1 small"
-                  style="background:#EFF6FF; color:#3B82F6; border-radius:6px;">Par défaut</span>
+                  style="background:var(--app-blue-bg); color:#3B82F6; border-radius:6px;">Par défaut</span>
             <button cButton size="sm" color="light" variant="ghost" (click)="openModal(contact)"
                     title="Modifier" style="border-radius:6px;">
               <svg cIcon name="cilPencil" size="sm"></svg>
@@ -199,7 +199,7 @@
 
         <div class="col-12">
           <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
-               style="background:#f8fafc; border:1px solid #f0f0f0;">
+               style="background:var(--app-surface-2); border:1px solid var(--app-border-soft);">
             <div>
               <div class="fw-semibold small">Définir comme contact par défaut</div>
               <div class="text-muted small">Ce contact sera utilisé en priorité</div>

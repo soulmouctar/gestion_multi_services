@@ -24,7 +24,7 @@
   </div>
 
   <!-- Filtres -->
-  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div class="card mb-4" style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
     <div class="card-body">
       <form [formGroup]="filterForm" class="row g-3 align-items-end">
         <div class="col-md-6">
@@ -50,9 +50,9 @@
   </div>
 
   <!-- Tableau des plans -->
-  <div class="card" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div class="card" style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3"
-         style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+         style="border-radius:14px 14px 0 0;border-bottom:1px solid var(--app-border-soft)">
       <span class="fw-bold fs-5">Liste des Plans</span>
       <span *ngIf="loading" class="spinner-border spinner-border-sm text-primary"></span>
     </div>
@@ -76,15 +76,15 @@
       <div class="table-responsive" *ngIf="plans.length > 0">
         <table class="table table-hover align-middle mb-0">
           <thead>
-            <tr style="background:#f8fafc">
-              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid #f0f0f0">Plan</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Durée</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Prix total</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Prix/mois</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Fonctionnalités</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Limites</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Statut</th>
-              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid #f0f0f0">Actions</th>
+            <tr style="background:var(--app-surface-2)">
+              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid var(--app-border-soft)">Plan</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Durée</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Prix total</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Prix/mois</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Fonctionnalités</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Limites</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Statut</th>
+              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid var(--app-border-soft)">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -103,7 +103,7 @@
               </td>
               <td>
                 <span class="badge rounded-pill px-3 py-1"
-                      style="background:#EFF6FF;color:#3B82F6">
+                      style="background:var(--app-blue-bg);color:#3B82F6">
                   {{ getDurationText(plan.duration_months) }}
                 </span>
               </td>
@@ -122,13 +122,13 @@
                   <span *ngFor="let feature of plan.features || []; let i = index; trackBy: trackById"
                         [class.d-none]="i >= 2"
                         class="badge rounded-pill small"
-                        style="background:#F0FDF4;color:#16A34A;font-size:.7rem"
+                        style="background:var(--app-green-bg);color:#16A34A;font-size:.7rem"
                         [title]="feature">
                     {{ feature }}
                   </span>
                   <span *ngIf="plan.features && plan.features.length > 2"
                         class="badge rounded-pill small"
-                        style="background:#EFF6FF;color:#3B82F6;font-size:.7rem">
+                        style="background:var(--app-blue-bg);color:#3B82F6;font-size:.7rem">
                     +{{ plan.features.length - 2 }}
                   </span>
                 </div>
@@ -267,7 +267,7 @@
         </div>
 
         <div class="col-md-6 d-flex align-items-center">
-          <div class="rounded-3 p-3 w-100" style="background:#F8FAFC;border:1px solid #f0f0f0">
+          <div class="rounded-3 p-3 w-100" style="background:var(--app-surface-2);border:1px solid var(--app-border-soft)">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" formControlName="is_active" id="planStatus">
               <label class="form-check-label fw-semibold" for="planStatus">Plan actif</label>
@@ -277,7 +277,7 @@
 
         <div class="col-12">
           <label class="form-label fw-semibold">Fonctionnalités <span class="text-danger">*</span></label>
-          <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #f0f0f0">
+          <div class="rounded-3 p-3" style="background:var(--app-surface-2);border:1px solid var(--app-border-soft)">
             <div class="row g-2">
               <div class="col-md-4" *ngFor="let feature of availableFeatures; trackBy: trackById">
                 <div class="form-check">
@@ -299,7 +299,7 @@
     </form>
   </c-modal-body>
 
-  <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+  <c-modal-footer class="px-4 py-3" style="background:var(--app-surface-2);border-top:1px solid var(--app-border-soft)">
     <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
             (click)="closePlanModal()" [disabled]="loading">Annuler</button>
     <button type="button" class="btn btn-primary rounded-pill px-4"
@@ -312,19 +312,19 @@
 
 <!-- Modal confirmation suppression -->
 <c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
-  <c-modal-header class="px-4 py-3" style="border-bottom:1px solid #f0f0f0">
+  <c-modal-header class="px-4 py-3" style="border-bottom:1px solid var(--app-border-soft)">
     <h5 cModalTitle class="fw-bold">Confirmer la suppression</h5>
     <button cButtonClose (click)="closeDeleteModal()" [disabled]="loading"></button>
   </c-modal-header>
   <c-modal-body class="px-4 py-4">
     <p>Êtes-vous sûr de vouloir supprimer le plan <strong>{{ planToDelete?.name }}</strong> ?</p>
     <div class="rounded-3 p-3 d-flex gap-2 align-items-start"
-         style="background:#FEF3C7;border:1px solid #FDE68A">
+         style="background:var(--app-amber-bg-2);border:1px solid var(--app-amber-border)">
       <svg cIcon name="cil-warning" class="text-warning flex-shrink-0 mt-1"></svg>
       <span class="small text-warning-emphasis">Cette action est irréversible et peut affecter les abonnements utilisant ce plan.</span>
     </div>
   </c-modal-body>
-  <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+  <c-modal-footer class="px-4 py-3" style="background:var(--app-surface-2);border-top:1px solid var(--app-border-soft)">
     <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
             (click)="closeDeleteModal()" [disabled]="loading">Annuler</button>
     <button type="button" class="btn btn-danger rounded-pill px-4"

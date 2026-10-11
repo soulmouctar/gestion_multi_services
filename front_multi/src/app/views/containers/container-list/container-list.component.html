@@ -36,7 +36,7 @@
   </c-alert>
 
   <!-- ===== CARD PRINCIPALE ===== -->
-  <div style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);overflow:hidden">
+  <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);overflow:hidden">
 
     <!-- Loading -->
     <div *ngIf="loading" class="text-center p-5">
@@ -47,7 +47,7 @@
     <!-- Table -->
     <div class="table-responsive" *ngIf="!loading">
       <table class="table table-hover align-middle mb-0">
-        <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+        <thead style="background:var(--app-surface-2);font-size:.72rem;text-transform:uppercase;color:var(--app-text-muted)">
           <tr>
             <th class="ps-4 py-3" style="font-weight:600">N° Conteneur</th>
             <th class="py-3" style="font-weight:600">Réf. interne</th>
@@ -67,29 +67,29 @@
             <td class="ps-4 py-3">
               <div class="d-flex align-items-center gap-2">
                 <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                     style="width:32px;height:32px;border-radius:8px;background:#EFF6FF">
+                     style="width:32px;height:32px;border-radius:8px;background:var(--app-blue-bg)">
                   <svg cIcon name="cilStorage" style="color:#3B82F6;width:16px;height:16px"></svg>
                 </div>
-                <span class="fw-bold" style="color:#1a1a2e;font-size:0.9rem">
+                <span class="fw-bold" style="color:var(--app-heading);font-size:0.9rem">
                   {{ container.shipping_number || '—' }}
                 </span>
               </div>
             </td>
             <td class="py-3">
-              <code style="font-size:0.78rem;background:#f8fafc;padding:3px 8px;border-radius:6px;color:#475569">
+              <code style="font-size:0.78rem;background:var(--app-surface-2);padding:3px 8px;border-radius:6px;color:var(--app-text-2)">
                 {{ container.container_number }}
               </code>
             </td>
             <td class="py-3">
-              <span style="font-size:0.85rem;color:#475569">{{ container.bl_number || '—' }}</span>
+              <span style="font-size:0.85rem;color:var(--app-text-2)">{{ container.bl_number || '—' }}</span>
             </td>
             <td class="py-3">
-              <span style="font-size:0.85rem;color:#475569">{{ container.capacity ?? '—' }}</span>
+              <span style="font-size:0.85rem;color:var(--app-text-2)">{{ container.capacity ?? '—' }}</span>
             </td>
             <td class="py-3">
               <span *ngIf="container.expected_category?.name; else noCat"
                     class="px-2 py-1 rounded-pill fw-semibold"
-                    style="font-size:0.72rem;background:#EEF2FF;color:#4338CA;">
+                    style="font-size:0.72rem;background:var(--app-indigo-bg);color:var(--app-indigo-fg-strong);">
                 {{ container.expected_category.name }}
               </span>
               <ng-template #noCat>
@@ -97,7 +97,7 @@
               </ng-template>
             </td>
             <td class="py-3">
-              <span style="font-size:0.85rem;color:#475569">{{ container.entry_port || '—' }}</span>
+              <span style="font-size:0.85rem;color:var(--app-text-2)">{{ container.entry_port || '—' }}</span>
             </td>
             <td class="py-3">
               <span style="font-size:0.82rem;color:#94a3b8">
@@ -106,7 +106,7 @@
             </td>
             <td class="py-3">
               <span class="px-2 py-1 rounded-pill fw-semibold"
-                    [style.background]="container.delivery_status === 'LIVRE' ? '#ECFDF5' : '#FFFBEB'"
+                    [style.background]="container.delivery_status === 'LIVRE' ? 'var(--app-green-bg)' : 'var(--app-amber-bg)'"
                     [style.color]="container.delivery_status === 'LIVRE' ? '#059669' : '#D97706'"
                     style="font-size:0.72rem;">
                 {{ container.delivery_status === 'LIVRE' ? 'Livré' : 'Non livré' }}
@@ -145,7 +145,7 @@
           <tr *ngIf="containers.length === 0">
             <td colspan="9" class="text-center py-5">
               <svg cIcon name="cilStorage" size="3xl" class="mb-3 d-block mx-auto" style="opacity:.2;color:#94a3b8"></svg>
-              <p class="mb-1 fw-semibold" style="color:#475569">Aucun conteneur trouvé</p>
+              <p class="mb-1 fw-semibold" style="color:var(--app-text-2)">Aucun conteneur trouvé</p>
               <small class="text-muted">Créez votre premier conteneur pour commencer</small>
             </td>
           </tr>
@@ -156,7 +156,7 @@
     <!-- Pagination -->
     <div *ngIf="!loading && totalPages > 1"
          class="d-flex justify-content-between align-items-center px-4 py-3"
-         style="border-top:1px solid #f0f0f0">
+         style="border-top:1px solid var(--app-border-soft)">
       <small class="text-muted">
         Page <strong>{{ currentPage }}</strong> sur <strong>{{ totalPages }}</strong>
         &mdash; {{ totalItems }} résultat(s)
@@ -182,7 +182,7 @@
 
 <!-- ===== MODAL CREATION / MODIFICATION ===== -->
 <c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static" size="lg">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0;padding:1.25rem 1.5rem">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);padding:1.25rem 1.5rem">
     <div class="d-flex align-items-center gap-2">
       <div class="d-flex align-items-center justify-content-center"
            style="width:36px;height:36px;border-radius:8px;
@@ -221,7 +221,7 @@
         <input cFormControl type="text" formControlName="container_number"
                [attr.placeholder]="editMode ? 'Ex. : CNT26001' : 'Généré automatiquement'"
                [readonly]="!editMode"
-               [style.background-color]="editMode ? '#fff' : '#f8fafc'"
+               [style.background-color]="editMode ? 'var(--app-surface)' : 'var(--app-surface-2)'"
                style="border-radius:8px" />
         <small class="text-muted d-block mt-1" *ngIf="!editMode">
           Le système génère automatiquement le numéro au format <strong>{{ generatedContainerExample }}</strong>.
@@ -271,7 +271,7 @@
           <input cFormControl type="date" formControlName="expected_delivery_date" style="border-radius:8px" />
         </div>
         <div class="col-12">
-          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem;color:#0F3460;">
+          <label cLabel class="fw-semibold mb-1" style="font-size:0.875rem;color:var(--app-brand-fg);">
             <svg cIcon name="cilTags" size="sm" class="me-1"></svg>
             Type de produit attendu (catégorie)
           </label>
@@ -290,7 +290,7 @@
     </form>
   </c-modal-body>
 
-  <c-modal-footer class="d-flex justify-content-end gap-2" style="border-top:1px solid #f0f0f0;padding:1rem 1.5rem">
+  <c-modal-footer class="d-flex justify-content-end gap-2" style="border-top:1px solid var(--app-border-soft);padding:1rem 1.5rem">
     <button cButton color="secondary" variant="outline" (click)="showFormModal = false"
             style="border-radius:8px">
       Annuler
@@ -306,21 +306,21 @@
 
 <!-- ===== MODAL SUPPRESSION ===== -->
 <c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0;padding:1.25rem 1.5rem">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);padding:1.25rem 1.5rem">
     <h5 cModalTitle class="fw-bold mb-0 text-danger">Confirmer la suppression</h5>
     <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
   </c-modal-header>
   <c-modal-body class="p-4 text-center">
     <div class="d-inline-flex align-items-center justify-content-center mb-3"
-         style="width:64px;height:64px;border-radius:50%;background:#FEE2E2">
+         style="width:64px;height:64px;border-radius:50%;background:var(--app-red-bg-2)">
       <svg cIcon name="cilWarning" size="xl" style="color:#EF4444"></svg>
     </div>
-    <h6 class="fw-bold mb-2" style="color:#1e293b">
+    <h6 class="fw-bold mb-2" style="color:var(--app-text-strong)">
       Supprimer le conteneur&nbsp;<span style="color:#EF4444">{{ containerToDelete?.container_number }}</span>&nbsp;?
     </h6>
     <p class="mb-0 text-muted" style="font-size:0.875rem">Cette action est irréversible.</p>
   </c-modal-body>
-  <c-modal-footer class="d-flex justify-content-center gap-2" style="border-top:1px solid #f0f0f0;padding:1rem 1.5rem">
+  <c-modal-footer class="d-flex justify-content-center gap-2" style="border-top:1px solid var(--app-border-soft);padding:1rem 1.5rem">
     <button cButton color="secondary" variant="outline" (click)="deleteModalOpen = false"
             style="border-radius:8px;min-width:100px">
       Annuler

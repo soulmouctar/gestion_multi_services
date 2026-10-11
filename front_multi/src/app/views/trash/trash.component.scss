@@ -1,11 +1,11 @@
 :host { display: block; overflow-x: hidden; max-width: 100%; }
 
 .trash-page {
-  --ink: #0f172a;
-  --ink-soft: #475569;
+  --ink: var(--app-heading);
+  --ink-soft: var(--app-text-2);
   --muted: #94a3b8;
-  --line: #e2e8f0;
-  --bg-soft: #f8fafc;
+  --line: var(--app-border);
+  --bg-soft: var(--app-surface-2);
   --danger: #dc2626;
   --success: #16a34a;
   --primary: #0f3460;
@@ -16,7 +16,7 @@
 }
 
 .th-header {
-  background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+  background: linear-gradient(135deg, var(--app-surface) 0%, var(--app-surface-2) 100%);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 1rem 1.25rem;
@@ -29,7 +29,7 @@
 /* Onglets entités */
 .entity-tabs {
   display: flex; flex-wrap: wrap; gap: .5rem;
-  background: #fff;
+  background: var(--app-surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: .65rem .75rem;
@@ -45,7 +45,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all .15s ease;
-  &:hover { background: #f1f5f9; }
+  &:hover { background: var(--app-surface-3); }
   &.active {
     background: var(--primary);
     color: #fff;
@@ -57,7 +57,7 @@
 /* Recherche */
 .search-bar {
   position: relative;
-  background: #fff;
+  background: var(--app-surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0 .8rem;
@@ -77,7 +77,7 @@
 /* Liste */
 .trash-list { display: flex; flex-direction: column; gap: .5rem; }
 .trash-item {
-  background: #fff;
+  background: var(--app-surface);
   border: 1px solid var(--line);
   border-radius: 11px;
   padding: .85rem 1rem;
@@ -92,7 +92,7 @@
   .ti-icon {
     width: 42px; height: 42px;
     border-radius: 10px;
-    background: #fee2e2;
+    background: var(--app-red-bg-2);
     color: var(--danger);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -101,14 +101,14 @@
   }
   .ti-content { flex: 1; min-width: 0; }
   .ti-title    { font-weight: 700; font-size: 1rem; color: var(--ink); line-height: 1.25; }
-  .ti-subtitle { font-size: .85rem; color: #475569; margin-top: 3px; line-height: 1.35; }
+  .ti-subtitle { font-size: .85rem; color: var(--app-text-2); margin-top: 3px; line-height: 1.35; }
   .ti-meta {
     display: flex; align-items: center; flex-wrap: wrap; gap: .55rem;
     margin-top: .45rem;
     font-size: .72rem; color: var(--muted);
     .ti-type-pill {
-      background: #eef2ff;
-      color: #4338ca;
+      background: var(--app-indigo-bg);
+      color: var(--app-indigo-fg-strong);
       padding: .15rem .55rem;
       border-radius: 999px;
       font-weight: 700;
@@ -126,14 +126,14 @@
     margin-top: .6rem;
   }
   .ti-extra {
-    background: #f8fafc;
+    background: var(--app-surface-2);
     border: 1px solid var(--line);
     border-radius: 7px;
     padding: .25rem .55rem;
     font-size: .73rem;
-    color: #364255;
+    color: var(--app-text);
     line-height: 1.3;
-    strong { color: #475569; font-weight: 700; }
+    strong { color: var(--app-text-2); font-weight: 700; }
   }
 }
 .ti-actions {
@@ -150,15 +150,15 @@
     svg { width: 14px; height: 14px; }
   }
   .btn-restore {
-    background: #dcfce7;
+    background: var(--app-green-bg-2);
     color: var(--success);
-    border-color: #bbf7d0;
+    border-color: var(--app-green-border);
     &:hover { background: var(--success); color: #fff; border-color: var(--success); }
   }
   .btn-force {
-    background: #fef2f2;
+    background: var(--app-red-bg);
     color: var(--danger);
-    border-color: #fecaca;
+    border-color: var(--app-red-border);
     &:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
   }
 }
@@ -167,7 +167,7 @@
   text-align: center;
   padding: 4rem 1rem;
   color: var(--muted);
-  background: #fff;
+  background: var(--app-surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   svg { opacity: .35; color: var(--success); margin-bottom: .5rem; }

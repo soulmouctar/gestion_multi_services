@@ -8,7 +8,7 @@
         <p class="mb-0" style="opacity:.8;font-size:.875rem">{{ filteredUsers.length }} utilisateur(s) affiché(s) sur {{ users.length }} total</p>
       </div>
       <button *ngIf="canCreateUsers" cButton color="light" (click)="openUserModal()" [disabled]="loading"
-        style="background:white;color:#1a237e;border:none;border-radius:10px;font-weight:700;padding:10px 22px">
+        style="background:var(--app-surface);color:var(--app-indigo-fg-strong);border:none;border-radius:10px;font-weight:700;padding:10px 22px">
         + Nouvel Utilisateur
       </button>
     </div>
@@ -20,18 +20,18 @@
       <form [formGroup]="filterForm">
         <div class="row g-3 align-items-end">
           <div class="col-md-4">
-            <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:#6c757d">Rechercher</label>
-            <input cFormControl type="text" formControlName="search" placeholder="Nom ou email..." (input)="applyFilters()" style="border-radius:8px;border:1px solid #dee2e6;padding:9px 12px">
+            <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--app-text-muted)">Rechercher</label>
+            <input cFormControl type="text" formControlName="search" placeholder="Nom ou email..." (input)="applyFilters()" style="border-radius:8px;border:1px solid var(--app-border);padding:9px 12px">
           </div>
           <div class="col-md-3">
-            <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:#6c757d">Rôle</label>
+            <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--app-text-muted)">Rôle</label>
             <select cFormControl formControlName="role" class="form-select" (change)="applyFilters()" style="border-radius:8px">
               <option value="ALL">Tous les rôles</option>
               <option *ngFor="let role of availableRoles; trackBy: trackById" [value]="role">{{ getRoleDisplayName(role) }}</option>
             </select>
           </div>
           <div class="col-md-3">
-            <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:#6c757d">Organisation</label>
+            <label class="form-label fw-semibold" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--app-text-muted)">Organisation</label>
             <select cFormControl formControlName="tenant_id" class="form-select" (change)="applyFilters()" style="border-radius:8px">
               <option value="ALL">Toutes les organisations</option>
               <option *ngFor="let tenant of tenants; trackBy: trackById" [value]="tenant.id">{{ tenant.name }}</option>
@@ -63,17 +63,17 @@
       <div class="table-responsive" *ngIf="filteredUsers.length > 0">
         <table class="table table-hover align-middle mb-0">
           <thead>
-            <tr style="background:#f8f9fa">
-              <th style="padding:14px 20px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Utilisateur</th>
-              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Organisation</th>
-              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Type</th>
-              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Statut</th>
-              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef">Modules</th>
-              <th style="padding:14px 20px;font-size:.75rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e9ecef;text-align:right">Actions</th>
+            <tr style="background:var(--app-surface-2)">
+              <th style="padding:14px 20px;font-size:.75rem;font-weight:700;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--app-border)">Utilisateur</th>
+              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--app-border)">Organisation</th>
+              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--app-border)">Type</th>
+              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--app-border)">Statut</th>
+              <th style="padding:14px 16px;font-size:.75rem;font-weight:700;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--app-border)">Modules</th>
+              <th style="padding:14px 20px;font-size:.75rem;font-weight:700;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--app-border);text-align:right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let user of filteredUsers; trackBy: trackById" style="border-bottom:1px solid #f0f0f0">
+            <tr *ngFor="let user of filteredUsers; trackBy: trackById" style="border-bottom:1px solid var(--app-border-soft)">
               <!-- User info -->
               <td style="padding:14px 20px">
                 <div class="d-flex align-items-center gap-3">
@@ -89,12 +89,12 @@
                   </div>
                   <div>
                     <div class="fw-semibold">{{ user.name }}</div>
-                    <div style="font-size:.8rem;color:#6c757d">{{ user.email }}</div>
+                    <div style="font-size:.8rem;color:var(--app-text-muted)">{{ user.email }}</div>
                   </div>
                 </div>
               </td>
               <!-- Organisation -->
-              <td style="padding:14px 16px;font-size:.875rem;color:#495057">
+              <td style="padding:14px 16px;font-size:.875rem;color:var(--app-text)">
                 {{ getTenantName(user.tenant_id || 0) }}
               </td>
               <!-- Role -->
@@ -121,7 +121,7 @@
               <!-- Modules -->
               <td style="padding:14px 16px">
                 <div class="d-flex align-items-center gap-2">
-                  <span style="background:#cfe2ff;color:#0a58ca;border-radius:50px;padding:4px 12px;font-size:.75rem;font-weight:700">
+                  <span style="background:var(--app-blue-bg-2);color:var(--app-blue-fg-strong);border-radius:50px;padding:4px 12px;font-size:.75rem;font-weight:700">
                     {{ getUserModuleCount(user) }} module(s)
                   </span>
                   <button *ngIf="canManagePermissions" cButton size="sm" color="info" variant="outline"
@@ -161,7 +161,7 @@
 
 <!-- ===== CREATE/EDIT USER MODAL ===== -->
 <c-modal [visible]="userModalOpen" (visibleChange)="userModalOpen = $event" size="lg">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft)">
     <h5 cModalTitle class="fw-bold">{{ editMode ? ' Modifier' : ' Créer' }} un Utilisateur</h5>
     <button cButtonClose (click)="closeUserModal()" [disabled]="loading"></button>
   </c-modal-header>
@@ -175,11 +175,11 @@
           <input type="file" #photoInput class="d-none" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
                  (change)="onPhotoSelected($event)" />
           <div class="d-flex align-items-center gap-3 p-3 rounded-3"
-               style="background:#f8fafc;border:1px solid #e2e8f0;">
+               style="background:var(--app-surface-2);border:1px solid var(--app-border);">
             <!-- Cercle aperçu -->
             <div (click)="triggerPhotoInput(photoInput)"
                  style="width:72px;height:72px;border-radius:50%;overflow:hidden;flex-shrink:0;
-                        background:#eef2ff;border:2px dashed #818cf8;
+                        background:var(--app-indigo-bg);border:2px dashed var(--app-indigo-border);
                         display:flex;align-items:center;justify-content:center;
                         cursor:pointer;font-size:1.6rem">
               <img *ngIf="photoPreview" [src]="photoPreview" alt="Aperçu"
@@ -188,18 +188,18 @@
             </div>
             <!-- Infos & boutons -->
             <div>
-              <div class="fw-semibold mb-1" style="font-size:.85rem;color:#1e293b;">
+              <div class="fw-semibold mb-1" style="font-size:.85rem;color:var(--app-text-strong);">
                 {{ photoPreview ? 'Photo sélectionnée' : 'Aucune photo sélectionnée' }}
               </div>
               <div class="text-muted mb-2" style="font-size:.75rem;">Formats : JPG, PNG, GIF, WebP — max 4 MB</div>
               <div class="d-flex gap-2">
                 <button type="button" (click)="triggerPhotoInput(photoInput)"
-                        style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe;border-radius:8px;
+                        style="background:var(--app-indigo-bg);color:var(--app-indigo-fg-strong);border:1px solid var(--app-indigo-border);border-radius:8px;
                                padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;">
                   <svg cIcon name="cilFolderOpen" class="ic"></svg> Choisir une photo
                 </button>
                 <button *ngIf="photoPreview" type="button" (click)="removePhoto()"
-                        style="background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:8px;
+                        style="background:var(--app-red-bg);color:#ef4444;border:1px solid var(--app-red-border);border-radius:8px;
                                padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;">
                   <svg cIcon name="cilX" class="ic"></svg> Supprimer
                 </button>
@@ -255,7 +255,7 @@
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #f0f0f0">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft)">
     <button cButton color="secondary" (click)="closeUserModal()" [disabled]="loading">Annuler</button>
     <button *ngIf="editMode ? canEditUsers : canCreateUsers" cButton color="primary" (click)="onSubmitUser()" [disabled]="loading"
       style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
@@ -267,7 +267,7 @@
 
 <!-- ===== PASSWORD MODAL ===== -->
 <c-modal [visible]="passwordModalOpen" (visibleChange)="passwordModalOpen = $event" size="lg">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft)">
     <h5 cModalTitle class="fw-bold"><svg cIcon name="cilLockLocked" class="ic"></svg> Modifier le mot de passe — {{ selectedUserForPassword?.name }}</h5>
     <button cButtonClose (click)="closePasswordModal()" [disabled]="loading"></button>
   </c-modal-header>
@@ -294,7 +294,7 @@
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #f0f0f0">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft)">
     <button cButton color="secondary" (click)="closePasswordModal()" [disabled]="loading">Annuler</button>
     <button *ngIf="canChangePasswords" cButton color="primary" (click)="onSubmitPassword()" [disabled]="loading"
       style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
@@ -329,7 +329,7 @@
               <div class="d-flex flex-wrap gap-1" *ngIf="module.is_active">
                 <span *ngFor="let perm of module.permissions; trackBy: trackById"
                   class="badge rounded-pill"
-                  style="background:#cfe2ff;color:#0a58ca;font-size:.7rem">
+                  style="background:var(--app-blue-bg-2);color:var(--app-blue-fg-strong);font-size:.7rem">
                   {{ getPermissionDisplayName(perm) }}
                 </span>
               </div>
@@ -374,7 +374,7 @@
   <c-modal-body>
     <div class="row g-2">
       <div *ngFor="let permission of getAvailablePermissionsForModule(selectedModuleForRoles?.module_code); trackBy: trackById" class="col-6">
-        <div class="form-check p-3" style="background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef">
+        <div class="form-check p-3" style="background:var(--app-surface-2);border-radius:8px;border:1px solid var(--app-border)">
           <input class="form-check-input" type="checkbox"
             [checked]="hasPermission(selectedModuleForRoles!, permission)"
             (change)="togglePermission(selectedModuleForRoles!, permission)"

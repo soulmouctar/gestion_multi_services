@@ -2,14 +2,14 @@
    Hierarchie : l'argent d'abord, puis ce qui demande une action, puis le detail. */
 
 :host {
-  --d-border: #e6ebf2;
-  --d-line: #eef2f7;
-  --d-navy: #172033;
-  --d-text: #29354a;
+  --d-border: var(--app-border);
+  --d-line: var(--app-border-soft);
+  --d-navy: var(--app-heading);
+  --d-text: var(--app-text-strong);
   --d-muted: #8a96a7;
-  --d-ok: #047857;
+  --d-ok: var(--app-green-fg);
   --d-danger: #b91c1c;
-  --d-warn: #b45309;
+  --d-warn: var(--app-amber-fg);
 }
 
 .dash { padding: 1rem 0 2rem; }
@@ -32,12 +32,12 @@
   border: 1px solid var(--d-border);
   border-radius: 9px;
   color: var(--d-text);
-  background: #fff;
+  background: var(--app-surface);
   font-size: .82rem;
   font-weight: 600;
   cursor: pointer;
 }
-.refresh:hover:not(:disabled) { background: #f6f9fc; }
+.refresh:hover:not(:disabled) { background: var(--app-surface-2); }
 .refresh:disabled { opacity: .55; cursor: not-allowed; }
 .refresh svg { width: 14px; height: 14px; }
 
@@ -64,19 +64,19 @@
   padding: 1rem 1.15rem;
   border: 1px solid var(--d-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--app-surface);
   box-shadow: 0 4px 14px rgba(15, 42, 67, .04);
   text-decoration: none;
 }
 
-a.kpi:hover { border-color: #c9d6e6; box-shadow: 0 6px 18px rgba(15, 42, 67, .07); }
+a.kpi:hover { border-color: var(--app-border-strong); box-shadow: 0 6px 18px rgba(15, 42, 67, .07); }
 
 .kpi-main { background: linear-gradient(135deg, #12233c 0%, #1d3f68 100%); border-color: transparent; }
 .kpi-main .kpi-label { color: rgba(255, 255, 255, .7); }
 .kpi-main .kpi-value { color: #fff; }
 .kpi-main .kpi-sub { color: rgba(255, 255, 255, .62); }
 
-.kpi-label { color: #5f6e82; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.kpi-label { color: var(--app-text-muted); font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 
 .kpi-value {
   margin-top: .45rem;
@@ -109,10 +109,10 @@ a.kpi:hover { border-color: #c9d6e6; box-shadow: 0 6px 18px rgba(15, 42, 67, .07
   gap: .45rem;
   margin: 0;
   padding: .7rem .9rem;
-  border: 1px solid #d5f0e3;
+  border: 1px solid var(--app-green-border);
   border-radius: 11px;
   color: var(--d-ok);
-  background: #f2fbf7;
+  background: var(--app-surface-3);
   font-size: .85rem;
 }
 .all-clear svg { width: 15px; height: 15px; }
@@ -132,10 +132,10 @@ a.kpi:hover { border-color: #c9d6e6; box-shadow: 0 6px 18px rgba(15, 42, 67, .07
 .chip strong { font-size: 1rem; font-weight: 750; font-variant-numeric: tabular-nums; }
 .chip em { font-style: normal; font-weight: 700; opacity: .8; }
 
-.chip-danger { color: var(--d-danger); border-color: #f4cfcf; background: #fef4f4; }
-.chip-danger:hover { background: #fdeaea; }
-.chip-warn { color: var(--d-warn); border-color: #f6dfb4; background: #fffbef; }
-.chip-warn:hover { background: #fdf5e2; }
+.chip-danger { color: var(--d-danger); border-color: var(--app-red-border); background: var(--app-red-bg); }
+.chip-danger:hover { background: var(--app-red-bg); }
+.chip-warn { color: var(--d-warn); border-color: var(--app-amber-border); background: var(--app-amber-bg); }
+.chip-warn:hover { background: var(--app-amber-bg-2); }
 
 /* ---------- Activité par module ---------- */
 .modules {
@@ -152,11 +152,11 @@ a.kpi:hover { border-color: #c9d6e6; box-shadow: 0 6px 18px rgba(15, 42, 67, .07
   padding: .85rem 1rem;
   border: 1px solid var(--d-border);
   border-radius: 13px;
-  background: #fff;
+  background: var(--app-surface);
   text-decoration: none;
 }
-.mod:hover { border-color: #c9d6e6; background: #fbfdff; }
-.mod svg { width: 20px; height: 20px; flex: none; color: #5b6b82; }
+.mod:hover { border-color: var(--app-border-strong); background: var(--app-surface-2); }
+.mod svg { width: 20px; height: 20px; flex: none; color: var(--app-text-muted); }
 .mod strong { display: block; color: var(--d-navy); font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .mod span { color: var(--d-muted); font-size: .76rem; }
 
@@ -167,7 +167,7 @@ a.kpi:hover { border-color: #c9d6e6; box-shadow: 0 6px 18px rgba(15, 42, 67, .07
   padding: 1rem 1.15rem;
   border: 1px solid var(--d-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--app-surface);
   box-shadow: 0 4px 14px rgba(15, 42, 67, .04);
 }
 
@@ -232,10 +232,10 @@ a.kpi:hover { border-color: #c9d6e6; box-shadow: 0 6px 18px rgba(15, 42, 67, .07
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  color: #64748b;
-  background: #f1f5f9;
+  color: var(--app-text-muted);
+  background: var(--app-surface-3);
 }
-.mv-ic.is-in { color: var(--d-ok); background: #ecfdf5; }
+.mv-ic.is-in { color: var(--d-ok); background: var(--app-green-bg); }
 .mv-ic svg { width: 13px; height: 13px; }
 
 .mv-label { overflow: hidden; color: var(--d-text); font-size: .85rem; text-overflow: ellipsis; white-space: nowrap; }

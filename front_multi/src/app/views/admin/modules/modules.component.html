@@ -33,7 +33,7 @@
   </div>
 
   <!-- Filtres -->
-  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div class="card mb-4" style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
     <div class="card-body">
       <form [formGroup]="filterForm" class="row g-3 align-items-end">
         <div class="col-md-6">
@@ -64,9 +64,9 @@
   </div>
 
   <!-- Tableau des modules -->
-  <div class="card" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div class="card" style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3"
-         style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+         style="border-radius:14px 14px 0 0;border-bottom:1px solid var(--app-border-soft)">
       <span class="fw-bold fs-5">
         Liste des Modules
         <span class="text-muted fw-normal fs-6 ms-1">({{ filteredModules.length }}/{{ modules.length }})</span>
@@ -101,13 +101,13 @@
       <div class="table-responsive" *ngIf="filteredModules.length > 0">
         <table class="table table-hover align-middle mb-0">
           <thead>
-            <tr style="background:#f8fafc">
-              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid #f0f0f0">Module</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Code</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Description</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Permissions</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Statut</th>
-              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid #f0f0f0">Actions</th>
+            <tr style="background:var(--app-surface-2)">
+              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid var(--app-border-soft)">Module</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Code</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Description</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Permissions</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Statut</th>
+              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid var(--app-border-soft)">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -115,7 +115,7 @@
               <td class="ps-4">
                 <div class="d-flex align-items-center gap-3">
                   <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                       style="width:40px;height:40px;background:#EFF6FF">
+                       style="width:40px;height:40px;background:var(--app-blue-bg)">
                     <svg [cIcon]="'cil-' + module.icon" class="text-primary"></svg>
                   </div>
                   <div>
@@ -125,7 +125,7 @@
                 </div>
               </td>
               <td>
-                <code class="rounded px-2 py-1" style="background:#F3F4F6;color:#374151;font-size:.8rem">{{ module.code }}</code>
+                <code class="rounded px-2 py-1" style="background:var(--app-surface-3);color:var(--app-text);font-size:.8rem">{{ module.code }}</code>
               </td>
               <td>
                 <span class="text-muted small">{{ module.description || '—' }}</span>
@@ -134,16 +134,16 @@
                 <div class="d-flex flex-wrap gap-1">
                   <span *ngFor="let permission of module.permissions; trackBy: trackById"
                         class="badge rounded-pill text-uppercase"
-                        style="background:#EFF6FF;color:#3B82F6;font-size:.68rem">
+                        style="background:var(--app-blue-bg);color:#3B82F6;font-size:.68rem">
                     {{ permission }}
                   </span>
                 </div>
               </td>
               <td>
                 <span *ngIf="module.is_active" class="badge rounded-pill px-3 py-1"
-                      style="background:#ECFDF5;color:#10B981">ACTIF</span>
+                      style="background:var(--app-green-bg);color:#10B981">ACTIF</span>
                 <span *ngIf="!module.is_active" class="badge rounded-pill px-3 py-1"
-                      style="background:#F3F4F6;color:#6B7280">INACTIF</span>
+                      style="background:var(--app-surface-3);color:var(--app-text-muted)">INACTIF</span>
               </td>
               <td class="text-end pe-4">
                 <div class="d-flex gap-1 justify-content-end">
@@ -231,7 +231,7 @@
         </div>
 
         <div class="col-md-6 d-flex align-items-center">
-          <div class="rounded-3 p-3 w-100" style="background:#F8FAFC;border:1px solid #f0f0f0">
+          <div class="rounded-3 p-3 w-100" style="background:var(--app-surface-2);border:1px solid var(--app-border-soft)">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" formControlName="is_active" id="moduleStatus">
               <label class="form-check-label fw-semibold" for="moduleStatus">Module actif</label>
@@ -241,7 +241,7 @@
 
         <div class="col-12">
           <label class="form-label fw-semibold">Permissions <span class="text-danger">*</span></label>
-          <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #f0f0f0">
+          <div class="rounded-3 p-3" style="background:var(--app-surface-2);border:1px solid var(--app-border-soft)">
             <div class="row g-2">
               <div class="col-md-3" *ngFor="let permission of availablePermissions; trackBy: trackById">
                 <div class="form-check">
@@ -265,7 +265,7 @@
     </form>
   </c-modal-body>
 
-  <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+  <c-modal-footer class="px-4 py-3" style="background:var(--app-surface-2);border-top:1px solid var(--app-border-soft)">
     <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
             (click)="closeModuleModal()" [disabled]="loading">Annuler</button>
     <button type="button" class="btn btn-primary rounded-pill px-4"

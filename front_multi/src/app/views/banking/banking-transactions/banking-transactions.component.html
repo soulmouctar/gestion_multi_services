@@ -18,7 +18,7 @@
   </div>
 
   <!-- Filtres -->
-  <div class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+  <div class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid var(--app-border-soft);">
     <div class="row g-2 align-items-end">
       <div class="col-12 col-md-3">
         <label class="small fw-semibold text-muted mb-1">Compte</label>
@@ -67,7 +67,7 @@
   </div>
 
   <!-- Tableau transactions -->
-  <div *ngIf="!loading" class="bg-white rounded-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+  <div *ngIf="!loading" class="bg-white rounded-3" style="border-radius:12px; border:1px solid var(--app-border-soft);">
 
     <!-- Vide -->
     <div *ngIf="transactions.length === 0" class="text-center py-5">
@@ -77,7 +77,7 @@
 
     <div *ngIf="transactions.length > 0" class="table-responsive">
       <table class="table table-hover align-middle mb-0">
-        <thead style="background:#f8fafc;">
+        <thead style="background:var(--app-surface-2);">
           <tr>
             <th class="px-3 py-3 small fw-semibold text-muted">Date</th>
             <th class="px-3 py-3 small fw-semibold text-muted">Banque / Compte</th>
@@ -98,11 +98,11 @@
             </td>
             <td class="px-3">
               <span class="badge px-2 py-1 small fw-semibold"
-                    [style.background]="txTypeInfo(tx.transaction_type).color === 'success' ? '#ECFDF5'
-                                        : txTypeInfo(tx.transaction_type).color === 'danger'  ? '#FEE2E2'
-                                        : txTypeInfo(tx.transaction_type).color === 'info'    ? '#EFF6FF'
-                                        : txTypeInfo(tx.transaction_type).color === 'primary' ? '#EFF6FF'
-                                        : '#FFFBEB'"
+                    [style.background]="txTypeInfo(tx.transaction_type).color === 'success' ? 'var(--app-green-bg)'
+                                        : txTypeInfo(tx.transaction_type).color === 'danger'  ? 'var(--app-red-bg-2)'
+                                        : txTypeInfo(tx.transaction_type).color === 'info'    ? 'var(--app-blue-bg)'
+                                        : txTypeInfo(tx.transaction_type).color === 'primary' ? 'var(--app-blue-bg)'
+                                        : 'var(--app-amber-bg)'"
                     [style.color]="txTypeInfo(tx.transaction_type).color === 'success' ? '#10B981'
                                    : txTypeInfo(tx.transaction_type).color === 'danger'  ? '#EF4444'
                                    : txTypeInfo(tx.transaction_type).color === 'info'    ? '#3B82F6'
@@ -118,8 +118,8 @@
             <td class="px-3 small text-muted">{{ tx.reference || '—' }}</td>
             <td class="px-3">
               <span class="badge px-2 py-1 small fw-semibold"
-                    [style.background]="tx.status === 'COMPLETED' ? '#ECFDF5' : tx.status === 'PENDING' ? '#FFFBEB' : '#f0f0f0'"
-                    [style.color]="tx.status === 'COMPLETED' ? '#10B981' : tx.status === 'PENDING' ? '#F59E0B' : '#6c757d'">
+                    [style.background]="tx.status === 'COMPLETED' ? 'var(--app-green-bg)' : tx.status === 'PENDING' ? 'var(--app-amber-bg)' : 'var(--app-surface-3)'"
+                    [style.color]="tx.status === 'COMPLETED' ? '#10B981' : tx.status === 'PENDING' ? '#F59E0B' : 'var(--app-text-muted)'">
                 {{ statusInfo(tx.status).label }}
               </span>
             </td>
@@ -151,7 +151,7 @@
     <!-- Pagination -->
     <div *ngIf="totalPages > 1"
          class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
-         style="background:#fafafa; border-radius:0 0 12px 12px;">
+         style="background:var(--app-surface-2); border-radius:0 0 12px 12px;">
       <small class="text-muted">{{ totalItems }} transaction(s)</small>
       <div class="d-flex gap-1 align-items-center">
         <button cButton size="sm" color="light" [disabled]="currentPage === 1"
@@ -258,7 +258,7 @@
 
         <!-- Info compression -->
         <div *ngIf="proofSizeInfo" class="col-12">
-          <div class="rounded-3 px-3 py-2 small" style="background:#EFF6FF; color:#3B82F6; border:1px solid #BFDBFE;">
+          <div class="rounded-3 px-3 py-2 small" style="background:var(--app-blue-bg); color:#3B82F6; border:1px solid var(--app-blue-border);">
             <svg cIcon name="cilCheck" size="sm" class="me-1"></svg>
             <strong>Fichier :</strong> {{ proofSizeInfo }}
           </div>
@@ -266,7 +266,7 @@
 
         <!-- Aperçu image -->
         <div *ngIf="proofPreview && proofPreview !== 'pdf'" class="col-12">
-          <div class="border rounded-3 p-2 text-center" style="background:#f8fafc;">
+          <div class="border rounded-3 p-2 text-center" style="background:var(--app-surface-2);">
             <img [src]="proofPreview" alt="Aperçu" class="img-fluid rounded shadow-sm"
                  style="max-height:220px;" />
           </div>
@@ -274,7 +274,7 @@
 
         <!-- Aperçu PDF -->
         <div *ngIf="proofPreview === 'pdf'" class="col-12">
-          <div class="border rounded-3 p-3 text-center" style="background:#f8fafc;">
+          <div class="border rounded-3 p-3 text-center" style="background:var(--app-surface-2);">
             <svg cIcon name="cilFile" size="3xl" style="color:#EF4444;"></svg>
             <div class="small mt-1 text-muted">{{ proofFile?.name }}</div>
           </div>

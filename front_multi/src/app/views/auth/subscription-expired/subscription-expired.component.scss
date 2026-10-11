@@ -1,6 +1,6 @@
 .subscription-expired-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, var(--app-surface-2) 0%, var(--app-surface-4) 100%);
   display: flex;
   align-items: center;
   padding: 2rem 0;
@@ -47,7 +47,7 @@
 
 .btn-outline-secondary {
   border-color: #6c757d;
-  color: #6c757d;
+  color: var(--app-text-muted);
 }
 
 .btn-outline-secondary:hover {
@@ -56,9 +56,9 @@
 }
 
 .alert-info {
-  background-color: #d1ecf1;
+  background-color: var(--app-cyan-bg-2);
   border-color: #bee5eb;
-  color: #0c5460;
+  color: var(--app-cyan-fg-strong);
 }
 
 .list-unstyled {
@@ -76,7 +76,7 @@
 }
 
 h6 {
-  color: #495057;
+  color: var(--app-text);
   font-weight: 600;
 }
 

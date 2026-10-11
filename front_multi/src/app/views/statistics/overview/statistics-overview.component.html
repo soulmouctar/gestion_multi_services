@@ -19,7 +19,7 @@
                style="width:145px;border-radius:8px;border-color:rgba(255,255,255,0.28);">
       </div>
       <button (click)="applyDateFilter()"
-              style="display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#0f3460;padding:8px 14px;font-size:0.875rem;font-weight:700;cursor:pointer;">
+              style="display:inline-flex;align-items:center;gap:7px;background:var(--app-surface);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:var(--app-brand-fg);padding:8px 14px;font-size:0.875rem;font-weight:700;cursor:pointer;">
         Filtrer
       </button>
       <button (click)="resetDateFilter()"
@@ -47,7 +47,7 @@
       <!-- Revenus du mois -->
       <div class="col-6 col-md-3">
         <div class="stat-card">
-          <div class="stat-icon" style="background:#ECFDF5;">
+          <div class="stat-icon" style="background:var(--app-green-bg);">
             <svg cIcon name="cilDollar" style="color:#10B981;width:22px;height:22px;"></svg>
           </div>
           <div class="stat-body">
@@ -61,8 +61,8 @@
       <!-- Flux net -->
       <div class="col-6 col-md-3">
         <div class="stat-card">
-          <div class="stat-icon" style="background:#EFF6FF;">
-            <svg cIcon name="cilArrowThickRight" style="color:#2563EB;width:22px;height:22px;"></svg>
+          <div class="stat-icon" style="background:var(--app-blue-bg);">
+            <svg cIcon name="cilArrowThickRight" style="color:var(--app-blue-fg);width:22px;height:22px;"></svg>
           </div>
           <div class="stat-body">
             <div class="stat-value" style="font-size:0.9rem;"
@@ -78,8 +78,8 @@
       <!-- Clients -->
       <div class="col-6 col-md-3">
         <div class="stat-card">
-          <div class="stat-icon" style="background:#EEF2FF;">
-            <svg cIcon name="cilPeople" style="color:#4F46E5;width:22px;height:22px;"></svg>
+          <div class="stat-icon" style="background:var(--app-indigo-bg);">
+            <svg cIcon name="cilPeople" style="color:var(--app-indigo-fg-strong);width:22px;height:22px;"></svg>
           </div>
           <div class="stat-body">
             <div class="stat-value">{{ clientStats?.total_clients || 0 }}</div>
@@ -97,7 +97,7 @@
       <!-- Factures impayées -->
       <div class="col-6 col-md-3">
         <div class="stat-card">
-          <div class="stat-icon" style="background:#FEF2F2;">
+          <div class="stat-icon" style="background:var(--app-red-bg);">
             <svg cIcon name="cilDescription" style="color:#EF4444;width:22px;height:22px;"></svg>
           </div>
           <div class="stat-body">
@@ -115,7 +115,7 @@
         <div class="module-card">
           <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div class="module-icon" style="background:#FFFBEB;">
+              <div class="module-icon" style="background:var(--app-amber-bg);">
                 <svg cIcon name="cilBasket" style="color:#D97706;width:15px;height:15px;"></svg>
               </div>
               <span class="module-title">Produits &amp; Stock</span>
@@ -126,7 +126,7 @@
             <div *ngIf="productStats; else noData">
               <div class="row g-2 text-center mb-3">
                 <div class="col-4">
-                  <div class="kpi-num" style="color:#1e293b;">{{ productStats.total_products || 0 }}</div>
+                  <div class="kpi-num" style="color:var(--app-text-strong);">{{ productStats.total_products || 0 }}</div>
                   <div class="kpi-lbl">Total</div>
                 </div>
                 <div class="col-4">
@@ -144,7 +144,7 @@
               </div>
               <div class="info-row">
                 <span class="text-muted" style="font-size:.8rem;">Valeur du stock</span>
-                <strong style="color:#0f3460;">{{ fmt(productStats.total_stock_value) }}</strong>
+                <strong style="color:var(--app-brand-fg);">{{ fmt(productStats.total_stock_value) }}</strong>
               </div>
               <div class="info-row">
                 <span class="text-muted" style="font-size:.8rem;">Catégories</span>
@@ -160,7 +160,7 @@
         <div class="module-card">
           <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div class="module-icon" style="background:#F0F9FF;">
+              <div class="module-icon" style="background:var(--app-cyan-bg);">
                 <svg cIcon name="cilLayers" style="color:#0891B2;width:15px;height:15px;"></svg>
               </div>
               <span class="module-title">Conteneurs</span>
@@ -195,7 +195,7 @@
         <div class="module-card">
           <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div class="module-icon" style="background:#F0FDF4;">
+              <div class="module-icon" style="background:var(--app-green-bg);">
                 <svg cIcon name="cilChart" style="color:#16A34A;width:15px;height:15px;"></svg>
               </div>
               <span class="module-title">Flux de trésorerie</span>
@@ -212,9 +212,9 @@
                 <span style="font-size:.85rem;font-weight:600;color:#EF4444;">↓ Sorties</span>
                 <strong style="color:#EF4444;">{{ fmt(cashflow.outgoing_total) }}</strong>
               </div>
-              <hr style="margin:8px 0;border-color:#f0f0f0;">
+              <hr style="margin:8px 0;border-color:var(--app-border-soft);">
               <div class="info-row">
-                <span style="font-size:.85rem;font-weight:700;color:#0f3460;">Solde net</span>
+                <span style="font-size:.85rem;font-weight:700;color:var(--app-brand-fg);">Solde net</span>
                 <strong [style.color]="(cashflow.net_cashflow ?? 0) >= 0 ? '#10B981' : '#EF4444'">
                   {{ fmt(cashflow.net_cashflow) }}
                 </strong>
@@ -245,20 +245,20 @@
         <div class="module-card">
           <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div class="module-icon" style="background:#EFF6FF;">
-                <svg cIcon name="cilHome" style="color:#2563EB;width:15px;height:15px;"></svg>
+              <div class="module-icon" style="background:var(--app-blue-bg);">
+                <svg cIcon name="cilHome" style="color:var(--app-blue-fg);width:15px;height:15px;"></svg>
               </div>
               <span class="module-title">Location Immobilière</span>
             </div>
-            <a routerLink="/rental/leases" class="module-link" style="color:#2563EB;border-color:#2563EB;">Détails</a>
+            <a routerLink="/rental/leases" class="module-link" style="color:var(--app-blue-fg);border-color:#2563EB;">Détails</a>
           </div>
           <div class="module-body">
             <div *ngIf="rentalLeases; else noData">
               <!-- Taux d'occupation -->
               <div class="mb-3">
                 <div class="d-flex justify-content-between mb-1" style="font-size:.8rem;">
-                  <span style="color:#374151;">Taux d'occupation</span>
-                  <span style="font-weight:700;color:#2563EB;">{{ occupancyRate }}%</span>
+                  <span style="color:var(--app-text);">Taux d'occupation</span>
+                  <span style="font-weight:700;color:var(--app-blue-fg);">{{ occupancyRate }}%</span>
                 </div>
                 <div class="progress" style="height:7px;border-radius:4px;">
                   <div class="progress-bar" [ngClass]="progressClass(occupancyRate)"
@@ -280,7 +280,7 @@
                   <div class="kpi-lbl">En attente</div>
                 </div>
                 <div class="col-4">
-                  <div class="kpi-num" style="color:#6B7280;">{{ rentalLeases.expired_count || 0 }}</div>
+                  <div class="kpi-num" style="color:var(--app-text-muted);">{{ rentalLeases.expired_count || 0 }}</div>
                   <div class="kpi-lbl">Expirés</div>
                 </div>
               </div>
@@ -313,7 +313,7 @@
         <div class="module-card">
           <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div class="module-icon" style="background:#FFFBEB;">
+              <div class="module-icon" style="background:var(--app-amber-bg);">
                 <svg cIcon name="cilSpeedometer" style="color:#D97706;width:15px;height:15px;"></svg>
               </div>
               <span class="module-title">Taxi &amp; Transport</span>
@@ -325,7 +325,7 @@
               <!-- Flotte & conducteurs -->
               <div class="row g-2 text-center mb-3">
                 <div class="col-3">
-                  <div class="kpi-num" style="color:#0f3460;">{{ taxiFleet?.total || 0 }}</div>
+                  <div class="kpi-num" style="color:var(--app-brand-fg);">{{ taxiFleet?.total || 0 }}</div>
                   <div class="kpi-lbl">Véhicules</div>
                 </div>
                 <div class="col-3">
@@ -333,7 +333,7 @@
                   <div class="kpi-lbl">Actifs</div>
                 </div>
                 <div class="col-3">
-                  <div class="kpi-num" style="color:#4F46E5;">{{ taxiDrivers?.total || 0 }}</div>
+                  <div class="kpi-num" style="color:var(--app-indigo-fg-strong);">{{ taxiDrivers?.total || 0 }}</div>
                   <div class="kpi-lbl">Conducteurs</div>
                 </div>
                 <div class="col-3">
@@ -342,7 +342,7 @@
                 </div>
               </div>
               <!-- Aujourd'hui -->
-              <div class="info-row mb-2" style="background:#FFFBEB;border-radius:8px;padding:6px 10px;">
+              <div class="info-row mb-2" style="background:var(--app-amber-bg);border-radius:8px;padding:6px 10px;">
                 <span style="font-size:.8rem;font-weight:600;color:#D97706;">Collecte aujourd'hui</span>
                 <strong style="color:#D97706;">{{ fmt(taxiToday?.collected) }}</strong>
               </div>
@@ -380,12 +380,12 @@
         <div class="module-card">
           <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div class="module-icon" style="background:#FFF1F2;">
-                <svg cIcon name="cilWallet" style="color:#E11D48;width:15px;height:15px;"></svg>
+              <div class="module-icon" style="background:var(--app-red-bg);">
+                <svg cIcon name="cilWallet" style="color:var(--app-red-fg);width:15px;height:15px;"></svg>
               </div>
               <span class="module-title">Dépenses Personnelles</span>
             </div>
-            <a routerLink="/expenses/statistics" class="module-link" style="color:#E11D48;border-color:#E11D48;">Détails</a>
+            <a routerLink="/expenses/statistics" class="module-link" style="color:var(--app-red-fg);border-color:#E11D48;">Détails</a>
           </div>
           <div class="module-body">
             <div *ngIf="expenseSummary; else noData">
@@ -411,7 +411,7 @@
               <!-- Top catégories -->
               <div *ngFor="let cat of expenseByCategory.slice(0, 3); trackBy: trackById"
                    class="d-flex justify-content-between align-items-center mb-2">
-                <span style="font-size:.8rem;color:#374151;">{{ cat.category_name || 'Autre' }}</span>
+                <span style="font-size:.8rem;color:var(--app-text);">{{ cat.category_name || 'Autre' }}</span>
                 <span style="font-size:.8rem;font-weight:600;">{{ fmt(cat.total) }}</span>
               </div>
             </div>
@@ -428,7 +428,7 @@
         <div class="module-card">
           <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div class="module-icon" style="background:#F0FDF4;">
+              <div class="module-icon" style="background:var(--app-green-bg);">
                 <svg cIcon name="cilUser" style="color:#16A34A;width:15px;height:15px;"></svg>
               </div>
               <span class="module-title">Conducteurs</span>
@@ -439,7 +439,7 @@
             <div *ngIf="driverStats; else noData">
               <div class="row g-2 text-center">
                 <div class="col-3">
-                  <div class="kpi-num" style="color:#0f3460;">{{ driverStats.total_drivers || 0 }}</div>
+                  <div class="kpi-num" style="color:var(--app-brand-fg);">{{ driverStats.total_drivers || 0 }}</div>
                   <div class="kpi-lbl">Total</div>
                 </div>
                 <div class="col-3">
@@ -447,7 +447,7 @@
                   <div class="kpi-lbl">Actifs</div>
                 </div>
                 <div class="col-3">
-                  <div class="kpi-num" style="color:#6B7280;">{{ driverStats.inactive_drivers || 0 }}</div>
+                  <div class="kpi-num" style="color:var(--app-text-muted);">{{ driverStats.inactive_drivers || 0 }}</div>
                   <div class="kpi-lbl">Inactifs</div>
                 </div>
                 <div class="col-3">
@@ -457,7 +457,7 @@
               </div>
               <div class="info-row mt-3">
                 <span class="text-muted" style="font-size:.8rem;">Avec affectation active</span>
-                <strong style="color:#4F46E5;">{{ driverStats.drivers_with_assignments || 0 }}</strong>
+                <strong style="color:var(--app-indigo-fg-strong);">{{ driverStats.drivers_with_assignments || 0 }}</strong>
               </div>
             </div>
           </div>
@@ -469,18 +469,18 @@
         <div class="module-card">
           <div class="module-header">
             <div class="d-flex align-items-center gap-2">
-              <div class="module-icon" style="background:#FEF2F2;">
-                <svg cIcon name="cilDescription" style="color:#DC2626;width:15px;height:15px;"></svg>
+              <div class="module-icon" style="background:var(--app-red-bg);">
+                <svg cIcon name="cilDescription" style="color:var(--app-red-fg);width:15px;height:15px;"></svg>
               </div>
               <span class="module-title">Factures</span>
             </div>
-            <a routerLink="/finance/invoices" class="module-link" style="color:#DC2626;border-color:#DC2626;">Gérer</a>
+            <a routerLink="/finance/invoices" class="module-link" style="color:var(--app-red-fg);border-color:#DC2626;">Gérer</a>
           </div>
           <div class="module-body">
             <div *ngIf="invoices; else noData">
               <div class="row g-2 text-center mb-3">
                 <div class="col-3">
-                  <div class="kpi-num" style="color:#0f3460;">{{ invoices.total || 0 }}</div>
+                  <div class="kpi-num" style="color:var(--app-brand-fg);">{{ invoices.total || 0 }}</div>
                   <div class="kpi-lbl">Total</div>
                 </div>
                 <div class="col-3">
@@ -496,9 +496,9 @@
                   <div class="kpi-lbl">Impayées</div>
                 </div>
               </div>
-              <div class="info-row" style="background:#FEF2F2;border-radius:8px;padding:8px 12px;">
-                <span style="font-size:.85rem;font-weight:600;color:#DC2626;">Total restant dû</span>
-                <strong style="color:#DC2626;">{{ fmt(invoices.total_remaining) }}</strong>
+              <div class="info-row" style="background:var(--app-red-bg);border-radius:8px;padding:8px 12px;">
+                <span style="font-size:.85rem;font-weight:600;color:var(--app-red-fg);">Total restant dû</span>
+                <strong style="color:var(--app-red-fg);">{{ fmt(invoices.total_remaining) }}</strong>
               </div>
             </div>
           </div>
@@ -510,22 +510,22 @@
     <div class="module-card">
       <div class="module-header">
         <div class="d-flex align-items-center gap-2">
-          <div class="module-icon" style="background:#F5F3FF;">
-            <svg cIcon name="cilGraph" style="color:#7C3AED;width:15px;height:15px;"></svg>
+          <div class="module-icon" style="background:var(--app-violet-bg);">
+            <svg cIcon name="cilGraph" style="color:var(--app-violet-fg);width:15px;height:15px;"></svg>
           </div>
           <span class="module-title">Statistiques détaillées par module</span>
         </div>
       </div>
       <div class="module-body">
         <div class="d-flex flex-wrap gap-2">
-          <a routerLink="/statistics/sales"     class="quick-link" style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE;"><svg cIcon name="cilCart" style="width:13px;height:13px;"></svg> Ventes</a>
-          <a routerLink="/statistics/finance"   class="quick-link" style="background:#ECFDF5;color:#059669;border-color:#A7F3D0;"><svg cIcon name="cilDollar" style="width:13px;height:13px;"></svg> Finance</a>
-          <a routerLink="/statistics/inventory" class="quick-link" style="background:#FFFBEB;color:#D97706;border-color:#FDE68A;"><svg cIcon name="cilLayers" style="width:13px;height:13px;"></svg> Inventaire</a>
-          <a routerLink="/taxi/dashboard"       class="quick-link" style="background:#EFF6FF;color:#2563EB;border-color:#BFDBFE;"><svg cIcon name="cilSpeedometer" style="width:13px;height:13px;"></svg> Taxi</a>
-          <a routerLink="/rental/leases"        class="quick-link" style="background:#F8FAFC;color:#475569;border-color:#E2E8F0;"><svg cIcon name="cilHome" style="width:13px;height:13px;"></svg> Location</a>
-          <a routerLink="/expenses/statistics"  class="quick-link" style="background:#FFF1F2;color:#E11D48;border-color:#FECDD3;"><svg cIcon name="cilWallet" style="width:13px;height:13px;"></svg> Dépenses</a>
-          <a routerLink="/containers"           class="quick-link" style="background:#F0F9FF;color:#0891B2;border-color:#BAE6FD;"><svg cIcon name="cilLayers" style="width:13px;height:13px;"></svg> Conteneurs</a>
-          <a routerLink="/finance/invoices"     class="quick-link" style="background:#FEF2F2;color:#DC2626;border-color:#FECACA;"><svg cIcon name="cilDescription" style="width:13px;height:13px;"></svg> Factures</a>
+          <a routerLink="/statistics/sales"     class="quick-link" style="background:var(--app-indigo-bg);color:var(--app-indigo-fg-strong);border-color:var(--app-indigo-border);"><svg cIcon name="cilCart" style="width:13px;height:13px;"></svg> Ventes</a>
+          <a routerLink="/statistics/finance"   class="quick-link" style="background:var(--app-green-bg);color:#059669;border-color:var(--app-green-border);"><svg cIcon name="cilDollar" style="width:13px;height:13px;"></svg> Finance</a>
+          <a routerLink="/statistics/inventory" class="quick-link" style="background:var(--app-amber-bg);color:#D97706;border-color:var(--app-amber-border);"><svg cIcon name="cilLayers" style="width:13px;height:13px;"></svg> Inventaire</a>
+          <a routerLink="/taxi/dashboard"       class="quick-link" style="background:var(--app-blue-bg);color:var(--app-blue-fg);border-color:var(--app-blue-border);"><svg cIcon name="cilSpeedometer" style="width:13px;height:13px;"></svg> Taxi</a>
+          <a routerLink="/rental/leases"        class="quick-link" style="background:var(--app-surface-2);color:var(--app-text-2);border-color:var(--app-border);"><svg cIcon name="cilHome" style="width:13px;height:13px;"></svg> Location</a>
+          <a routerLink="/expenses/statistics"  class="quick-link" style="background:var(--app-red-bg);color:var(--app-red-fg);border-color:var(--app-red-border);"><svg cIcon name="cilWallet" style="width:13px;height:13px;"></svg> Dépenses</a>
+          <a routerLink="/containers"           class="quick-link" style="background:var(--app-cyan-bg);color:#0891B2;border-color:var(--app-cyan-border);"><svg cIcon name="cilLayers" style="width:13px;height:13px;"></svg> Conteneurs</a>
+          <a routerLink="/finance/invoices"     class="quick-link" style="background:var(--app-red-bg);color:var(--app-red-fg);border-color:var(--app-red-border);"><svg cIcon name="cilDescription" style="width:13px;height:13px;"></svg> Factures</a>
         </div>
       </div>
     </div>
@@ -540,7 +540,7 @@
 
 <style>
   .stat-card {
-    background: white; border-radius: 12px; padding: 16px;
+    background: var(--app-surface); border-radius: 12px; padding: 16px;
     box-shadow: 0 2px 12px rgba(0,0,0,.07);
     display: flex; align-items: flex-start; gap: 14px;
     transition: transform .15s, box-shadow .15s;
@@ -548,28 +548,28 @@
   .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
   .stat-icon { width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
   .stat-body { min-width:0; }
-  .stat-value { font-size:1.45rem;font-weight:700;line-height:1.1;color:#1e293b;word-break:break-all; }
-  .stat-label { font-size:.75rem;color:#6c757d;margin-top:3px; }
+  .stat-value { font-size:1.45rem;font-weight:700;line-height:1.1;color:var(--app-text-strong);word-break:break-all; }
+  .stat-label { font-size:.75rem;color:var(--app-text-muted);margin-top:3px; }
   .stat-sub   { font-size:.72rem;color:#adb5bd;margin-top:2px; }
 
-  .module-card { background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;height:100%; }
-  .module-header { padding:12px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between; }
+  .module-card { background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;height:100%; }
+  .module-header { padding:12px 16px;border-bottom:1px solid var(--app-border-soft);display:flex;align-items:center;justify-content:space-between; }
   .module-icon { width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center; }
-  .module-title { font-weight:600;font-size:.9rem;color:#1e293b; }
+  .module-title { font-weight:600;font-size:.9rem;color:var(--app-text-strong); }
   .module-link { font-size:.73rem;font-weight:600;text-decoration:none;padding:3px 9px;border:1px solid;border-radius:6px; }
   .module-body { padding:14px 16px; }
 
   .kpi-num    { font-size:1.4rem;font-weight:700;line-height:1; }
   .kpi-num-lg { font-size:2rem;font-weight:700;line-height:1; }
-  .kpi-lbl    { font-size:.72rem;color:#6c757d;margin-top:2px; }
+  .kpi-lbl    { font-size:.72rem;color:var(--app-text-muted);margin-top:2px; }
 
   .info-row { display:flex;justify-content:space-between;align-items:center;margin-bottom:6px; }
 
   .badge-pill { padding:3px 10px;border-radius:50px;font-size:.72rem;font-weight:600; }
-  .bg-success-soft { background:#ECFDF5;color:#10B981; }
-  .bg-warning-soft { background:#FFFBEB;color:#D97706; }
-  .bg-danger-soft  { background:#FEF2F2;color:#EF4444; }
-  .bg-primary-soft { background:#EFF6FF;color:#2563EB; }
+  .bg-success-soft { background:var(--app-green-bg);color:#10B981; }
+  .bg-warning-soft { background:var(--app-amber-bg);color:#D97706; }
+  .bg-danger-soft  { background:var(--app-red-bg);color:#EF4444; }
+  .bg-primary-soft { background:var(--app-blue-bg);color:var(--app-blue-fg); }
 
   .quick-link { display:inline-flex;align-items:center;gap:6px;border:1px solid;border-radius:8px;padding:7px 14px;font-size:.8rem;font-weight:600;text-decoration:none; }
 </style>

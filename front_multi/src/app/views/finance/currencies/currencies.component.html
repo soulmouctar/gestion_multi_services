@@ -39,7 +39,7 @@
   </div>
 
   <!-- Tableau -->
-  <div *ngIf="!loading" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+  <div *ngIf="!loading" style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
 
     <div *ngIf="currencies.length === 0" class="text-center py-5">
       <svg cIcon name="cilGlobeAlt" style="color:#D1D5DB;width:40px;height:40px;" class="mb-3"></svg>
@@ -49,55 +49,55 @@
     <div class="table-responsive" *ngIf="currencies.length > 0">
       <table class="table table-hover align-middle mb-0" style="font-size:13px;">
         <thead>
-          <tr style="background:#F9FAFB;border-bottom:2px solid #F3F4F6;">
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Code</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Nom</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Symbole</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Taux de change</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Par défaut</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Statut</th>
-            <th class="py-3 px-4 fw-semibold" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;width:130px;">Actions</th>
+          <tr style="background:var(--app-surface-2);border-bottom:2px solid var(--app-border-soft);">
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Code</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Nom</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Symbole</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Taux de change</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Par défaut</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Statut</th>
+            <th class="py-3 px-4 fw-semibold" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;width:130px;">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let currency of currencies; trackBy: trackById" style="border-color:#F3F4F6;">
+          <tr *ngFor="let currency of currencies; trackBy: trackById" style="border-color:var(--app-border-soft);">
             <td class="px-4 py-3">
               <span class="fw-bold px-2 py-1 rounded-2"
-                    style="background:#EFF6FF;color:#1D4ED8;font-size:12px;letter-spacing:.5px;">
+                    style="background:var(--app-blue-bg);color:var(--app-blue-fg-strong);font-size:12px;letter-spacing:.5px;">
                 {{ currency.code }}
               </span>
             </td>
-            <td class="px-4 py-3 fw-semibold" style="color:#111827;">{{ currency.name }}</td>
-            <td class="px-4 py-3" style="color:#374151;">{{ currency.symbol || '—' }}</td>
+            <td class="px-4 py-3 fw-semibold" style="color:var(--app-heading);">{{ currency.name }}</td>
+            <td class="px-4 py-3" style="color:var(--app-text);">{{ currency.symbol || '—' }}</td>
             <td class="px-4 py-3">
-              <span class="fw-semibold" style="color:#374151;">{{ currency.exchange_rate }}</span>
+              <span class="fw-semibold" style="color:var(--app-text);">{{ currency.exchange_rate }}</span>
             </td>
             <td class="px-4 py-3">
               <span *ngIf="currency.is_default"
                     class="px-2 py-1 rounded-2 small fw-semibold"
-                    style="background:#ECFDF5;color:#10B981;">Oui</span>
+                    style="background:var(--app-green-bg);color:#10B981;">Oui</span>
               <span *ngIf="!currency.is_default"
                     class="px-2 py-1 rounded-2 small fw-semibold"
-                    style="background:#F3F4F6;color:#9CA3AF;">Non</span>
+                    style="background:var(--app-surface-3);color:#9CA3AF;">Non</span>
             </td>
             <td class="px-4 py-3">
               <span *ngIf="currency.is_active"
                     class="px-2 py-1 rounded-2 small fw-semibold"
-                    style="background:#ECFDF5;color:#10B981;">Actif</span>
+                    style="background:var(--app-green-bg);color:#10B981;">Actif</span>
               <span *ngIf="!currency.is_active"
                     class="px-2 py-1 rounded-2 small fw-semibold"
-                    style="background:#FEF2F2;color:#EF4444;">Inactif</span>
+                    style="background:var(--app-red-bg);color:#EF4444;">Inactif</span>
             </td>
             <td class="px-4 py-3">
               <div class="d-flex gap-2">
                 <button *ngIf="canEditCurrency" class="btn btn-sm d-flex align-items-center justify-content-center"
-                        style="width:32px;height:32px;padding:0;background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;"
+                        style="width:32px;height:32px;padding:0;background:var(--app-amber-bg);color:#F59E0B;border:1px solid var(--app-amber-border);border-radius:8px;"
                         (click)="openEditModal(currency)"
                         title="Modifier">
                   <svg cIcon name="cilPencil" style="width:14px;height:14px;"></svg>
                 </button>
                 <button *ngIf="canDeleteCurrency" class="btn btn-sm d-flex align-items-center justify-content-center"
-                        style="width:32px;height:32px;padding:0;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:8px;"
+                        style="width:32px;height:32px;padding:0;background:var(--app-red-bg);color:#EF4444;border:1px solid var(--app-red-border);border-radius:8px;"
                         (click)="confirmDelete(currency)"
                         title="Supprimer">
                   <svg cIcon name="cilTrash" style="width:14px;height:14px;"></svg>
@@ -111,7 +111,7 @@
 
     <!-- Pagination -->
     <div *ngIf="totalPages > 1" class="d-flex justify-content-between align-items-center px-4 py-3"
-         style="border-top:1px solid #F3F4F6;">
+         style="border-top:1px solid var(--app-border-soft);">
       <span class="small" style="color:#9CA3AF;">
         Page {{ currentPage }} sur {{ totalPages }} — {{ totalItems }} résultat(s)
       </span>
@@ -137,8 +137,8 @@
 
 <!-- Modal Formulaire -->
 <c-modal [visible]="showFormModal" (visibleChange)="showFormModal = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #F3F4F6;">
-    <h5 cModalTitle class="fw-bold" style="color:#111827;">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);">
+    <h5 cModalTitle class="fw-bold" style="color:var(--app-heading);">
       {{ editMode ? 'Modifier la devise' : 'Nouvelle devise' }}
     </h5>
     <button type="button" class="btn-close" (click)="showFormModal = false"></button>
@@ -148,7 +148,7 @@
 
       <div class="row g-3">
         <div class="col-6">
-          <label class="form-label fw-semibold small" style="color:#374151;">Code *</label>
+          <label class="form-label fw-semibold small" style="color:var(--app-text);">Code *</label>
           <input cFormControl type="text" formControlName="code" placeholder="Ex: USD, EUR, GNF"
                  style="border-radius:8px;"
                  [class.is-invalid]="submitted && currencyForm.get('code')?.invalid" />
@@ -157,14 +157,14 @@
           </div>
         </div>
         <div class="col-6">
-          <label class="form-label fw-semibold small" style="color:#374151;">Symbole</label>
+          <label class="form-label fw-semibold small" style="color:var(--app-text);">Symbole</label>
           <input cFormControl type="text" formControlName="symbol" placeholder="Ex: $, €, Fr"
                  style="border-radius:8px;" />
         </div>
       </div>
 
       <div class="mt-3">
-        <label class="form-label fw-semibold small" style="color:#374151;">Nom *</label>
+        <label class="form-label fw-semibold small" style="color:var(--app-text);">Nom *</label>
         <input cFormControl type="text" formControlName="name" placeholder="Ex: Dollar US"
                style="border-radius:8px;"
                [class.is-invalid]="submitted && currencyForm.get('name')?.invalid" />
@@ -174,28 +174,28 @@
       </div>
 
       <div class="mt-3">
-        <label class="form-label fw-semibold small" style="color:#374151;">Taux de change</label>
+        <label class="form-label fw-semibold small" style="color:var(--app-text);">Taux de change</label>
         <input cFormControl type="number" formControlName="exchange_rate" step="0.0001"
                style="border-radius:8px;" />
         <div class="form-text text-muted" style="font-size:11px;">Taux par rapport à la devise de référence</div>
       </div>
 
-      <div class="mt-3 p-3 rounded-3 d-flex gap-4" style="background:#F9FAFB;">
+      <div class="mt-3 p-3 rounded-3 d-flex gap-4" style="background:var(--app-surface-2);">
         <div class="form-check mb-0">
           <input type="checkbox" class="form-check-input" formControlName="is_default" id="isDefault" />
-          <label class="form-check-label small fw-semibold" for="isDefault" style="color:#374151;">Devise par défaut</label>
+          <label class="form-check-label small fw-semibold" for="isDefault" style="color:var(--app-text);">Devise par défaut</label>
         </div>
         <div class="form-check mb-0">
           <input type="checkbox" class="form-check-input" formControlName="is_active" id="isActive" />
-          <label class="form-check-label small fw-semibold" for="isActive" style="color:#374151;">Active</label>
+          <label class="form-check-label small fw-semibold" for="isActive" style="color:var(--app-text);">Active</label>
         </div>
       </div>
 
     </form>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #F3F4F6;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);">
     <button class="btn"
-            style="border-radius:8px;background:#F3F4F6;color:#374151;border:none;"
+            style="border-radius:8px;background:var(--app-surface-3);color:var(--app-text);border:none;"
             (click)="showFormModal = false">
       Annuler
     </button>
@@ -209,27 +209,27 @@
 
 <!-- Modal Suppression -->
 <c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #F3F4F6;">
-    <h5 cModalTitle class="fw-bold" style="color:#111827;">Confirmer la suppression</h5>
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);">
+    <h5 cModalTitle class="fw-bold" style="color:var(--app-heading);">Confirmer la suppression</h5>
     <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
   </c-modal-header>
   <c-modal-body class="p-4 text-center">
     <div class="mb-3 d-flex justify-content-center">
       <div class="rounded-circle d-flex align-items-center justify-content-center"
-           style="width:56px;height:56px;background:#FEF2F2;">
+           style="width:56px;height:56px;background:var(--app-red-bg);">
         <svg cIcon name="cilTrash" style="color:#EF4444;width:26px;height:26px;"></svg>
       </div>
     </div>
-    <h6 class="fw-bold mb-2" style="color:#111827;">Supprimer la devise ?</h6>
-    <p class="mb-1" style="color:#374151;">
+    <h6 class="fw-bold mb-2" style="color:var(--app-heading);">Supprimer la devise ?</h6>
+    <p class="mb-1" style="color:var(--app-text);">
       Vous allez supprimer <strong>{{ currencyToDelete?.name }}</strong>
       <span *ngIf="currencyToDelete?.code"> ({{ currencyToDelete.code }})</span>.
     </p>
     <p class="small mb-0" style="color:#EF4444;">Cette action est irréversible.</p>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #F3F4F6;justify-content:center;gap:12px;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);justify-content:center;gap:12px;">
     <button class="btn"
-            style="border-radius:8px;background:#F3F4F6;color:#374151;border:none;min-width:100px;"
+            style="border-radius:8px;background:var(--app-surface-3);color:var(--app-text);border:none;min-width:100px;"
             (click)="deleteModalOpen = false">
       Annuler
     </button>

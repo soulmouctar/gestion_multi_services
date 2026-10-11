@@ -29,7 +29,7 @@ interface DocStatus { label: string; color: string; icon: string; }
       border-radius: 10px; padding: 8px 16px; text-align:center;
     }
     .vehicle-card {
-      background: #fff; border-radius: 14px; border: 1px solid #f0f0f0;
+      background: var(--app-surface); border-radius: 14px; border: 1px solid var(--app-border-soft);
       padding: 20px; transition: all .2s; box-shadow: 0 2px 8px rgba(0,0,0,.04);
     }
     .vehicle-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.09); }
@@ -37,17 +37,17 @@ interface DocStatus { label: string; color: string; icon: string; }
     .vehicle-card.has-critical { border-left: 4px solid #f59e0b; }
     .vehicle-card.all-ok { border-left: 4px solid #10b981; }
     .doc-block {
-      background: #f8fafc; border-radius: 10px; padding: 10px 12px;
-      border: 1px solid #f0f0f0; flex: 1;
+      background: var(--app-surface-2); border-radius: 10px; padding: 10px 12px;
+      border: 1px solid var(--app-border-soft); flex: 1;
     }
-    .doc-block.expired { background:#fef2f2; border-color:#fecaca; }
-    .doc-block.danger  { background:#fef2f2; border-color:#fecaca; }
-    .doc-block.warning { background:#fffbeb; border-color:#fde68a; }
-    .doc-block.info    { background:#eff6ff; border-color:#bfdbfe; }
-    .doc-block.ok      { background:#f0fdf4; border-color:#bbf7d0; }
+    .doc-block.expired { background:var(--app-red-bg); border-color:var(--app-red-border); }
+    .doc-block.danger  { background:var(--app-red-bg); border-color:var(--app-red-border); }
+    .doc-block.warning { background:var(--app-amber-bg); border-color:var(--app-amber-border); }
+    .doc-block.info    { background:var(--app-blue-bg); border-color:var(--app-blue-border); }
+    .doc-block.ok      { background:var(--app-green-bg); border-color:var(--app-green-border); }
     .doc-title { font-size:.62rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#9ca3af; margin-bottom:3px; }
     .doc-date  { font-size:.82rem; font-weight:700; }
-    .legend-item { display:flex; align-items:center; gap:6px; font-size:.75rem; color:#6b7280; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:.75rem; color:var(--app-text-muted); }
     .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
   `],
   template: `
@@ -82,13 +82,13 @@ interface DocStatus { label: string; color: string; icon: string; }
   </div>
 
   <!-- Légende -->
-  <div class="d-flex flex-wrap gap-3 mb-4 p-3 rounded-3" style="background:#fff;border:1px solid #f0f0f0">
+  <div class="d-flex flex-wrap gap-3 mb-4 p-3 rounded-3" style="background:var(--app-surface);border:1px solid var(--app-border-soft)">
     <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Expiré</div>
     <div class="legend-item"><div class="legend-dot" style="background:#ef4444;opacity:.7"></div>≤ 15 jours</div>
     <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>≤ 30 jours</div>
     <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>≤ 60 jours</div>
     <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Valide (&gt; 60 j)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#d1d5db"></div>Non renseigné</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--app-surface-4)"></div>Non renseigné</div>
   </div>
 
   <!-- Loading -->
@@ -116,11 +116,11 @@ interface DocStatus { label: string; color: string; icon: string; }
           <div class="d-flex align-items-center gap-3">
             <div class="rounded-3 d-flex align-items-center justify-content-center"
               style="width:44px;height:44px;font-size:1.3rem;flex-shrink:0"
-              [style.background]="hasExpired(v) ? '#fef2f2' : hasCritical(v) ? '#fffbeb' : '#f0fdf4'">
+              [style.background]="hasExpired(v) ? 'var(--app-red-bg)' : hasCritical(v) ? 'var(--app-amber-bg)' : 'var(--app-green-bg)'">
               <svg cIcon name="cilCarAlt" class="ic"></svg>
             </div>
             <div>
-              <div class="fw-bold" style="font-size:1rem;color:#1a1a2e;letter-spacing:.03em">
+              <div class="fw-bold" style="font-size:1rem;color:var(--app-heading);letter-spacing:.03em">
                 {{ v.plate_number }}
               </div>
               <div class="text-muted" style="font-size:.75rem">
@@ -133,13 +133,13 @@ interface DocStatus { label: string; color: string; icon: string; }
           </div>
           <div class="d-flex align-items-center gap-2">
             <span class="badge rounded-pill px-3"
-              [style.background]="v.status === 'ACTIVE' ? '#ECFDF5' : v.status === 'MAINTENANCE' ? '#FFFBEB' : '#F9FAFB'"
-              [style.color]="v.status === 'ACTIVE' ? '#10B981' : v.status === 'MAINTENANCE' ? '#F59E0B' : '#6B7280'"
+              [style.background]="v.status === 'ACTIVE' ? 'var(--app-green-bg)' : v.status === 'MAINTENANCE' ? 'var(--app-amber-bg)' : 'var(--app-surface-2)'"
+              [style.color]="v.status === 'ACTIVE' ? '#10B981' : v.status === 'MAINTENANCE' ? '#F59E0B' : 'var(--app-text-muted)'"
               style="font-size:.7rem;font-weight:700">
               {{ fleetLabel(v.status) }}
             </span>
             <button *ngIf="canEditDocuments" class="btn btn-sm rounded-3 d-flex align-items-center gap-1"
-              style="background:#EEF2FF;color:#6366F1;border:none;font-size:.75rem;font-weight:600;padding:6px 12px"
+              style="background:var(--app-indigo-bg);color:#6366F1;border:none;font-size:.75rem;font-weight:600;padding:6px 12px"
               (click)="openEdit(v)">
               <svg cIcon name="cilPencil" size="sm"></svg> Modifier
             </button>
@@ -196,7 +196,7 @@ interface DocStatus { label: string; color: string; icon: string; }
         </div>
 
         <!-- Mileage & notes -->
-        <div class="d-flex gap-3 mt-3 pt-3" style="border-top:1px solid #f0f0f0">
+        <div class="d-flex gap-3 mt-3 pt-3" style="border-top:1px solid var(--app-border-soft)">
           <div *ngIf="v.mileage" class="text-muted" style="font-size:.75rem">
             <svg cIcon name="cilLocationPin" class="ic"></svg> <strong>{{ v.mileage | number }}</strong> km
           </div>
@@ -345,8 +345,8 @@ export class TaxiDocumentsComponent implements OnInit {
     return map[status] || '#9ca3af';
   }
   docBg(status: string): string {
-    const map: any = { expired: '#fef2f2', danger: '#fef2f2', warning: '#fffbeb', info: '#eff6ff', ok: '#f0fdf4', missing: '#f9fafb' };
-    return map[status] || '#f9fafb';
+    const map: any = { expired: 'var(--app-red-bg)', danger: 'var(--app-red-bg)', warning: 'var(--app-amber-bg)', info: 'var(--app-blue-bg)', ok: 'var(--app-green-bg)', missing: 'var(--app-surface-2)' };
+    return map[status] || 'var(--app-surface-2)';
   }
   docLabel(status: string): string {
     const map: any = { expired: 'EXPIRÉ', danger: '≤ 15 jours', warning: '≤ 30 jours', info: '≤ 60 jours', ok: 'Valide', missing: 'Non renseigné' };

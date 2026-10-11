@@ -24,7 +24,7 @@
   </div>
 
   <!-- Filtres -->
-  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div class="card mb-4" style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
     <div class="card-body">
       <form [formGroup]="filterForm" class="row g-3 align-items-end">
         <div class="col-md-4">
@@ -59,9 +59,9 @@
   </div>
 
   <!-- Tableau des abonnements -->
-  <div class="card" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div class="card" style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3"
-         style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+         style="border-radius:14px 14px 0 0;border-bottom:1px solid var(--app-border-soft)">
       <span class="fw-bold fs-5">Liste des Abonnements</span>
       <span *ngIf="loading" class="spinner-border spinner-border-sm text-primary"></span>
     </div>
@@ -87,13 +87,13 @@
       <div class="table-responsive" *ngIf="filteredSubscriptions.length > 0">
         <table class="table table-hover align-middle mb-0">
           <thead>
-            <tr style="background:#f8fafc">
-              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid #f0f0f0">Tenant</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Plan</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Période</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Statut</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Expiration</th>
-              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid #f0f0f0">Actions</th>
+            <tr style="background:var(--app-surface-2)">
+              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid var(--app-border-soft)">Tenant</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Plan</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Période</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Statut</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Expiration</th>
+              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid var(--app-border-soft)">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -112,7 +112,7 @@
               </td>
               <td>
                 <div class="fw-semibold">{{ subscription.plan?.name || 'N/A' }}</div>
-                <span class="badge rounded-pill small" style="background:#EFF6FF;color:#3B82F6">
+                <span class="badge rounded-pill small" style="background:var(--app-blue-bg);color:#3B82F6">
                   {{ formatPrice(subscription.plan?.price || 0) }}
                 </span>
               </td>
@@ -123,23 +123,23 @@
                 </div>
                 <span *ngIf="subscription.auto_renew"
                       class="badge rounded-pill mt-1 small"
-                      style="background:#ECFDF5;color:#10B981">
+                      style="background:var(--app-green-bg);color:#10B981">
                   Auto-renouvellement
                 </span>
               </td>
               <td>
                 <span *ngIf="subscription.status === 'ACTIVE'"
                       class="badge rounded-pill px-3 py-1"
-                      style="background:#ECFDF5;color:#10B981">ACTIF</span>
+                      style="background:var(--app-green-bg);color:#10B981">ACTIF</span>
                 <span *ngIf="subscription.status === 'EXPIRED'"
                       class="badge rounded-pill px-3 py-1"
-                      style="background:#FEE2E2;color:#EF4444">EXPIRÉ</span>
+                      style="background:var(--app-red-bg-2);color:#EF4444">EXPIRÉ</span>
                 <span *ngIf="subscription.status === 'SUSPENDED'"
                       class="badge rounded-pill px-3 py-1"
-                      style="background:#FEF3C7;color:#D97706">SUSPENDU</span>
+                      style="background:var(--app-amber-bg-2);color:#D97706">SUSPENDU</span>
                 <span *ngIf="subscription.status === 'CANCELLED'"
                       class="badge rounded-pill px-3 py-1"
-                      style="background:#F3F4F6;color:#6B7280">ANNULÉ</span>
+                      style="background:var(--app-surface-3);color:var(--app-text-muted)">ANNULÉ</span>
               </td>
               <td>
                 <div *ngIf="subscription.status === 'ACTIVE'">
@@ -255,7 +255,7 @@
         </div>
 
         <div class="col-12">
-          <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #f0f0f0">
+          <div class="rounded-3 p-3" style="background:var(--app-surface-2);border:1px solid var(--app-border-soft)">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" formControlName="auto_renew" id="autoRenew">
               <label class="form-check-label fw-semibold" for="autoRenew">
@@ -270,7 +270,7 @@
     </form>
   </c-modal-body>
 
-  <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+  <c-modal-footer class="px-4 py-3" style="background:var(--app-surface-2);border-top:1px solid var(--app-border-soft)">
     <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
             (click)="closeSubscriptionModal()" [disabled]="loading">Annuler</button>
     <button type="button" class="btn btn-primary rounded-pill px-4"
@@ -291,7 +291,7 @@
 
   <c-modal-body class="px-4 py-4">
     <div *ngIf="subscriptionToRenew" class="rounded-3 p-3 mb-4"
-         style="background:#F8FAFC;border:1px solid #f0f0f0">
+         style="background:var(--app-surface-2);border:1px solid var(--app-border-soft)">
       <div class="fw-semibold">{{ subscriptionToRenew.tenant?.name }}</div>
       <div class="text-muted small">{{ subscriptionToRenew.plan?.name }}</div>
       <div class="text-muted small mt-1">Expire le {{ formatDate(subscriptionToRenew.end_date) }}</div>
@@ -305,7 +305,7 @@
                  min="1" max="60" style="border-radius:8px">
         </div>
         <div class="col-md-6 d-flex align-items-center">
-          <div class="rounded-3 p-3 w-100" style="background:#F8FAFC;border:1px solid #f0f0f0">
+          <div class="rounded-3 p-3 w-100" style="background:var(--app-surface-2);border:1px solid var(--app-border-soft)">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" formControlName="auto_renew" id="renewAutoRenew">
               <label class="form-check-label fw-semibold" for="renewAutoRenew">Auto-renouvellement</label>
@@ -316,7 +316,7 @@
     </form>
   </c-modal-body>
 
-  <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+  <c-modal-footer class="px-4 py-3" style="background:var(--app-surface-2);border-top:1px solid var(--app-border-soft)">
     <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
             (click)="closeRenewModal()" [disabled]="loading">Annuler</button>
     <button type="button" class="btn btn-success rounded-pill px-4"
@@ -329,19 +329,19 @@
 
 <!-- Modal confirmation suppression -->
 <c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static">
-  <c-modal-header class="px-4 py-3" style="border-bottom:1px solid #f0f0f0">
+  <c-modal-header class="px-4 py-3" style="border-bottom:1px solid var(--app-border-soft)">
     <h5 cModalTitle class="fw-bold">Confirmer la suppression</h5>
     <button cButtonClose (click)="closeDeleteModal()" [disabled]="loading"></button>
   </c-modal-header>
   <c-modal-body class="px-4 py-4">
     <p>Êtes-vous sûr de vouloir supprimer l'abonnement de <strong>{{ subscriptionToDelete?.tenant?.name }}</strong> ?</p>
     <div class="rounded-3 p-3 d-flex gap-2 align-items-start"
-         style="background:#FEF3C7;border:1px solid #FDE68A">
+         style="background:var(--app-amber-bg-2);border:1px solid var(--app-amber-border)">
       <svg cIcon name="cil-warning" class="text-warning flex-shrink-0 mt-1"></svg>
       <span class="small text-warning-emphasis">Cette action est irréversible et affectera l'accès du tenant à la plateforme.</span>
     </div>
   </c-modal-body>
-  <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+  <c-modal-footer class="px-4 py-3" style="background:var(--app-surface-2);border-top:1px solid var(--app-border-soft)">
     <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
             (click)="closeDeleteModal()" [disabled]="loading">Annuler</button>
     <button type="button" class="btn btn-danger rounded-pill px-4"

@@ -75,33 +75,33 @@
 }
 
 .tone-primary {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--app-blue-bg-2);
+  color: var(--app-blue-fg);
 }
 
 .tone-success {
-  background: #d1fae5;
+  background: var(--app-green-bg-2);
   color: #059669;
 }
 
 .tone-warning {
-  background: #fef3c7;
+  background: var(--app-amber-bg-2);
   color: #d97706;
 }
 
 .tone-info {
-  background: #cffafe;
+  background: var(--app-cyan-bg-2);
   color: #0891b2;
 }
 
 .tone-danger {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--app-red-bg-2);
+  color: var(--app-red-fg);
 }
 
 .tone-secondary {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--app-surface-4);
+  color: var(--app-text-2);
 }
 
 .hero-summary {
@@ -133,7 +133,7 @@
 .empty-state,
 .panel-empty {
   text-align: center;
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 .loading-state {
@@ -171,7 +171,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #eef2ff;
+  background: var(--app-indigo-bg);
   font-size: 1rem;
 }
 
@@ -180,12 +180,12 @@
   font-size: 1.75rem;
   font-weight: 900;
   line-height: 1;
-  color: #0f172a;
+  color: var(--app-heading);
 }
 
 .metric-label {
   margin-top: 0.35rem;
-  color: #64748b;
+  color: var(--app-text-muted);
   font-size: 0.82rem;
 }
 
@@ -198,7 +198,7 @@
   margin: 0;
   font-size: 1.1rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--app-heading);
 }
 
 .activity-row {
@@ -206,7 +206,7 @@
   gap: 0.85rem;
   align-items: flex-start;
   padding: 0.85rem 0;
-  border-bottom: 1px solid #eef2f7;
+  border-bottom: 1px solid var(--app-border-soft);
 }
 
 .activity-row:last-child {
@@ -228,14 +228,14 @@
 
 .activity-title {
   font-weight: 700;
-  color: #0f172a;
+  color: var(--app-heading);
 }
 
 .activity-meta {
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
-  color: #64748b;
+  color: var(--app-text-muted);
   font-size: 0.78rem;
   margin-top: 0.2rem;
 }
@@ -244,7 +244,7 @@
 .trend-row,
 .revenue-row {
   padding: 0.75rem 0;
-  border-bottom: 1px solid #eef2f7;
+  border-bottom: 1px solid var(--app-border-soft);
 }
 
 .usage-row:last-child,
@@ -257,24 +257,24 @@
 .trend-month,
 .revenue-month {
   font-weight: 700;
-  color: #0f172a;
+  color: var(--app-heading);
 }
 
 .usage-sub {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 .usage-percent,
 .revenue-value {
   font-weight: 800;
-  color: #334155;
+  color: var(--app-text);
 }
 
 .usage-track {
   height: 8px;
   border-radius: 999px;
-  background: #edf2f7;
+  background: var(--app-surface-3);
   overflow: hidden;
 }
 
@@ -301,13 +301,13 @@
 }
 
 .trend-pill.created {
-  background: #ecfdf5;
+  background: var(--app-green-bg);
   color: #059669;
 }
 
 .trend-pill.canceled {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--app-red-bg);
+  color: var(--app-red-fg);
 }
 
 @media (max-width: 992px) {

@@ -10,7 +10,7 @@
     </a>
   </div>
 
-  <div class="bg-white rounded-3 p-3 mb-4" style="border:1px solid #f0f0f0;">
+  <div class="bg-white rounded-3 p-3 mb-4" style="border:1px solid var(--app-border-soft);">
     <div class="row g-2">
       <div class="col-md-7">
         <input cFormControl type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un client..."
@@ -37,79 +37,79 @@
   <ng-container *ngIf="!loading && stats?.summary as summary">
     <div class="row g-3 mb-4">
       <div class="col-6 col-xl-2">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
           <div class="small text-uppercase fw-semibold text-muted">Clients</div>
-          <div class="fw-bold fs-4" style="color:#0f3460;">{{ summary.total_clients }}</div>
+          <div class="fw-bold fs-4" style="color:var(--app-brand-fg);">{{ summary.total_clients }}</div>
         </div>
       </div>
       <div class="col-6 col-xl-2">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
           <div class="small text-uppercase fw-semibold text-muted">Débiteurs</div>
-          <div class="fw-bold fs-4" style="color:#DC2626;">{{ summary.debtor_clients }}</div>
+          <div class="fw-bold fs-4" style="color:var(--app-red-fg);">{{ summary.debtor_clients }}</div>
         </div>
       </div>
       <div class="col-6 col-xl-2">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
           <div class="small text-uppercase fw-semibold text-muted">Soldés</div>
-          <div class="fw-bold fs-4" style="color:#2563EB;">{{ summary.settled_clients }}</div>
+          <div class="fw-bold fs-4" style="color:var(--app-blue-fg);">{{ summary.settled_clients }}</div>
         </div>
       </div>
       <div class="col-6 col-xl-2">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
           <div class="small text-uppercase fw-semibold text-muted">Avances</div>
           <div class="fw-bold fs-6" style="color:#059669;">{{ fmt(summary.total_advances_remaining) }}</div>
         </div>
       </div>
       <div class="col-6 col-xl-2">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
           <div class="small text-uppercase fw-semibold text-muted">Restes à payer</div>
           <div class="fw-bold fs-6" style="color:#D97706;">{{ fmt(summary.total_rest_to_pay) }}</div>
         </div>
       </div>
       <div class="col-6 col-xl-2">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
           <div class="small text-uppercase fw-semibold text-muted">Crédit net</div>
-          <div class="fw-bold fs-6" style="color:#7C3AED;">{{ fmt(summary.total_credit_balance) }}</div>
+          <div class="fw-bold fs-6" style="color:var(--app-violet-fg);">{{ fmt(summary.total_credit_balance) }}</div>
         </div>
       </div>
     </div>
 
     <div class="row g-3 mb-4">
       <div class="col-12 col-md-4">
-        <div class="bg-white rounded-3 p-3 h-100 d-flex align-items-center gap-3" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100 d-flex align-items-center gap-3" style="border:1px solid var(--app-border-soft);">
           <div class="rounded-3 d-flex align-items-center justify-content-center"
-               style="width:48px;height:48px;background:#DCFCE7;color:#16A34A;">
+               style="width:48px;height:48px;background:var(--app-green-bg-2);color:#16A34A;">
             <svg cIcon name="cilSpeedometer" size="lg"></svg>
           </div>
           <div>
             <div class="small text-muted">Taux de recouvrement</div>
-            <div class="fw-bold fs-4" [style.color]="collectionRate() >= 75 ? '#16A34A' : collectionRate() >= 45 ? '#D97706' : '#DC2626'">
+            <div class="fw-bold fs-4" [style.color]="collectionRate() >= 75 ? '#16A34A' : collectionRate() >= 45 ? '#D97706' : 'var(--app-red-fg)'">
               {{ collectionRate() }}%
             </div>
           </div>
         </div>
       </div>
       <div class="col-12 col-md-4">
-        <div class="bg-white rounded-3 p-3 h-100 d-flex align-items-center gap-3" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100 d-flex align-items-center gap-3" style="border:1px solid var(--app-border-soft);">
           <div class="rounded-3 d-flex align-items-center justify-content-center"
-               style="width:48px;height:48px;background:#DBEAFE;color:#2563EB;">
+               style="width:48px;height:48px;background:var(--app-blue-bg-2);color:var(--app-blue-fg);">
             <svg cIcon name="cilChart" size="lg"></svg>
           </div>
           <div>
             <div class="small text-muted">Valeur moyenne / client</div>
-            <div class="fw-bold fs-5" style="color:#0f3460;">{{ fmt(averageClientValue()) }}</div>
+            <div class="fw-bold fs-5" style="color:var(--app-brand-fg);">{{ fmt(averageClientValue()) }}</div>
           </div>
         </div>
       </div>
       <div class="col-12 col-md-4">
-        <div class="bg-white rounded-3 p-3 h-100 d-flex align-items-center gap-3" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100 d-flex align-items-center gap-3" style="border:1px solid var(--app-border-soft);">
           <div class="rounded-3 d-flex align-items-center justify-content-center"
-               style="width:48px;height:48px;background:#FEF2F2;color:#DC2626;">
+               style="width:48px;height:48px;background:var(--app-red-bg);color:var(--app-red-fg);">
             <svg cIcon name="cilWarning" size="lg"></svg>
           </div>
           <div>
             <div class="small text-muted">Clients à relancer</div>
-            <div class="fw-bold fs-4" style="color:#DC2626;">{{ riskClients().length }}</div>
+            <div class="fw-bold fs-4" style="color:var(--app-red-fg);">{{ riskClients().length }}</div>
           </div>
         </div>
       </div>
@@ -117,24 +117,24 @@
 
     <div class="row g-3 mb-4">
       <div class="col-12 col-xl-4">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
-          <div class="fw-semibold mb-3" style="color:#0f3460;">Comptes clients</div>
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
+          <div class="fw-semibold mb-3" style="color:var(--app-brand-fg);">Comptes clients</div>
           <div style="height:280px;">
             <c-chart type="bar" [data]="countsChartData" [options]="chartOptions"></c-chart>
           </div>
         </div>
       </div>
       <div class="col-12 col-xl-4">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
-          <div class="fw-semibold mb-3" style="color:#0f3460;">Répartition des statuts</div>
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
+          <div class="fw-semibold mb-3" style="color:var(--app-brand-fg);">Répartition des statuts</div>
           <div style="height:280px;">
             <c-chart type="doughnut" [data]="statusesChartData" [options]="chartOptions"></c-chart>
           </div>
         </div>
       </div>
       <div class="col-12 col-xl-4">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
-          <div class="fw-semibold mb-3" style="color:#0f3460;">Montants globaux</div>
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
+          <div class="fw-semibold mb-3" style="color:var(--app-brand-fg);">Montants globaux</div>
           <div style="height:280px;">
             <c-chart type="bar" [data]="amountsChartData" [options]="chartOptions"></c-chart>
           </div>
@@ -144,10 +144,10 @@
 
     <div class="row g-3 mb-4">
       <div class="col-12 col-xl-7">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div>
-              <div class="fw-semibold" style="color:#0f3460;">Performance des meilleurs clients</div>
+              <div class="fw-semibold" style="color:var(--app-brand-fg);">Performance des meilleurs clients</div>
               <div class="text-muted small">Montants payés comparés aux restes dus</div>
             </div>
             <span class="badge bg-light text-dark border">Top 8</span>
@@ -161,8 +161,8 @@
         </div>
       </div>
       <div class="col-12 col-xl-5">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
-          <div class="fw-semibold mb-3" style="color:#0f3460;">Répartition par activité</div>
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
+          <div class="fw-semibold mb-3" style="color:var(--app-brand-fg);">Répartition par activité</div>
           <div *ngIf="clients.length; else noClientTypes" style="height:340px;">
             <c-chart type="doughnut" [data]="clientTypesChartData" [options]="chartOptions"></c-chart>
           </div>
@@ -175,17 +175,17 @@
 
     <div class="row g-3 mb-4">
       <div class="col-12 col-xl-7">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
-          <div class="fw-semibold mb-3" style="color:#0f3460;">Recouvrement global</div>
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
+          <div class="fw-semibold mb-3" style="color:var(--app-brand-fg);">Recouvrement global</div>
           <div style="height:300px;">
             <c-chart type="bar" [data]="collectionChartData" [options]="chartOptions"></c-chart>
           </div>
         </div>
       </div>
       <div class="col-12 col-xl-5">
-        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid #f0f0f0;">
+        <div class="bg-white rounded-3 p-3 h-100" style="border:1px solid var(--app-border-soft);">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="fw-semibold" style="color:#0f3460;">Clients à risque</div>
+            <div class="fw-semibold" style="color:var(--app-brand-fg);">Clients à risque</div>
             <small class="text-muted">Reste dû le plus élevé</small>
           </div>
           <div *ngIf="riskClients().length; else noRiskClients">
@@ -207,9 +207,9 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-3 p-3" style="border:1px solid #f0f0f0;">
+    <div class="bg-white rounded-3 p-3" style="border:1px solid var(--app-border-soft);">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="fw-semibold" style="color:#0f3460;">Clients les plus exposés</div>
+        <div class="fw-semibold" style="color:var(--app-brand-fg);">Clients les plus exposés</div>
         <small class="text-muted">{{ stats.clients?.length || 0 }} client(s)</small>
       </div>
       <div class="table-responsive">
@@ -232,7 +232,7 @@
               <td class="text-end">{{ fmt(client.total_charged) }}</td>
               <td class="text-end text-success">{{ fmt(client.total_paid) }}</td>
               <td class="text-end text-primary">{{ fmt(client.advances_remaining) }}</td>
-              <td class="text-end" [style.color]="client.rest_to_pay_gnf > 0 ? '#DC2626' : '#059669'">
+              <td class="text-end" [style.color]="client.rest_to_pay_gnf > 0 ? 'var(--app-red-fg)' : '#059669'">
                 {{ fmt(client.rest_to_pay_gnf) }}
               </td>
               <td class="text-center">

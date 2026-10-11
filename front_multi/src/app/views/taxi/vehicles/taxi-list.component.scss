@@ -2,21 +2,21 @@
    en-tete collant, chiffres alignes, colonne d'alerte mise en avant. */
 
 :host {
-  --vt-border: #e6ebf2;
-  --vt-line: #eef2f7;
-  --vt-head: #f8fafc;
-  --vt-text: #29354a;
+  --vt-border: var(--app-border);
+  --vt-line: var(--app-border-soft);
+  --vt-head: var(--app-surface-2);
+  --vt-text: var(--app-text-strong);
   --vt-muted: #8a96a7;
-  --vt-navy: #172033;
-  --vt-warn: #b45309;
-  --vt-warn-soft: #fffbeb;
+  --vt-navy: var(--app-heading);
+  --vt-warn: var(--app-amber-fg);
+  --vt-warn-soft: var(--app-amber-bg);
 }
 
 .veh-panel {
   overflow: hidden;
   border: 1px solid var(--vt-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--app-surface);
   box-shadow: 0 5px 18px rgba(15, 42, 67, .04);
 }
 
@@ -57,7 +57,7 @@
   z-index: 2;
   height: 44px;
   padding: .6rem .7rem;
-  color: #69778b;
+  color: var(--app-text-muted);
   background: var(--vt-head);
   box-shadow: inset 0 -1px 0 var(--vt-border);
   font-size: .7rem;
@@ -73,7 +73,7 @@
   padding: .55rem .7rem;
   border-bottom: 1px solid var(--vt-line);
   color: var(--vt-text);
-  background: #fff;
+  background: var(--app-surface);
   font-size: .9rem;
   white-space: nowrap;
 }
@@ -81,7 +81,7 @@
 .veh-table th:first-child, .veh-table td:first-child { padding-left: 1.1rem; }
 .veh-table th:last-child,  .veh-table td:last-child  { padding-right: 1.1rem; }
 .veh-table tbody tr:last-child td { border-bottom: 0; }
-.veh-table tbody tr:hover td { background: #f9fbfd; }
+.veh-table tbody tr:hover td { background: var(--app-surface-2); }
 
 /* Chiffres et dates : meme largeur de glyphe, donc colonnes alignees */
 .veh-table th.num, .veh-table td.num {
@@ -104,8 +104,8 @@
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  color: #5b6b82;
-  background: #f1f5f9;
+  color: var(--app-text-muted);
+  background: var(--app-surface-3);
 }
 .veh-icon svg { width: 17px; height: 17px; }
 
@@ -132,7 +132,7 @@
   background: var(--vt-warn-soft);
   font-weight: 650;
 }
-.veh-table tbody tr:hover td.expiring { background: #fef7e7; }
+.veh-table tbody tr:hover td.expiring { background: var(--app-amber-bg); }
 .warn-ic { width: 13px; height: 13px; margin-right: .2rem; vertical-align: -2px; }
 
 .muted-dash { color: #c3ccd8; }
@@ -142,13 +142,13 @@
   display: inline-block;
   padding: .2rem .6rem;
   border-radius: 20px;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: var(--app-text-muted);
+  background: var(--app-surface-3);
   font-size: .72rem;
   font-weight: 700;
 }
-.veh-status.is-active { color: #047857; background: #ecfdf5; }
-.veh-status.is-maint  { color: #b45309; background: #fffbeb; }
+.veh-status.is-active { color: var(--app-green-fg); background: var(--app-green-bg); }
+.veh-status.is-maint  { color: var(--app-amber-fg); background: var(--app-amber-bg); }
 
 /* Actions */
 .veh-actions { display: inline-flex; gap: .3rem; }
@@ -168,10 +168,10 @@
 .act svg { width: 15px; height: 15px; }
 .act:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
 
-.act-edit { color: #b45309; }
-.act-edit:hover { border-color: #fcd9a4; background: #fffbeb; }
-.act-del { color: #b91c1c; }
-.act-del:hover { border-color: #f6c2c2; background: #fef2f2; }
+.act-edit { color: var(--app-amber-fg); }
+.act-edit:hover { border-color: var(--app-amber-border); background: var(--app-amber-bg); }
+.act-del { color: var(--app-red-fg-strong); }
+.act-del:hover { border-color: var(--app-red-border); background: var(--app-red-bg); }
 
 @media (max-width: 1200px) {
   .veh-scroll { max-height: calc(100vh - 260px); }

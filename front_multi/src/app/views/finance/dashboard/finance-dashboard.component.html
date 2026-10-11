@@ -24,10 +24,10 @@
   <!-- Skeleton KPI Cards -->
   <div class="row g-3 mb-4" *ngIf="loading">
     <div class="col-12 col-sm-6 col-xl-3" *ngFor="let _ of [1,2,3,4]">
-      <div style="background:#fff;border-radius:12px;height:110px;box-shadow:0 2px 12px rgba(0,0,0,0.07);padding:20px;">
-        <div style="background:#f0f0f0;border-radius:6px;height:12px;width:60%;margin-bottom:12px;animation:pulse 1.5s infinite;"></div>
-        <div style="background:#f0f0f0;border-radius:6px;height:28px;width:40%;margin-bottom:8px;animation:pulse 1.5s infinite;"></div>
-        <div style="background:#f0f0f0;border-radius:6px;height:10px;width:80%;animation:pulse 1.5s infinite;"></div>
+      <div style="background:var(--app-surface);border-radius:12px;height:110px;box-shadow:0 2px 12px rgba(0,0,0,0.07);padding:20px;">
+        <div style="background:var(--app-surface-3);border-radius:6px;height:12px;width:60%;margin-bottom:12px;animation:pulse 1.5s infinite;"></div>
+        <div style="background:var(--app-surface-3);border-radius:6px;height:28px;width:40%;margin-bottom:8px;animation:pulse 1.5s infinite;"></div>
+        <div style="background:var(--app-surface-3);border-radius:6px;height:10px;width:80%;animation:pulse 1.5s infinite;"></div>
       </div>
     </div>
   </div>
@@ -40,15 +40,15 @@
       <!-- Total Paiements -->
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="h-100 p-4 d-flex flex-column justify-content-between"
-             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+             style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Total Paiements</div>
-              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ payments.total_payments }}</div>
+              <div class="text-uppercase fw-semibold small mb-1" style="color:var(--app-text-muted);font-size:11px;letter-spacing:.5px;">Total Paiements</div>
+              <div class="fw-bold" style="font-size:28px;color:var(--app-heading);line-height:1;">{{ payments.total_payments }}</div>
               <div class="small mt-1" style="color:#9CA3AF;">{{ payments.total_amount | number:'1.0-0' }} GNF au total</div>
             </div>
             <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;background:#ECFDF5;">
+                 style="width:44px;height:44px;background:var(--app-green-bg);">
               <svg cIcon name="cilCreditCard" style="color:#10B981;width:22px;height:22px;"></svg>
             </div>
           </div>
@@ -58,15 +58,15 @@
       <!-- Ce mois -->
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="h-100 p-4 d-flex flex-column justify-content-between"
-             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+             style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Ce mois</div>
-              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ payments.monthly_amount | number:'1.0-0' }}</div>
+              <div class="text-uppercase fw-semibold small mb-1" style="color:var(--app-text-muted);font-size:11px;letter-spacing:.5px;">Ce mois</div>
+              <div class="fw-bold" style="font-size:28px;color:var(--app-heading);line-height:1;">{{ payments.monthly_amount | number:'1.0-0' }}</div>
               <div class="small mt-1" style="color:#9CA3AF;">Encaissements du mois</div>
             </div>
             <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;background:#EFF6FF;">
+                 style="width:44px;height:44px;background:var(--app-blue-bg);">
               <svg cIcon name="cilChartLine" style="color:#3B82F6;width:22px;height:22px;"></svg>
             </div>
           </div>
@@ -76,18 +76,18 @@
       <!-- Factures -->
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="h-100 p-4 d-flex flex-column justify-content-between"
-             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+             style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Factures</div>
-              <div class="fw-bold" style="font-size:28px;color:#111827;line-height:1;">{{ invoices.total }}</div>
+              <div class="text-uppercase fw-semibold small mb-1" style="color:var(--app-text-muted);font-size:11px;letter-spacing:.5px;">Factures</div>
+              <div class="fw-bold" style="font-size:28px;color:var(--app-heading);line-height:1;">{{ invoices.total }}</div>
               <div class="small mt-1" style="color:#9CA3AF;">
                 <span style="color:#EF4444;">{{ invoices.impaye }} impayée(s)</span>
                 · <span style="color:#F59E0B;">{{ invoices.partiel }} partielle(s)</span>
               </div>
             </div>
             <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;background:#FFFBEB;">
+                 style="width:44px;height:44px;background:var(--app-amber-bg);">
               <svg cIcon name="cilDescription" style="color:#F59E0B;width:22px;height:22px;"></svg>
             </div>
           </div>
@@ -98,15 +98,15 @@
       <!-- Reste à encaisser -->
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="h-100 p-4 d-flex flex-column justify-content-between"
-             style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+             style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Reste à encaisser</div>
+              <div class="text-uppercase fw-semibold small mb-1" style="color:var(--app-text-muted);font-size:11px;letter-spacing:.5px;">Reste à encaisser</div>
               <div class="fw-bold" style="font-size:22px;color:#EF4444;line-height:1;">{{ invoices.total_remaining | number:'1.0-0' }}</div>
               <div class="small mt-1" style="color:#9CA3AF;">GNF impayés</div>
             </div>
             <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;background:#FEE2E2;">
+                 style="width:44px;height:44px;background:var(--app-red-bg-2);">
               <svg cIcon name="cilWarning" style="color:#EF4444;width:22px;height:22px;"></svg>
             </div>
           </div>
@@ -119,25 +119,25 @@
     <!-- Flux financiers -->
     <div class="row g-3 mb-4">
       <div class="col-12 col-md-4">
-        <div class="h-100 p-4" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
-          <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Entrées</div>
+        <div class="h-100 p-4" style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+          <div class="text-uppercase fw-semibold small mb-1" style="color:var(--app-text-muted);font-size:11px;letter-spacing:.5px;">Entrées</div>
           <div class="fw-bold" style="font-size:26px;color:#10B981;">{{ cashflow.income_total | number:'1.0-0' }}</div>
           <div class="small" style="color:#9CA3AF;">Ventes, paiements, dépôts</div>
         </div>
       </div>
       <div class="col-12 col-md-4">
-        <div class="h-100 p-4" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
-          <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Sorties</div>
+        <div class="h-100 p-4" style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+          <div class="text-uppercase fw-semibold small mb-1" style="color:var(--app-text-muted);font-size:11px;letter-spacing:.5px;">Sorties</div>
           <div class="fw-bold" style="font-size:26px;color:#EF4444;">{{ cashflow.outgoing_total | number:'1.0-0' }}</div>
           <div class="small" style="color:#9CA3AF;">Fournisseurs, retraits, dépenses</div>
-          <div class="small mt-1" style="color:#B91C1C;" *ngIf="cashflow.product_return_refunds > 0">
+          <div class="small mt-1" style="color:var(--app-red-fg-strong);" *ngIf="cashflow.product_return_refunds > 0">
             Restitutions retours: {{ cashflow.product_return_refunds | number:'1.0-0' }} GNF
           </div>
         </div>
       </div>
       <div class="col-12 col-md-4">
-        <div class="h-100 p-4" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
-          <div class="text-uppercase fw-semibold small mb-1" style="color:#6B7280;font-size:11px;letter-spacing:.5px;">Solde net</div>
+        <div class="h-100 p-4" style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+          <div class="text-uppercase fw-semibold small mb-1" style="color:var(--app-text-muted);font-size:11px;letter-spacing:.5px;">Solde net</div>
           <div class="fw-bold" style="font-size:26px;" [style.color]="cashflow.net_cashflow >= 0 ? '#10B981' : '#EF4444'">
             {{ cashflow.net_cashflow | number:'1.0-0' }}
           </div>
@@ -151,14 +151,14 @@
 
       <!-- Répartition par méthode -->
       <div class="col-12 col-md-6">
-        <div style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);padding:20px;">
-          <div class="fw-semibold mb-3" style="color:#374151;font-size:14px;">Répartition par méthode</div>
+        <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);padding:20px;">
+          <div class="fw-semibold mb-3" style="color:var(--app-text);font-size:14px;">Répartition par méthode</div>
           <div class="d-flex flex-column gap-2">
             <ng-container *ngFor="let m of paymentMethodOptions; trackBy: trackById">
               <div class="d-flex align-items-center gap-2" *ngIf="paymentMethodAmount(m.key) > 0">
                 <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;" [style.background]="m.color"></div>
-                <span class="small flex-grow-1" style="color:#6B7280;">{{ m.label }}</span>
-                <span class="small fw-semibold" style="color:#111827;">{{ paymentMethodAmount(m.key) | number:'1.0-0' }} GNF</span>
+                <span class="small flex-grow-1" style="color:var(--app-text-muted);">{{ m.label }}</span>
+                <span class="small fw-semibold" style="color:var(--app-heading);">{{ paymentMethodAmount(m.key) | number:'1.0-0' }} GNF</span>
               </div>
             </ng-container>
             <div *ngIf="payments.total_amount === 0" class="text-center py-3 small text-muted">Aucun paiement</div>
@@ -168,22 +168,22 @@
 
       <!-- Accès rapides -->
       <div class="col-12 col-md-6">
-        <div style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);padding:20px;height:100%;">
-          <div class="fw-semibold mb-3" style="color:#374151;font-size:14px;">Accès rapides</div>
+        <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);padding:20px;height:100%;">
+          <div class="fw-semibold mb-3" style="color:var(--app-text);font-size:14px;">Accès rapides</div>
           <div class="d-flex flex-wrap gap-2">
 <a routerLink="/finance/invoices"
                class="btn btn-sm d-flex align-items-center gap-1"
-               style="background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;font-weight:600;">
+               style="background:var(--app-amber-bg);color:#F59E0B;border:1px solid var(--app-amber-border);border-radius:8px;font-weight:600;">
               <svg cIcon name="cilDescription" style="width:14px;height:14px;"></svg> Factures
             </a>
             <a routerLink="/finance/currencies"
                class="btn btn-sm d-flex align-items-center gap-1"
-               style="background:#F0F9FF;color:#0EA5E9;border:1px solid #BAE6FD;border-radius:8px;font-weight:600;">
+               style="background:var(--app-cyan-bg);color:#0EA5E9;border:1px solid var(--app-cyan-border);border-radius:8px;font-weight:600;">
               <svg cIcon name="cilGlobeAlt" style="width:14px;height:14px;"></svg> Devises
             </a>
             <a routerLink="/finance/exchange-rates"
                class="btn btn-sm d-flex align-items-center gap-1"
-               style="background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:8px;font-weight:600;">
+               style="background:var(--app-violet-bg);color:var(--app-violet-fg);border:1px solid var(--app-violet-border);border-radius:8px;font-weight:600;">
               <svg cIcon name="cilSwapHorizontal" style="width:14px;height:14px;"></svg> Taux de change
             </a>
           </div>
@@ -192,15 +192,15 @@
           <div class="mt-4 d-flex gap-3 flex-wrap">
             <div class="text-center">
               <div class="fw-bold" style="font-size:20px;color:#10B981;">{{ invoices.paye }}</div>
-              <div class="small" style="color:#6B7280;">Payées</div>
+              <div class="small" style="color:var(--app-text-muted);">Payées</div>
             </div>
             <div class="text-center">
               <div class="fw-bold" style="font-size:20px;color:#F59E0B;">{{ invoices.partiel }}</div>
-              <div class="small" style="color:#6B7280;">Partielles</div>
+              <div class="small" style="color:var(--app-text-muted);">Partielles</div>
             </div>
             <div class="text-center">
               <div class="fw-bold" style="font-size:20px;color:#EF4444;">{{ invoices.impaye }}</div>
-              <div class="small" style="color:#6B7280;">Impayées</div>
+              <div class="small" style="color:var(--app-text-muted);">Impayées</div>
             </div>
           </div>
         </div>
@@ -212,12 +212,12 @@
 
       <!-- Paiements récents -->
       <div class="col-12 col-lg-6">
-        <div class="h-100" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+        <div class="h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
           <div class="d-flex justify-content-between align-items-center px-4 py-3"
-               style="border-bottom:1px solid #F3F4F6;">
+               style="border-bottom:1px solid var(--app-border-soft);">
             <div class="d-flex align-items-center gap-2">
               <svg cIcon name="cilCreditCard" style="color:#10B981;width:18px;height:18px;"></svg>
-              <span class="fw-semibold" style="color:#111827;">Paiements récents</span>
+              <span class="fw-semibold" style="color:var(--app-heading);">Paiements récents</span>
             </div>
           </div>
           <div class="p-3">
@@ -227,23 +227,23 @@
             </div>
             <table *ngIf="recentPayments.length > 0" class="table table-hover align-middle mb-0" style="font-size:13px;">
               <thead>
-                <tr style="background:#F9FAFB;">
-                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Client / Réf.</th>
-                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Montant</th>
-                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date</th>
+                <tr style="background:var(--app-surface-2);">
+                  <th class="fw-semibold py-2 px-3" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Client / Réf.</th>
+                  <th class="fw-semibold py-2 px-3" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Montant</th>
+                  <th class="fw-semibold py-2 px-3" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Date</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let pay of recentPayments; trackBy: trackById" style="border-color:#F3F4F6;">
+                <tr *ngFor="let pay of recentPayments; trackBy: trackById" style="border-color:var(--app-border-soft);">
                   <td class="px-3 py-2">
-                    <div class="fw-semibold" style="color:#111827;">{{ pay.client?.name || (pay.reference || pay.receipt_number || '#' + pay.id) }}</div>
+                    <div class="fw-semibold" style="color:var(--app-heading);">{{ pay.client?.name || (pay.reference || pay.receipt_number || '#' + pay.id) }}</div>
                     <small *ngIf="pay.client?.name" style="color:#9CA3AF;">{{ pay.receipt_number || pay.reference }}</small>
                   </td>
                   <td class="px-3 py-2">
                     <span class="fw-bold" style="color:#10B981;">{{ pay.amount | number:'1.0-0' }}</span>
                     <span class="ms-1 small" style="color:#9CA3AF;">{{ pay.currency || 'GNF' }}</span>
                   </td>
-                  <td class="px-3 py-2 small" style="color:#6B7280;">{{ pay.payment_date | date:'dd/MM/yyyy' }}</td>
+                  <td class="px-3 py-2 small" style="color:var(--app-text-muted);">{{ pay.payment_date | date:'dd/MM/yyyy' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -253,15 +253,15 @@
 
       <!-- Factures récentes -->
       <div class="col-12 col-lg-6">
-        <div class="h-100" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+        <div class="h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
           <div class="d-flex justify-content-between align-items-center px-4 py-3"
-               style="border-bottom:1px solid #F3F4F6;">
+               style="border-bottom:1px solid var(--app-border-soft);">
             <div class="d-flex align-items-center gap-2">
               <svg cIcon name="cilDescription" style="color:#F59E0B;width:18px;height:18px;"></svg>
-              <span class="fw-semibold" style="color:#111827;">Factures récentes</span>
+              <span class="fw-semibold" style="color:var(--app-heading);">Factures récentes</span>
             </div>
             <a routerLink="/finance/invoices" class="btn btn-sm"
-               style="background:#FFFBEB;color:#F59E0B;border:1px solid #FDE68A;border-radius:8px;font-weight:600;font-size:12px;">
+               style="background:var(--app-amber-bg);color:#F59E0B;border:1px solid var(--app-amber-border);border-radius:8px;font-weight:600;font-size:12px;">
               Voir tout
             </a>
           </div>
@@ -272,16 +272,16 @@
             </div>
             <table *ngIf="recentInvoices.length > 0" class="table table-hover align-middle mb-0" style="font-size:13px;">
               <thead>
-                <tr style="background:#F9FAFB;">
-                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">N° Facture</th>
-                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Montant</th>
-                  <th class="fw-semibold py-2 px-3" style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Statut</th>
+                <tr style="background:var(--app-surface-2);">
+                  <th class="fw-semibold py-2 px-3" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">N° Facture</th>
+                  <th class="fw-semibold py-2 px-3" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Montant</th>
+                  <th class="fw-semibold py-2 px-3" style="color:var(--app-text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:none;">Statut</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let inv of recentInvoices; trackBy: trackById" style="border-color:#F3F4F6;">
+                <tr *ngFor="let inv of recentInvoices; trackBy: trackById" style="border-color:var(--app-border-soft);">
                   <td class="px-3 py-2">
-                    <div class="fw-semibold" style="color:#111827;">{{ inv.invoice_number || '#' + inv.id }}</div>
+                    <div class="fw-semibold" style="color:var(--app-heading);">{{ inv.invoice_number || '#' + inv.id }}</div>
                     <small style="color:#9CA3AF;">{{ inv.client?.name || '' }}</small>
                   </td>
                   <td class="px-3 py-2">
@@ -290,7 +290,7 @@
                   </td>
                   <td class="px-3 py-2">
                     <span class="badge rounded-pill"
-                          [style.background]="inv.status === 'PAYE' ? '#ECFDF5' : inv.status === 'PARTIEL' ? '#FFFBEB' : '#FEE2E2'"
+                          [style.background]="inv.status === 'PAYE' ? 'var(--app-green-bg)' : inv.status === 'PARTIEL' ? 'var(--app-amber-bg)' : 'var(--app-red-bg-2)'"
                           [style.color]="inv.status === 'PAYE' ? '#10B981' : inv.status === 'PARTIEL' ? '#F59E0B' : '#EF4444'"
                           style="font-size:11px;font-weight:600;padding:3px 10px;">
                       {{ inv.status === 'PAYE' ? 'Payée' : inv.status === 'PARTIEL' ? 'Partielle' : 'Impayée' }}
@@ -308,11 +308,11 @@
     <!-- Suivi fournisseurs et dépenses -->
     <div class="row g-4 mt-0">
       <div class="col-12 col-lg-6">
-        <div class="h-100" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
-          <div class="d-flex justify-content-between align-items-center px-4 py-3" style="border-bottom:1px solid #F3F4F6;">
+        <div class="h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+          <div class="d-flex justify-content-between align-items-center px-4 py-3" style="border-bottom:1px solid var(--app-border-soft);">
             <div class="d-flex align-items-center gap-2">
               <svg cIcon name="cilPeople" style="color:#8B5CF6;width:18px;height:18px;"></svg>
-              <span class="fw-semibold" style="color:#111827;">Transactions fournisseurs</span>
+              <span class="fw-semibold" style="color:var(--app-heading);">Transactions fournisseurs</span>
             </div>
           </div>
           <div class="p-3">
@@ -321,7 +321,7 @@
             </div>
             <table *ngIf="supplierRelations.length > 0" class="table table-sm align-middle mb-0">
               <thead>
-                <tr style="background:#F9FAFB;">
+                <tr style="background:var(--app-surface-2);">
                   <th class="small text-muted text-uppercase">Fournisseur</th>
                   <th class="small text-muted text-uppercase text-end">Total payé</th>
                   <th class="small text-muted text-uppercase text-end">Paiements</th>
@@ -343,11 +343,11 @@
       </div>
 
       <div class="col-12 col-lg-6">
-        <div class="h-100" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
-          <div class="d-flex justify-content-between align-items-center px-4 py-3" style="border-bottom:1px solid #F3F4F6;">
+        <div class="h-100" style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+          <div class="d-flex justify-content-between align-items-center px-4 py-3" style="border-bottom:1px solid var(--app-border-soft);">
             <div class="d-flex align-items-center gap-2">
               <svg cIcon name="cilWallet" style="color:#F59E0B;width:18px;height:18px;"></svg>
-              <span class="fw-semibold" style="color:#111827;">Dépenses récentes</span>
+              <span class="fw-semibold" style="color:var(--app-heading);">Dépenses récentes</span>
             </div>
           </div>
           <div class="p-3">

@@ -34,10 +34,10 @@
   <form [formGroup]="settingsForm" *ngIf="!loading">
 
     <!-- Section Paramètres généraux -->
-    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid var(--app-border-soft);">
       <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-             style="width:32px; height:32px; background:#EFF6FF;">
+             style="width:32px; height:32px; background:var(--app-blue-bg);">
           <svg cIcon name="cilSettings" size="sm" style="color:#3B82F6;"></svg>
         </div>
         <span class="fw-semibold">Paramètres généraux</span>
@@ -83,10 +83,10 @@
     </div>
 
     <!-- Section Facturation -->
-    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid var(--app-border-soft);">
       <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-             style="width:32px; height:32px; background:#ECFDF5;">
+             style="width:32px; height:32px; background:var(--app-green-bg);">
           <svg cIcon name="cilDescription" size="sm" style="color:#10B981;"></svg>
         </div>
         <span class="fw-semibold">Paramètres de facturation</span>
@@ -118,10 +118,10 @@
     </div>
 
     <!-- Section Notifications -->
-    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid var(--app-border-soft);">
       <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-             style="width:32px; height:32px; background:#FFFBEB;">
+             style="width:32px; height:32px; background:var(--app-amber-bg);">
           <svg cIcon name="cilBell" size="sm" style="color:#F59E0B;"></svg>
         </div>
         <span class="fw-semibold">Paramètres de notification</span>
@@ -129,7 +129,7 @@
       <div class="px-4 py-3">
         <div class="d-flex flex-column gap-3">
           <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
-               style="background:#f8fafc; border:1px solid #f0f0f0;">
+               style="background:var(--app-surface-2); border:1px solid var(--app-border-soft);">
             <div>
               <div class="fw-semibold small">Notifications par email</div>
               <div class="text-muted small">Recevoir les alertes par email</div>
@@ -140,7 +140,7 @@
             </div>
           </div>
           <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
-               style="background:#f8fafc; border:1px solid #f0f0f0;">
+               style="background:var(--app-surface-2); border:1px solid var(--app-border-soft);">
             <div>
               <div class="fw-semibold small">Notifications par SMS</div>
               <div class="text-muted small">Recevoir les alertes par SMS</div>
@@ -151,7 +151,7 @@
             </div>
           </div>
           <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
-               style="background:#f8fafc; border:1px solid #f0f0f0;">
+               style="background:var(--app-surface-2); border:1px solid var(--app-border-soft);">
             <div>
               <div class="fw-semibold small">Notifications navigateur</div>
               <div class="text-muted small">Recevoir les alertes dans le navigateur</div>
@@ -166,10 +166,10 @@
     </div>
 
     <!-- Section Sécurité -->
-    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid var(--app-border-soft);">
       <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-             style="width:32px; height:32px; background:#FEE2E2;">
+             style="width:32px; height:32px; background:var(--app-red-bg-2);">
           <svg cIcon name="cilShieldAlt" size="sm" style="color:#EF4444;"></svg>
         </div>
         <span class="fw-semibold">Paramètres de sécurité</span>
@@ -190,7 +190,7 @@
           </div>
           <div class="col-12">
             <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
-                 style="background:#f8fafc; border:1px solid #f0f0f0;">
+                 style="background:var(--app-surface-2); border:1px solid var(--app-border-soft);">
               <div>
                 <div class="fw-semibold small">Authentification à deux facteurs (2FA)</div>
                 <div class="text-muted small">Sécurité renforcée à la connexion</div>
@@ -206,10 +206,10 @@
     </div>
 
     <!-- Section Archivage -->
-    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+    <div class="bg-white rounded-3 mb-4" style="border-radius:12px; border:1px solid var(--app-border-soft);">
       <div class="d-flex align-items-center gap-2 px-4 py-3 border-bottom">
         <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-             style="width:32px; height:32px; background:#f0f0f0;">
+             style="width:32px; height:32px; background:var(--app-surface-3);">
           <svg cIcon name="cilFolder" size="sm" class="text-muted"></svg>
         </div>
         <span class="fw-semibold">Paramètres d'archivage</span>
@@ -218,7 +218,7 @@
         <div class="row g-3">
           <div class="col-12">
             <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
-                 style="background:#f8fafc; border:1px solid #f0f0f0;">
+                 style="background:var(--app-surface-2); border:1px solid var(--app-border-soft);">
               <div>
                 <div class="fw-semibold small">Archivage automatique des factures</div>
                 <div class="text-muted small">Archiver automatiquement les vieilles factures</div>

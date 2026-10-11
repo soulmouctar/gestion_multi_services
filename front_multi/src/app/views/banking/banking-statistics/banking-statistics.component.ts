@@ -7,6 +7,7 @@ import {
   ButtonModule, CardModule, BadgeModule, ProgressModule, SpinnerModule, TooltipModule
 } from '@coreui/angular';
 import { ChartjsComponent } from '@coreui/angular-chartjs';
+import { syncChartsWithTheme } from '../../../core/utils/chart-theme';
 import { IconDirective } from '@coreui/icons-angular';
 import { ChartData, ChartOptions } from 'chart.js';
 import { ApiService } from '../../../core/services/api.service';
@@ -56,8 +57,8 @@ export class BankingStatisticsComponent implements OnInit {
       }
     },
     scales: {
-      x: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { display: false } },
-      y: { ticks: { color: '#64748b', font: { size: 11 }, callback: (v) => this.shortNumber(Number(v)) }, grid: { color: '#eef2f7' } }
+      x: { ticks: { font: { size: 11 } }, grid: { display: false } },
+      y: { ticks: { font: { size: 11 }, callback: (v) => this.shortNumber(Number(v)) }, grid: { color: 'rgba(148, 163, 184, .18)' } }
     }
   };
 
@@ -73,8 +74,8 @@ export class BankingStatisticsComponent implements OnInit {
       }
     },
     scales: {
-      x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
-      y: { ticks: { color: '#64748b', font: { size: 11 }, callback: (v) => this.shortNumber(Number(v)) }, grid: { color: '#eef2f7' } }
+      x: { ticks: { font: { size: 10 } }, grid: { display: false } },
+      y: { ticks: { font: { size: 11 }, callback: (v) => this.shortNumber(Number(v)) }, grid: { color: 'rgba(148, 163, 184, .18)' } }
     }
   };
 
@@ -93,6 +94,7 @@ export class BankingStatisticsComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    syncChartsWithTheme();
     this.loadAccounts();
     this.loadStats();
   }
@@ -192,12 +194,9 @@ export class BankingStatisticsComponent implements OnInit {
     return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0 }).format(Number(v) || 0) + ' ' + currency;
   }
 
+  /** Montant complet, sans abreviation : 3 000 000 (jamais « 3 M »). */
   shortNumber(v: number): string {
-    const abs = Math.abs(v);
-    if (abs >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1) + ' Mrd';
-    if (abs >= 1_000_000)     return (v / 1_000_000).toFixed(1) + ' M';
-    if (abs >= 1_000)         return (v / 1_000).toFixed(1) + ' k';
-    return String(v);
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(v) || 0);
   }
 
   netFlow(): number {

@@ -47,20 +47,20 @@
       <!-- Ventes totales -->
       <div class="col-6 col-md-3">
         <div class="h-100 p-3"
-             style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+             style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
                     transition:transform .15s,box-shadow .15s;"
              onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.11)'"
              onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
           <div class="d-flex align-items-center gap-3">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;border-radius:10px;background:#EEF2FF">
+                 style="width:44px;height:44px;border-radius:10px;background:var(--app-indigo-bg)">
               <svg cIcon name="cilCart" style="color:#6366F1"></svg>
             </div>
             <div class="overflow-hidden">
-              <div class="fw-bold" style="font-size:1.5rem;line-height:1.1;color:#1e293b">
+              <div class="fw-bold" style="font-size:1.5rem;line-height:1.1;color:var(--app-text-strong)">
                 {{ salesStats.total_sales || 0 }}
               </div>
-              <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">
+              <div style="font-size:0.7rem;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">
                 Total ventes
               </div>
               <div style="font-size:0.7rem;color:#94a3b8">
@@ -74,20 +74,20 @@
       <!-- Encaissé -->
       <div class="col-6 col-md-3">
         <div class="h-100 p-3"
-             style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+             style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
                     transition:transform .15s,box-shadow .15s;"
              onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.11)'"
              onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
           <div class="d-flex align-items-center gap-3">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;border-radius:10px;background:#ECFDF5">
+                 style="width:44px;height:44px;border-radius:10px;background:var(--app-green-bg)">
               <svg cIcon name="cilCash" style="color:#10B981"></svg>
             </div>
             <div class="overflow-hidden">
-              <div class="fw-bold" style="font-size:1rem;line-height:1.2;color:#1e293b">
+              <div class="fw-bold" style="font-size:1rem;line-height:1.2;color:var(--app-text-strong)">
                 {{ formatAmount(salesStats.total_paid) }}
               </div>
-              <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Encaissé</div>
+              <div style="font-size:0.7rem;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.04em">Encaissé</div>
               <div style="font-size:0.7rem;color:#94a3b8">
                 Ce mois&nbsp;: <strong style="color:#10B981">{{ formatAmount(salesStats.revenue_this_month) }}</strong>
               </div>
@@ -99,20 +99,20 @@
       <!-- Reste à encaisser -->
       <div class="col-6 col-md-3">
         <div class="h-100 p-3"
-             style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+             style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
                     transition:transform .15s,box-shadow .15s;"
              onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.11)'"
              onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
           <div class="d-flex align-items-center gap-3">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;border-radius:10px;background:#FFFBEB">
+                 style="width:44px;height:44px;border-radius:10px;background:var(--app-amber-bg)">
               <svg cIcon name="cilClock" style="color:#F59E0B"></svg>
             </div>
             <div class="overflow-hidden">
-              <div class="fw-bold" style="font-size:1rem;line-height:1.2;color:#1e293b">
+              <div class="fw-bold" style="font-size:1rem;line-height:1.2;color:var(--app-text-strong)">
                 {{ formatAmount(salesStats.total_remaining) }}
               </div>
-              <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">
+              <div style="font-size:0.7rem;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.04em">
                 Reste à encaisser
               </div>
               <div style="font-size:0.7rem;color:#94a3b8">
@@ -126,20 +126,20 @@
       <!-- Stock disponible -->
       <div class="col-6 col-md-3">
         <div class="h-100 p-3"
-             style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
+             style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.07);
                     transition:transform .15s,box-shadow .15s;"
              onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.11)'"
              onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 8px rgba(0,0,0,0.07)'">
           <div class="d-flex align-items-center gap-3">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;border-radius:10px;background:#EFF6FF">
+                 style="width:44px;height:44px;border-radius:10px;background:var(--app-blue-bg)">
               <svg cIcon name="cilLayers" style="color:#3B82F6"></svg>
             </div>
             <div class="overflow-hidden">
-              <div class="fw-bold" style="font-size:1.5rem;line-height:1.1;color:#1e293b">
+              <div class="fw-bold" style="font-size:1.5rem;line-height:1.1;color:var(--app-text-strong)">
                 {{ getAvailableStock().length }}
               </div>
-              <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em">
+              <div style="font-size:0.7rem;color:var(--app-text-muted);text-transform:uppercase;letter-spacing:.04em">
                 Stock disponible
               </div>
               <div style="font-size:0.7rem;color:#94a3b8">arrivages avec stock</div>
@@ -151,7 +151,7 @@
 
     <!-- ===== ACCÈS RAPIDES ===== -->
     <div class="mb-4 p-3 d-flex flex-wrap gap-2 align-items-center"
-         style="background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
+         style="background:var(--app-surface);border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,0.05)">
       <span style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;font-weight:600"
             class="me-1">Accès rapides</span>
       <a routerLink="/containers/ventes" cButton color="primary" size="sm" style="border-radius:8px">
@@ -175,12 +175,12 @@
       <div class="col-12 col-lg-6">
         <c-card class="h-100" style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <c-card-header class="d-flex justify-content-between align-items-center py-3 px-4"
-                         style="background:#f8fafc;border-radius:12px 12px 0 0;border-bottom:1px solid #f0f0f0">
-            <span class="fw-semibold" style="color:#1e293b;font-size:0.9rem">
+                         style="background:var(--app-surface-2);border-radius:12px 12px 0 0;border-bottom:1px solid var(--app-border-soft)">
+            <span class="fw-semibold" style="color:var(--app-text-strong);font-size:0.9rem">
               <svg cIcon name="cilLayers" class="me-1" style="color:#3B82F6"></svg>
               Stock disponible
               <span class="ms-2 px-2 py-0 rounded-pill fw-semibold"
-                    style="font-size:0.72rem;background:#EFF6FF;color:#3B82F6">
+                    style="font-size:0.72rem;background:var(--app-blue-bg);color:#3B82F6">
                 {{ getAvailableStock().length }}
               </span>
             </span>
@@ -190,7 +190,7 @@
           <c-card-body class="p-0">
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
-                <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+                <thead style="background:var(--app-surface-2);font-size:.72rem;text-transform:uppercase;color:var(--app-text-muted)">
                   <tr>
                     <th class="ps-4 py-2" style="font-weight:600">Description</th>
                     <th class="text-center py-2" style="font-weight:600">Qté</th>
@@ -200,7 +200,7 @@
                 <tbody>
                   <tr *ngFor="let a of getAvailableStock().slice(0, 8); trackBy: trackById">
                     <td class="ps-4 py-2">
-                      <div class="fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                      <div class="fw-semibold" style="font-size:0.85rem;color:var(--app-text-strong)">
                         {{ a.description || a.container?.reference || '—' }}
                       </div>
                       <div style="font-size:0.72rem;color:#94a3b8">
@@ -209,12 +209,12 @@
                     </td>
                     <td class="text-center py-2">
                       <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.75rem"
-                            [style.background]="a.remaining_quantity > 10 ? '#ECFDF5' : '#FFFBEB'"
+                            [style.background]="a.remaining_quantity > 10 ? 'var(--app-green-bg)' : 'var(--app-amber-bg)'"
                             [style.color]="a.remaining_quantity > 10 ? '#10B981' : '#F59E0B'">
                         {{ a.remaining_quantity }}
                       </span>
                     </td>
-                    <td class="text-end pe-4 py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                    <td class="text-end pe-4 py-2 fw-semibold" style="font-size:0.85rem;color:var(--app-text-strong)">
                       {{ formatAmount(a.unit_sale_price, a.currency) }}
                     </td>
                   </tr>
@@ -235,12 +235,12 @@
       <div class="col-12 col-lg-6">
         <c-card class="h-100" style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <c-card-header class="d-flex justify-content-between align-items-center py-3 px-4"
-                         style="background:#f8fafc;border-radius:12px 12px 0 0;border-bottom:1px solid #f0f0f0">
-            <span class="fw-semibold" style="color:#1e293b;font-size:0.9rem">
+                         style="background:var(--app-surface-2);border-radius:12px 12px 0 0;border-bottom:1px solid var(--app-border-soft)">
+            <span class="fw-semibold" style="color:var(--app-text-strong);font-size:0.9rem">
               <svg cIcon name="cilClock" class="me-1" style="color:#F59E0B"></svg>
               Versements en attente
               <span class="ms-2 px-2 py-0 rounded-pill fw-semibold"
-                    style="font-size:0.72rem;background:#FFFBEB;color:#F59E0B">
+                    style="font-size:0.72rem;background:var(--app-amber-bg);color:#F59E0B">
                 {{ pendingSales.length }}
               </span>
             </span>
@@ -250,7 +250,7 @@
           <c-card-body class="p-0">
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
-                <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+                <thead style="background:var(--app-surface-2);font-size:.72rem;text-transform:uppercase;color:var(--app-text-muted)">
                   <tr>
                     <th class="ps-4 py-2" style="font-weight:600">Client</th>
                     <th class="text-end py-2" style="font-weight:600">Restant</th>
@@ -260,7 +260,7 @@
                 <tbody>
                   <tr *ngFor="let s of pendingSales; trackBy: trackById">
                     <td class="ps-4 py-2">
-                      <div class="fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                      <div class="fw-semibold" style="font-size:0.85rem;color:var(--app-text-strong)">
                         {{ s.client?.name || s.client_name || '—' }}
                       </div>
                       <div style="font-size:0.72rem;color:#94a3b8">
@@ -298,12 +298,12 @@
       <div class="col-12">
         <c-card style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <c-card-header class="d-flex justify-content-between align-items-center py-3 px-4"
-                         style="background:#f8fafc;border-radius:12px 12px 0 0;border-bottom:1px solid #f0f0f0">
-            <span class="fw-semibold" style="color:#1e293b;font-size:0.9rem">
+                         style="background:var(--app-surface-2);border-radius:12px 12px 0 0;border-bottom:1px solid var(--app-border-soft)">
+            <span class="fw-semibold" style="color:var(--app-text-strong);font-size:0.9rem">
               <svg cIcon name="cilCart" class="me-1" style="color:#6366F1"></svg>
               Ventes récentes
               <span class="ms-2 px-2 py-0 rounded-pill fw-semibold"
-                    style="font-size:0.72rem;background:#EEF2FF;color:#6366F1">
+                    style="font-size:0.72rem;background:var(--app-indigo-bg);color:#6366F1">
                 {{ recentSales.length }}
               </span>
             </span>
@@ -313,7 +313,7 @@
           <c-card-body class="p-0">
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
-                <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+                <thead style="background:var(--app-surface-2);font-size:.72rem;text-transform:uppercase;color:var(--app-text-muted)">
                   <tr>
                     <th class="ps-4 py-2" style="font-weight:600">Client</th>
                     <th class="py-2" style="font-weight:600">Type</th>
@@ -326,18 +326,18 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let s of recentSales; trackBy: trackById">
-                    <td class="ps-4 py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                    <td class="ps-4 py-2 fw-semibold" style="font-size:0.85rem;color:var(--app-text-strong)">
                       {{ s.client?.name || s.client_name || '—' }}
                     </td>
                     <td class="py-2">
                       <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem"
-                            [style.background]="s.sale_type === 'TOTAL' ? '#EEF2FF' : '#EFF6FF'"
+                            [style.background]="s.sale_type === 'TOTAL' ? 'var(--app-indigo-bg)' : 'var(--app-blue-bg)'"
                             [style.color]="s.sale_type === 'TOTAL' ? '#6366F1' : '#3B82F6'">
                         {{ s.sale_type }}
                       </span>
                     </td>
                     <td class="text-center py-2" style="font-size:0.85rem">{{ s.quantity_sold }}</td>
-                    <td class="text-end py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                    <td class="text-end py-2 fw-semibold" style="font-size:0.85rem;color:var(--app-text-strong)">
                       {{ formatAmount(s.sale_price, s.currency) }}
                     </td>
                     <td class="text-end py-2" style="font-size:0.85rem;color:#10B981;font-weight:600">
@@ -345,10 +345,10 @@
                     </td>
                     <td class="text-center py-2">
                       <span class="px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem"
-                            [style.background]="getSaleStatusColor(s.status) === 'success' ? '#ECFDF5'
-                                              : getSaleStatusColor(s.status) === 'warning' ? '#FFFBEB'
-                                              : getSaleStatusColor(s.status) === 'danger'  ? '#FEE2E2'
-                                              : '#EEF2FF'"
+                            [style.background]="getSaleStatusColor(s.status) === 'success' ? 'var(--app-green-bg)'
+                                              : getSaleStatusColor(s.status) === 'warning' ? 'var(--app-amber-bg)'
+                                              : getSaleStatusColor(s.status) === 'danger'  ? 'var(--app-red-bg-2)'
+                                              : 'var(--app-indigo-bg)'"
                             [style.color]="getSaleStatusColor(s.status) === 'success' ? '#10B981'
                                          : getSaleStatusColor(s.status) === 'warning' ? '#F59E0B'
                                          : getSaleStatusColor(s.status) === 'danger'  ? '#EF4444'
@@ -377,12 +377,12 @@
       <div *ngIf="clientAdvances.length > 0" class="col-12 col-md-6">
         <c-card style="border-radius:12px;border:none;box-shadow:0 1px 8px rgba(0,0,0,0.07)">
           <c-card-header class="d-flex justify-content-between align-items-center py-3 px-4"
-                         style="background:#f8fafc;border-radius:12px 12px 0 0;border-bottom:1px solid #f0f0f0">
-            <span class="fw-semibold" style="color:#1e293b;font-size:0.9rem">
+                         style="background:var(--app-surface-2);border-radius:12px 12px 0 0;border-bottom:1px solid var(--app-border-soft)">
+            <span class="fw-semibold" style="color:var(--app-text-strong);font-size:0.9rem">
               <svg cIcon name="cilMoney" class="me-1" style="color:#10B981"></svg>
               Avances clients
               <span class="ms-2 px-2 py-0 rounded-pill fw-semibold"
-                    style="font-size:0.72rem;background:#ECFDF5;color:#10B981">
+                    style="font-size:0.72rem;background:var(--app-green-bg);color:#10B981">
                 {{ clientAdvances.length }}
               </span>
             </span>
@@ -390,7 +390,7 @@
           <c-card-body class="p-0">
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
-                <thead style="background:#f8fafc;font-size:.72rem;text-transform:uppercase;color:#64748b">
+                <thead style="background:var(--app-surface-2);font-size:.72rem;text-transform:uppercase;color:var(--app-text-muted)">
                   <tr>
                     <th class="ps-4 py-2" style="font-weight:600">Client</th>
                     <th class="text-end py-2" style="font-weight:600">Montant</th>
@@ -399,7 +399,7 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let a of clientAdvances; trackBy: trackById">
-                    <td class="ps-4 py-2 fw-semibold" style="font-size:0.85rem;color:#1e293b">
+                    <td class="ps-4 py-2 fw-semibold" style="font-size:0.85rem;color:var(--app-text-strong)">
                       {{ a.client?.name || '—' }}
                     </td>
                     <td class="text-end py-2 fw-semibold" style="font-size:0.85rem;color:#10B981">

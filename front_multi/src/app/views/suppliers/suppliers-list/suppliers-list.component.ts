@@ -516,25 +516,25 @@ export class SuppliersListComponent implements OnInit {
 
   getCategoryColor(cat: string): { bg: string; color: string } {
     const map: Record<string, { bg: string; color: string }> = {
-      'Textile':                { bg: '#EDE9FE', color: '#7C3AED' },
-      'Cosmétiques':            { bg: '#FCE7F3', color: '#DB2777' },
-      'Pneus & Pièces auto':    { bg: '#FEF3C7', color: '#D97706' },
-      'Alimentation':           { bg: '#ECFDF5', color: '#059669' },
-      'Électronique':           { bg: '#EFF6FF', color: '#2563EB' },
-      'Matériaux construction': { bg: '#FEF2F2', color: '#DC2626' },
-      'Mobilier':               { bg: '#F0FDF4', color: '#16A34A' },
-      'Médicaments':            { bg: '#F0F9FF', color: '#0284C7' },
+      'Textile':                { bg: 'var(--app-violet-bg)', color: 'var(--app-violet-fg)' },
+      'Cosmétiques':            { bg: 'var(--app-pink-bg)', color: 'var(--app-pink-fg)' },
+      'Pneus & Pièces auto':    { bg: 'var(--app-amber-bg-2)', color: '#D97706' },
+      'Alimentation':           { bg: 'var(--app-green-bg)', color: '#059669' },
+      'Électronique':           { bg: 'var(--app-blue-bg)', color: 'var(--app-blue-fg)' },
+      'Matériaux construction': { bg: 'var(--app-red-bg)', color: 'var(--app-red-fg)' },
+      'Mobilier':               { bg: 'var(--app-green-bg)', color: '#16A34A' },
+      'Médicaments':            { bg: 'var(--app-cyan-bg)', color: '#0284C7' },
     };
-    return map[cat] ?? { bg: '#F3F4F6', color: '#6B7280' };
+    return map[cat] ?? { bg: 'var(--app-surface-3)', color: 'var(--app-text-muted)' };
   }
 
   getPaymentStatusStyle(status: string): { bg: string; color: string; label: string } {
     const map: Record<string, { bg: string; color: string; label: string }> = {
-      'SOLDE':  { bg: '#ECFDF5', color: '#059669', label: '✓ Soldé' },
-      'PARTIEL':{ bg: '#FFFBEB', color: '#D97706', label: '⬤ Partiel' },
-      'IMPAYE': { bg: '#FEF2F2', color: '#DC2626', label: '✗ Impayé' },
+      'SOLDE':  { bg: 'var(--app-green-bg)', color: '#059669', label: '✓ Soldé' },
+      'PARTIEL':{ bg: 'var(--app-amber-bg)', color: '#D97706', label: '⬤ Partiel' },
+      'IMPAYE': { bg: 'var(--app-red-bg)', color: 'var(--app-red-fg)', label: '✗ Impayé' },
     };
-    return map[status] ?? { bg: '#F3F4F6', color: '#6B7280', label: status };
+    return map[status] ?? { bg: 'var(--app-surface-3)', color: 'var(--app-text-muted)', label: status };
   }
 
   getMethodLabel(method: string): string {

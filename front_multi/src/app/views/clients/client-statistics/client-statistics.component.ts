@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ButtonModule, CardModule, FormModule, SpinnerModule, TableModule } from '@coreui/angular';
 import { ChartjsComponent } from '@coreui/angular-chartjs';
+import { syncChartsWithTheme } from '../../../core/utils/chart-theme';
 import { IconDirective } from '@coreui/icons-angular';
 import { ChartData, ChartOptions } from 'chart.js';
 import { ApiService } from '../../../core/services/api.service';
@@ -46,12 +47,12 @@ export class ClientStatisticsComponent implements OnInit {
     },
     scales: {
       x: {
-        ticks: { color: '#64748b' },
+        ticks: {},
         grid: { display: false }
       },
       y: {
-        ticks: { color: '#64748b' },
-        grid: { color: '#eef2f7' }
+        ticks: {},
+        grid: { color: 'rgba(148, 163, 184, .18)' }
       }
     }
   };
@@ -69,14 +70,15 @@ export class ClientStatisticsComponent implements OnInit {
       }
     },
     scales: {
-      x: { ticks: { color: '#64748b', callback: (v) => this.shortNumber(Number(v)) }, grid: { color: '#eef2f7' } },
-      y: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { display: false } }
+      x: { ticks: { callback: (v) => this.shortNumber(Number(v)) }, grid: { color: 'rgba(148, 163, 184, .18)' } },
+      y: { ticks: { font: { size: 11 } }, grid: { display: false } }
     }
   };
 
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    syncChartsWithTheme();
     this.loadStats();
   }
 
@@ -216,12 +218,9 @@ export class ClientStatisticsComponent implements OnInit {
     return new Intl.NumberFormat('fr-GN', { minimumFractionDigits: 0 }).format(v || 0) + ' ' + currency;
   }
 
+  /** Montant complet, sans abreviation : 3 000 000 (jamais « 3 M »). */
   shortNumber(v: number): string {
-    const abs = Math.abs(v || 0);
-    if (abs >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1) + ' Mrd';
-    if (abs >= 1_000_000) return (v / 1_000_000).toFixed(1) + ' M';
-    if (abs >= 1_000) return (v / 1_000).toFixed(1) + ' k';
-    return String(Math.round(v || 0));
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(v) || 0);
   }
 
   get clients(): any[] {
@@ -272,9 +271,9 @@ export class ClientStatisticsComponent implements OnInit {
   }
 
   getStatusBg(status: string): string {
-    if (status === 'DEBITEUR') return '#FEF2F2';
-    if (status === 'AVANCE') return '#ECFDF5';
-    return '#EFF6FF';
+    if (status === 'DEBITEUR') return 'var(--app-red-bg)';
+    if (status === 'AVANCE') return 'var(--app-green-bg)';
+    return 'var(--app-blue-bg)';
   }
 
   trackById(_index: number, item: any): any {

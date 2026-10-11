@@ -19,28 +19,28 @@
   <ng-container *ngIf="!loading">
     <div class="row g-3 mb-4">
       <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+        <div style="background:var(--app-surface);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="text-body-secondary small text-uppercase fw-semibold">Entrées</div>
           <div class="fs-3 fw-bold text-success">{{ fmt(stats.incomeTotal) }}</div>
           <div class="text-body-secondary small">{{ stats.totalPayments }} encaissements</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+        <div style="background:var(--app-surface);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="text-body-secondary small text-uppercase fw-semibold">Sorties</div>
           <div class="fs-3 fw-bold text-danger">{{ fmt(stats.outgoingTotal) }}</div>
           <div class="text-body-secondary small">Fournisseurs, retraits, dépenses</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+        <div style="background:var(--app-surface);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="text-body-secondary small text-uppercase fw-semibold">Solde net</div>
           <div class="fs-3 fw-bold" [class.text-success]="stats.netCashflow >= 0" [class.text-danger]="stats.netCashflow < 0">{{ fmt(stats.netCashflow) }}</div>
           <div class="text-body-secondary small">Après charges</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+        <div style="background:var(--app-surface);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
           <div class="text-body-secondary small text-uppercase fw-semibold">Factures</div>
           <div class="fs-3 fw-bold">{{ stats.totalInvoices }}</div>
           <div class="text-body-secondary small">{{ stats.totalCurrencies }} devises, {{ stats.totalExchangeRates }} taux</div>
@@ -50,8 +50,8 @@
 
     <div class="row g-3 mb-4">
       <div class="col-12 col-lg-7">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+        <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--app-border-soft);display:flex;align-items:center;justify-content:space-between;">
             <strong>Flux financiers</strong>
             <span class="badge bg-success-subtle text-success">{{ percent(stats.incomeTotal, stats.incomeTotal + stats.outgoingTotal) }}%</span>
           </div>
@@ -70,7 +70,7 @@
               </div>
               <div class="progress" style="height:8px;"><div class="progress-bar bg-danger" [style.width.%]="percent(stats.outgoingTotal, stats.incomeTotal + stats.outgoingTotal)"></div></div>
             </div>
-            <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background:#f8fafc;">
+            <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background:var(--app-surface-2);">
               <div>
                 <div class="small text-body-secondary">Solde net du mois</div>
                 <div class="fw-bold fs-5" [class.text-success]="stats.netCashflow >= 0" [class.text-danger]="stats.netCashflow < 0">{{ fmt(stats.netCashflow) }}</div>
@@ -85,8 +85,8 @@
       </div>
 
       <div class="col-12 col-lg-5">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;"><strong>Répartition fournisseurs</strong></div>
+        <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--app-border-soft);"><strong>Répartition fournisseurs</strong></div>
           <div style="padding:16px 18px;">
             <div *ngFor="let rel of financeData?.supplier_relations || []; trackBy: trackById" class="mb-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
@@ -106,8 +106,8 @@
 
     <div class="row g-3 mb-4">
       <div class="col-12 col-lg-6">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;"><strong>Paiements récents</strong></div>
+        <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--app-border-soft);"><strong>Paiements récents</strong></div>
           <div style="padding:16px 18px;">
             <table *ngIf="financeData?.recent_payments?.length" class="table table-sm align-middle mb-0">
               <thead><tr><th>Réf.</th><th>Client</th><th>Mode</th><th class="text-end">Montant</th></tr></thead>
@@ -125,8 +125,8 @@
         </div>
       </div>
       <div class="col-12 col-lg-6">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;"><strong>Dépenses récentes</strong></div>
+        <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--app-border-soft);"><strong>Dépenses récentes</strong></div>
           <div style="padding:16px 18px;">
             <table *ngIf="financeData?.recent_expenses?.length" class="table table-sm align-middle mb-0">
               <thead><tr><th>Titre</th><th>Catégorie</th><th>Date</th><th class="text-end">Montant</th></tr></thead>
@@ -147,8 +147,8 @@
 
     <div class="row g-3">
       <div class="col-12 col-lg-6">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;"><strong>Devises</strong></div>
+        <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--app-border-soft);"><strong>Devises</strong></div>
           <div style="padding:16px 18px;">
             <table *ngIf="currencies.length" class="table table-sm mb-0">
               <thead><tr><th>Code</th><th>Nom</th><th>Statut</th></tr></thead>
@@ -165,8 +165,8 @@
         </div>
       </div>
       <div class="col-12 col-lg-6">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;"><strong>Taux de change</strong></div>
+        <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;height:100%;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--app-border-soft);"><strong>Taux de change</strong></div>
           <div style="padding:16px 18px;">
             <table *ngIf="exchangeRates.length" class="table table-sm mb-0">
               <thead><tr><th>Depuis</th><th>Vers</th><th class="text-end">Taux</th></tr></thead>
@@ -186,8 +186,8 @@
 
     <div class="row mt-3">
       <div class="col-12">
-        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
-          <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;"><strong>Versements fournisseurs récents</strong></div>
+        <div style="background:var(--app-surface);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);overflow:hidden;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--app-border-soft);"><strong>Versements fournisseurs récents</strong></div>
           <div style="padding:16px 18px;">
             <table *ngIf="financeData?.recent_supplier_payments?.length" class="table table-sm align-middle mb-0">
               <thead><tr><th>Réf.</th><th>Fournisseur</th><th>Mode</th><th class="text-end">Montant</th><th>Date</th></tr></thead>

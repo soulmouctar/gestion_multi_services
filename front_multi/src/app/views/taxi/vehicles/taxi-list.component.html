@@ -3,8 +3,8 @@
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h4 class="fw-bold mb-0" style="color:#1a1a2e">
-        <svg cIcon name="cilCarAlt" class="me-2" style="width:22px;height:22px;vertical-align:-4px;color:#1a1a2e;"></svg>Véhicules Taxi
+      <h4 class="fw-bold mb-0" style="color:var(--app-heading)">
+        <svg cIcon name="cilCarAlt" class="me-2" style="width:22px;height:22px;vertical-align:-4px;color:var(--app-heading);"></svg>Véhicules Taxi
       </h4>
       <small class="text-muted">{{ totalItems }} véhicule(s) enregistré(s)</small>
     </div>
@@ -176,22 +176,22 @@
 
         <div class="col-12">
           <div class="d-flex align-items-center gap-2 my-1">
-            <div style="flex:1;height:1px;background:#e0e0e0"></div>
+            <div style="flex:1;height:1px;background:var(--app-surface-4)"></div>
             <small class="text-muted fw-semibold">Documents &amp; Validités</small>
-            <div style="flex:1;height:1px;background:#e0e0e0"></div>
+            <div style="flex:1;height:1px;background:var(--app-surface-4)"></div>
           </div>
         </div>
 
         <div class="col-md-4">
-          <label class="form-label fw-semibold small"><svg cIcon name="cilShieldAlt" class="me-1" style="width:13px;height:13px;vertical-align:-2px;color:#64748b;"></svg>Expiration assurance</label>
+          <label class="form-label fw-semibold small"><svg cIcon name="cilShieldAlt" class="me-1" style="width:13px;height:13px;vertical-align:-2px;color:var(--app-text-muted);"></svg>Expiration assurance</label>
           <input cFormControl type="date" formControlName="insurance_expiry" style="border-radius:8px" />
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold small"><svg cIcon name="cilSettings" class="me-1" style="width:13px;height:13px;vertical-align:-2px;color:#64748b;"></svg>Expiration visite technique</label>
+          <label class="form-label fw-semibold small"><svg cIcon name="cilSettings" class="me-1" style="width:13px;height:13px;vertical-align:-2px;color:var(--app-text-muted);"></svg>Expiration visite technique</label>
           <input cFormControl type="date" formControlName="technical_inspection_expiry" style="border-radius:8px" />
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold small"><svg cIcon name="cilDescription" class="me-1" style="width:13px;height:13px;vertical-align:-2px;color:#64748b;"></svg>Expiration permis circulation</label>
+          <label class="form-label fw-semibold small"><svg cIcon name="cilDescription" class="me-1" style="width:13px;height:13px;vertical-align:-2px;color:var(--app-text-muted);"></svg>Expiration permis circulation</label>
           <input cFormControl type="date" formControlName="circulation_permit_expiry" style="border-radius:8px" />
         </div>
         <div class="col-12">

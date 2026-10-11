@@ -344,13 +344,9 @@ export class FinancePaymentsComponent implements OnInit {
     return map[m] || m;
   }
 
-  /** Cartes de synthèse : « 12 400 000 GNF » devient « 12,4 M GNF ». */
+  /** Cartes de synthèse : montant complet, sans abreviation (« 12 400 000 GNF », jamais « 12,4 M »). */
   fmtCompact(v: number | null | undefined, currency = 'GNF'): string {
-    const n = Number(v || 0);
-    const abs = Math.abs(n);
-    if (abs >= 1_000_000) return `${(n / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M ${currency}`;
-    if (abs >= 1_000) return `${(n / 1_000).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} k ${currency}`;
-    return `${n.toLocaleString('fr-FR')} ${currency}`;
+    return `${Number(v || 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} ${currency}`;
   }
 
   initialOf(name?: string | null): string {

@@ -96,14 +96,9 @@ export class DashboardComponent implements OnInit {
       });
   }
 
-  /** Montant compact : 1 250 000 → « 1,25 M ». Les grands nombres sont illisibles bruts. */
+  /** Montant complet, sans abreviation : 1 250 000 (jamais « 1,25 M »). */
   short(v: number | null | undefined): string {
-    const n = Number(v || 0);
-    const abs = Math.abs(n);
-    if (abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2).replace('.', ',') + ' Md';
-    if (abs >= 1_000_000) return (n / 1_000_000).toFixed(2).replace('.', ',') + ' M';
-    if (abs >= 1_000) return Math.round(n / 1_000) + ' k';
-    return String(Math.round(n));
+    return this.full(v);
   }
 
   full(v: number | null | undefined): string {

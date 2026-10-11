@@ -2,16 +2,16 @@
 :host { display: block; }
 
 .client-ledger {
-  --ink:        #0f172a;
-  --ink-soft:   #475569;
+  --ink:        var(--app-heading);
+  --ink-soft:   var(--app-text-2);
   --muted:      #94a3b8;
-  --line:       #e2e8f0;
-  --line-soft:  #f1f5f9;
-  --bg-soft:    #f8fafc;
-  --debit:      #dc2626;
-  --debit-bg:   #fef2f2;
+  --line:       var(--app-border);
+  --line-soft:  var(--app-border-soft);
+  --bg-soft:    var(--app-surface-2);
+  --debit:      var(--app-red-fg);
+  --debit-bg:   var(--app-red-bg);
   --credit:     #16a34a;
-  --credit-bg:  #f0fdf4;
+  --credit-bg:  var(--app-green-bg);
   --primary:    #0f3460;
   --warning:    #d97706;
   --info:       #0284c7;
@@ -21,7 +21,7 @@
 
 /* ───── HEADER ───── */
 .ledger-header {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: linear-gradient(135deg, var(--app-surface) 0%, var(--app-surface-2) 100%);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 1rem 1.25rem;
@@ -88,7 +88,7 @@
 
 /* ───── CARTE INFO CLIENT ───── */
 .client-card {
-  background: #fff;
+  background: var(--app-surface);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 1rem 1.1rem;
@@ -98,8 +98,8 @@
   .avatar {
     width: 56px; height: 56px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
-    color: #4338ca;
+    background: linear-gradient(135deg, var(--app-indigo-bg-2), var(--app-indigo-bg-2));
+    color: var(--app-indigo-fg-strong);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.3rem; font-weight: 700;
     flex-shrink: 0;
@@ -123,8 +123,8 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    background: #e0e7ff;
-    color: #4338ca;
+    background: var(--app-indigo-bg-2);
+    color: var(--app-indigo-fg-strong);
   }
 }
 
@@ -135,7 +135,7 @@
   gap: .75rem;
 }
 .kpi {
-  background: #fff;
+  background: var(--app-surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: .75rem .85rem;
@@ -165,16 +165,16 @@
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
   }
-  &.k-sales   .icon-box { background: #dbeafe; color: #1d4ed8; }
-  &.k-pay     .icon-box { background: #dcfce7; color: #15803d; }
-  &.k-return  .icon-box { background: #fef3c7; color: #b45309; }
-  &.k-interest .icon-box { background: #fee2e2; color: #b91c1c; }
-  &.k-advance .icon-box { background: #cffafe; color: #0e7490; }
+  &.k-sales   .icon-box { background: var(--app-blue-bg-2); color: var(--app-blue-fg-strong); }
+  &.k-pay     .icon-box { background: var(--app-green-bg-2); color: var(--app-green-fg); }
+  &.k-return  .icon-box { background: var(--app-amber-bg-2); color: var(--app-amber-fg); }
+  &.k-interest .icon-box { background: var(--app-red-bg-2); color: var(--app-red-fg-strong); }
+  &.k-advance .icon-box { background: var(--app-cyan-bg-2); color: var(--app-cyan-fg); }
 }
 
 /* ───── TOOLBAR ───── */
 .toolbar {
-  background: #fff;
+  background: var(--app-surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: .65rem .85rem;
@@ -223,7 +223,7 @@
 
 /* ───── TABLE COMPTABLE ───── */
 .ledger-wrapper {
-  background: #fff;
+  background: var(--app-surface);
   border: 1px solid var(--line);
   border-radius: 14px;
   overflow: hidden;
@@ -237,7 +237,7 @@
   font-size: 0.85rem;
 
   thead th {
-    background: #f8fafc;
+    background: var(--app-surface-2);
     color: var(--ink-soft);
     font-size: 0.68rem;
     font-weight: 700;
@@ -254,8 +254,8 @@
     vertical-align: middle;
   }
   tbody tr { transition: background .12s; }
-  tbody tr:hover { background: #fafbff; }
-  tbody tr:nth-child(even) { background: #fcfcfd; }
+  tbody tr:hover { background: var(--app-surface-2); }
+  tbody tr:nth-child(even) { background: var(--app-surface-2); }
 
   .col-date { width: 92px; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
   .col-type { width: 140px; }
@@ -272,11 +272,11 @@
     margin-top: 4px;
     padding: 2px 8px;
     border-radius: 6px;
-    background: #eff6ff;
-    color: #1d4ed8;
+    background: var(--app-blue-bg);
+    color: var(--app-blue-fg-strong);
     font-size: 0.72rem;
     font-weight: 500;
-    border: 1px solid #dbeafe;
+    border: 1px solid var(--app-blue-border);
   }
 
   .v-debit  { color: var(--debit); font-weight: 600; }
@@ -288,7 +288,7 @@
   .bal-zero   { color: var(--muted); font-weight: 600; }
 
   tfoot td {
-    background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
+    background: linear-gradient(180deg, var(--app-surface-3), var(--app-surface-4));
     padding: .8rem .65rem;
     font-size: 0.92rem;
     font-weight: 800;
@@ -299,14 +299,14 @@
   }
 
   .month-row td {
-    background: linear-gradient(90deg, #eef2ff, #f8fafc);
-    color: var(--primary);
+    background: linear-gradient(90deg, var(--app-indigo-bg), var(--app-surface-2));
+    color: var(--app-brand-fg);
     font-weight: 700;
     font-size: 0.78rem;
     padding: .4rem .65rem;
     letter-spacing: 0.3px;
-    border-bottom: 1px solid #cbd5e1;
-    border-top: 1px solid #cbd5e1;
+    border-bottom: 1px solid var(--app-border-strong);
+    border-top: 1px solid var(--app-border-strong);
   }
   .month-row .month-totals {
     float: right;
@@ -328,7 +328,7 @@
   height: 30px;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--app-surface);
   color: var(--ink-soft);
   display: inline-flex;
   align-items: center;
@@ -337,14 +337,14 @@
   cursor: pointer;
 
   &.edit:hover {
-    border-color: #bfdbfe;
-    background: #eff6ff;
-    color: #1d4ed8;
+    border-color: var(--app-blue-border);
+    background: var(--app-blue-bg);
+    color: var(--app-blue-fg-strong);
   }
   &.delete:hover {
-    border-color: #fecaca;
-    background: #fef2f2;
-    color: #dc2626;
+    border-color: var(--app-red-border);
+    background: var(--app-red-bg);
+    color: var(--app-red-fg);
   }
 }
 
@@ -360,11 +360,11 @@
   white-space: nowrap;
   svg { width: 12px; height: 12px; }
 
-  &.t-invoice, &.t-container_sale { background: #dbeafe; color: #1d4ed8; }
-  &.t-payment, &.t-container_payment { background: #dcfce7; color: #15803d; }
-  &.t-advance { background: #cffafe; color: #0e7490; }
-  &.t-return  { background: #fef3c7; color: #b45309; }
-  &.t-interest { background: #fee2e2; color: #b91c1c; }
+  &.t-invoice, &.t-container_sale { background: var(--app-blue-bg-2); color: var(--app-blue-fg-strong); }
+  &.t-payment, &.t-container_payment { background: var(--app-green-bg-2); color: var(--app-green-fg); }
+  &.t-advance { background: var(--app-cyan-bg-2); color: var(--app-cyan-fg); }
+  &.t-return  { background: var(--app-amber-bg-2); color: var(--app-amber-fg); }
+  &.t-interest { background: var(--app-red-bg-2); color: var(--app-red-fg-strong); }
 }
 
 /* ───── MODAL ───── */
@@ -388,9 +388,9 @@
     box-shadow: 0 24px 48px rgba(0,0,0,.35);
   }
   .modal-header {
-    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    background: linear-gradient(135deg, var(--app-red-bg), var(--app-red-bg-2));
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid #fecaca;
+    border-bottom: 1px solid var(--app-red-border);
   }
   .modal-title { color: var(--debit); font-weight: 700; }
   .modal-body  { padding: 1.25rem; }
@@ -469,10 +469,10 @@
   .no-print { display: none !important; }
   .client-ledger { padding: 0 !important; }
   .status-banner { box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .ledger-wrapper, .client-card, .kpi, .toolbar { box-shadow: none !important; border: 1px solid #ccc !important; }
+  .ledger-wrapper, .client-card, .kpi, .toolbar { box-shadow: none !important; border: 1px solid var(--app-border-strong) !important; }
   .ledger-table { font-size: 10.5px !important; }
-  .ledger-table thead th { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { background: white !important; }
+  .ledger-table thead th { background: var(--app-surface-3) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: var(--app-surface) !important; }
 }
 
 /* ───── RESPONSIVE ───── */

@@ -6,6 +6,7 @@ import {
   AlertModule, BadgeModule, ButtonModule, CardModule, FormModule, SpinnerModule, TableModule
 } from '@coreui/angular';
 import { ChartjsComponent } from '@coreui/angular-chartjs';
+import { syncChartsWithTheme } from '../../../core/utils/chart-theme';
 import { IconDirective } from '@coreui/icons-angular';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -141,7 +142,6 @@ export class ContainerStatisticsComponent implements OnInit {
         labels: {
           usePointStyle: true,
           padding: 18,
-          color: '#475569',
           font: { size: 12, weight: 600 }
         }
       }
@@ -157,11 +157,11 @@ export class ContainerStatisticsComponent implements OnInit {
     maintainAspectRatio: false,
     scales: {
       x: {
-        ticks: { color: '#64748b', font: { size: 11 } },
+        ticks: { font: { size: 11 } },
         grid: { display: false }
       },
       y: {
-        ticks: { color: '#64748b', font: { size: 11 } },
+        ticks: { font: { size: 11 } },
         grid: { color: 'rgba(148,163,184,.18)' }
       }
     },
@@ -171,7 +171,6 @@ export class ContainerStatisticsComponent implements OnInit {
         labels: {
           usePointStyle: true,
           padding: 18,
-          color: '#475569',
           font: { size: 12, weight: 600 }
         }
       }
@@ -199,6 +198,7 @@ export class ContainerStatisticsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    syncChartsWithTheme();
     this.loadStatistics();
   }
 
@@ -386,7 +386,6 @@ export class ContainerStatisticsComponent implements OnInit {
             Math.max(0, sales?.cost_of_goods_sold || 0)
           ],
           backgroundColor: ['#10B981', '#F59E0B', '#CBD5E1'],
-          borderColor: ['#ffffff', '#ffffff', '#ffffff'],
           borderWidth: 3,
           hoverOffset: 8
         }

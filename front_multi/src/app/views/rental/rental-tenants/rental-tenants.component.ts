@@ -46,7 +46,7 @@ import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
       <div class="col-md-5">
         <label class="form-label small fw-semibold text-muted mb-1">Recherche</label>
         <div class="input-group">
-          <span class="input-group-text" style="border-radius:8px 0 0 8px;background:#f8fafc">
+          <span class="input-group-text" style="border-radius:8px 0 0 8px;background:var(--app-surface-2)">
             <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
           </span>
           <input type="text" class="form-control" style="border-radius:0 8px 8px 0"
@@ -81,7 +81,7 @@ import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
   <div *ngIf="!loading" class="bg-white shadow-sm rounded-4 overflow-hidden">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
-        <thead style="background:#f8fafc">
+        <thead style="background:var(--app-surface-2)">
           <tr>
             <th class="ps-4 py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Locataire</th>
             <th class="py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Téléphone</th>
@@ -101,14 +101,14 @@ import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
               <div class="d-flex align-items-center gap-2">
                 <ng-container *ngIf="photoUrl(t); else tenantInitials">
                   <img [src]="photoUrl(t)" alt="{{ t.renter_name }}" (error)="hideBrokenImage($event)"
-                       style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #E5E7EB;">
-                  <div style="display:none;width:36px;height:36px;border-radius:50%;background:#EEF2FF;color:#6366F1;
+                       style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--app-border);">
+                  <div style="display:none;width:36px;height:36px;border-radius:50%;background:var(--app-indigo-bg);color:#6366F1;
                     align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0">
                     {{ (t.renter_name || '?').charAt(0).toUpperCase() }}
                   </div>
                 </ng-container>
                 <ng-template #tenantInitials>
-                  <div style="width:36px;height:36px;border-radius:50%;background:#EEF2FF;color:#6366F1;
+                  <div style="width:36px;height:36px;border-radius:50%;background:var(--app-indigo-bg);color:#6366F1;
                     display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0">
                     {{ (t.renter_name || '?').charAt(0).toUpperCase() }}
                   </div>
@@ -124,14 +124,14 @@ import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
             </td>
             <td class="py-3 text-center">
               <span class="badge rounded-pill"
-                style="background:#F3F4F6;color:#374151;font-size:.78rem;font-weight:700;padding:4px 10px">
+                style="background:var(--app-surface-3);color:var(--app-text);font-size:.78rem;font-weight:700;padding:4px 10px">
                 {{ t.total_leases }}
               </span>
             </td>
             <td class="py-3 text-center">
               <span class="badge rounded-pill fw-bold"
-                [style.background]="t.active_leases > 0 ? '#ECFDF5' : '#F3F4F6'"
-                [style.color]="t.active_leases > 0 ? '#10B981' : '#6B7280'"
+                [style.background]="t.active_leases > 0 ? 'var(--app-green-bg)' : 'var(--app-surface-3)'"
+                [style.color]="t.active_leases > 0 ? '#10B981' : 'var(--app-text-muted)'"
                 style="font-size:.78rem;padding:4px 10px">
                 {{ t.active_leases }}
               </span>
@@ -153,8 +153,8 @@ import { resolveUploadUrl } from '../../../core/utils/upload-url.util';
             </td>
             <td class="py-3 text-center pe-4">
               <span class="badge rounded-pill"
-                [style.background]="t.active_leases > 0 ? '#ECFDF5' : '#F3F4F6'"
-                [style.color]="t.active_leases > 0 ? '#10B981' : '#6B7280'"
+                [style.background]="t.active_leases > 0 ? 'var(--app-green-bg)' : 'var(--app-surface-3)'"
+                [style.color]="t.active_leases > 0 ? '#10B981' : 'var(--app-text-muted)'"
                 style="font-size:.75rem;font-weight:600;padding:5px 12px">
                 {{ t.active_leases > 0 ? 'Actif' : 'Inactif' }}
               </span>

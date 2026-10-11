@@ -4,7 +4,7 @@ import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { delay, filter, map, tap } from 'rxjs/operators';
 
-import { ColorModeService } from '@coreui/angular';
+import { ThemeMode, ThemeService } from './core/services/theme.service';
 import { IconSetService } from '@coreui/icons-angular';
 import { iconSubset } from './icons/icon-subset';
 
@@ -21,15 +21,14 @@ export class AppComponent implements OnInit {
   readonly #router = inject(Router);
   readonly #titleService = inject(Title);
 
-  readonly #colorModeService = inject(ColorModeService);
+  readonly #themeService = inject(ThemeService);
   readonly #iconSetService = inject(IconSetService);
 
   constructor() {
     this.#titleService.setTitle(this.title);
     // iconSet singleton
     this.#iconSetService.icons = { ...iconSubset };
-    this.#colorModeService.localStorageItemName.set('coreui-free-angular-admin-template-theme-default');
-    this.#colorModeService.eventName.set('ColorSchemeChange');
+    this.#themeService.init();
   }
 
   ngOnInit(): void {
@@ -48,7 +47,7 @@ export class AppComponent implements OnInit {
           map(params => <string>params['theme']?.match(/^[A-Za-z0-9\s]+/)?.[0]),
           filter(theme => ['dark', 'light', 'auto'].includes(theme)),
           tap(theme => {
-            this.#colorModeService.colorMode.set(theme);
+            this.#themeService.setMode(theme as ThemeMode);
           }),
           takeUntilDestroyed(this.#destroyRef)
         )

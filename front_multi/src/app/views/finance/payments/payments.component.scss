@@ -1,7 +1,7 @@
 /* Aligne l'ecran sur le module Location : memes cartes, memes jetons de couleur.
    On s'appuie sur les variables CoreUI pour rester lisible en theme sombre. */
 :host {
-  --fp-surface: var(--cui-card-bg, #fff);
+  --fp-surface: var(--app-surface);
   --fp-border: var(--cui-border-color, #e4e7ec);
   --fp-muted: var(--cui-secondary-color, #6b7280);
   --fp-track: rgba(148, 163, 184, .18);

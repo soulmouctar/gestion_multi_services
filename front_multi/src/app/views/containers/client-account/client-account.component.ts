@@ -41,15 +41,15 @@ import { PdfService } from '../../../core/services/pdf.service';
     }
     .btn-hero-ghost:hover { background: rgba(255,255,255,0.16); }
     .btn-hero-primary {
-      background: #fff; color: #0f172a; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      background: var(--app-surface); color: var(--app-heading); box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .btn-hero-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
     .btn-hero-ghost svg, .btn-hero-primary svg { width: 14px; height: 14px; }
 
     .kpi-card {
-      background: #fff; border-radius: 14px; padding: 16px 18px;
+      background: var(--app-surface); border-radius: 14px; padding: 16px 18px;
       display: flex; align-items: center; gap: 14px; height: 100%;
-      border: 1px solid #eef1f6;
+      border: 1px solid var(--app-border-soft);
       transition: transform .18s ease, box-shadow .18s ease;
     }
     .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -12px rgba(15,23,42,0.15); }
@@ -61,7 +61,7 @@ import { PdfService } from '../../../core/services/pdf.service';
     .kpi-body { min-width: 0; }
     .kpi-label {
       font-size: 0.68rem; text-transform: uppercase; letter-spacing: .06em;
-      color: #64748b; font-weight: 600; margin-bottom: 2px;
+      color: var(--app-text-muted); font-weight: 600; margin-bottom: 2px;
     }
     .kpi-value {
       font-size: 1rem; font-weight: 700; line-height: 1.2;
@@ -91,11 +91,11 @@ import { PdfService } from '../../../core/services/pdf.service';
     }
 
     .section-card {
-      background: #fff; border-radius: 14px; border: 1px solid #eef1f6; overflow: hidden;
+      background: var(--app-surface); border-radius: 14px; border: 1px solid var(--app-border-soft); overflow: hidden;
     }
     .section-header {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 16px 20px; border-bottom: 1px solid #f1f5f9; background: #fafbfd;
+      padding: 16px 20px; border-bottom: 1px solid var(--app-border-soft); background: var(--app-surface-2);
     }
     .section-title { display: flex; align-items: center; gap: 12px; }
     .section-badge {
@@ -109,18 +109,18 @@ import { PdfService } from '../../../core/services/pdf.service';
 
     .modern-table { font-size: 0.85rem; }
     .modern-table thead th {
-      background: #fafbfd; color: #64748b; font-weight: 600;
+      background: var(--app-surface-2); color: var(--app-text-muted); font-weight: 600;
       font-size: 0.7rem; text-transform: uppercase; letter-spacing: .04em;
-      padding: 12px 14px; border: none; border-bottom: 1px solid #eef1f6;
+      padding: 12px 14px; border: none; border-bottom: 1px solid var(--app-border-soft);
     }
     .modern-table tbody td {
-      padding: 12px 14px; border: none; border-bottom: 1px solid #f5f6fa; vertical-align: middle;
+      padding: 12px 14px; border: none; border-bottom: 1px solid var(--app-border-soft); vertical-align: middle;
     }
     .modern-table tbody tr:last-child td { border-bottom: none; }
-    .modern-table tbody tr:hover td { background: #fafbfd; }
+    .modern-table tbody tr:hover td { background: var(--app-surface-2); }
     .cell-muted { color: #94a3b8; font-size: 0.8rem; }
     .ref-code {
-      background: #f1f5f9; color: #475569; padding: 3px 8px;
+      background: var(--app-surface-3); color: var(--app-text-2); padding: 3px 8px;
       border-radius: 6px; font-size: 0.75rem; font-family: 'SF Mono', Menlo, monospace;
     }
     .tag {
@@ -132,7 +132,7 @@ import { PdfService } from '../../../core/services/pdf.service';
       font-size: 0.7rem; font-weight: 600;
     }
 
-    .progress-track { height: 6px; background: #eef1f6; border-radius: 999px; overflow: hidden; }
+    .progress-track { height: 6px; background: var(--app-surface-3); border-radius: 999px; overflow: hidden; }
     .progress-fill { height: 100%; border-radius: 999px; transition: width .3s ease; }
     .progress-label { font-size: 0.68rem; color: #94a3b8; margin-top: 4px; font-weight: 600; }
 
@@ -143,7 +143,7 @@ import { PdfService } from '../../../core/services/pdf.service';
     .empty-row svg { display: block; margin: 0 auto 8px; }
 
     @media print {
-      :host .client-account-page { background: #fff !important; padding: 0 !important; }
+      :host .client-account-page { background: var(--app-surface) !important; padding: 0 !important; }
       .btn-hero-ghost, .btn-hero-primary { display: none !important; }
       .hero-card, .section-card, .kpi-card, .balance-banner { box-shadow: none !important; }
       .section-card, .kpi-card, .balance-banner { break-inside: avoid; }

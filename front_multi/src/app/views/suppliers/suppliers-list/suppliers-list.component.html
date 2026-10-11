@@ -13,7 +13,7 @@
   </div>
 
   <!-- Recherche + filtres catégorie -->
-  <div class="bg-white rounded-3 p-3 mb-3" style="border:1px solid #f0f0f0;">
+  <div class="bg-white rounded-3 p-3 mb-3" style="border:1px solid var(--app-border-soft);">
     <div class="d-flex gap-2">
       <input cFormControl type="text" [(ngModel)]="searchTerm" placeholder="Rechercher par nom, email, catégorie…"
              (keyup.enter)="onSearch()" style="border-radius:8px; flex:1" />
@@ -23,8 +23,8 @@
     </div>
     <div class="d-flex flex-wrap gap-2 mt-2">
       <button class="btn btn-sm" (click)="onFilterCategory('')"
-              [style.background]="filterCategory==='' ? '#533483':'#f3f4f6'"
-              [style.color]="filterCategory==='' ? '#fff':'#374151'"
+              [style.background]="filterCategory==='' ? '#533483':'var(--app-surface-3)'"
+              [style.color]="filterCategory==='' ? '#fff':'var(--app-text)'"
               style="border-radius:20px;border:none;font-size:12px;">Toutes</button>
       <button *ngFor="let cat of categories" class="btn btn-sm" (click)="onFilterCategory(cat)"
               [style.background]="filterCategory===cat ? getCategoryColor(cat).color : getCategoryColor(cat).bg"
@@ -37,7 +37,7 @@
 
   <!-- Sélection groupée -->
   <div class="mb-3" *ngIf="selectedSuppliers.size > 0">
-    <div class="d-flex gap-2 align-items-center p-2 rounded-3" style="background:#FEE2E2;border:1px solid #FCA5A5;">
+    <div class="d-flex gap-2 align-items-center p-2 rounded-3" style="background:var(--app-red-bg-2);border:1px solid var(--app-red-border);">
       <span class="small fw-semibold" style="color:#EF4444;">{{ selectedSuppliers.size }} sélectionné(s)</span>
       <button *ngIf="canDeleteSuppliers" cButton color="danger" size="sm" (click)="deleteSelected()" style="border-radius:8px">
         <svg cIcon name="cilTrash" class="me-1" size="sm"></svg> Supprimer
@@ -55,7 +55,7 @@
   <div *ngIf="!loading" class="row g-3">
     <div *ngFor="let supplier of suppliers; trackBy:trackById" class="col-12 col-sm-6 col-lg-4 col-xl-3">
       <div class="bg-white rounded-3 h-100 d-flex flex-column"
-           style="border:1px solid #f0f0f0;transition:.2s box-shadow;"
+           style="border:1px solid var(--app-border-soft);transition:.2s box-shadow;"
            onmouseenter="this.style.boxShadow='0 4px 20px rgba(0,0,0,.08)'"
            onmouseleave="this.style.boxShadow='none'">
 
@@ -65,19 +65,19 @@
                  [checked]="isSelected(supplier.id)" (change)="toggleSelection(supplier.id)" />
           <div class="d-flex gap-1">
             <button *ngIf="canRegisterPayments" class="btn btn-sm p-1" title="Verser" (click)="openPaymentModal(supplier)"
-                    style="border-radius:6px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;">
+                    style="border-radius:6px;background:var(--app-green-bg);color:#059669;border:1px solid var(--app-green-border);">
               <svg cIcon name="cilPlus" style="width:14px;height:14px;"></svg>
             </button>
             <button class="btn btn-sm p-1" title="Balance & Historique" (click)="openHistory(supplier)"
-                    style="border-radius:6px;background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;">
+                    style="border-radius:6px;background:var(--app-violet-bg);color:var(--app-violet-fg);border:1px solid var(--app-violet-border);">
               <svg cIcon name="cilChart" style="width:14px;height:14px;"></svg>
             </button>
             <button *ngIf="canEditSuppliers" class="btn btn-sm p-1" title="Modifier" (click)="openEditModal(supplier)"
-                    style="border-radius:6px;background:#FFFBEB;color:#D97706;border:1px solid #FDE68A;">
+                    style="border-radius:6px;background:var(--app-amber-bg);color:#D97706;border:1px solid var(--app-amber-border);">
               <svg cIcon name="cilPencil" style="width:14px;height:14px;"></svg>
             </button>
             <button *ngIf="canDeleteSuppliers" class="btn btn-sm p-1" title="Supprimer" (click)="deleteSupplier(supplier)"
-                    style="border-radius:6px;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;">
+                    style="border-radius:6px;background:var(--app-red-bg);color:#EF4444;border:1px solid var(--app-red-border);">
               <svg cIcon name="cilTrash" style="width:14px;height:14px;"></svg>
             </button>
           </div>
@@ -88,17 +88,17 @@
           <ng-container *ngIf="supplier.photo_url; else initials">
             <img [src]="supplier.photo_url" alt="{{ supplier.name }}"
                  class="rounded-circle mb-3"
-                 style="width:70px;height:70px;object-fit:cover;border:3px solid #e5e7eb;" />
+                 style="width:70px;height:70px;object-fit:cover;border:3px solid var(--app-border);" />
           </ng-container>
           <ng-template #initials>
             <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-4 mx-auto mb-3"
-                 style="width:70px;height:70px;border:3px solid #e5e7eb;"
+                 style="width:70px;height:70px;border:3px solid var(--app-border);"
                  [style.background]="getAvatarColor(supplier.name)">
               {{ getInitials(supplier.name) }}
             </div>
           </ng-template>
 
-          <div class="fw-bold" style="color:#111827;">{{ supplier.name }}</div>
+          <div class="fw-bold" style="color:var(--app-heading);">{{ supplier.name }}</div>
 
           <div class="mt-1 mb-1" *ngIf="supplier.category">
             <span class="badge small" style="border-radius:20px;font-size:11px;"
@@ -115,7 +115,7 @@
             <svg cIcon name="cilEnvelopeLetter" size="sm" class="me-1"></svg>{{ supplier.email }}
           </div>
           <div class="mt-2">
-            <span class="badge" style="background:#F5F3FF;color:#7C3AED;font-size:11px;">
+            <span class="badge" style="background:var(--app-violet-bg);color:var(--app-violet-fg);font-size:11px;">
               {{ supplier.currency || 'GNF' }}
             </span>
           </div>
@@ -179,7 +179,7 @@
               <div class="d-inline-block position-relative">
                 <ng-container *ngIf="photoPreview; else noPhoto">
                   <img [src]="photoPreview" class="rounded-circle"
-                       style="width:80px;height:80px;object-fit:cover;border:3px solid #e5e7eb;" />
+                       style="width:80px;height:80px;object-fit:cover;border:3px solid var(--app-border);" />
                 </ng-container>
                 <ng-template #noPhoto>
                   <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
@@ -289,18 +289,18 @@
       <!-- Rappel dette en cours -->
       <div *ngIf="supplierHistory && outstandingDebt > 0"
            class="px-4 py-2 d-flex align-items-center gap-2"
-           style="background:#FEF2F2;border-bottom:1px solid #FECACA;">
-        <svg cIcon name="cilWarning" style="color:#DC2626;width:16px;height:16px;flex-shrink:0;"></svg>
-        <span class="small" style="color:#991B1B;">
+           style="background:var(--app-red-bg);border-bottom:1px solid var(--app-red-border);">
+        <svg cIcon name="cilWarning" style="color:var(--app-red-fg);width:16px;height:16px;flex-shrink:0;"></svg>
+        <span class="small" style="color:var(--app-red-fg-strong);">
           Solde restant dû :
           <strong>{{ outstandingDebt | number:'1.0-0' }} GNF</strong>
         </span>
       </div>
       <div *ngIf="supplierHistory && outstandingDebt <= 0 && supplierHistory.summary.arrival_count > 0"
            class="px-4 py-2 d-flex align-items-center gap-2"
-           style="background:#ECFDF5;border-bottom:1px solid #A7F3D0;">
+           style="background:var(--app-green-bg);border-bottom:1px solid var(--app-green-border);">
         <svg cIcon name="cilCheckCircle" style="color:#059669;width:16px;height:16px;flex-shrink:0;"></svg>
-        <span class="small" style="color:#065F46;">Compte soldé — tout versement sera un excédent</span>
+        <span class="small" style="color:var(--app-green-fg-strong);">Compte soldé — tout versement sera un excédent</span>
       </div>
 
       <form [formGroup]="paymentForm" (ngSubmit)="savePayment()">
@@ -335,7 +335,7 @@
 
             <!-- Taux de change visible si conversion ou équivalent GNF requis -->
             <div class="col-12" *ngIf="showExchangeRate">
-              <div class="p-3 rounded-3" style="background:#FFFBEB;border:1px solid #FDE68A;">
+              <div class="p-3 rounded-3" style="background:var(--app-amber-bg);border:1px solid var(--app-amber-border);">
                 <label cLabel class="small fw-semibold mb-1">
                   Taux de change du jour
                   <span class="text-muted fw-normal small">(1 {{ paymentForm.get('currency')?.value }} = ? GNF)</span>
@@ -344,11 +344,11 @@
                 <input cFormControl type="number" step="1" min="1" formControlName="exchange_rate"
                        placeholder="Ex : 10 500 pour 1 USD = 10 500 GNF" />
                 <div class="mt-2 small fw-semibold" *ngIf="estimatedAmountGnf > 0"
-                     style="color:#92400E;">
+                     style="color:var(--app-amber-fg-strong);">
                   Équivalent comptable : ≈ {{ estimatedAmountGnf | number:'1.0-0' }} GNF
                 </div>
                 <div class="mt-1 small fw-semibold" *ngIf="estimatedConvertedAmount > 0"
-                     style="color:#1D4ED8;">
+                     style="color:var(--app-blue-fg-strong);">
                   Imputation : {{ estimatedConvertedAmount | number:'1.0-2' }} {{ paymentForm.get('target_currency')?.value }}
                 </div>
               </div>
@@ -356,14 +356,14 @@
 
             <!-- Aperçu imputation FIFO si arrivages présents -->
             <div class="col-12" *ngIf="supplierHistory?.arrivals?.length > 0 && estimatedAmountGnf > 0">
-              <div class="p-3 rounded-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
-                <div class="small fw-semibold mb-2" style="color:#1e40af;">
+              <div class="p-3 rounded-3" style="background:var(--app-blue-bg);border:1px solid var(--app-blue-border);">
+                <div class="small fw-semibold mb-2" style="color:var(--app-blue-fg-strong);">
                   <svg cIcon name="cilChart" size="sm" class="me-1"></svg>
                   Imputation prévisionnelle (FIFO — arrivages les plus anciens en premier)
                 </div>
                 <ng-container *ngFor="let a of supplierHistory.arrivals">
                   <div *ngIf="a.payment_status !== 'SOLDE'" class="d-flex justify-content-between align-items-center mb-1 small">
-                    <span style="color:#374151;">
+                    <span style="color:var(--app-text);">
                       {{ a.product_type }} — {{ formatDate(a.arrival_date) }}
                       <span class="badge ms-1" style="font-size:10px;"
                             [style.background]="getPaymentStatusStyle(a.payment_status).bg"
@@ -371,7 +371,7 @@
                         {{ getPaymentStatusStyle(a.payment_status).label }}
                       </span>
                     </span>
-                    <span class="fw-semibold" style="color:#DC2626;">
+                    <span class="fw-semibold" style="color:var(--app-red-fg);">
                       {{ a.remaining_gnf | number:'1.0-0' }} GNF
                     </span>
                   </div>
@@ -461,12 +461,12 @@
           <!-- Badge statut global -->
           <div class="ms-auto me-2" *ngIf="supplierHistory?.summary">
             <ng-container *ngIf="supplierHistory.summary.is_fully_settled">
-              <span class="badge px-3 py-2" style="background:#ECFDF5;color:#059669;font-size:12px;">
+              <span class="badge px-3 py-2" style="background:var(--app-green-bg);color:#059669;font-size:12px;">
                 ✓ Compte soldé
               </span>
             </ng-container>
             <ng-container *ngIf="!supplierHistory.summary.is_fully_settled && supplierHistory.summary.arrival_count > 0">
-              <span class="badge px-3 py-2" style="background:#FEF2F2;color:#DC2626;font-size:12px;">
+              <span class="badge px-3 py-2" style="background:var(--app-red-bg);color:var(--app-red-fg);font-size:12px;">
                 {{ supplierHistory.summary.balance_gnf | number:'1.0-0' }} GNF restants
               </span>
             </ng-container>
@@ -486,14 +486,14 @@
         <ng-container *ngIf="!historyLoading && supplierHistory">
 
           <!-- ── Jauge de règlement globale ── -->
-          <div class="px-4 pt-4 pb-3" style="border-bottom:1px solid #f3f4f6;">
+          <div class="px-4 pt-4 pb-3" style="border-bottom:1px solid var(--app-border-soft);">
             <div class="d-flex justify-content-between align-items-center mb-1">
-              <span class="small fw-semibold" style="color:#374151;">Avancement du règlement</span>
+              <span class="small fw-semibold" style="color:var(--app-text);">Avancement du règlement</span>
               <span class="fw-bold" [style.color]="supplierHistory.summary.settle_pct >= 100 ? '#059669' : '#D97706'">
                 {{ supplierHistory.summary.settle_pct }}%
               </span>
             </div>
-            <div class="rounded-pill" style="height:10px;background:#e5e7eb;overflow:hidden;">
+            <div class="rounded-pill" style="height:10px;background:var(--app-surface-4);overflow:hidden;">
               <div class="rounded-pill h-100" style="transition:width .5s;"
                    [style.width]="supplierHistory.summary.settle_pct + '%'"
                    [style.background]="supplierHistory.summary.settle_pct >= 100 ? '#059669' :
@@ -503,43 +503,43 @@
           </div>
 
           <!-- ── KPIs ── -->
-          <div class="row g-0" style="border-bottom:1px solid #f3f4f6;">
-            <div class="col-6 col-md-3 p-3 text-center" style="border-right:1px solid #f3f4f6;">
+          <div class="row g-0" style="border-bottom:1px solid var(--app-border-soft);">
+            <div class="col-6 col-md-3 p-3 text-center" style="border-right:1px solid var(--app-border-soft);">
               <div class="small fw-semibold text-muted mb-1">Dette totale</div>
-              <div class="fw-bold" style="color:#1e40af;font-size:.95rem;">
+              <div class="fw-bold" style="color:var(--app-blue-fg-strong);font-size:.95rem;">
                 {{ supplierHistory.summary.total_debt_gnf | number:'1.0-0' }} GNF
               </div>
               <div class="small text-muted">{{ supplierHistory.summary.arrival_count }} arrivage(s)</div>
             </div>
-            <div class="col-6 col-md-3 p-3 text-center" style="border-right:1px solid #f3f4f6;">
+            <div class="col-6 col-md-3 p-3 text-center" style="border-right:1px solid var(--app-border-soft);">
               <div class="small fw-semibold text-muted mb-1">Total versé</div>
               <div class="fw-bold" style="color:#059669;font-size:.95rem;">
                 {{ supplierHistory.summary.total_paid_gnf | number:'1.0-0' }} GNF
               </div>
               <div class="small text-muted">{{ supplierHistory.summary.payment_count }} versement(s)</div>
             </div>
-            <div class="col-6 col-md-3 p-3 text-center" style="border-right:1px solid #f3f4f6;">
+            <div class="col-6 col-md-3 p-3 text-center" style="border-right:1px solid var(--app-border-soft);">
               <div class="small fw-semibold text-muted mb-1">Solde restant</div>
               <div class="fw-bold" style="font-size:.95rem;"
-                   [style.color]="supplierHistory.summary.balance_gnf > 0 ? '#DC2626' : '#059669'">
+                   [style.color]="supplierHistory.summary.balance_gnf > 0 ? 'var(--app-red-fg)' : '#059669'">
                 {{ supplierHistory.summary.balance_gnf | number:'1.0-0' }} GNF
               </div>
-              <div *ngIf="supplierHistory.summary.excess_gnf > 0" class="small" style="color:#7C3AED;">
+              <div *ngIf="supplierHistory.summary.excess_gnf > 0" class="small" style="color:var(--app-violet-fg);">
                 Excédent : {{ supplierHistory.summary.excess_gnf | number:'1.0-0' }} GNF
               </div>
             </div>
             <div class="col-6 col-md-3 p-3 text-center">
               <div class="small fw-semibold text-muted mb-1">Statuts arrivages</div>
               <div class="d-flex justify-content-center gap-2 mt-1 flex-wrap">
-                <span class="badge" style="background:#ECFDF5;color:#059669;font-size:11px;">
+                <span class="badge" style="background:var(--app-green-bg);color:#059669;font-size:11px;">
                   ✓ {{ supplierHistory.summary.nb_solde }} soldé(s)
                 </span>
                 <span *ngIf="supplierHistory.summary.nb_partiel > 0" class="badge"
-                      style="background:#FFFBEB;color:#D97706;font-size:11px;">
+                      style="background:var(--app-amber-bg);color:#D97706;font-size:11px;">
                   ⬤ {{ supplierHistory.summary.nb_partiel }} partiel(s)
                 </span>
                 <span *ngIf="supplierHistory.summary.nb_impaye > 0" class="badge"
-                      style="background:#FEF2F2;color:#DC2626;font-size:11px;">
+                      style="background:var(--app-red-bg);color:var(--app-red-fg);font-size:11px;">
                   ✗ {{ supplierHistory.summary.nb_impaye }} impayé(s)
                 </span>
               </div>
@@ -547,12 +547,12 @@
           </div>
 
           <div *ngIf="supplierCurrencyBalances().length" class="px-4 py-2"
-               style="background:#F8FAFC;border-bottom:1px solid #f3f4f6;">
+               style="background:var(--app-surface-2);border-bottom:1px solid var(--app-border-soft);">
             <div class="small fw-semibold text-muted mb-1">Soldes par devise</div>
             <div class="d-flex flex-wrap gap-2">
               <span *ngFor="let b of supplierCurrencyBalances()" class="badge"
-                    [style.background]="b.balance > 0 ? '#FEE2E2' : '#DCFCE7'"
-                    [style.color]="b.balance > 0 ? '#991B1B' : '#166534'">
+                    [style.background]="b.balance > 0 ? 'var(--app-red-bg-2)' : 'var(--app-green-bg-2)'"
+                    [style.color]="b.balance > 0 ? 'var(--app-red-fg-strong)' : 'var(--app-green-fg-strong)'">
                 {{ b.balance | number:'1.0-2' }} {{ b.currency }}
                 <span *ngIf="b.currency !== 'GNF'"> · ≈ {{ b.balanceGnf | number:'1.0-0' }} GNF</span>
               </span>
@@ -560,13 +560,13 @@
           </div>
 
           <!-- ── Bouton nouveau versement ── -->
-          <div class="px-4 py-3 d-flex align-items-center gap-3" style="border-bottom:1px solid #f3f4f6;">
+          <div class="px-4 py-3 d-flex align-items-center gap-3" style="border-bottom:1px solid var(--app-border-soft);">
             <button cButton color="success" size="sm" (click)="openPaymentModal(currentSupplierForPayment)"
                     style="border-radius:8px;">
               <svg cIcon name="cilPlus" class="me-1" size="sm"></svg> Nouveau versement
             </button>
             <span *ngIf="supplierHistory.summary.balance_gnf > 0" class="small text-muted">
-              Il reste <strong style="color:#DC2626;">{{ supplierHistory.summary.balance_gnf | number:'1.0-0' }} GNF</strong>
+              Il reste <strong style="color:var(--app-red-fg);">{{ supplierHistory.summary.balance_gnf | number:'1.0-0' }} GNF</strong>
               à régler
             </span>
           </div>
@@ -575,16 +575,16 @@
           <div class="px-4 pt-3">
             <div class="d-flex gap-2 mb-3">
               <button class="btn btn-sm fw-semibold"
-                      [style.background]="historyTab==='arrivals' ? '#533483':'#f3f4f6'"
-                      [style.color]="historyTab==='arrivals' ? '#fff':'#374151'"
+                      [style.background]="historyTab==='arrivals' ? '#533483':'var(--app-surface-3)'"
+                      [style.color]="historyTab==='arrivals' ? '#fff':'var(--app-text)'"
                       style="border-radius:20px;border:none;"
                       (click)="historyTab='arrivals'">
                 <svg cIcon name="cilTruck" size="sm" class="me-1"></svg>
                 Arrivages ({{ supplierHistory.arrivals?.length ?? 0 }})
               </button>
               <button class="btn btn-sm fw-semibold"
-                      [style.background]="historyTab==='payments' ? '#533483':'#f3f4f6'"
-                      [style.color]="historyTab==='payments' ? '#fff':'#374151'"
+                      [style.background]="historyTab==='payments' ? '#533483':'var(--app-surface-3)'"
+                      [style.color]="historyTab==='payments' ? '#fff':'var(--app-text)'"
                       style="border-radius:20px;border:none;"
                       (click)="historyTab='payments'">
                 <svg cIcon name="cilMoney" size="sm" class="me-1"></svg>
@@ -603,15 +603,15 @@
 
             <div *ngFor="let a of supplierHistory.arrivals; trackBy:trackById" class="mb-3">
               <div class="p-3 rounded-3"
-                   [style.border]="'2px solid ' + (a.payment_status==='SOLDE' ? '#A7F3D0' :
-                                                    a.payment_status==='PARTIEL' ? '#FDE68A' : '#FECACA')"
-                   [style.background]="a.payment_status==='SOLDE' ? '#F0FDF4' :
-                                        a.payment_status==='PARTIEL' ? '#FFFBEB' : '#FFF5F5'">
+                   [style.border]="'2px solid ' + (a.payment_status==='SOLDE' ? 'var(--app-green-border)' :
+                                                    a.payment_status==='PARTIEL' ? 'var(--app-amber-border)' : 'var(--app-red-border)')"
+                   [style.background]="a.payment_status==='SOLDE' ? 'var(--app-green-bg)' :
+                                        a.payment_status==='PARTIEL' ? 'var(--app-amber-bg)' : 'var(--app-red-bg)'">
 
                 <!-- Ligne titre + statut -->
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
                   <div>
-                    <div class="fw-bold" style="color:#111827;">
+                    <div class="fw-bold" style="color:var(--app-heading);">
                       {{ a.product_type }}
                       <span *ngIf="a.container_number" class="text-muted small fw-normal ms-1">
                         — Cont. {{ a.container_number }}
@@ -638,12 +638,12 @@
                 <div class="mb-2">
                   <div class="d-flex justify-content-between small text-muted mb-1">
                     <span>Règlement : {{ a.payment_pct }}%</span>
-                    <span *ngIf="a.payment_status !== 'SOLDE'" style="color:#DC2626;">
+                    <span *ngIf="a.payment_status !== 'SOLDE'" style="color:var(--app-red-fg);">
                       Reste : {{ a.remaining_gnf | number:'1.0-0' }} GNF
                     </span>
                     <span *ngIf="a.payment_status === 'SOLDE'" style="color:#059669;">Soldé ✓</span>
                   </div>
-                  <div class="rounded-pill" style="height:8px;background:#e5e7eb;overflow:hidden;">
+                  <div class="rounded-pill" style="height:8px;background:var(--app-surface-4);overflow:hidden;">
                     <div class="rounded-pill h-100" style="transition:width .4s;"
                          [style.width]="a.payment_pct + '%'"
                          [style.background]="a.payment_status==='SOLDE'   ? '#059669' :
@@ -656,7 +656,7 @@
                 <div class="row g-2 mt-1">
                   <div class="col-4 text-center">
                     <div class="small text-muted">Coût d'achat</div>
-                    <div class="fw-bold small" style="color:#1e40af;">
+                    <div class="fw-bold small" style="color:var(--app-blue-fg-strong);">
                       {{ a.purchase_price | number:'1.0-0' }} {{ a.currency }}
                     </div>
                     <div *ngIf="a.currency !== 'GNF' && a.purchase_price_gnf" class="small text-muted">
@@ -675,7 +675,7 @@
                   <div class="col-4 text-center">
                     <div class="small text-muted">Reste dû</div>
                     <div class="fw-bold small"
-                         [style.color]="a.remaining_gnf > 0 ? '#DC2626' : '#059669'">
+                         [style.color]="a.remaining_gnf > 0 ? 'var(--app-red-fg)' : '#059669'">
                       {{ a.remaining_gnf | number:'1.0-0' }} GNF
                     </div>
                   </div>
@@ -684,7 +684,7 @@
                 <!-- Avertissement devise sans taux -->
                 <div *ngIf="a.currency !== 'GNF' && !a.purchase_price_gnf"
                      class="mt-2 small p-2 rounded-2"
-                     style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;">
+                     style="background:var(--app-amber-bg);color:var(--app-amber-fg-strong);border:1px solid var(--app-amber-border);">
                   <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
                   Taux de change non défini pour cet arrivage. Modifiez l'arrivage pour renseigner le taux
                   (1 {{ a.currency }} = ? GNF) afin que le solde soit calculé correctement.
@@ -708,18 +708,18 @@
                 <!-- Icône timeline -->
                 <div class="flex-shrink-0 d-flex flex-column align-items-center">
                   <div class="rounded-circle d-flex align-items-center justify-content-center"
-                       style="width:38px;height:38px;background:#ECFDF5;border:2px solid #A7F3D0;">
+                       style="width:38px;height:38px;background:var(--app-green-bg);border:2px solid var(--app-green-border);">
                     <svg cIcon name="cilMoney" size="sm" style="color:#059669;"></svg>
                   </div>
-                  <div style="width:2px;flex:1;background:#e5e7eb;min-height:16px;" class="mt-1"></div>
+                  <div style="width:2px;flex:1;background:var(--app-surface-4);min-height:16px;" class="mt-1"></div>
                 </div>
 
                 <!-- Contenu du versement -->
                 <div class="flex-grow-1 p-3 rounded-3 mb-1"
-                     style="background:#f8fafc;border:1px solid #e5e7eb;">
+                     style="background:var(--app-surface-2);border:1px solid var(--app-border);">
                   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                     <div>
-                      <div class="fw-semibold small" style="color:#111827;">
+                      <div class="fw-semibold small" style="color:var(--app-heading);">
                         Versement du {{ formatDate(p.date) }}
                       </div>
                       <div class="small text-muted mt-1">
@@ -730,7 +730,7 @@
                       <div *ngIf="p.description" class="small text-muted">{{ p.description }}</div>
                       <div *ngIf="p.exchange_rate && p.currency !== 'GNF'"
                            class="mt-1 small"
-                           style="background:#FFFBEB;color:#92400E;padding:2px 6px;border-radius:4px;display:inline-block;">
+                           style="background:var(--app-amber-bg);color:var(--app-amber-fg-strong);padding:2px 6px;border-radius:4px;display:inline-block;">
                         Taux : 1 {{ p.currency }} = {{ p.exchange_rate | number:'1.0-2' }} GNF
                       </div>
                     </div>
@@ -739,7 +739,7 @@
                       <div class="fw-bold" style="color:#059669;font-size:1rem;">
                         {{ p.amount | number:'1.0-0' }} {{ p.currency }}
                       </div>
-                      <div *ngIf="p.target_currency && p.target_currency !== p.currency" class="small" style="color:#1D4ED8;">
+                      <div *ngIf="p.target_currency && p.target_currency !== p.currency" class="small" style="color:var(--app-blue-fg-strong);">
                         → {{ p.converted_amount | number:'1.0-2' }} {{ p.target_currency }}
                       </div>
                       <div *ngIf="p.currency !== 'GNF' && p.amount_gnf" class="small text-muted">
@@ -749,14 +749,14 @@
                       <div class="small mt-1">
                         Solde après :
                         <span class="fw-semibold"
-                              [style.color]="p.running_debt_gnf > 0 ? '#DC2626' : '#059669'">
+                              [style.color]="p.running_debt_gnf > 0 ? 'var(--app-red-fg)' : '#059669'">
                           {{ p.running_debt_gnf | number:'1.0-0' }} GNF
                         </span>
                       </div>
                       <!-- Bouton supprimer -->
                       <button class="btn btn-sm p-1 mt-1" title="Supprimer ce versement"
                               (click)="deletePayment(p)"
-                              style="border-radius:4px;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;font-size:11px;">
+                              style="border-radius:4px;background:var(--app-red-bg);color:#EF4444;border:1px solid var(--app-red-border);font-size:11px;">
                         <svg cIcon name="cilTrash" style="width:11px;height:11px;"></svg>
                       </button>
                     </div>
@@ -771,7 +771,7 @@
         </ng-container>
       </div>
 
-      <div class="modal-footer border-0" style="border-top:1px solid #f3f4f6;flex-shrink:0;">
+      <div class="modal-footer border-0" style="border-top:1px solid var(--app-border-soft);flex-shrink:0;">
         <button cButton color="secondary" variant="outline" (click)="showHistoryModal=false">Fermer</button>
         <button *ngIf="supplierHistory && supplierHistory.summary?.balance_gnf > 0"
                 cButton color="success" (click)="openPaymentModal(currentSupplierForPayment)"

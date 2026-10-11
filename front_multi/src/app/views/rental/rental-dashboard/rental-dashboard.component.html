@@ -104,7 +104,7 @@
               Attendu : <strong>{{ fmt(revenue.expected_monthly) }}</strong>
             </p>
             <div class="rd-track" style="background:rgba(255,255,255,.25)">
-              <div class="rd-track__fill" style="background:#fff" [style.width.%]="revenue.collection_rate"></div>
+              <div class="rd-track__fill" style="background:var(--app-surface)" [style.width.%]="revenue.collection_rate"></div>
             </div>
             <p class="mb-0 mt-2 small opacity-90">{{ revenue.collection_rate }}% collecté</p>
           </div>

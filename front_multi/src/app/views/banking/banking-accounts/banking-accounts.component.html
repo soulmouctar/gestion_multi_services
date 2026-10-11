@@ -14,10 +14,10 @@
 
   <!-- Sélecteur de tenant (Super Admin uniquement) -->
   <div *ngIf="isSuperAdmin" class="mb-4 p-3 rounded-3 d-flex align-items-center gap-3"
-       style="background:#FFF8E1;border:1px solid #FFD54F;">
+       style="background:var(--app-amber-bg-2);border:1px solid #FFD54F;">
     <svg cIcon name="cilBuilding" style="width:20px;height:20px;color:#F59E0B;flex-shrink:0;"></svg>
     <div class="flex-fill">
-      <label class="form-label small fw-bold mb-1" style="color:#92400E;">Organisation à gérer</label>
+      <label class="form-label small fw-bold mb-1" style="color:var(--app-amber-fg-strong);">Organisation à gérer</label>
       <select class="form-select form-select-sm" style="border-radius:8px;max-width:350px;"
               [(ngModel)]="selectedTenantId" (change)="onTenantChange()">
         <option [ngValue]="null" disabled>-- Sélectionner une organisation --</option>
@@ -37,7 +37,7 @@
 
   <!-- Vide -->
   <div *ngIf="!loading && accounts.length === 0"
-       class="bg-white text-center py-5" style="border-radius:12px; border:1px solid #f0f0f0;">
+       class="bg-white text-center py-5" style="border-radius:12px; border:1px solid var(--app-border-soft);">
     <svg cIcon name="cilBank" size="3xl" class="mb-3 opacity-25"></svg>
     <h5 class="text-muted">Aucun compte bancaire</h5>
     <p class="text-muted small">Commencez par ajouter votre premier compte</p>
@@ -50,7 +50,7 @@
   <div *ngIf="!loading && accounts.length > 0" class="row g-4">
     <div *ngFor="let account of accounts; trackBy: trackById" class="col-12 col-md-6 col-xl-4">
       <div class="bg-white h-100 d-flex flex-column"
-           style="border-radius:12px; border:1px solid #f0f0f0; transition:box-shadow .2s;"
+           style="border-radius:12px; border:1px solid var(--app-border-soft); transition:box-shadow .2s;"
            onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.10)'"
            onmouseout="this.style.boxShadow='none'">
 
@@ -90,7 +90,7 @@
           </div>
 
           <!-- Solde -->
-          <div class="rounded-3 p-3 mb-3" style="background:#f8fafc; border:1px solid #f0f0f0;">
+          <div class="rounded-3 p-3 mb-3" style="background:var(--app-surface-2); border:1px solid var(--app-border-soft);">
             <div class="text-muted small mb-1">Solde actuel</div>
             <div class="fw-bold fs-5"
                  [style.color]="account.current_balance >= 0 ? '#10B981' : '#EF4444'">
@@ -115,8 +115,8 @@
             </div>
             <div>
               <span class="badge px-2 py-1 small"
-                    [style.background]="account.is_active ? '#ECFDF5' : '#f0f0f0'"
-                    [style.color]="account.is_active ? '#10B981' : '#6c757d'">
+                    [style.background]="account.is_active ? 'var(--app-green-bg)' : 'var(--app-surface-3)'"
+                    [style.color]="account.is_active ? '#10B981' : 'var(--app-text-muted)'">
                 {{ account.is_active ? 'Actif' : 'Inactif' }}
               </span>
             </div>
@@ -162,10 +162,10 @@
       <div class="row g-3">
         <div class="col-12">
           <div class="d-flex flex-column align-items-center gap-2 rounded-3 p-3"
-               style="background:#f8fafc;border:1px solid #e5e7eb;">
+               style="background:var(--app-surface-2);border:1px solid var(--app-border);">
             <ng-container *ngIf="logoPreview; else logoFallback">
               <img [src]="logoPreview" alt="Logo banque"
-                   style="width:84px;height:84px;border-radius:18px;object-fit:cover;border:3px solid #e5e7eb;" />
+                   style="width:84px;height:84px;border-radius:18px;object-fit:cover;border:3px solid var(--app-border);" />
             </ng-container>
             <ng-template #logoFallback>
               <div class="d-flex align-items-center justify-content-center text-white fw-bold"

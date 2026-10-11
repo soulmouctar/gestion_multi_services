@@ -1,0 +1,87 @@
+// ---------------------------------------------------------------------------
+// Mode sombre : ce que les jetons (--app-*) et CoreUI ne couvrent pas seuls.
+// ---------------------------------------------------------------------------
+
+[data-coreui-theme="dark"] {
+  // Utilitaires Bootstrap qui restent clairs par construction
+  .bg-white { background-color: var(--app-surface) !important; }
+  .bg-light { background-color: var(--app-surface-3) !important; }
+  // (sauf pose sur un aplat vif, ou le texte fonce reste le bon choix : .bg-warning.text-dark)
+  .text-dark,
+  .text-black {
+    &:not(.bg-warning, .bg-info, .bg-success, [class*="btn-"]) { color: var(--app-heading) !important; }
+  }
+  .text-bg-light {
+    color: var(--app-text-strong) !important;
+    background-color: var(--app-surface-3) !important;
+  }
+
+  // Bouton clair : devient un bouton neutre sur surface sombre
+  .btn-light {
+    --cui-btn-color: var(--app-text-strong);
+    --cui-btn-bg: var(--app-surface-3);
+    --cui-btn-border-color: var(--app-border);
+    --cui-btn-hover-color: var(--app-heading);
+    --cui-btn-hover-bg: var(--app-surface-4);
+    --cui-btn-hover-border-color: var(--app-border-strong);
+    --cui-btn-active-color: var(--app-heading);
+    --cui-btn-active-bg: var(--app-surface-4);
+    --cui-btn-active-border-color: var(--app-border-strong);
+    --cui-btn-disabled-color: var(--app-text-muted);
+    --cui-btn-disabled-bg: var(--app-surface-3);
+    --cui-btn-disabled-border-color: var(--app-border);
+  }
+
+  .table-light {
+    --cui-table-color: var(--app-text-strong);
+    --cui-table-bg: var(--app-surface-2);
+    --cui-table-border-color: var(--app-border);
+    --cui-table-striped-bg: var(--app-surface-3);
+    --cui-table-hover-bg: var(--app-surface-3);
+  }
+}
+
+// SweetAlert2 : memes surfaces que les cartes de l'application.
+// (html[...] pour passer devant le :root que la librairie injecte apres coup)
+html[data-coreui-theme="dark"] {
+  --swal2-background: var(--app-surface-2);
+  --swal2-color: var(--app-text-strong);
+  --swal2-footer-border-color: var(--app-border);
+  --swal2-input-background: var(--app-surface-3);
+  --swal2-validation-message-background: var(--app-surface-3);
+  --swal2-validation-message-color: var(--app-text-strong);
+  --swal2-timer-progress-bar-background: rgba(255, 255, 255, .7);
+  --swal2-backdrop: rgba(0, 0, 0, .6);
+
+  .swal2-popup {
+    border: 1px solid var(--app-border);
+  }
+}
+
+// Bascule clair/sombre sans a-coup : la classe n'est posee que le temps du
+// changement (ThemeService), pour ne pas ralentir les survols au quotidien.
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-switching,
+  html.theme-switching *,
+  html.theme-switching *::before,
+  html.theme-switching *::after {
+    transition: none !important;
+  }
+}
+
+// Variantes "subtle" / "emphasis" de CoreUI (alertes, badges, .bg-*-subtle) :
+// elles gardent leurs pastels clairs en sombre ; on les recalcule sur la surface.
+[data-coreui-theme="dark"] {
+  @each $color in (primary, secondary, success, danger, warning, info) {
+    --cui-#{$color}-bg-subtle: color-mix(in srgb, var(--cui-#{$color}) 18%, var(--app-surface));
+    --cui-#{$color}-border-subtle: color-mix(in srgb, var(--cui-#{$color}) 42%, var(--app-surface));
+    --cui-#{$color}-text-emphasis: color-mix(in srgb, var(--cui-#{$color}) 55%, #fff);
+  }
+}

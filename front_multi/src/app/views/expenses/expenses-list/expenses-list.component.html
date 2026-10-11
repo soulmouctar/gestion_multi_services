@@ -17,7 +17,7 @@
     </div>
   </div>
 
-  <div *ngIf="isSuperAdmin" class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+  <div *ngIf="isSuperAdmin" class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid var(--app-border-soft);">
     <div class="row g-2 align-items-end">
       <div class="col-12 col-md-5 col-lg-4">
         <label cLabel class="small fw-semibold text-muted mb-1">Organisation à gérer</label>
@@ -32,25 +32,25 @@
   <!-- Statistiques du mois -->
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid #f0f0f0; transition: box-shadow .2s;">
+      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid var(--app-border-soft); transition: box-shadow .2s;">
         <div class="fs-3 fw-bold" style="color:#3B82F6;">{{ monthStats.total_count || 0 }}</div>
         <div class="small text-muted mt-1">Dépenses ce mois</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid var(--app-border-soft);">
         <div class="fs-6 fw-bold" style="color:#EF4444;">{{ fmt(monthStats.total_amount) }}</div>
         <div class="small text-muted mt-1">Total ce mois</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid var(--app-border-soft);">
         <div class="fs-6 fw-bold" style="color:#10B981;">{{ fmt(monthStats.paid_amount) }}</div>
         <div class="small text-muted mt-1">Payées</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+      <div class="bg-white text-center p-3" style="border-radius:12px; border:1px solid var(--app-border-soft);">
         <div class="fs-6 fw-bold" style="color:#F59E0B;">{{ fmt(monthStats.pending_amount) }}</div>
         <div class="small text-muted mt-1">En attente</div>
       </div>
@@ -58,7 +58,7 @@
   </div>
 
   <!-- Filtres -->
-  <div class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid #f0f0f0;">
+  <div class="bg-white rounded-3 p-3 mb-4" style="border-radius:12px; border:1px solid var(--app-border-soft);">
     <form [formGroup]="filterForm" class="row g-2 align-items-end">
       <div class="col-6 col-md-2">
         <label cLabel class="small fw-semibold text-muted mb-1">Catégorie</label>
@@ -100,7 +100,7 @@
   </div>
 
   <!-- Tableau -->
-  <div class="bg-white rounded-3" style="border-radius:12px; border:1px solid #f0f0f0;">
+  <div class="bg-white rounded-3" style="border-radius:12px; border:1px solid var(--app-border-soft);">
 
     <div class="d-flex align-items-center justify-content-between px-3 py-3 border-bottom">
       <span class="fw-semibold">
@@ -117,7 +117,7 @@
 
     <div *ngIf="!loading" class="table-responsive">
       <table class="table table-hover align-middle mb-0">
-        <thead style="background:#f8fafc;">
+        <thead style="background:var(--app-surface-2);">
           <tr>
             <th class="px-3 py-3 small fw-semibold text-muted">Date</th>
             <th class="px-3 py-3 small fw-semibold text-muted">Titre</th>
@@ -138,7 +138,7 @@
               </div>
               <span *ngIf="exp.is_recurring"
                     class="badge px-2 py-1 small"
-                    style="background:#EFF6FF; color:#3B82F6;">Récurrent</span>
+                    style="background:var(--app-blue-bg); color:#3B82F6;">Récurrent</span>
             </td>
             <td class="px-3">
               <span *ngIf="exp.category" class="d-flex align-items-center gap-1">
@@ -153,8 +153,8 @@
             <td class="px-3 small text-muted">{{ getMethodLabel(exp.payment_method) }}</td>
             <td class="px-3 text-center">
               <span class="badge px-2 py-1 small fw-semibold"
-                    [style.background]="exp.status === 'PAID' ? '#ECFDF5' : exp.status === 'PENDING' ? '#FFFBEB' : '#f0f0f0'"
-                    [style.color]="exp.status === 'PAID' ? '#10B981' : exp.status === 'PENDING' ? '#F59E0B' : '#6c757d'">
+                    [style.background]="exp.status === 'PAID' ? 'var(--app-green-bg)' : exp.status === 'PENDING' ? 'var(--app-amber-bg)' : 'var(--app-surface-3)'"
+                    [style.color]="exp.status === 'PAID' ? '#10B981' : exp.status === 'PENDING' ? '#F59E0B' : 'var(--app-text-muted)'">
                 {{ getStatusLabel(exp.status) }}
               </span>
             </td>
@@ -184,7 +184,7 @@
     <!-- Pagination -->
     <div *ngIf="!loading && totalPages > 1"
          class="d-flex justify-content-center gap-1 py-3 border-top"
-         style="background:#fafafa; border-radius:0 0 12px 12px;">
+         style="background:var(--app-surface-2); border-radius:0 0 12px 12px;">
       <button cButton color="secondary" variant="outline" size="sm" [disabled]="currentPage === 1"
               (click)="onPageChange(currentPage - 1)" style="border-radius:6px;">‹</button>
       <button *ngFor="let p of getPages(); trackBy: trackById" cButton size="sm"

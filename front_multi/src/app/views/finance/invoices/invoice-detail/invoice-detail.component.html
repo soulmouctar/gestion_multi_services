@@ -112,7 +112,7 @@
           <c-card-body class="p-0">
             <div class="table-responsive">
               <table class="table table-hover mb-0 align-middle">
-                <thead style="background:#F9FAFB;">
+                <thead style="background:var(--app-surface-2);">
                   <tr>
                     <th class="px-3 py-3 small text-uppercase text-body-secondary">#</th>
                     <th class="px-3 py-3 small text-uppercase text-body-secondary">Description</th>
@@ -130,8 +130,8 @@
                     </td>
                     <td class="px-3 py-3">
                       <span class="badge rounded-pill"
-                            [style.background]="item.sale_type === 'CARTON' ? '#DBEAFE' : item.sale_type === 'DEMI_CARTON' ? '#EDE9FE' : item.sale_type === 'DOUZAINE' ? '#D1FAE5' : '#F3F4F6'"
-                            [style.color]="item.sale_type === 'CARTON' ? '#1D4ED8' : item.sale_type === 'DEMI_CARTON' ? '#7C3AED' : item.sale_type === 'DOUZAINE' ? '#065F46' : '#374151'"
+                            [style.background]="item.sale_type === 'CARTON' ? 'var(--app-blue-bg-2)' : item.sale_type === 'DEMI_CARTON' ? 'var(--app-violet-bg)' : item.sale_type === 'DOUZAINE' ? 'var(--app-green-bg-2)' : 'var(--app-surface-3)'"
+                            [style.color]="item.sale_type === 'CARTON' ? 'var(--app-blue-fg-strong)' : item.sale_type === 'DEMI_CARTON' ? 'var(--app-violet-fg)' : item.sale_type === 'DOUZAINE' ? 'var(--app-green-fg-strong)' : 'var(--app-text)'"
                             style="font-size:.72rem;">
                         {{ item.sale_type === 'CARTON' ? 'Carton' : item.sale_type === 'DEMI_CARTON' ? '½ Carton' : item.sale_type === 'DOUZAINE' ? 'Douzaine' : 'Unité' }}
                       </span>

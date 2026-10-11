@@ -1,9 +1,9 @@
-<div class="client-account-page" style="background:#f5f7fb;min-height:100vh;padding:24px 20px">
+<div class="client-account-page" style="background:var(--app-surface-2);min-height:100vh;padding:24px 20px">
 
   <!-- ===== LOADING (initial) ===== -->
   <div *ngIf="loading && !client" class="d-flex flex-column align-items-center justify-content-center" style="min-height:60vh">
     <c-spinner color="primary" style="width:2.5rem;height:2.5rem"></c-spinner>
-    <p class="mt-3 mb-0" style="color:#64748b;font-size:0.9rem">Chargement de la situation client…</p>
+    <p class="mt-3 mb-0" style="color:var(--app-text-muted);font-size:0.9rem">Chargement de la situation client…</p>
   </div>
 
   <!-- ===== ERROR ===== -->
@@ -75,12 +75,12 @@
 
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-icon" style="background:#EEF2FF;color:#6366F1">
+          <div class="kpi-icon" style="background:var(--app-indigo-bg);color:#6366F1">
             <svg cIcon name="cilCart"></svg>
           </div>
           <div class="kpi-body">
             <div class="kpi-label">Total Achats</div>
-            <div class="kpi-value" style="color:#0f172a">{{ formatAmount(clientStats.total_sales, 'GNF') }}</div>
+            <div class="kpi-value" style="color:var(--app-heading)">{{ formatAmount(clientStats.total_sales, 'GNF') }}</div>
             <div class="kpi-sub">{{ sales.length }} vente(s) au total</div>
           </div>
         </div>
@@ -88,7 +88,7 @@
 
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-icon" style="background:#ECFDF5;color:#10B981">
+          <div class="kpi-icon" style="background:var(--app-green-bg);color:#10B981">
             <svg cIcon name="cilCash"></svg>
           </div>
           <div class="kpi-body">
@@ -101,7 +101,7 @@
 
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-icon" style="background:#FEE2E2;color:#EF4444">
+          <div class="kpi-icon" style="background:var(--app-red-bg-2);color:#EF4444">
             <svg cIcon name="cilWarning"></svg>
           </div>
           <div class="kpi-body">
@@ -114,7 +114,7 @@
 
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-icon" style="background:#FFFBEB;color:#F59E0B">
+          <div class="kpi-icon" style="background:var(--app-amber-bg);color:#F59E0B">
             <svg cIcon name="cilWallet"></svg>
           </div>
           <div class="kpi-body">
@@ -151,15 +151,15 @@
     <section class="section-card mb-4">
       <header class="section-header">
         <div class="section-title">
-          <span class="section-badge" style="background:#EEF2FF;color:#6366F1">
+          <span class="section-badge" style="background:var(--app-indigo-bg);color:#6366F1">
             <svg cIcon name="cilCart"></svg>
           </span>
           <div>
-            <h6 class="mb-0 fw-semibold" style="color:#0f172a">Historique des Achats</h6>
+            <h6 class="mb-0 fw-semibold" style="color:var(--app-heading)">Historique des Achats</h6>
             <small style="color:#94a3b8">Toutes les ventes conteneur pour ce client</small>
           </div>
         </div>
-        <span class="count-chip" style="background:#EEF2FF;color:#6366F1">{{ sales.length }}</span>
+        <span class="count-chip" style="background:var(--app-indigo-bg);color:#6366F1">{{ sales.length }}</span>
       </header>
 
       <div class="table-responsive">
@@ -183,10 +183,10 @@
               <td class="cell-muted">{{ sale.sale_date | date:'dd/MM/yyyy' }}</td>
               <td><code class="ref-code">#{{ sale.container_arrival_id }}</code></td>
               <td>
-                <span class="tag" style="background:#EEF2FF;color:#6366F1">{{ sale.sale_type }}</span>
+                <span class="tag" style="background:var(--app-indigo-bg);color:#6366F1">{{ sale.sale_type }}</span>
               </td>
-              <td class="text-center fw-semibold" style="color:#0f172a">{{ sale.quantity_sold }}</td>
-              <td class="text-end fw-semibold" style="color:#0f172a">
+              <td class="text-center fw-semibold" style="color:var(--app-heading)">{{ sale.quantity_sold }}</td>
+              <td class="text-end fw-semibold" style="color:var(--app-heading)">
                 {{ formatAmountWithConversion(sale.sale_price, sale.currency || 'GNF') }}
               </td>
               <td class="text-end fw-semibold" style="color:#10B981">
@@ -201,8 +201,8 @@
               </td>
               <td class="text-center">
                 <span class="status-pill"
-                  [style.background]="getStatusColor(sale.status) === 'success' ? '#ECFDF5' : getStatusColor(sale.status) === 'warning' ? '#FFFBEB' : getStatusColor(sale.status) === 'danger' ? '#FEE2E2' : getStatusColor(sale.status) === 'info' ? '#EFF6FF' : '#F1F5F9'"
-                  [style.color]="getStatusColor(sale.status) === 'success' ? '#10B981' : getStatusColor(sale.status) === 'warning' ? '#F59E0B' : getStatusColor(sale.status) === 'danger' ? '#EF4444' : getStatusColor(sale.status) === 'info' ? '#3B82F6' : '#64748b'">
+                  [style.background]="getStatusColor(sale.status) === 'success' ? 'var(--app-green-bg)' : getStatusColor(sale.status) === 'warning' ? 'var(--app-amber-bg)' : getStatusColor(sale.status) === 'danger' ? 'var(--app-red-bg-2)' : getStatusColor(sale.status) === 'info' ? 'var(--app-blue-bg)' : 'var(--app-surface-3)'"
+                  [style.color]="getStatusColor(sale.status) === 'success' ? '#10B981' : getStatusColor(sale.status) === 'warning' ? '#F59E0B' : getStatusColor(sale.status) === 'danger' ? '#EF4444' : getStatusColor(sale.status) === 'info' ? '#3B82F6' : 'var(--app-text-muted)'">
                   {{ getStatusLabel(sale.status) }}
                 </span>
               </td>
@@ -235,15 +235,15 @@
         <section class="section-card">
           <header class="section-header">
             <div class="section-title">
-              <span class="section-badge" style="background:#ECFDF5;color:#10B981">
+              <span class="section-badge" style="background:var(--app-green-bg);color:#10B981">
                 <svg cIcon name="cilDollar"></svg>
               </span>
               <div>
-                <h6 class="mb-0 fw-semibold" style="color:#0f172a">Versements</h6>
+                <h6 class="mb-0 fw-semibold" style="color:var(--app-heading)">Versements</h6>
                 <small style="color:#94a3b8">Paiements reçus du client</small>
               </div>
             </div>
-            <span class="count-chip" style="background:#ECFDF5;color:#10B981">{{ payments.length }}</span>
+            <span class="count-chip" style="background:var(--app-green-bg);color:#10B981">{{ payments.length }}</span>
           </header>
 
           <div class="table-responsive">
@@ -268,7 +268,7 @@
                     </div>
                   </td>
                   <td>
-                    <span class="tag" style="background:#EFF6FF;color:#3B82F6">{{ payment.payment_method }}</span>
+                    <span class="tag" style="background:var(--app-blue-bg);color:#3B82F6">{{ payment.payment_method }}</span>
                   </td>
                   <td class="cell-muted">{{ payment.reference || '—' }}</td>
                 </tr>
@@ -289,15 +289,15 @@
         <section class="section-card">
           <header class="section-header">
             <div class="section-title">
-              <span class="section-badge" style="background:#FFFBEB;color:#F59E0B">
+              <span class="section-badge" style="background:var(--app-amber-bg);color:#F59E0B">
                 <svg cIcon name="cilWallet"></svg>
               </span>
               <div>
-                <h6 class="mb-0 fw-semibold" style="color:#0f172a">Avances client</h6>
+                <h6 class="mb-0 fw-semibold" style="color:var(--app-heading)">Avances client</h6>
                 <small style="color:#94a3b8">Crédits versés d'avance</small>
               </div>
             </div>
-            <span class="count-chip" style="background:#FFFBEB;color:#F59E0B">{{ advances.length }}</span>
+            <span class="count-chip" style="background:var(--app-amber-bg);color:#F59E0B">{{ advances.length }}</span>
           </header>
 
           <div class="table-responsive">
@@ -325,8 +325,8 @@
                   </td>
                   <td class="text-center">
                     <span class="status-pill"
-                      [style.background]="getStatusColor(advance.status) === 'success' ? '#ECFDF5' : getStatusColor(advance.status) === 'warning' ? '#FFFBEB' : getStatusColor(advance.status) === 'danger' ? '#FEE2E2' : getStatusColor(advance.status) === 'info' ? '#EFF6FF' : '#F1F5F9'"
-                      [style.color]="getStatusColor(advance.status) === 'success' ? '#10B981' : getStatusColor(advance.status) === 'warning' ? '#F59E0B' : getStatusColor(advance.status) === 'danger' ? '#EF4444' : getStatusColor(advance.status) === 'info' ? '#3B82F6' : '#64748b'">
+                      [style.background]="getStatusColor(advance.status) === 'success' ? 'var(--app-green-bg)' : getStatusColor(advance.status) === 'warning' ? 'var(--app-amber-bg)' : getStatusColor(advance.status) === 'danger' ? 'var(--app-red-bg-2)' : getStatusColor(advance.status) === 'info' ? 'var(--app-blue-bg)' : 'var(--app-surface-3)'"
+                      [style.color]="getStatusColor(advance.status) === 'success' ? '#10B981' : getStatusColor(advance.status) === 'warning' ? '#F59E0B' : getStatusColor(advance.status) === 'danger' ? '#EF4444' : getStatusColor(advance.status) === 'info' ? '#3B82F6' : 'var(--app-text-muted)'">
                       {{ getStatusLabel(advance.status) }}
                     </span>
                   </td>

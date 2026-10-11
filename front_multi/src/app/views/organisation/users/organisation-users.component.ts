@@ -29,15 +29,15 @@ import { AlertService } from '../../../core/services/alert.service';
     }
     .kpi-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
     .kpi-card {
-      flex: 1; min-width: 140px; background: white; border-radius: 12px;
+      flex: 1; min-width: 140px; background: var(--app-surface); border-radius: 12px;
       padding: 18px 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.07);
       border-left: 4px solid;
     }
-    .kpi-card .kpi-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-card .kpi-label { font-size: 0.75rem; color: var(--app-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
     .kpi-card .kpi-value { font-size: 1.8rem; font-weight: 700; line-height: 1; margin: 4px 0; }
-    .main-card { background: white; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); overflow: hidden; }
+    .main-card { background: var(--app-surface); border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); overflow: hidden; }
     .card-header-bar {
-      padding: 16px 24px; border-bottom: 1px solid #f0f0f0;
+      padding: 16px 24px; border-bottom: 1px solid var(--app-border-soft);
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
     .card-header-bar h5 { margin: 0; font-weight: 600; font-size: 1rem; }
@@ -45,12 +45,12 @@ import { AlertService } from '../../../core/services/alert.service';
       position: relative; flex: 1; max-width: 300px;
     }
     .search-box input {
-      width: 100%; padding: 8px 12px 8px 36px; border: 1px solid #dee2e6;
-      border-radius: 8px; font-size: 0.875rem; background: #f8f9fa;
+      width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--app-border);
+      border-radius: 8px; font-size: 0.875rem; background: var(--app-surface-2);
     }
     .search-box .search-icon {
       position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-      color: #6c757d; font-size: 0.85rem;
+      color: var(--app-text-muted); font-size: 0.85rem;
     }
     .btn-create {
       background: linear-gradient(135deg, #1a237e, #3949ab);
@@ -60,71 +60,71 @@ import { AlertService } from '../../../core/services/alert.service';
     }
     .btn-create:hover { opacity: 0.9; }
     table { width: 100%; border-collapse: collapse; }
-    th { background: #f8f9fa; padding: 12px 16px; text-align: left; font-size: 0.75rem; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e9ecef; }
-    td { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-size: 0.875rem; vertical-align: middle; }
-    tr:hover td { background: #fafafa; }
+    th { background: var(--app-surface-2); padding: 12px 16px; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--app-text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--app-border); }
+    td { padding: 14px 16px; border-bottom: 1px solid var(--app-border-soft); font-size: 0.875rem; vertical-align: middle; }
+    tr:hover td { background: var(--app-surface-2); }
     .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; color: white; flex-shrink: 0; }
     .user-info { display: flex; align-items: center; gap: 12px; }
-    .user-name { font-weight: 600; color: #212529; }
-    .user-email { font-size: 0.8rem; color: #6c757d; }
+    .user-name { font-weight: 600; color: var(--app-heading); }
+    .user-email { font-size: 0.8rem; color: var(--app-text-muted); }
     .badge { display: inline-block; padding: 4px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
-    .badge-admin { background: #fff3cd; color: #856404; }
-    .badge-user { background: #cfe2ff; color: #0a58ca; }
-    .badge-active { background: #d1e7dd; color: #0f5132; }
-    .badge-inactive { background: #f8d7da; color: #842029; }
+    .badge-admin { background: var(--app-amber-bg-2); color: var(--app-amber-fg); }
+    .badge-user { background: var(--app-blue-bg-2); color: var(--app-blue-fg-strong); }
+    .badge-active { background: var(--app-green-bg-2); color: var(--app-green-fg-strong); }
+    .badge-inactive { background: var(--app-red-bg-2); color: var(--app-red-fg-strong); }
     .actions { display: flex; gap: 6px; }
-    .btn-icon { background: none; border: 1px solid #dee2e6; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 0.8rem; color: #6c757d; transition: all 0.15s; }
-    .btn-icon:hover { background: #f8f9fa; }
+    .btn-icon { background: none; border: 1px solid var(--app-border); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 0.8rem; color: var(--app-text-muted); transition: all 0.15s; }
+    .btn-icon:hover { background: var(--app-surface-2); }
     .btn-icon.btn-edit:hover { border-color: #0d6efd; color: #0d6efd; }
     .btn-icon.btn-toggle:hover { border-color: #198754; color: #198754; }
     .btn-icon.btn-toggle.active:hover { border-color: #dc3545; color: #dc3545; }
-    .btn-icon.btn-perm:hover { border-color: #6f42c1; color: #6f42c1; }
+    .btn-icon.btn-perm:hover { border-color: #6f42c1; color: var(--app-violet-fg-strong); }
     .btn-icon.btn-role:hover { border-color: #0891b2; color: #0891b2; }
-    .role-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 2px solid #e9ecef; border-radius: 10px; cursor: pointer; margin-bottom: 10px; transition: all 0.15s; }
-    .role-option:hover { border-color: #c7d2fe; background: #f5f7ff; }
-    .role-option.selected { border-color: #3949ab; background: #eef2ff; }
+    .role-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 2px solid var(--app-border); border-radius: 10px; cursor: pointer; margin-bottom: 10px; transition: all 0.15s; }
+    .role-option:hover { border-color: var(--app-indigo-border); background: var(--app-indigo-bg); }
+    .role-option.selected { border-color: #3949ab; background: var(--app-indigo-bg); }
     .role-option input { display: none; }
     .role-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
-    .role-title { font-weight: 700; font-size: 0.9rem; color: #1e293b; }
-    .role-desc { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+    .role-title { font-weight: 700; font-size: 0.9rem; color: var(--app-text-strong); }
+    .role-desc { font-size: 0.78rem; color: var(--app-text-muted); margin-top: 2px; }
     .btn-icon.btn-pwd:hover { border-color: #fd7e14; color: #fd7e14; }
-    .empty-state { text-align: center; padding: 60px 20px; color: #6c757d; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--app-text-muted); }
     .empty-icon { font-size: 3rem; margin-bottom: 12px; }
-    .loading-state { text-align: center; padding: 40px; color: #6c757d; }
+    .loading-state { text-align: center; padding: 40px; color: var(--app-text-muted); }
     /* Modal */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.5);
       display: flex; align-items: center; justify-content: center; z-index: 1050; padding: 20px;
     }
-    .modal-box { background: white; border-radius: 16px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
-    .modal-header { padding: 20px 24px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-box { background: var(--app-surface); border-radius: 16px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--app-border-soft); display: flex; justify-content: space-between; align-items: center; }
     .modal-header h5 { margin: 0; font-weight: 700; font-size: 1.1rem; }
     .modal-body { padding: 24px; }
-    .modal-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px; }
-    .form-label { font-size: 0.8rem; font-weight: 600; color: #495057; margin-bottom: 4px; display: block; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--app-border-soft); display: flex; justify-content: flex-end; gap: 10px; }
+    .form-label { font-size: 0.8rem; font-weight: 600; color: var(--app-text); margin-bottom: 4px; display: block; }
     .form-control {
-      width: 100%; padding: 9px 12px; border: 1px solid #dee2e6;
+      width: 100%; padding: 9px 12px; border: 1px solid var(--app-border);
       border-radius: 8px; font-size: 0.875rem; box-sizing: border-box;
     }
     .form-control:focus { outline: none; border-color: #3949ab; box-shadow: 0 0 0 3px rgba(57,73,171,0.1); }
     .form-group { margin-bottom: 16px; }
     .error-text { font-size: 0.75rem; color: #dc3545; margin-top: 3px; }
-    .btn-cancel { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 9px 20px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-cancel { background: var(--app-surface-2); border: 1px solid var(--app-border); border-radius: 8px; padding: 9px 20px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
     .btn-save { background: linear-gradient(135deg, #1a237e, #3949ab); color: white; border: none; border-radius: 8px; padding: 9px 24px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
     .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
-    .section-title { font-size: 0.8rem; font-weight: 700; color: #495057; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #f0f0f0; }
-    .module-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; }
+    .section-title { font-size: 0.8rem; font-weight: 700; color: var(--app-text); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--app-border-soft); }
+    .module-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--app-surface-2); border-radius: 8px; margin-bottom: 8px; }
     .module-name { flex: 1; font-size: 0.875rem; font-weight: 500; }
     .toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #dee2e6; border-radius: 22px; transition: 0.3s; }
-    .toggle-slider:before { position: absolute; content: ''; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--app-surface-4); border-radius: 22px; transition: 0.3s; }
+    .toggle-slider:before { position: absolute; content: ''; width: 16px; height: 16px; left: 3px; bottom: 3px; background: var(--app-surface); border-radius: 50%; transition: 0.3s; }
     .toggle-switch input:checked + .toggle-slider { background: #3949ab; }
     .toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); }
     .perm-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .perm-pill { padding: 3px 10px; border-radius: 50px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid; }
-    .perm-pill.active { background: #cfe2ff; color: #0a58ca; border-color: #0a58ca; }
-    .perm-pill.inactive { background: white; color: #adb5bd; border-color: #dee2e6; }
+    .perm-pill.active { background: var(--app-blue-bg-2); color: var(--app-blue-fg-strong); border-color: #0a58ca; }
+    .perm-pill.inactive { background: var(--app-surface); color: #adb5bd; border-color: var(--app-border); }
 
     /* ─── Modal Permissions (V2) ─── */
     .modal-box.perm-modal { max-width: 900px; }
@@ -149,8 +149,8 @@ import { AlertService } from '../../../core/services/alert.service';
     .perm-toolbar {
       padding: 14px 20px;
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-      border-bottom: 1px solid #f0f0f0;
-      background: #fafbfc;
+      border-bottom: 1px solid var(--app-border-soft);
+      background: var(--app-surface-2);
     }
     .perm-toolbar .search-wrap {
       position: relative; flex: 1; min-width: 200px;
@@ -158,29 +158,29 @@ import { AlertService } from '../../../core/services/alert.service';
     .perm-toolbar .search-wrap input {
       width: 100%;
       padding: 8px 12px 8px 34px;
-      border: 1px solid #dee2e6;
+      border: 1px solid var(--app-border);
       border-radius: 8px;
       font-size: 0.85rem;
-      background: #fff;
+      background: var(--app-surface);
     }
     .perm-toolbar .search-wrap .icon {
       position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
       color: #94a3b8;
     }
     .perm-toolbar .bulk-btn {
-      background: #fff;
-      border: 1px solid #dee2e6;
+      background: var(--app-surface);
+      border: 1px solid var(--app-border);
       border-radius: 8px;
       padding: 7px 14px;
       font-size: 0.8rem;
       font-weight: 600;
-      color: #475569;
+      color: var(--app-text-2);
       cursor: pointer;
       transition: .15s ease;
     }
-    .perm-toolbar .bulk-btn:hover { border-color: #0f3460; color: #0f3460; }
-    .perm-toolbar .bulk-btn.danger { color: #dc3545; border-color: #fecaca; }
-    .perm-toolbar .bulk-btn.danger:hover { background: #fef2f2; }
+    .perm-toolbar .bulk-btn:hover { border-color: #0f3460; color: var(--app-brand-fg); }
+    .perm-toolbar .bulk-btn.danger { color: #dc3545; border-color: var(--app-red-border); }
+    .perm-toolbar .bulk-btn.danger:hover { background: var(--app-red-bg); }
 
     .perm-grid {
       display: grid;
@@ -194,9 +194,9 @@ import { AlertService } from '../../../core/services/alert.service';
       .perm-grid { grid-template-columns: 1fr 1fr; }
     }
     .mod-card {
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--app-border);
       border-radius: 14px;
-      background: #fff;
+      background: var(--app-surface);
       overflow: hidden;
       transition: border-color .15s ease, box-shadow .15s ease;
     }
@@ -218,25 +218,25 @@ import { AlertService } from '../../../core/services/alert.service';
     }
     .mod-info { flex: 1; min-width: 0; }
     .mod-name {
-      font-weight: 700; color: #0f172a;
+      font-weight: 700; color: var(--app-heading);
       font-size: 0.92rem;
       display: flex; align-items: center; gap: 6px;
     }
     .mod-code {
       font-family: ui-monospace, monospace;
       font-size: 10px;
-      color: #64748b;
-      background: #f1f5f9;
+      color: var(--app-text-muted);
+      background: var(--app-surface-3);
       padding: 1px 6px;
       border-radius: 4px;
     }
     .mod-desc {
-      font-size: 0.75rem; color: #64748b; margin-top: 2px;
+      font-size: 0.75rem; color: var(--app-text-muted); margin-top: 2px;
     }
     .mod-body {
       padding: 12px 14px 14px;
-      background: #fafbfc;
-      border-top: 1px solid #f0f2f5;
+      background: var(--app-surface-2);
+      border-top: 1px solid var(--app-border-soft);
     }
     .perm-group + .perm-group { margin-top: 10px; }
     .perm-group-head {
@@ -245,14 +245,14 @@ import { AlertService } from '../../../core/services/alert.service';
     }
     .perm-group-title {
       font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
-      font-weight: 700; color: #475569;
+      font-weight: 700; color: var(--app-text-2);
     }
     .perm-group-actions {
       display: flex; gap: 4px;
     }
     .perm-mini-btn {
       background: transparent; border: none; padding: 2px 6px;
-      font-size: 10px; font-weight: 600; color: #4f46e5; cursor: pointer;
+      font-size: 10px; font-weight: 600; color: var(--app-indigo-fg-strong); cursor: pointer;
     }
     .perm-mini-btn:hover { text-decoration: underline; }
     .perm-mini-btn.danger { color: #dc3545; }
@@ -269,20 +269,20 @@ import { AlertService } from '../../../core/services/alert.service';
       margin: 3px 4px 3px 0;
     }
     .perm-chip.active {
-      background: #EEF2FF;
-      color: #4338CA;
-      border-color: #C7D2FE;
+      background: var(--app-indigo-bg);
+      color: var(--app-indigo-fg-strong);
+      border-color: var(--app-indigo-border);
     }
-    .perm-chip.active:hover { background: #E0E7FF; }
+    .perm-chip.active:hover { background: var(--app-indigo-bg-2); }
     .perm-chip.inactive {
-      background: #fff;
+      background: var(--app-surface);
       color: #94a3b8;
-      border-color: #e2e8f0;
+      border-color: var(--app-border);
     }
-    .perm-chip.inactive:hover { color: #475569; border-color: #cbd5e1; }
+    .perm-chip.inactive:hover { color: var(--app-text-2); border-color: var(--app-border-strong); }
     .perm-chip .dot {
       width: 6px; height: 6px; border-radius: 50%;
-      background: #cbd5e1;
+      background: var(--app-surface-4);
     }
     .perm-chip.active .dot { background: #4338CA; }
 
@@ -294,14 +294,14 @@ import { AlertService } from '../../../core/services/alert.service';
     }
     .perm-footer-summary {
       display: flex; align-items: center; gap: 12px; flex: 1;
-      font-size: 0.82rem; color: #475569;
+      font-size: 0.82rem; color: var(--app-text-2);
     }
     .perm-footer-summary .badge-count {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 4px 10px;
       border-radius: 999px;
-      background: #EEF2FF;
-      color: #4338CA;
+      background: var(--app-indigo-bg);
+      color: var(--app-indigo-fg-strong);
       font-weight: 700;
       font-size: 0.78rem;
     }
@@ -328,7 +328,7 @@ import { AlertService } from '../../../core/services/alert.service';
       <div class="kpi-row">
         <div class="kpi-card" style="border-color:#3949ab">
           <div class="kpi-label">Total Utilisateurs</div>
-          <div class="kpi-value" style="color:#3949ab">{{ users.length }}</div>
+          <div class="kpi-value" style="color:var(--app-blue-fg-strong)">{{ users.length }}</div>
         </div>
         <div class="kpi-card" style="border-color:#198754">
           <div class="kpi-label">Actifs</div>
@@ -345,7 +345,7 @@ import { AlertService } from '../../../core/services/alert.service';
         <div class="card-header-bar">
           <h5>Liste des Utilisateurs</h5>
           <div class="search-box">
-            <span class="search-icon" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#6c757d;font-size:0.85rem;">
+            <span class="search-icon" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--app-text-muted);font-size:0.85rem;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
             <input type="text" placeholder="Rechercher..." [(ngModel)]="searchQuery" [ngModelOptions]="{standalone:true}" (input)="filterUsers()" />
@@ -354,7 +354,7 @@ import { AlertService } from '../../../core/services/alert.service';
         </div>
 
         <div *ngIf="loading" class="loading-state">
-          <div style="display:inline-block;width:24px;height:24px;border:3px solid #e9ecef;border-top-color:#3949ab;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+          <div style="display:inline-block;width:24px;height:24px;border:3px solid var(--app-border);border-top-color:#3949ab;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
           <span style="margin-left:10px;">Chargement...</span>
         </div>
 
@@ -390,25 +390,25 @@ import { AlertService } from '../../../core/services/alert.service';
                 </div>
               </td>
               <td>
-                <span [style.background]="user.role === 'ADMIN' ? '#fff3cd' : '#cfe2ff'"
-                      [style.color]="user.role === 'ADMIN' ? '#856404' : '#0a58ca'"
+                <span [style.background]="user.role === 'ADMIN' ? 'var(--app-amber-bg-2)' : 'var(--app-blue-bg-2)'"
+                      [style.color]="user.role === 'ADMIN' ? 'var(--app-amber-fg)' : 'var(--app-blue-fg-strong)'"
                       style="display:inline-block;padding:4px 10px;border-radius:50px;font-size:0.75rem;font-weight:600;">
                   {{ user.role === 'ADMIN' ? 'Administrateur' : 'Utilisateur' }}
                 </span>
               </td>
               <td>
-                <span [style.background]="user.is_active !== false ? '#ECFDF5' : '#FEF2F2'"
+                <span [style.background]="user.is_active !== false ? 'var(--app-green-bg)' : 'var(--app-red-bg)'"
                       [style.color]="user.is_active !== false ? '#10B981' : '#EF4444'"
                       style="display:inline-block;padding:4px 10px;border-radius:50px;font-size:0.75rem;font-weight:600;">
                   {{ user.is_active !== false ? 'Actif' : 'Inactif' }}
                 </span>
               </td>
               <td>
-                <span style="font-size:0.8rem;color:#6c757d;background:#f8f9fa;padding:3px 10px;border-radius:50px;">
+                <span style="font-size:0.8rem;color:var(--app-text-muted);background:var(--app-surface-2);padding:3px 10px;border-radius:50px;">
                   {{ moduleCount(user) }} module(s)
                 </span>
               </td>
-              <td style="color:#6c757d;font-size:0.8rem;">{{ formatDate(user.created_at) }}</td>
+              <td style="color:var(--app-text-muted);font-size:0.8rem;">{{ formatDate(user.created_at) }}</td>
               <td>
                 <div class="actions">
                   <button *ngIf="canEditUsers" class="btn-icon btn-edit" (click)="openModal(user)" title="Modifier">
@@ -449,20 +449,20 @@ import { AlertService } from '../../../core/services/alert.service';
               <label class="form-label">Photo de profil</label>
               <input #photoInput type="file" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
                      (change)="onPhotoSelected($event)" style="display:none" />
-              <div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid #e9ecef;border-radius:10px;background:#f8f9fa;">
+              <div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--app-border);border-radius:10px;background:var(--app-surface-2);">
                 <div (click)="triggerPhotoInput(photoInput)"
-                     style="width:64px;height:64px;border-radius:50%;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;border:2px dashed #c7d2fe;background:#eef2ff;flex-shrink:0;">
+                     style="width:64px;height:64px;border-radius:50%;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;border:2px dashed var(--app-indigo-border);background:var(--app-indigo-bg);flex-shrink:0;">
                   <img *ngIf="photoPreview" [src]="photoPreview" alt="Aperçu" style="width:100%;height:100%;object-fit:cover;" />
                   <span *ngIf="!photoPreview" style="font-size:1.2rem;"><svg cIcon name="cilCamera" class="ic"></svg></span>
                 </div>
                 <div>
-                  <div style="font-size:.85rem;font-weight:600;color:#1e293b;margin-bottom:4px;">
+                  <div style="font-size:.85rem;font-weight:600;color:var(--app-text-strong);margin-bottom:4px;">
                     {{ selectedPhoto ? selectedPhoto.name : (photoPreview ? 'Photo actuelle' : 'Aucune photo sélectionnée') }}
                   </div>
-                  <div style="font-size:.75rem;color:#6c757d;margin-bottom:8px;">Formats : JPG, PNG, GIF, WebP — max 4 MB</div>
+                  <div style="font-size:.75rem;color:var(--app-text-muted);margin-bottom:8px;">Formats : JPG, PNG, GIF, WebP — max 4 MB</div>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <button type="button" class="btn-icon" (click)="triggerPhotoInput(photoInput)">Choisir</button>
-                    <button *ngIf="photoPreview" type="button" class="btn-icon" (click)="removePhoto()" style="color:#dc3545;border-color:#fecaca;">Retirer</button>
+                    <button *ngIf="photoPreview" type="button" class="btn-icon" (click)="removePhoto()" style="color:#dc3545;border-color:var(--app-red-border);">Retirer</button>
                   </div>
                 </div>
               </div>
@@ -501,7 +501,7 @@ import { AlertService } from '../../../core/services/alert.service';
           <button class="btn-icon" (click)="closePasswordModal()" style="font-size:1rem;font-weight:700;">&times;</button>
         </div>
         <div class="modal-body">
-          <p style="color:#6c757d;margin-bottom:16px;font-size:0.875rem;">
+          <p style="color:var(--app-text-muted);margin-bottom:16px;font-size:0.875rem;">
             Utilisateur: <strong>{{ passwordUser?.name }}</strong>
           </p>
           <form [formGroup]="passwordForm">
@@ -534,13 +534,13 @@ import { AlertService } from '../../../core/services/alert.service';
           <button class="btn-icon" (click)="closeRoleModal()" style="font-size:1rem;font-weight:700;">&times;</button>
         </div>
         <div class="modal-body">
-          <p style="font-size:0.875rem;color:#6c757d;margin-bottom:16px;">
+          <p style="font-size:0.875rem;color:var(--app-text-muted);margin-bottom:16px;">
             Utilisateur : <strong>{{ roleUser?.name }}</strong>
           </p>
 
           <label class="role-option" [class.selected]="selectedRole === 'USER'" (click)="selectedRole = 'USER'">
             <input type="radio" name="role" value="USER" [checked]="selectedRole === 'USER'" />
-            <div class="role-icon" style="background:#dbeafe;"><svg cIcon name="cilUser" class="ic"></svg></div>
+            <div class="role-icon" style="background:var(--app-blue-bg-2);"><svg cIcon name="cilUser" class="ic"></svg></div>
             <div>
               <div class="role-title">Utilisateur</div>
               <div class="role-desc">Accès limité aux modules activés par l'administrateur</div>
@@ -549,7 +549,7 @@ import { AlertService } from '../../../core/services/alert.service';
 
           <label class="role-option" [class.selected]="selectedRole === 'ADMIN'" (click)="selectedRole = 'ADMIN'">
             <input type="radio" name="role" value="ADMIN" [checked]="selectedRole === 'ADMIN'" />
-            <div class="role-icon" style="background:#fef3c7;"><svg cIcon name="cilShieldAlt" class="ic"></svg></div>
+            <div class="role-icon" style="background:var(--app-amber-bg-2);"><svg cIcon name="cilShieldAlt" class="ic"></svg></div>
             <div>
               <div class="role-title">Administrateur</div>
               <div class="role-desc">Gère l'organisation, les utilisateurs et les modules</div>
@@ -579,7 +579,7 @@ import { AlertService } from '../../../core/services/alert.service';
           </div>
           <div style="margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <span class="user-pill">
-              <span style="width:22px;height:22px;border-radius:50%;background:#fff;color:#0f3460;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">
+              <span style="width:22px;height:22px;border-radius:50%;background:var(--app-surface);color:var(--app-brand-fg);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">
                 {{ initials(permUser?.name || '') }}
               </span>
               {{ permUser?.name }}
@@ -676,7 +676,7 @@ import { AlertService } from '../../../core/services/alert.service';
         <div class="modal-footer">
           <div class="perm-footer-summary">
             <span class="badge-count">{{ activeModulesCount }} module(s)</span>
-            <span class="badge-count" style="background:#ECFDF5;color:#065F46;">{{ totalPermsCount }} permission(s)</span>
+            <span class="badge-count" style="background:var(--app-green-bg);color:var(--app-green-fg-strong);">{{ totalPermsCount }} permission(s)</span>
           </div>
           <button class="btn-cancel" (click)="closePermModal()">Annuler</button>
           <button class="btn-save" (click)="savePermissions()" [disabled]="saving">

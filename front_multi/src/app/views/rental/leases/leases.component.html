@@ -343,10 +343,10 @@
           <div class="d-inline-flex flex-column align-items-center gap-2">
             <ng-container *ngIf="selectedLeasePhotoPreview; else leasePhotoPlaceholder">
               <img [src]="selectedLeasePhotoPreview" alt="Photo locataire"
-                   style="width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid #e5e7eb;">
+                   style="width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--app-border);">
             </ng-container>
             <ng-template #leasePhotoPlaceholder>
-              <div style="width:84px;height:84px;border-radius:50%;background:#EEF2FF;color:#4F46E5;
+              <div style="width:84px;height:84px;border-radius:50%;background:var(--app-indigo-bg);color:var(--app-indigo-fg-strong);
                           display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.6rem;">
                 <svg cIcon name="cilUser" class="ic"></svg>
               </div>
@@ -565,37 +565,37 @@
 
     <div *ngIf="selectedLeaseFinancialSituation as fs" class="row g-2 mb-3">
       <div class="col-6 col-lg-3">
-        <div class="rounded-3 p-3 h-100" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+        <div class="rounded-3 p-3 h-100" style="background:var(--app-blue-bg);border:1px solid var(--app-blue-border);">
           <div class="small text-uppercase fw-semibold text-muted">Total attendu</div>
-          <div class="fw-bold mt-1" style="color:#1D4ED8;">{{ formatAmount(fs.summary.expected_total, fs.lease.currency) }}</div>
+          <div class="fw-bold mt-1" style="color:var(--app-blue-fg-strong);">{{ formatAmount(fs.summary.expected_total, fs.lease.currency) }}</div>
           <div class="small text-muted">{{ fs.summary.due_months_count }} mois dus</div>
         </div>
       </div>
       <div class="col-6 col-lg-3">
-        <div class="rounded-3 p-3 h-100" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+        <div class="rounded-3 p-3 h-100" style="background:var(--app-green-bg);border:1px solid var(--app-green-border);">
           <div class="small text-uppercase fw-semibold text-muted">Total versé</div>
           <div class="fw-bold mt-1" style="color:#059669;">{{ formatAmount(fs.summary.paid_total, fs.lease.currency) }}</div>
           <div class="small text-muted">{{ fs.summary.payment_count }} paiement(s)</div>
         </div>
       </div>
       <div class="col-6 col-lg-3">
-        <div class="rounded-3 p-3 h-100" style="background:#FFFBEB;border:1px solid #FDE68A;">
+        <div class="rounded-3 p-3 h-100" style="background:var(--app-amber-bg);border:1px solid var(--app-amber-border);">
           <div class="small text-uppercase fw-semibold text-muted">Avance locataire</div>
-          <div class="fw-bold mt-1" style="color:#B45309;">{{ formatAmount(fs.summary.advance_total, fs.lease.currency) }}</div>
+          <div class="fw-bold mt-1" style="color:var(--app-amber-fg);">{{ formatAmount(fs.summary.advance_total, fs.lease.currency) }}</div>
           <div class="small text-muted">Excédent déjà payé</div>
         </div>
       </div>
       <div class="col-6 col-lg-3">
-        <div class="rounded-3 p-3 h-100" style="background:#FEF2F2;border:1px solid #FECACA;">
+        <div class="rounded-3 p-3 h-100" style="background:var(--app-red-bg);border:1px solid var(--app-red-border);">
           <div class="small text-uppercase fw-semibold text-muted">Reste à payer</div>
-          <div class="fw-bold mt-1" [style.color]="fs.summary.remaining_total > 0 ? '#DC2626' : '#059669'">
+          <div class="fw-bold mt-1" [style.color]="fs.summary.remaining_total > 0 ? 'var(--app-red-fg)' : '#059669'">
             {{ formatAmount(fs.summary.remaining_total, fs.lease.currency) }}
           </div>
           <div class="small text-muted">{{ fs.summary.paid_months_count }} mois soldés</div>
         </div>
       </div>
       <div class="col-12" *ngIf="fs.unpaid_periods?.length">
-        <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #E5E7EB;">
+        <div class="rounded-3 p-3" style="background:var(--app-surface-2);border:1px solid var(--app-border);">
           <div class="small fw-semibold text-muted text-uppercase mb-2">Mois non soldés</div>
           <div class="d-flex flex-wrap gap-2">
             <span *ngFor="let period of fs.unpaid_periods; trackBy: trackById" class="badge text-bg-warning">

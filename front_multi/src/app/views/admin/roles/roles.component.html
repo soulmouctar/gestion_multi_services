@@ -26,7 +26,7 @@
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
       <div class="card h-100 text-center"
-           style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+           style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
         <div class="card-body py-4">
           <div class="fw-bold mb-1" style="font-size:2rem;color:#3B82F6">{{ filteredRoles.length }}</div>
           <div class="text-muted small">Rôles</div>
@@ -35,7 +35,7 @@
     </div>
     <div class="col-6 col-md-3">
       <div class="card h-100 text-center"
-           style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+           style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
         <div class="card-body py-4">
           <div class="fw-bold mb-1" style="font-size:2rem;color:#10B981">{{ permissions.length }}</div>
           <div class="text-muted small">Permissions</div>
@@ -44,7 +44,7 @@
     </div>
     <div class="col-6 col-md-3">
       <div class="card h-100 text-center"
-           style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+           style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
         <div class="card-body py-4">
           <div class="fw-bold mb-1" style="font-size:2rem;color:#D97706">{{ getAdminRoleCount() }}</div>
           <div class="text-muted small">Administrateurs</div>
@@ -53,7 +53,7 @@
     </div>
     <div class="col-6 col-md-3">
       <div class="card h-100 text-center"
-           style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+           style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
         <div class="card-body py-4">
           <div class="fw-bold mb-1" style="font-size:2rem;color:#8B5CF6">{{ getUserRoleCount() }}</div>
           <div class="text-muted small">Utilisateurs</div>
@@ -63,7 +63,7 @@
   </div>
 
   <!-- Filtres -->
-  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div class="card mb-4" style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
     <div class="card-body">
       <form [formGroup]="filterForm" class="row g-3 align-items-end">
         <div class="col-md-6">
@@ -89,9 +89,9 @@
   </div>
 
   <!-- Tableau des rôles -->
-  <div class="card mb-4" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div class="card mb-4" style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3"
-         style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+         style="border-radius:14px 14px 0 0;border-bottom:1px solid var(--app-border-soft)">
       <span class="fw-bold fs-5">Liste des Rôles</span>
       <span *ngIf="loading" class="spinner-border spinner-border-sm text-primary"></span>
     </div>
@@ -117,12 +117,12 @@
       <div *ngIf="!loading && filteredRoles.length > 0" class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead>
-            <tr style="background:#f8fafc">
-              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid #f0f0f0">Nom du Rôle</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Guard</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Permissions</th>
-              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid #f0f0f0">Créé le</th>
-              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid #f0f0f0">Actions</th>
+            <tr style="background:var(--app-surface-2)">
+              <th class="fw-semibold text-muted small text-uppercase ps-4" style="border-bottom:2px solid var(--app-border-soft)">Nom du Rôle</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Guard</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Permissions</th>
+              <th class="fw-semibold text-muted small text-uppercase" style="border-bottom:2px solid var(--app-border-soft)">Créé le</th>
+              <th class="fw-semibold text-muted small text-uppercase text-end pe-4" style="border-bottom:2px solid var(--app-border-soft)">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -130,8 +130,8 @@
               <td class="ps-4">
                 <div class="d-flex align-items-center gap-2">
                   <span class="badge rounded-pill px-3 py-1 fw-semibold"
-                        [style.background]="role.name === 'SUPER_ADMIN' ? '#FEE2E2' : role.name === 'ADMIN' ? '#FEF3C7' : role.name === 'USER' ? '#EFF6FF' : '#F3F4F6'"
-                        [style.color]="role.name === 'SUPER_ADMIN' ? '#EF4444' : role.name === 'ADMIN' ? '#D97706' : role.name === 'USER' ? '#3B82F6' : '#6B7280'">
+                        [style.background]="role.name === 'SUPER_ADMIN' ? 'var(--app-red-bg-2)' : role.name === 'ADMIN' ? 'var(--app-amber-bg-2)' : role.name === 'USER' ? 'var(--app-blue-bg)' : 'var(--app-surface-3)'"
+                        [style.color]="role.name === 'SUPER_ADMIN' ? '#EF4444' : role.name === 'ADMIN' ? '#D97706' : role.name === 'USER' ? '#3B82F6' : 'var(--app-text-muted)'">
                     {{ getRoleDisplayName(role.name) }}
                   </span>
                   <small class="text-muted">{{ role.name }}</small>
@@ -139,11 +139,11 @@
               </td>
               <td>
                 <span class="badge rounded-pill px-3 py-1"
-                      style="background:#F3F4F6;color:#374151">{{ role.guard_name }}</span>
+                      style="background:var(--app-surface-3);color:var(--app-text)">{{ role.guard_name }}</span>
               </td>
               <td>
                 <span class="badge rounded-pill px-3 py-1 mb-1"
-                      style="background:#EFF6FF;color:#3B82F6">
+                      style="background:var(--app-blue-bg);color:#3B82F6">
                   {{ getPermissionCount(role) }} permission{{ getPermissionCount(role) !== 1 ? 's' : '' }}
                 </span>
                 <div *ngIf="role.permissions && role.permissions.length > 0" class="mt-1">
@@ -183,9 +183,9 @@
   </div>
 
   <!-- Liste des permissions -->
-  <div class="card" style="border-radius:14px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div class="card" style="border-radius:14px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.06)">
     <div class="card-header bg-white py-3"
-         style="border-radius:14px 14px 0 0;border-bottom:1px solid #f0f0f0">
+         style="border-radius:14px 14px 0 0;border-bottom:1px solid var(--app-border-soft)">
       <span class="fw-bold fs-5">
         Liste des Permissions
         <span class="text-muted fw-normal fs-6 ms-1">({{ permissions.length }})</span>
@@ -200,13 +200,13 @@
       <div *ngIf="permissions.length > 0" class="row g-3">
         <div class="col-md-6 col-lg-4" *ngFor="let permission of permissions; trackBy: trackById">
           <div class="d-flex justify-content-between align-items-center rounded-3 px-3 py-3 permission-item"
-               style="background:#F8FAFC;border:1px solid #f0f0f0">
+               style="background:var(--app-surface-2);border:1px solid var(--app-border-soft)">
             <div class="permission-item__content">
               <div class="fw-semibold small">{{ getPermissionDisplayName(permission.name) }}</div>
               <code class="text-muted" style="font-size:.75rem">{{ permission.name }}</code>
               <div class="mt-1">
                 <span class="badge rounded-pill"
-                      style="background:#F3F4F6;color:#374151;font-size:.7rem">{{ permission.guard_name }}</span>
+                      style="background:var(--app-surface-3);color:var(--app-text);font-size:.7rem">{{ permission.guard_name }}</span>
               </div>
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger rounded-3 ms-2 flex-shrink-0 role-action-btn"
@@ -260,7 +260,7 @@
 
         <div class="col-12">
           <label class="form-label fw-semibold">Permissions associées</label>
-          <div class="rounded-3 p-3" style="background:#F8FAFC;border:1px solid #f0f0f0;max-height:280px;overflow-y:auto">
+          <div class="rounded-3 p-3" style="background:var(--app-surface-2);border:1px solid var(--app-border-soft);max-height:280px;overflow-y:auto">
             <div class="row g-2">
               <div class="col-md-6" *ngFor="let permission of availablePermissions; trackBy: trackById">
                 <div class="form-check">
@@ -285,7 +285,7 @@
 
       </div>
     </c-modal-body>
-    <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+    <c-modal-footer class="px-4 py-3" style="background:var(--app-surface-2);border-top:1px solid var(--app-border-soft)">
       <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
               (click)="closeRoleModal()" [disabled]="loading">Annuler</button>
       <button type="submit" class="btn btn-primary rounded-pill px-4" [disabled]="loading">
@@ -332,7 +332,7 @@
       </div>
 
     </c-modal-body>
-    <c-modal-footer class="px-4 py-3" style="background:#f8fafc;border-top:1px solid #f0f0f0">
+    <c-modal-footer class="px-4 py-3" style="background:var(--app-surface-2);border-top:1px solid var(--app-border-soft)">
       <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
               (click)="closePermissionModal()" [disabled]="loading">Annuler</button>
       <button type="submit" class="btn btn-success rounded-pill px-4" [disabled]="loading">

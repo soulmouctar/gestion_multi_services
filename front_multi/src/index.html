@@ -19,6 +19,24 @@
   />
   <link href="assets/favicon.ico" rel="icon" type="image/x-icon">
   <title>CoreUI Free Angular Admin Template</title>
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Applique le theme avant le premier rendu (pas d'eclair blanc en mode sombre).
+    // Meme cle que THEME_STORAGE_KEY (theme.service.ts) ; sans choix enregistre : automatique.
+    (function () {
+      var key = 'coreui-free-angular-admin-template-theme-default';
+      var mode = null;
+      try { mode = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+      if (mode !== 'light' && mode !== 'dark' && mode !== 'auto') {
+        mode = 'auto';
+        try { localStorage.setItem(key, JSON.stringify(mode)); } catch (e) {}
+      }
+      if (mode === 'auto') {
+        mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-coreui-theme', mode);
+    })();
+  </script>
 </head>
 <body>
 <noscript>You need to enable JavaScript to run this app.</noscript>

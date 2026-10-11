@@ -71,7 +71,7 @@
 .setting-card {
   border: 0;
   border-radius: 20px;
-  background: #fff;
+  background: var(--app-surface);
   box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
 }
 
@@ -84,7 +84,7 @@
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #6b7280;
+  color: var(--app-text-muted);
   margin-bottom: 1rem;
 }
 
@@ -102,7 +102,7 @@
   text-decoration: none;
   border-radius: 16px;
   padding: 0.95rem 1rem;
-  border: 1px solid #eef2f7;
+  border: 1px solid var(--app-border-soft);
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
@@ -110,7 +110,7 @@
 .setting-link:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-  border-color: #dbe4f0;
+  border-color: var(--app-border);
 }
 
 .shortcut-icon,
@@ -128,7 +128,7 @@
 .section-title,
 .link-title {
   font-weight: 700;
-  color: #0f172a;
+  color: var(--app-heading);
 }
 
 .shortcut-title {
@@ -139,7 +139,7 @@
 .section-subtitle,
 .link-note {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--app-text-muted);
 }
 
 .shortcut-arrow,
@@ -152,7 +152,7 @@
 .link-action {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #2563eb;
+  color: var(--app-blue-fg);
 }
 
 .section-head {
@@ -172,7 +172,7 @@
   align-items: flex-start;
   gap: 0.7rem;
   padding: 0.6rem 0;
-  color: #334155;
+  color: var(--app-text);
 }
 
 .check-bullet {
@@ -185,8 +185,8 @@
 }
 
 .callout {
-  background: linear-gradient(135deg, #eff6ff, #f0fdfa);
-  border: 1px solid #dbeafe;
+  background: linear-gradient(135deg, var(--app-blue-bg), var(--app-cyan-bg));
+  border: 1px solid var(--app-blue-border);
 }
 
 .callout-title {
@@ -194,38 +194,38 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: var(--app-cyan-fg);
   margin-bottom: 0.4rem;
 }
 
 .tone-primary {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--app-indigo-bg);
+  color: var(--app-indigo-fg-strong);
 }
 
 .tone-success {
-  background: #ecfdf5;
+  background: var(--app-green-bg);
   color: #059669;
 }
 
 .tone-warning {
-  background: #fffbeb;
+  background: var(--app-amber-bg);
   color: #d97706;
 }
 
 .tone-info {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--app-blue-bg);
+  color: var(--app-blue-fg);
 }
 
 .tone-danger {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--app-red-bg);
+  color: var(--app-red-fg);
 }
 
 .tone-secondary {
-  background: #f8fafc;
-  color: #475569;
+  background: var(--app-surface-2);
+  color: var(--app-text-2);
 }
 
 @media (max-width: 992px) {

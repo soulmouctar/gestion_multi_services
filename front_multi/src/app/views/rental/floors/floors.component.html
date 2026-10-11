@@ -53,7 +53,7 @@
   <div *ngIf="!loading" class="bg-white shadow-sm rounded-4 overflow-hidden">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
-        <thead style="background:#f8fafc">
+        <thead style="background:var(--app-surface-2)">
           <tr>
             <th class="ps-4 py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">N° Étage</th>
             <th class="py-3 text-muted fw-semibold" style="font-size:.78rem;letter-spacing:.05em;text-transform:uppercase">Bâtiment</th>
@@ -65,7 +65,7 @@
           <tr *ngFor="let item of floors; trackBy: trackById">
             <td class="ps-4 py-3">
               <div class="d-flex align-items-center gap-2">
-                <div style="width:34px;height:34px;border-radius:10px;background:#F0F9FF;color:#0EA5E9;
+                <div style="width:34px;height:34px;border-radius:10px;background:var(--app-cyan-bg);color:#0EA5E9;
                   display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0">
                   {{ item.floor_number }}
                 </div>
@@ -166,7 +166,7 @@
 
 <!-- Modal Suppression -->
 <c-modal [visible]="deleteModalOpen" (visibleChange)="deleteModalOpen = $event" backdrop="static" size="sm">
-  <c-modal-header style="background:#FEF2F2;border-bottom:1px solid #FECACA">
+  <c-modal-header style="background:var(--app-red-bg);border-bottom:1px solid var(--app-red-border)">
     <h5 cModalTitle class="text-danger mb-0" style="font-size:1rem">Confirmer la suppression</h5>
     <button type="button" class="btn-close" (click)="deleteModalOpen = false"></button>
   </c-modal-header>
@@ -176,7 +176,7 @@
     <p class="text-center text-muted mb-2">
       <strong class="text-dark">Étage {{ itemToDelete?.floor_number }}</strong>
     </p>
-    <div class="rounded-3 p-2 text-center" style="background:#FEF2F2">
+    <div class="rounded-3 p-2 text-center" style="background:var(--app-red-bg)">
       <small class="text-danger fw-semibold">Cette action est irréversible.</small>
     </div>
   </c-modal-body>

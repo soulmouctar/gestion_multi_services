@@ -59,7 +59,7 @@ import { ApiService } from '../../../core/services/api.service';
       border-radius: 12px;
       padding: 14px 16px;
       border: none;
-      background: #fff;
+      background: var(--app-surface);
       transition: transform .2s, box-shadow .2s;
       position: relative;
       overflow: hidden;
@@ -99,7 +99,7 @@ import { ApiService } from '../../../core/services/api.service';
       border-radius: 10px;
       transition: background .15s;
     }
-    .driver-row:hover, .vehicle-row:hover { background: #f8fafc; }
+    .driver-row:hover, .vehicle-row:hover { background: var(--app-surface-2); }
     .avatar-circle {
       width: 36px; height: 36px;
       border-radius: 50%;
@@ -108,7 +108,7 @@ import { ApiService } from '../../../core/services/api.service';
     }
     .bar-track {
       height: 5px; border-radius: 3px;
-      background: #f0f2f5; overflow: hidden;
+      background: var(--app-surface-3); overflow: hidden;
     }
     .bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
     .alert-dot {
@@ -116,8 +116,8 @@ import { ApiService } from '../../../core/services/api.service';
       display: inline-block; margin-right: 6px; flex-shrink: 0;
     }
     .doc-alert-card {
-      background: #fffbf0;
-      border: 1px solid #fde68a;
+      background: var(--app-amber-bg);
+      border: 1px solid var(--app-amber-border);
       border-radius: 12px;
       padding: 14px 16px;
     }
@@ -194,18 +194,18 @@ import { ApiService } from '../../../core/services/api.service';
       <div class="col-6 col-md-3">
         <div class="kpi-card shadow-sm">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon" style="background:#EEF2FF;color:#6366F1"><svg cIcon name="cilCarAlt" class="ic"></svg></div>
-            <span class="badge rounded-pill px-2" style="background:#EEF2FF;color:#6366F1;font-size:.62rem">Total</span>
+            <div class="kpi-icon" style="background:var(--app-indigo-bg);color:#6366F1"><svg cIcon name="cilCarAlt" class="ic"></svg></div>
+            <span class="badge rounded-pill px-2" style="background:var(--app-indigo-bg);color:#6366F1;font-size:.62rem">Total</span>
           </div>
-          <div class="kpi-value" style="color:#1e1e2d">{{ data.fleet?.total ?? 0 }}</div>
+          <div class="kpi-value" style="color:var(--app-heading)">{{ data.fleet?.total ?? 0 }}</div>
           <div class="kpi-label mt-1" style="color:#6366F1">Véhicules</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card shadow-sm">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon" style="background:#ECFDF5;color:#10B981"><svg cIcon name="cilCheckCircle" class="ic"></svg></div>
-            <span class="badge rounded-pill px-2" style="background:#ECFDF5;color:#10B981;font-size:.62rem">Service</span>
+            <div class="kpi-icon" style="background:var(--app-green-bg);color:#10B981"><svg cIcon name="cilCheckCircle" class="ic"></svg></div>
+            <span class="badge rounded-pill px-2" style="background:var(--app-green-bg);color:#10B981;font-size:.62rem">Service</span>
           </div>
           <div class="kpi-value" style="color:#10B981">{{ data.fleet?.active ?? 0 }}</div>
           <div class="kpi-label mt-1" style="color:#10B981">Actifs</div>
@@ -218,8 +218,8 @@ import { ApiService } from '../../../core/services/api.service';
       <div class="col-6 col-md-3">
         <div class="kpi-card shadow-sm">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon" style="background:#FFFBEB;color:#F59E0B"><svg cIcon name="cilSettings" class="ic"></svg></div>
-            <span class="badge rounded-pill px-2" style="background:#FFFBEB;color:#F59E0B;font-size:.62rem">Maint.</span>
+            <div class="kpi-icon" style="background:var(--app-amber-bg);color:#F59E0B"><svg cIcon name="cilSettings" class="ic"></svg></div>
+            <span class="badge rounded-pill px-2" style="background:var(--app-amber-bg);color:#F59E0B;font-size:.62rem">Maint.</span>
           </div>
           <div class="kpi-value" style="color:#F59E0B">{{ data.fleet?.maintenance ?? 0 }}</div>
           <div class="kpi-label mt-1" style="color:#F59E0B">Maintenance</div>
@@ -228,8 +228,8 @@ import { ApiService } from '../../../core/services/api.service';
       <div class="col-6 col-md-3">
         <div class="kpi-card shadow-sm">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="kpi-icon" style="background:#F0FDF4;color:#22C55E"><svg cIcon name="cilUser" class="ic"></svg></div>
-            <span class="badge rounded-pill px-2" style="background:#F0FDF4;color:#22C55E;font-size:.62rem">Actifs</span>
+            <div class="kpi-icon" style="background:var(--app-green-bg);color:#22C55E"><svg cIcon name="cilUser" class="ic"></svg></div>
+            <span class="badge rounded-pill px-2" style="background:var(--app-green-bg);color:#22C55E;font-size:.62rem">Actifs</span>
           </div>
           <div class="kpi-value" style="color:#22C55E">{{ data.drivers?.active ?? 0 }}</div>
           <div class="kpi-label mt-1" style="color:#22C55E">Conducteurs</div>
@@ -294,7 +294,7 @@ import { ApiService } from '../../../core/services/api.service';
               <div class="section-title mb-0">Évolution des recettes</div>
               <div class="text-muted" style="font-size:.8rem">12 derniers mois</div>
             </div>
-            <span class="badge rounded-pill px-3 py-2" style="background:#F0FDF4;color:#10B981;font-size:.78rem">
+            <span class="badge rounded-pill px-3 py-2" style="background:var(--app-green-bg);color:#10B981;font-size:.78rem">
               {{ fmt(monthlyTotal()) }} collecté
             </span>
           </div>
@@ -303,7 +303,7 @@ import { ApiService } from '../../../core/services/api.service';
               <div class="flex-fill d-flex flex-column align-items-center gap-1">
                 <div class="rounded-top w-100"
                   [style.height]="barHeight(m.collected) + 'px'"
-                  [style.background]="m.month === period ? '#6366F1' : '#E0E7FF'"
+                  [style.background]="m.month === period ? '#6366F1' : 'var(--app-indigo-bg-2)'"
                   [title]="m.month + ': ' + fmt(m.collected)">
                 </div>
                 <div class="text-muted" style="font-size:.58rem;white-space:nowrap">{{ m.month | slice:5 }}</div>
@@ -322,7 +322,7 @@ import { ApiService } from '../../../core/services/api.service';
             <div>
               <div class="section-title mb-0">Alertes Documents</div>
             </div>
-            <span class="badge rounded-pill px-3 py-2" style="background:#FEF3C7;color:#D97706;font-size:.78rem">
+            <span class="badge rounded-pill px-3 py-2" style="background:var(--app-amber-bg-2);color:#D97706;font-size:.78rem">
               <svg cIcon name="cilWarning" class="ic"></svg> {{ data.document_alerts.length }} véhicule(s)
             </span>
           </div>
@@ -358,8 +358,8 @@ import { ApiService } from '../../../core/services/api.service';
           <div *ngFor="let d of data.top_drivers; let i = index"
             class="driver-row d-flex align-items-center gap-3 mb-1">
             <div class="rank-badge"
-              [style.background]="i===0 ? '#FEF3C7' : i===1 ? '#F3F4F6' : '#FFF7ED'"
-              [style.color]="i===0 ? '#D97706' : i===1 ? '#6B7280' : '#EA580C'">
+              [style.background]="i===0 ? 'var(--app-amber-bg-2)' : i===1 ? 'var(--app-surface-3)' : 'var(--app-orange-bg)'"
+              [style.color]="i===0 ? '#D97706' : i===1 ? 'var(--app-text-muted)' : '#EA580C'">
               {{ i + 1 }}
             </div>
             <div class="avatar-circle" [style.background]="avatarBg(i)" style="color:#fff;flex-shrink:0">
@@ -391,7 +391,7 @@ import { ApiService } from '../../../core/services/api.service';
                 </div>
                 <div class="bar-track mt-1" style="max-width:160px">
                   <div class="bar-fill"
-                    [style.background]="v.monthly_collected > 0 ? '#6366F1' : '#E5E7EB'"
+                    [style.background]="v.monthly_collected > 0 ? '#6366F1' : 'var(--app-surface-4)'"
                     [style.width]="vehicleBarWidth(v.monthly_collected) + '%'">
                   </div>
                 </div>

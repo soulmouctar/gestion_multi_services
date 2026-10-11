@@ -13,7 +13,7 @@
   <div class="row g-3 mb-4">
     <div class="col-md-3 col-sm-6">
       <div class="p-4 h-100"
-           style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #3B82F6;">
+           style="background:var(--app-surface);border-radius:12px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #3B82F6;">
         <p class="text-muted small text-uppercase fw-semibold mb-1">Valeur Achats</p>
         <div class="fw-bold" style="font-size:1.15rem;color:#3B82F6;">{{ formatAmount(stats.totalPurchaseValue) }}</div>
         <small class="text-muted">{{ stats.totalArrivals }} arrivage(s)</small>
@@ -21,7 +21,7 @@
     </div>
     <div class="col-md-3 col-sm-6">
       <div class="p-4 h-100"
-           style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #10B981;">
+           style="background:var(--app-surface);border-radius:12px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #10B981;">
         <p class="text-muted small text-uppercase fw-semibold mb-1">Valeur Ventes</p>
         <div class="fw-bold" style="font-size:1.15rem;color:#10B981;">{{ formatAmount(stats.totalSalesValue) }}</div>
         <small class="text-muted">Chiffre d'affaires</small>
@@ -29,7 +29,7 @@
     </div>
     <div class="col-md-3 col-sm-6">
       <div class="p-4 h-100"
-           style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #3B82F6;">
+           style="background:var(--app-surface);border-radius:12px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #3B82F6;">
         <p class="text-muted small text-uppercase fw-semibold mb-1">Versements</p>
         <div class="fw-bold" style="font-size:1.15rem;color:#3B82F6;">{{ formatAmount(stats.totalCollected) }}</div>
         <small class="text-muted">Versements reçus</small>
@@ -37,7 +37,7 @@
     </div>
     <div class="col-md-3 col-sm-6">
       <div class="p-4 h-100"
-           style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #F59E0B;">
+           style="background:var(--app-surface);border-radius:12px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #F59E0B;">
         <p class="text-muted small text-uppercase fw-semibold mb-1">Créances Clients</p>
         <div class="fw-bold" style="font-size:1.15rem;color:#F59E0B;">{{ formatAmount(stats.totalPending) }}</div>
         <small class="text-muted">Reste à encaisser</small>
@@ -46,69 +46,69 @@
   </div>
 
   <!-- Main Card with Tabs -->
-  <div style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
+  <div style="background:var(--app-surface);border-radius:12px;border:1px solid var(--app-border-soft);box-shadow:0 2px 8px rgba(0,0,0,.04);">
 
     <!-- Tabs -->
-    <div class="px-4 pt-3" style="border-bottom:1px solid #f0f0f0;">
+    <div class="px-4 pt-3" style="border-bottom:1px solid var(--app-border-soft);">
       <ul class="nav nav-tabs border-0">
         <li class="nav-item">
           <a class="nav-link px-3 pb-3"
              [class.active]="activeTab === 'arrivals'"
-             [style.color]="activeTab === 'arrivals' ? '#0f3460' : '#6B7280'"
+             [style.color]="activeTab === 'arrivals' ? 'var(--app-brand-fg)' : 'var(--app-text-muted)'"
              [style.border-bottom]="activeTab === 'arrivals' ? '2px solid #0f3460' : '2px solid transparent'"
              [style.font-weight]="activeTab === 'arrivals' ? '600' : '400'"
              style="cursor:pointer;background:none;border:none;"
              (click)="onTabChange('arrivals')">
             <svg cIcon name="cilTruck" class="me-1"></svg> Arrivages
-            <span class="badge rounded-pill ms-1" style="background:#EFF6FF;color:#3B82F6;">{{ arrivalsTotal }}</span>
+            <span class="badge rounded-pill ms-1" style="background:var(--app-blue-bg);color:#3B82F6;">{{ arrivalsTotal }}</span>
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link px-3 pb-3"
              [class.active]="activeTab === 'sales'"
-             [style.color]="activeTab === 'sales' ? '#0f3460' : '#6B7280'"
+             [style.color]="activeTab === 'sales' ? 'var(--app-brand-fg)' : 'var(--app-text-muted)'"
              [style.border-bottom]="activeTab === 'sales' ? '2px solid #0f3460' : '2px solid transparent'"
              [style.font-weight]="activeTab === 'sales' ? '600' : '400'"
              style="cursor:pointer;background:none;border:none;"
              (click)="onTabChange('sales')">
             <svg cIcon name="cilCart" class="me-1"></svg> Ventes
-            <span class="badge rounded-pill ms-1" style="background:#ECFDF5;color:#10B981;">{{ salesTotal }}</span>
+            <span class="badge rounded-pill ms-1" style="background:var(--app-green-bg);color:#10B981;">{{ salesTotal }}</span>
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link px-3 pb-3"
              [class.active]="activeTab === 'allocations'"
-             [style.color]="activeTab === 'allocations' ? '#0f3460' : '#6B7280'"
+             [style.color]="activeTab === 'allocations' ? 'var(--app-brand-fg)' : 'var(--app-text-muted)'"
              [style.border-bottom]="activeTab === 'allocations' ? '2px solid #0f3460' : '2px solid transparent'"
              [style.font-weight]="activeTab === 'allocations' ? '600' : '400'"
              style="cursor:pointer;background:none;border:none;"
              (click)="onTabChange('allocations')">
             <svg cIcon name="cilPeople" class="me-1"></svg> Répartition
-            <span class="badge rounded-pill ms-1" style="background:#EFF6FF;color:#3B82F6;">{{ allocationSummaries.length }}</span>
+            <span class="badge rounded-pill ms-1" style="background:var(--app-blue-bg);color:#3B82F6;">{{ allocationSummaries.length }}</span>
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link px-3 pb-3"
              [class.active]="activeTab === 'payments'"
-             [style.color]="activeTab === 'payments' ? '#0f3460' : '#6B7280'"
+             [style.color]="activeTab === 'payments' ? 'var(--app-brand-fg)' : 'var(--app-text-muted)'"
              [style.border-bottom]="activeTab === 'payments' ? '2px solid #0f3460' : '2px solid transparent'"
              [style.font-weight]="activeTab === 'payments' ? '600' : '400'"
              style="cursor:pointer;background:none;border:none;"
              (click)="onTabChange('payments')">
             <svg cIcon name="cilDollar" class="me-1"></svg> Versements
-            <span class="badge rounded-pill ms-1" style="background:#EFF6FF;color:#3B82F6;">{{ paymentsTotal }}</span>
+            <span class="badge rounded-pill ms-1" style="background:var(--app-blue-bg);color:#3B82F6;">{{ paymentsTotal }}</span>
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link px-3 pb-3"
              [class.active]="activeTab === 'advances'"
-             [style.color]="activeTab === 'advances' ? '#0f3460' : '#6B7280'"
+             [style.color]="activeTab === 'advances' ? 'var(--app-brand-fg)' : 'var(--app-text-muted)'"
              [style.border-bottom]="activeTab === 'advances' ? '2px solid #0f3460' : '2px solid transparent'"
              [style.font-weight]="activeTab === 'advances' ? '600' : '400'"
              style="cursor:pointer;background:none;border:none;"
              (click)="onTabChange('advances')">
             <svg cIcon name="cilWallet" class="me-1"></svg> Avances
-            <span class="badge rounded-pill ms-1" style="background:#FFFBEB;color:#F59E0B;">{{ advancesTotal }}</span>
+            <span class="badge rounded-pill ms-1" style="background:var(--app-amber-bg);color:#F59E0B;">{{ advancesTotal }}</span>
           </a>
         </li>
       </ul>
@@ -125,7 +125,7 @@
       <!-- ==================== ARRIVALS ==================== -->
       <div *ngIf="!loading && activeTab === 'arrivals'">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="fw-bold mb-0" style="color:#1a1a2e;">Arrivages de Conteneurs</h6>
+          <h6 class="fw-bold mb-0" style="color:var(--app-heading);">Arrivages de Conteneurs</h6>
           <button *ngIf="canCreateContainer" cButton color="primary" size="sm" (click)="openArrivalModal()"
                   style="border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;">
             <svg cIcon name="cilPlus" class="me-1"></svg> Nouvel Arrivage
@@ -133,22 +133,22 @@
         </div>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
-            <thead style="background:#f8fafc;">
+            <thead style="background:var(--app-surface-2);">
               <tr>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Conteneur</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Fournisseur</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Type Produit</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Quantité</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Prix Achat</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Date</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Statut</th>
-                <th class="py-3 text-end" style="width:160px;border-bottom:2px solid #e9ecef;">Actions</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Conteneur</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Fournisseur</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Type Produit</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Quantité</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Prix Achat</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Date</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Statut</th>
+                <th class="py-3 text-end" style="width:160px;border-bottom:2px solid var(--app-border);">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let arrival of arrivals; trackBy: trackById">
                 <td class="py-3">
-                  <span class="fw-bold" style="color:#1a1a2e;">
+                  <span class="fw-bold" style="color:var(--app-heading);">
                     {{ arrival.container?.container_number || getContainerNumber(arrival.container_id) }}
                   </span>
                 </td>
@@ -156,7 +156,7 @@
                   {{ arrival.supplier?.name || getSupplierName(arrival.supplier_id) }}
                 </td>
                 <td class="py-3">
-                  <span class="badge rounded-pill" style="background:#EFF6FF;color:#3B82F6;">
+                  <span class="badge rounded-pill" style="background:var(--app-blue-bg);color:#3B82F6;">
                     {{ getProductTypeLabel(arrival.product_type) }}
                   </span>
                 </td>
@@ -222,36 +222,36 @@
       <!-- ==================== SALES ==================== -->
       <div *ngIf="!loading && activeTab === 'sales'">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="fw-bold mb-0" style="color:#1a1a2e;">Ventes aux Clients</h6>
+          <h6 class="fw-bold mb-0" style="color:var(--app-heading);">Ventes aux Clients</h6>
         </div>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
-            <thead style="background:#f8fafc;">
+            <thead style="background:var(--app-surface-2);">
               <tr>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Conteneur</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Client</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Type</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Qté</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Prix Vente</th>
-                <th class="py-3" style="min-width:140px;border-bottom:2px solid #e9ecef;">Progression</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Reste</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Statut</th>
-                <th class="py-3 text-end" style="width:120px;border-bottom:2px solid #e9ecef;">Action</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Conteneur</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Client</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Type</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Qté</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Prix Vente</th>
+                <th class="py-3" style="min-width:140px;border-bottom:2px solid var(--app-border);">Progression</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Reste</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Statut</th>
+                <th class="py-3 text-end" style="width:120px;border-bottom:2px solid var(--app-border);">Action</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let sale of sales; trackBy: trackById">
-                <td class="py-3 fw-bold" style="color:#1a1a2e;">
+                <td class="py-3 fw-bold" style="color:var(--app-heading);">
                   {{ sale.container_arrival?.container?.container_number || '-' }}
                 </td>
                 <td class="py-3">
                   <a href="javascript:void(0)" (click)="viewClientStats(sale.client)"
-                     class="text-decoration-none fw-semibold" style="color:#0f3460;">
+                     class="text-decoration-none fw-semibold" style="color:var(--app-brand-fg);">
                     {{ sale.client?.name || getClientName(sale.client_id) }}
                   </a>
                   <span *ngIf="sale.is_installment"
                         class="badge rounded-pill ms-1"
-                        style="background:#EFF6FF;color:#3B82F6;font-size:.7rem;">Échelonné</span>
+                        style="background:var(--app-blue-bg);color:#3B82F6;font-size:.7rem;">Échelonné</span>
                 </td>
                 <td class="py-3 text-muted">{{ getSaleTypeLabel(sale.sale_type) }}</td>
                 <td class="py-3">{{ sale.quantity_sold }}</td>
@@ -312,7 +312,7 @@
       <div *ngIf="!loading && activeTab === 'allocations'">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h6 class="fw-bold mb-1" style="color:#1a1a2e;">Répartition des conteneurs par client</h6>
+            <h6 class="fw-bold mb-1" style="color:var(--app-heading);">Répartition des conteneurs par client</h6>
             <p class="text-muted mb-0 small">Suivi des quantités attribuées et des versements par arrivage.</p>
           </div>
         </div>
@@ -320,10 +320,10 @@
         <div class="vstack gap-3" *ngIf="allocationSummaries.length > 0; else noAllocationData">
           <div *ngFor="let summary of allocationSummaries; trackBy: trackById"
                class="p-3 p-md-4"
-               style="border:1px solid #e5e7eb;border-radius:12px;background:#fff;">
+               style="border:1px solid var(--app-border);border-radius:12px;background:var(--app-surface);">
             <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start mb-3">
               <div>
-                <div class="fw-bold" style="color:#0f3460;">
+                <div class="fw-bold" style="color:var(--app-brand-fg);">
                   {{ summary.container_number || getContainerNumber(summary.container_id) }}
                 </div>
                 <div class="small text-muted">
@@ -331,7 +331,7 @@
                 </div>
               </div>
               <div class="text-md-end">
-                <div class="fw-semibold" style="color:#111827;">
+                <div class="fw-semibold" style="color:var(--app-heading);">
                   {{ summary.allocated_quantity }} / {{ summary.total_quantity }} attribué(s)
                 </div>
                 <div class="small text-muted">
@@ -341,7 +341,7 @@
             </div>
 
             <div class="mb-3">
-              <div class="progress" style="height:10px;border-radius:999px;background:#E5E7EB;">
+              <div class="progress" style="height:10px;border-radius:999px;background:var(--app-surface-4);">
                 <div class="progress-bar"
                      style="border-radius:999px;background:linear-gradient(135deg,#0f3460,#3B82F6);"
                      [style.width.%]="getAllocationProgressValue(summary)">
@@ -352,7 +352,7 @@
 
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
-                <thead style="background:#f8fafc;">
+                <thead style="background:var(--app-surface-2);">
                   <tr>
                     <th>Client</th>
                     <th>Qté attribuée</th>
@@ -390,23 +390,23 @@
 
       <!-- ==================== PAYMENTS ==================== -->
       <div *ngIf="!loading && activeTab === 'payments'">
-        <h6 class="fw-bold mb-3" style="color:#1a1a2e;">Historique des Versements</h6>
+        <h6 class="fw-bold mb-3" style="color:var(--app-heading);">Historique des Versements</h6>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
-            <thead style="background:#f8fafc;">
+            <thead style="background:var(--app-surface-2);">
               <tr>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Date</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Client</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Conteneur</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Montant</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Méthode</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Référence</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Date</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Client</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Conteneur</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Montant</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Méthode</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Référence</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let payment of clientPayments; trackBy: trackById">
                 <td class="py-3"><small class="text-muted">{{ payment.payment_date | date:'dd/MM/yyyy' }}</small></td>
-                <td class="py-3 fw-semibold" style="color:#1a1a2e;">
+                <td class="py-3 fw-semibold" style="color:var(--app-heading);">
                   {{ payment.client?.name || getClientName(payment.client_id) }}
                 </td>
                 <td class="py-3 text-muted">
@@ -416,7 +416,7 @@
                   {{ formatAmount(payment.amount, payment.currency) }}
                 </td>
                 <td class="py-3">
-                  <span class="badge rounded-pill" style="background:#F9FAFB;color:#6B7280;">
+                  <span class="badge rounded-pill" style="background:var(--app-surface-2);color:var(--app-text-muted);">
                     {{ getPaymentMethodLabel(payment.payment_method) }}
                   </span>
                 </td>
@@ -451,7 +451,7 @@
       <!-- ==================== ADVANCES ==================== -->
       <div *ngIf="!loading && activeTab === 'advances'">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="fw-bold mb-0" style="color:#1a1a2e;">Avances Clients</h6>
+          <h6 class="fw-bold mb-0" style="color:var(--app-heading);">Avances Clients</h6>
           <button cButton color="warning" size="sm" (click)="openAdvanceModal()"
                   style="border-radius:8px;">
             <svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle Avance
@@ -459,15 +459,15 @@
         </div>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
-            <thead style="background:#f8fafc;">
+            <thead style="background:var(--app-surface-2);">
               <tr>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Date</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Client</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Montant Initial</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Utilisé</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Disponible</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Méthode</th>
-                <th class="py-3" style="border-bottom:2px solid #e9ecef;">Statut</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Date</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Client</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Montant Initial</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Utilisé</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Disponible</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Méthode</th>
+                <th class="py-3" style="border-bottom:2px solid var(--app-border);">Statut</th>
               </tr>
             </thead>
             <tbody>
@@ -475,7 +475,7 @@
                 <td class="py-3"><small class="text-muted">{{ advance.payment_date | date:'dd/MM/yyyy' }}</small></td>
                 <td class="py-3">
                   <a href="javascript:void(0)" (click)="viewClientStats(advance.client)"
-                     class="text-decoration-none fw-semibold" style="color:#0f3460;">
+                     class="text-decoration-none fw-semibold" style="color:var(--app-brand-fg);">
                     {{ advance.client?.name || getClientName(advance.client_id) }}
                   </a>
                 </td>
@@ -483,7 +483,7 @@
                 <td class="py-3 text-muted">{{ formatAmount(advance.used_amount, advance.currency) }}</td>
                 <td class="py-3 fw-bold" style="color:#10B981;">{{ formatAmount(advance.remaining_amount, advance.currency) }}</td>
                 <td class="py-3">
-                  <span class="badge rounded-pill" style="background:#F9FAFB;color:#6B7280;">
+                  <span class="badge rounded-pill" style="background:var(--app-surface-2);color:var(--app-text-muted);">
                     {{ getPaymentMethodLabel(advance.payment_method) }}
                   </span>
                 </td>
@@ -523,7 +523,7 @@
 
 <!-- ==================== ARRIVAL MODAL ==================== -->
 <c-modal [visible]="showArrivalModal" (visibleChange)="showArrivalModal = $event" backdrop="static" size="lg">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);">
     <h5 cModalTitle class="fw-bold">{{ editMode ? "Modifier l'Arrivage" : 'Nouvel Arrivage de Conteneur' }}</h5>
     <button type="button" class="btn-close" (click)="showArrivalModal = false"></button>
   </c-modal-header>
@@ -582,7 +582,7 @@
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);">
     <button cButton color="secondary" variant="outline" (click)="showArrivalModal = false" style="border-radius:8px;">
       Annuler
     </button>
@@ -595,13 +595,13 @@
 
 <!-- ==================== SALE MODAL ==================== -->
 <c-modal [visible]="showSaleModal" (visibleChange)="showSaleModal = $event" backdrop="static" size="lg">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);">
     <h5 cModalTitle class="fw-bold">Vendre le Conteneur</h5>
     <button type="button" class="btn-close" (click)="showSaleModal = false"></button>
   </c-modal-header>
   <c-modal-body class="p-4">
     <div *ngIf="selectedArrival" class="p-3 rounded mb-4"
-         style="background:#EFF6FF;border-left:4px solid #3B82F6;">
+         style="background:var(--app-blue-bg);border-left:4px solid #3B82F6;">
       <div class="row">
         <div class="col-auto"><strong>Conteneur:</strong> {{ selectedArrival.container?.container_number }}</div>
         <div class="col-auto"><strong>Stock disponible:</strong>
@@ -672,7 +672,7 @@
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);">
     <button cButton color="secondary" variant="outline" (click)="showSaleModal = false" style="border-radius:8px;">
       Annuler
     </button>
@@ -684,13 +684,13 @@
 
 <!-- ==================== PAYMENT MODAL ==================== -->
 <c-modal [visible]="showPaymentModal" (visibleChange)="showPaymentModal = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);">
     <h5 cModalTitle class="fw-bold">Enregistrer un Versement</h5>
     <button type="button" class="btn-close" (click)="showPaymentModal = false"></button>
   </c-modal-header>
   <c-modal-body class="p-4">
     <div *ngIf="selectedSale" class="p-3 rounded mb-4"
-         style="background:#FFFBEB;border-left:4px solid #F59E0B;">
+         style="background:var(--app-amber-bg);border-left:4px solid #F59E0B;">
       <strong>Client:</strong> {{ selectedSale.client?.name }} &nbsp;|&nbsp;
       <strong>Reste à payer:</strong>
       <span class="fw-bold" style="color:#EF4444;"> {{ formatAmount(selectedSale.remaining_amount, selectedSale.currency) }}</span>
@@ -732,7 +732,7 @@
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);">
     <button cButton color="secondary" variant="outline" (click)="showPaymentModal = false" style="border-radius:8px;">
       Annuler
     </button>
@@ -744,12 +744,12 @@
 
 <!-- ==================== ADVANCE MODAL ==================== -->
 <c-modal [visible]="showAdvanceModal" (visibleChange)="showAdvanceModal = $event" backdrop="static">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);">
     <h5 cModalTitle class="fw-bold">Enregistrer une Avance Client</h5>
     <button type="button" class="btn-close" (click)="showAdvanceModal = false"></button>
   </c-modal-header>
   <c-modal-body class="p-4">
-    <div class="p-3 rounded mb-4" style="background:#EFF6FF;border-left:4px solid #3B82F6;">
+    <div class="p-3 rounded mb-4" style="background:var(--app-blue-bg);border-left:4px solid #3B82F6;">
       <small>Les avances sont des paiements anticipés pour des conteneurs à venir. Elles seront déduites automatiquement lors des prochaines ventes.</small>
     </div>
     <form [formGroup]="advanceForm">
@@ -793,7 +793,7 @@
       </div>
     </form>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);">
     <button cButton color="secondary" variant="outline" (click)="showAdvanceModal = false" style="border-radius:8px;">
       Annuler
     </button>
@@ -805,40 +805,40 @@
 
 <!-- ==================== CLIENT STATS MODAL ==================== -->
 <c-modal [visible]="showClientStatsModal" (visibleChange)="showClientStatsModal = $event" size="lg">
-  <c-modal-header style="border-bottom:1px solid #f0f0f0;">
+  <c-modal-header style="border-bottom:1px solid var(--app-border-soft);">
     <h5 cModalTitle class="fw-bold">Situation du Client : {{ selectedClient?.name }}</h5>
     <button type="button" class="btn-close" (click)="showClientStatsModal = false"></button>
   </c-modal-header>
   <c-modal-body class="p-4" *ngIf="clientStats">
     <div class="row g-3 mb-3">
       <div class="col-md-6">
-        <div class="p-4 h-100 rounded" style="background:#EFF6FF;border-left:4px solid #3B82F6;">
+        <div class="p-4 h-100 rounded" style="background:var(--app-blue-bg);border-left:4px solid #3B82F6;">
           <p class="text-muted small mb-1">Total des Achats</p>
           <h4 class="fw-bold mb-0" style="color:#3B82F6;">{{ formatAmount(clientStats.total_sales) }}</h4>
         </div>
       </div>
       <div class="col-md-6">
-        <div class="p-4 h-100 rounded" style="background:#ECFDF5;border-left:4px solid #10B981;">
+        <div class="p-4 h-100 rounded" style="background:var(--app-green-bg);border-left:4px solid #10B981;">
           <p class="text-muted small mb-1">Total Payé</p>
           <h4 class="fw-bold mb-0" style="color:#10B981;">{{ formatAmount(clientStats.total_paid) }}</h4>
         </div>
       </div>
       <div class="col-md-6">
-        <div class="p-4 h-100 rounded" style="background:#FEE2E2;border-left:4px solid #EF4444;">
+        <div class="p-4 h-100 rounded" style="background:var(--app-red-bg-2);border-left:4px solid #EF4444;">
           <p class="text-muted small mb-1">Dette (Reste à Payer)</p>
           <h4 class="fw-bold mb-0" style="color:#EF4444;">{{ formatAmount(clientStats.total_debt) }}</h4>
           <small class="text-muted">{{ clientStats.pending_sales_count }} vente(s) en cours</small>
         </div>
       </div>
       <div class="col-md-6">
-        <div class="p-4 h-100 rounded" style="background:#FFFBEB;border-left:4px solid #F59E0B;">
+        <div class="p-4 h-100 rounded" style="background:var(--app-amber-bg);border-left:4px solid #F59E0B;">
           <p class="text-muted small mb-1">Avances Disponibles</p>
           <h4 class="fw-bold mb-0" style="color:#F59E0B;">{{ formatAmount(clientStats.total_advances) }}</h4>
         </div>
       </div>
     </div>
     <div class="p-4 rounded text-center"
-         [style.background]="clientStats.balance >= 0 ? '#ECFDF5' : '#FEE2E2'"
+         [style.background]="clientStats.balance >= 0 ? 'var(--app-green-bg)' : 'var(--app-red-bg-2)'"
          [style.border]="clientStats.balance >= 0 ? '1px solid #10B981' : '1px solid #EF4444'">
       <p class="text-muted small mb-1">Balance (Avances - Dettes)</p>
       <h3 class="fw-bold mb-1" [style.color]="clientStats.balance >= 0 ? '#10B981' : '#EF4444'">
@@ -848,7 +848,7 @@
       <small *ngIf="clientStats.balance < 0" style="color:#EF4444;">Le client nous doit de l'argent</small>
     </div>
   </c-modal-body>
-  <c-modal-footer style="border-top:1px solid #f0f0f0;">
+  <c-modal-footer style="border-top:1px solid var(--app-border-soft);">
     <button cButton color="secondary" variant="outline" (click)="showClientStatsModal = false" style="border-radius:8px;">
       Fermer
     </button>

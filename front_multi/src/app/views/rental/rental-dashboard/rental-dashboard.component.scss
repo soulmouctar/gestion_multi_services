@@ -1,7 +1,7 @@
 /* Palette locale : un seul endroit à toucher pour re-teinter le module.
    On s'appuie sur les variables CoreUI pour rester lisible en thème sombre. */
 :host {
-  --rd-surface: var(--cui-card-bg, #fff);
+  --rd-surface: var(--app-surface);
   --rd-border: var(--cui-border-color, #e4e7ec);
   --rd-muted: var(--cui-secondary-color, #6b7280);
   --rd-track: rgba(148, 163, 184, .18);
@@ -240,7 +240,7 @@
   padding: .7rem .9rem;
   border-radius: 10px;
   border-left: 3px solid transparent;
-  background: var(--cui-tertiary-bg, #f8f9fa);
+  background: var(--cui-tertiary-bg, var(--app-surface-2));
 
   + .rd-list-row { margin-top: .5rem; }
 }
@@ -269,7 +269,7 @@
   border-radius: 10px;
   transition: background .15s ease;
 
-  &:hover { background: var(--cui-tertiary-bg, #f8f9fa); }
+  &:hover { background: var(--cui-tertiary-bg, var(--app-surface-2)); }
 }
 
 .rd-building-row__rank {

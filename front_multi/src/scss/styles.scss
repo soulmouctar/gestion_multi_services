@@ -16,8 +16,14 @@ $app-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 // Import Chart.js custom tooltips styles
 @use "@coreui/chartjs/scss/coreui-chartjs";
 
+// Jetons de couleur de l'application (clair + sombre)
+@use "tokens";
+
 // Custom styles for this theme
 @use "theme";
+
+// Mode sombre : complements globaux
+@use "dark";
 
 // Some temp fixes
 //@use "fixes";
