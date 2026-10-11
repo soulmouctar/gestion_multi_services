@@ -171,15 +171,28 @@ export class FinancePaymentsComponent implements OnInit {
     const average = Number(stats?.average_payment || 0);
     const scope = this.periodLabel();
 
+    // Encaissements clients par devise reçue : les GNF et les USD ne s'additionnent pas.
+    const byCurrency: { currency: string; total: number }[] = Array.isArray(stats?.client_by_currency)
+      ? stats.client_by_currency
+      : [];
+    const gnfReceived = byCurrency.find(row => row.currency === 'GNF');
+    const foreignReceived = byCurrency
+      .filter(row => row.currency !== 'GNF' && Number(row.total) > 0)
+      .map(row => this.fmtCompact(Number(row.total), row.currency));
+    const clientValue = byCurrency.length ? this.fmtCompact(Number(gnfReceived?.total || 0)) : this.fmtCompact(clientTotal);
+    const clientCaption = foreignReceived.length
+      ? `+ ${foreignReceived.join(' + ')} · ${scope}`
+      : `Versements clients ${scope}`;
+
     return [
       {
-        label: 'Encaissé clients', tag: 'Clients', value: this.fmtCompact(clientTotal),
-        caption: `Versements clients ${scope}`,
+        label: 'Encaissé clients', tag: 'Clients', value: clientValue,
+        caption: clientCaption,
         icon: 'cilCash', color: '#10b981', soft: 'rgba(16, 185, 129, .12)',
       },
       {
         label: 'Tous encaissements', tag: 'Global', value: this.fmtCompact(allTotal),
-        caption: `Tous types confondus ${scope}`,
+        caption: `Équivalent GNF, tous types ${scope}`,
         icon: 'cilMoney', color: '#6366f1', soft: 'rgba(99, 102, 241, .12)',
       },
       {
@@ -189,7 +202,7 @@ export class FinancePaymentsComponent implements OnInit {
       },
       {
         label: 'Versement moyen', tag: 'Moyenne', value: this.fmtCompact(average),
-        caption: 'Montant moyen par opération',
+        caption: 'Équivalent GNF par opération',
         icon: 'cilChart', color: '#f59e0b', soft: 'rgba(245, 158, 11, .14)',
       },
     ];

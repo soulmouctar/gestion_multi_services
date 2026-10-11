@@ -21,6 +21,7 @@ import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { NavigationService } from '../../core/services/navigation.service';
 import { AuthService } from '../../core/services/auth.service';
 import { TenantService } from '../../core/services/tenant.service';
+import { IdleLogoutService } from '../../core/services/idle-logout.service';
 
 @Component({
   selector: 'app-default-layout',
@@ -54,10 +55,14 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
   constructor(
     private navigationService: NavigationService,
     private authService: AuthService,
-    private tenantService: TenantService
+    private tenantService: TenantService,
+    private idleLogout: IdleLogoutService
   ) {}
 
   ngOnInit(): void {
+    // Déconnexion automatique après 5 minutes d'inactivité, sur tout l'espace connecté
+    this.idleLogout.start();
+
     this.navigationService.getNavigationItems().pipe(
       takeUntil(this.destroy$)
     ).subscribe({
@@ -88,6 +93,7 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.idleLogout.stop();
     this.destroy$.next();
     this.destroy$.complete();
   }

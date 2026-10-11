@@ -1,4 +1,10 @@
 <c-container>
+  <!-- En-tête de page (modèle commun : voir _harmony.scss) -->
+  <div class="app-page-header">
+    <h1>Paramètres avancés</h1>
+    <p>Préférences métier, numérotation et options de l'organisation</p>
+  </div>
+
   <c-row>
     <c-col xs="12">
       <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>

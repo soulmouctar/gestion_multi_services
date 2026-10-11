@@ -626,11 +626,6 @@ export class ProductsListComponent implements OnInit {
     };
   }
 
-  // Stock management
-  manageStock(product: Product): void {
-    this.router.navigate(['/products/stock', product.id]);
-  }
-
   // Quick actions
   toggleProductStatus(product: Product): void {
     const newStatus = product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';

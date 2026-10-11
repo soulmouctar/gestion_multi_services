@@ -12,6 +12,8 @@ use App\Models\Supplier;
 use App\Models\ProductReturn;
 use App\Models\ContainerSale;
 use App\Models\ContainerSalePayment;
+use App\Services\AccountBalanceService;
+use App\Support\GnfRate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -124,21 +126,16 @@ class PaymentController extends BaseController
 
         DB::beginTransaction();
         try {
-            $currency     = strtoupper($request->currency ?? 'GNF');
-            $targetCurrency = strtoupper($request->target_currency ?: $currency);
-            if ($targetCurrency !== $currency && !$request->filled('exchange_rate')) {
-                DB::rollBack();
-                return $this->sendError('Taux de change requis pour convertir le paiement.', [
-                    'exchange_rate' => ['Le taux de change est requis lorsque la devise reçue diffère de la devise imputée.'],
-                ], 422);
-            }
-            $exchangeRate = $this->resolveExchangeRate($request, $tenantId, $currency);
-            $amountGnf    = $this->resolveAmountGnf($request, $currency, $exchangeRate);
+            $currency = strtoupper($request->currency ?? 'GNF');
 
             // ── Routage vers compte-devise client + conversion eventuelle ──
-            $routing = $this->routePaymentToAccount(
-                $request, $tenantId, $currency, (float) $request->amount, $exchangeRate
-            );
+            $routing = $this->routePaymentToAccount($request, $tenantId, $currency, (float) $request->amount);
+            if (!empty($routing['error'])) {
+                DB::rollBack();
+                return $this->sendError($routing['error'], ['exchange_rate' => [$routing['error']]], 422);
+            }
+            $exchangeRate = $routing['exchange_rate'];
+            $amountGnf    = $routing['amount_gnf'];
 
             $payment = Payment::create([
                 'tenant_id'         => $tenantId,
@@ -163,13 +160,7 @@ class PaymentController extends BaseController
                 'payment_date'      => $request->payment_date,
             ]);
 
-            // Mise a jour du solde du compte-devise client (credit = reduction de dette)
-            if ($routing['target_account_id']) {
-                $account = ClientCurrencyAccount::where('tenant_id', $tenantId)->find($routing['target_account_id']);
-                if ($account) {
-                    $account->applyCredit((float) $routing['converted_amount']);
-                }
-            }
+            // Le solde du compte-devise est recalcule automatiquement (AccountBalanceService).
 
             // Update invoice paid_amount if linked
             if ($request->invoice_id) {
@@ -245,25 +236,20 @@ class PaymentController extends BaseController
             $created  = [];
 
             foreach ($request->entries as $entry) {
-                $currency     = strtoupper($entry['currency']);
-                $targetCurrency = strtoupper($entry['target_currency'] ?? $currency);
-                if ($targetCurrency !== $currency && empty($entry['exchange_rate'])) {
-                    DB::rollBack();
-                    return $this->sendError('Taux de change requis pour convertir le paiement.', [
-                        'entries' => ['Chaque ligne convertie doit avoir un taux de change.'],
-                    ], 422);
-                }
+                $currency = strtoupper($entry['currency']);
                 $entryRequest = new Request(array_merge($request->except('entries'), $entry));
                 $entryScopeError = $this->validatePaymentScope($entryRequest, $tenantId);
                 if ($entryScopeError) {
                     DB::rollBack();
                     return $entryScopeError;
                 }
-                $exchangeRate = $this->resolveExchangeRate($entryRequest, $tenantId, $currency);
-                $amountGnf    = $this->resolveAmountGnf($entryRequest, $currency, $exchangeRate);
-                $routing      = $this->routePaymentToAccount(
-                    $entryRequest, $tenantId, $currency, (float) $entry['amount'], $exchangeRate
-                );
+                $routing = $this->routePaymentToAccount($entryRequest, $tenantId, $currency, (float) $entry['amount']);
+                if (!empty($routing['error'])) {
+                    DB::rollBack();
+                    return $this->sendError($routing['error'], ['entries' => [$routing['error']]], 422);
+                }
+                $exchangeRate = $routing['exchange_rate'];
+                $amountGnf    = $routing['amount_gnf'];
 
                 $payment = Payment::create([
                     'tenant_id'         => $tenantId,
@@ -287,13 +273,6 @@ class PaymentController extends BaseController
                     'status'            => $request->status ?? 'COMPLETED',
                     'payment_date'      => $request->payment_date,
                 ]);
-
-                if ($routing['target_account_id']) {
-                    $account = ClientCurrencyAccount::where('tenant_id', $tenantId)->find($routing['target_account_id']);
-                    if ($account) {
-                        $account->applyCredit((float) $routing['converted_amount']);
-                    }
-                }
 
                 $created[] = $payment->load(['client:id,name', 'targetAccount']);
             }
@@ -332,62 +311,81 @@ class PaymentController extends BaseController
         int $tenantId,
         string $paymentCurrency,
         float $amount,
-        float $exchangeRate
+        ?float $fallbackGnfRate = null
     ): array {
-        // Pas un paiement client (depot, retrait, supplier) -> pas de routage
-        if ($request->type !== 'CLIENT' || !$request->client_id) {
+        $provided = $request->filled('exchange_rate') ? (float) $request->exchange_rate : null;
+
+        // Compte cible : uniquement pour un versement client
+        $targetAccount = null;
+        if ($request->type === 'CLIENT' && $request->client_id) {
+            $client = Client::where('tenant_id', $tenantId)->find($request->client_id);
+            if ($client) {
+                if ($request->filled('target_account_id')) {
+                    $targetAccount = ClientCurrencyAccount::where('tenant_id', $tenantId)
+                        ->where('client_id', $client->id)
+                        ->find($request->target_account_id);
+                }
+                if (!$targetAccount) {
+                    $targetAccount = $client->getAccount(strtoupper($request->target_currency ?: $paymentCurrency));
+                }
+            }
+        }
+        $targetCurrency = $targetAccount ? strtoupper($targetAccount->currency) : $paymentCurrency;
+
+        // Deux taux distincts, a ne pas confondre :
+        //  - $gnfRate       : devise recue -> GNF (equivalent GNF du versement) ;
+        //  - $targetGnfRate : devise du compte impute -> GNF (conversion).
+        // Le taux saisi decrit la devise etrangere de l'operation : celle du
+        // versement, ou celle du compte quand on verse des GNF sur un compte USD.
+        $gnfRate = GnfRate::resolve(
+            $tenantId,
+            $paymentCurrency,
+            $paymentCurrency !== 'GNF' ? ($provided ?? $fallbackGnfRate) : null
+        );
+        if ($gnfRate === null) {
+            return ['error' => GnfRate::missingMessage($paymentCurrency)];
+        }
+        $targetGnfRate = $targetCurrency === $paymentCurrency
+            ? $gnfRate
+            : GnfRate::resolve($tenantId, $targetCurrency, $paymentCurrency === 'GNF' ? ($provided ?? $fallbackGnfRate) : null);
+        if ($targetGnfRate === null) {
+            return ['error' => GnfRate::missingMessage($targetCurrency)];
+        }
+
+        $amountGnf = $paymentCurrency === 'GNF' ? round($amount, 2) : round($amount * $gnfRate, 2);
+
+        if (!$targetAccount) {
             return [
+                'error'             => null,
                 'target_currency'   => null,
                 'target_account_id' => null,
                 'converted_amount'  => null,
                 'conversion_rate'   => null,
+                'exchange_rate'     => $gnfRate,
+                'amount_gnf'        => $amountGnf,
             ];
         }
 
-        $client = Client::where('tenant_id', $tenantId)->find($request->client_id);
-        if (!$client) {
-            return ['target_currency' => null, 'target_account_id' => null, 'converted_amount' => null, 'conversion_rate' => null];
-        }
-
-        // Resolution du compte cible
-        $targetAccount = null;
-        if ($request->filled('target_account_id')) {
-            $targetAccount = ClientCurrencyAccount::where('tenant_id', $tenantId)
-                ->where('client_id', $client->id)
-                ->find($request->target_account_id);
-        }
-        if (!$targetAccount) {
-            $targetCurrency = strtoupper($request->target_currency ?: $paymentCurrency);
-            $targetAccount  = $client->getAccount($targetCurrency);
-        }
-
-        $targetCurrency = strtoupper($targetAccount->currency);
-
-        // Calcul du montant converti
         if ($paymentCurrency === $targetCurrency) {
-            $convertedAmount = $amount;
+            $convertedAmount = round($amount, 2);
             $conversionRate  = 1.0;
-        } elseif ($paymentCurrency === 'GNF') {
-            // GNF -> devise : on divise par le taux
-            $conversionRate  = $exchangeRate > 0 ? (float) $exchangeRate : 1.0;
-            $convertedAmount = round($amount / $conversionRate, 2);
-        } elseif ($targetCurrency === 'GNF') {
-            // Devise -> GNF : on multiplie par le taux
-            $conversionRate  = $exchangeRate > 0 ? (float) $exchangeRate : 1.0;
-            $convertedAmount = round($amount * $conversionRate, 2);
         } else {
-            // Devise A -> Devise B : passage par GNF
-            $rateBuy  = $exchangeRate > 0 ? (float) $exchangeRate : 1.0;
-            $rateSell = $rateBuy;
-            $convertedAmount = round(($amount * $rateBuy) / $rateSell, 2);
-            $conversionRate  = $rateBuy / $rateSell;
+            // Passage par le GNF : montant -> GNF -> devise du compte
+            $convertedAmount = round($amount * $gnfRate / $targetGnfRate, 2);
+            $conversionRate  = $paymentCurrency === 'GNF'
+                ? $targetGnfRate
+                : ($targetCurrency === 'GNF' ? $gnfRate : round($gnfRate / $targetGnfRate, 6));
         }
 
         return [
+            'error'             => null,
             'target_currency'   => $targetCurrency,
             'target_account_id' => $targetAccount->id,
             'converted_amount'  => $convertedAmount,
             'conversion_rate'   => $conversionRate,
+            // Taux affiche sur le recu : celui de la devise etrangere de l'operation
+            'exchange_rate'     => $paymentCurrency === 'GNF' ? $targetGnfRate : $gnfRate,
+            'amount_gnf'        => $amountGnf,
         ];
     }
 
@@ -504,19 +502,7 @@ class PaymentController extends BaseController
         try {
             $currency = strtoupper($request->currency ?? $payment->currency ?? 'GNF');
             $targetCurrency = strtoupper($request->target_currency ?: ($payment->target_currency ?: $currency));
-            if ($targetCurrency !== $currency && !$request->filled('exchange_rate') && !$payment->exchange_rate) {
-                DB::rollBack();
-                return $this->sendError('Taux de change requis pour convertir le paiement.', [
-                    'exchange_rate' => ['Le taux de change est requis lorsque la devise reçue diffère de la devise imputée.'],
-                ], 422);
-            }
-            $exchangeRate = $this->resolveExchangeRate($request, $payment->tenant_id, $currency, (float) ($payment->exchange_rate ?? 1));
-            $amountGnf = $this->resolveAmountGnf(
-                $request,
-                $currency,
-                $exchangeRate,
-                (float) ($request->amount ?? $payment->amount)
-            );
+
             $requestedTargetAccountId = $request->filled('target_account_id')
                 ? $request->input('target_account_id')
                 : ($targetCurrency === strtoupper($payment->target_currency ?: '') ? $payment->target_account_id : null);
@@ -527,13 +513,22 @@ class PaymentController extends BaseController
                 'target_currency' => $targetCurrency,
                 'target_account_id' => $requestedTargetAccountId,
             ]);
+            // Sans nouveau taux saisi, on garde celui du versement s'il est exploitable
             $routing = $this->routePaymentToAccount(
                 $routingRequest,
                 (int) $payment->tenant_id,
                 $currency,
                 (float) ($request->amount ?? $payment->amount),
-                $exchangeRate
+                $currency === strtoupper((string) $payment->currency) && (float) $payment->exchange_rate > 1
+                    ? (float) $payment->exchange_rate
+                    : null
             );
+            if (!empty($routing['error'])) {
+                DB::rollBack();
+                return $this->sendError($routing['error'], ['exchange_rate' => [$routing['error']]], 422);
+            }
+            $exchangeRate = $routing['exchange_rate'];
+            $amountGnf    = $routing['amount_gnf'];
 
             $payload = $request->only([
                 'type', 'method', 'amount', 'currency', 'proof',
@@ -548,9 +543,7 @@ class PaymentController extends BaseController
             $payload['converted_amount'] = $routing['converted_amount'];
             $payload['conversion_rate'] = $routing['conversion_rate'];
 
-            $this->reverseClientAccountCredit($payment);
             $payment->update($payload);
-            $this->applyClientAccountCredit($payment->fresh());
 
             // Recalculate old and new invoice if changed
             if ($oldInvoiceId && $oldInvoiceId !== $payment->invoice_id) {
@@ -584,43 +577,15 @@ class PaymentController extends BaseController
         }
 
         $invoiceId = $payment->invoice_id;
-        $this->reverseClientAccountCredit($payment);
-        $payment->delete();
 
-        if ($invoiceId) {
-            Invoice::find($invoiceId)?->recalculatePaidAmount();
-        }
+        DB::transaction(function () use ($payment, $invoiceId) {
+            $payment->delete();
+            if ($invoiceId) {
+                Invoice::find($invoiceId)?->recalculatePaidAmount();
+            }
+        });
 
         return $this->sendResponse([], 'Payment deleted successfully');
-    }
-
-    private function reverseClientAccountCredit(?Payment $payment): void
-    {
-        if (!$payment || $payment->type !== 'CLIENT' || !$payment->target_account_id || !$payment->converted_amount) {
-            return;
-        }
-
-        $account = ClientCurrencyAccount::where('tenant_id', $payment->tenant_id)->find($payment->target_account_id);
-        if (!$account) {
-            return;
-        }
-
-        $amount = (float) $payment->converted_amount;
-        $account->current_balance = (float) $account->current_balance + $amount;
-        $account->total_credit = max(0, (float) $account->total_credit - $amount);
-        $account->save();
-    }
-
-    private function applyClientAccountCredit(?Payment $payment): void
-    {
-        if (!$payment || $payment->type !== 'CLIENT' || $payment->status !== 'COMPLETED' || !$payment->target_account_id || !$payment->converted_amount) {
-            return;
-        }
-
-        $account = ClientCurrencyAccount::where('tenant_id', $payment->tenant_id)->find($payment->target_account_id);
-        if ($account) {
-            $account->applyCredit((float) $payment->converted_amount);
-        }
     }
 
     /**
@@ -790,31 +755,37 @@ class PaymentController extends BaseController
             ->get()
             ->groupBy('client_id');
 
-        $balances = $invoices->map(function ($clientInvoices) use ($tenantId) {
-            $client = $clientInvoices->first()->client;
-            $totalInvoiced = $clientInvoices->sum(fn ($invoice) => $this->invoiceTotalGnf($invoice));
-            $paidOnInvoices = (float) Payment::when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
-                ->where('client_id', $client?->id)
-                ->where('status', 'COMPLETED')
-                ->whereNotNull('invoice_id')
-                ->get()
-                ->sum(fn ($payment) => $payment->amount_gnf);
-            $availableCredit = (float) Payment::when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
-                ->where('client_id', $client?->id)
-                ->where('status', 'COMPLETED')
-                ->where('type', 'CLIENT')
-                ->whereNull('invoice_id')
-                ->get()
-                ->sum(fn ($payment) => $payment->amount_gnf);
-            $returnCredits = (float) ProductReturn::when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
-                ->where('client_id', $client?->id)
-                ->whereNull('invoice_id')
-                ->where('status', 'APPROVED')
-                ->whereNull('client_advance_id')
-                ->get()
-                ->sum(fn (ProductReturn $return) => $this->productReturnCreditGnf($return));
+        // Chargement groupe : 4 requetes pour tous les clients, au lieu de 5 par client
+        $scoped = fn ($query) => $query->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId));
+        $none = collect();
+        $paymentsByClient = $scoped(Payment::query())->where('status', 'COMPLETED')->where('type', 'CLIENT')
+            ->get()->groupBy('client_id');
+        $returnsByClient = $scoped(ProductReturn::query())->whereNull('invoice_id')->where('status', 'APPROVED')
+            ->whereNull('client_advance_id')->get()->groupBy('client_id');
+        $soldByClient = $scoped(ContainerSale::query())->where('status', '!=', 'ANNULE')
+            ->selectRaw('client_id, COALESCE(SUM(sale_price_gnf), 0) as total')->groupBy('client_id')->pluck('total', 'client_id');
+        $containerPaidByClient = $scoped(ContainerSalePayment::query())
+            ->where(fn ($q) => $q->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE'))
+            ->selectRaw('client_id, COALESCE(SUM(amount_gnf), 0) as total')->groupBy('client_id')->pluck('total', 'client_id');
 
-            $container = $this->containerTotalsGnf((int) $client?->id, $tenantId);
+        $balances = $invoices->map(function ($clientInvoices) use ($paymentsByClient, $returnsByClient, $soldByClient, $containerPaidByClient, $none) {
+            $client = $clientInvoices->first()->client;
+            $clientId = $client?->id;
+            // Montant propre des factures : le solde anterieur reporte n'est pas recompte
+            $totalInvoiced = $clientInvoices->sum(function ($invoice) {
+                $own = AccountBalanceService::invoiceOwnAmount($invoice);
+                $rate = strtoupper((string) ($invoice->currency ?? 'GNF')) === 'GNF' ? 1.0 : (float) ($invoice->exchange_rate ?: 0);
+                return $own * $rate;
+            });
+            $clientPayments = $paymentsByClient->get($clientId, $none);
+            $paidOnInvoices = (float) $clientPayments->whereNotNull('invoice_id')->sum(fn ($payment) => $payment->amount_gnf);
+            $availableCredit = (float) $clientPayments->whereNull('invoice_id')->sum(fn ($payment) => $payment->amount_gnf);
+            $returnCredits = (float) $returnsByClient->get($clientId, $none)
+                ->sum(fn (ProductReturn $return) => $this->productReturnCreditGnf($return));
+            $container = [
+                'sold' => (float) ($soldByClient[$clientId] ?? 0),
+                'paid' => (float) ($containerPaidByClient[$clientId] ?? 0),
+            ];
             $totalInvoiced += $container['sold'];
             $totalPaid = $paidOnInvoices + $availableCredit + $container['paid'];
 
@@ -1053,7 +1024,8 @@ class PaymentController extends BaseController
                 }
                 $rate = (float) ($inv->exchange_rate ?: 1);
                 $revGnf  = ($inv->currency === 'GNF') ? $revenue : $revenue * $rate;
-                $costGnf = ($inv->currency === 'GNF') ? $cost    : $cost    * $rate;
+                // Les prix d'achat des produits sont en GNF, quelle que soit la devise de la facture
+                $costGnf = $cost;
                 $marginGnf = $revGnf - $costGnf;
                 $pct = $revGnf > 0 ? round(($marginGnf / $revGnf) * 100, 2) : null;
                 $invRevGnf  += $revGnf;
@@ -1294,34 +1266,39 @@ class PaymentController extends BaseController
             }
 
             $base = Payment::where('tenant_id', $tenantId)->where('status', 'COMPLETED');
-
             if ($request->has('date_from')) $base->whereDate('payment_date', '>=', $request->date_from);
             if ($request->has('date_to'))   $base->whereDate('payment_date', '<=', $request->date_to);
 
+            // Une requete groupee par axe, au lieu d'une requete par type et par mode (17 -> 4)
+            $sumGnf   = 'COALESCE(SUM(COALESCE(amount_gnf, amount)), 0)';
+            $totals   = (clone $base)->selectRaw("COUNT(*) as n, {$sumGnf} as total")->first();
+            $byType   = (clone $base)->selectRaw("type, {$sumGnf} as total")->groupBy('type')->pluck('total', 'type');
+            $byMethod = (clone $base)->selectRaw("method, {$sumGnf} as total")->groupBy('method')->pluck('total', 'method');
+            $byCurrency = (clone $base)->where('type', 'CLIENT')
+                ->selectRaw('currency, COUNT(*) as n, COALESCE(SUM(amount), 0) as total')->groupBy('currency')->get();
+            $invoiceCounts = Invoice::where('tenant_id', $tenantId)
+                ->selectRaw('status, COUNT(*) as n')->groupBy('status')->pluck('n', 'status');
+            $count = (int) ($totals->n ?? 0);
+            $pick  = fn ($map, array $keys) => collect($keys)->mapWithKeys(fn ($k) => [$k => (float) ($map[$k] ?? 0)])->all();
+
             $stats = [
-                'total_payments'  => (clone $base)->count(),
-                'total_amount'    => (clone $base)->sum('amount_gnf'),
-                'average_payment' => (clone $base)->avg('amount_gnf') ?? 0,
-                'by_type'         => [
-                    'CLIENT'   => (clone $base)->where('type', 'CLIENT')->sum('amount_gnf'),
-                    'SUPPLIER' => (clone $base)->where('type', 'SUPPLIER')->sum('amount_gnf'),
-                    'DEPOT'    => (clone $base)->where('type', 'DEPOT')->sum('amount_gnf'),
-                    'RETRAIT'  => (clone $base)->where('type', 'RETRAIT')->sum('amount_gnf'),
-                ],
-                'by_method'       => [
-                    'ORANGE_MONEY' => (clone $base)->where('method', 'ORANGE_MONEY')->sum('amount_gnf'),
-                    'WAVE'         => (clone $base)->where('method', 'WAVE')->sum('amount_gnf'),
-                    'MTN_MONEY'    => (clone $base)->where('method', 'MTN_MONEY')->sum('amount_gnf'),
-                    'VIREMENT'     => (clone $base)->where('method', 'VIREMENT')->sum('amount_gnf'),
-                    'CHEQUE'       => (clone $base)->where('method', 'CHEQUE')->sum('amount_gnf'),
-                    'ESPECES'      => (clone $base)->where('method', 'ESPECES')->sum('amount_gnf'),
-                ],
+                'total_payments'  => $count,
+                'total_amount'    => (float) ($totals->total ?? 0),
+                'average_payment' => $count > 0 ? (float) $totals->total / $count : 0,
+                'by_type'         => $pick($byType, ['CLIENT', 'SUPPLIER', 'DEPOT', 'RETRAIT']),
+                'by_method'       => $pick($byMethod, ['ORANGE_MONEY', 'WAVE', 'MTN_MONEY', 'VIREMENT', 'CHEQUE', 'ESPECES']),
+                // Encaissements clients par devise recue (GNF et USD ne s'additionnent pas)
+                'client_by_currency' => $byCurrency->map(fn ($row) => [
+                    'currency' => strtoupper($row->currency ?: 'GNF'),
+                    'count'    => (int) $row->n,
+                    'total'    => (float) $row->total,
+                ])->values(),
                 'monthly_trend'   => $this->getMonthlyTrend($tenantId, $request),
                 'invoices_summary' => [
-                    'total'   => Invoice::where('tenant_id', $tenantId)->count(),
-                    'paye'    => Invoice::where('tenant_id', $tenantId)->where('status', 'PAYE')->count(),
-                    'partiel' => Invoice::where('tenant_id', $tenantId)->where('status', 'PARTIEL')->count(),
-                    'impaye'  => Invoice::where('tenant_id', $tenantId)->where('status', 'IMPAYE')->count(),
+                    'total'   => (int) $invoiceCounts->sum(),
+                    'paye'    => (int) ($invoiceCounts['PAYE'] ?? 0),
+                    'partiel' => (int) ($invoiceCounts['PARTIEL'] ?? 0),
+                    'impaye'  => (int) ($invoiceCounts['IMPAYE'] ?? 0),
                     // Reste a recouvrer, aligne sur les fiches clients :
                     //  - en GNF (sommer des montants de devises differentes fausserait le total)
                     //  - diminue des versements clients non encore imputes a une facture,
@@ -1382,11 +1359,20 @@ class PaymentController extends BaseController
 
         // Collect invoice IDs before delete
         $invoiceIds = $query->pluck('invoice_id')->filter()->unique();
-        $deleted    = $query->delete();
+        $owners     = (clone $query)->whereNotNull('client_id')->get(['client_id', 'tenant_id'])->unique('client_id');
 
-        foreach ($invoiceIds as $invId) {
-            Invoice::find($invId)?->recalculatePaidAmount();
-        }
+        $deleted = DB::transaction(function () use ($query, $invoiceIds, $owners) {
+            $deleted = $query->delete();
+
+            foreach ($invoiceIds as $invId) {
+                Invoice::find($invId)?->recalculatePaidAmount();
+            }
+            // Suppression par requete : aucun evenement Eloquent, on resynchronise a la main
+            foreach ($owners as $owner) {
+                AccountBalanceService::syncClient((int) $owner->client_id, (int) $owner->tenant_id);
+            }
+            return $deleted;
+        });
 
         return $this->sendResponse(['deleted_count' => $deleted], 'Payments deleted successfully');
     }
@@ -1409,47 +1395,27 @@ class PaymentController extends BaseController
         return $this->sendResponse($payments, 'Payments exported successfully');
     }
 
+    /**
+     * Numero de recu unique : dernier numero attribue + 1, recus supprimes
+     * compris. Compter les recus actifs redonnait un numero deja utilise des
+     * qu'un versement etait supprime.
+     */
     private function generateReceiptNumber(int $tenantId): string
     {
-        $year  = now()->year;
-        $count = Payment::where('tenant_id', $tenantId)
-            ->whereYear('created_at', $year)
-            ->count() + 1;
+        $year   = now()->year;
+        $prefix = sprintf('REC-%d-%d-', $tenantId, $year);
 
-        return sprintf('REC-%d-%d-%04d', $tenantId, $year, $count);
-    }
+        // Verrou du tenant : deux versements simultanes ne prennent pas le meme numero
+        DB::table('tenants')->where('id', $tenantId)->lockForUpdate()->first();
 
-    private function resolveExchangeRate(Request $request, ?int $tenantId, string $currency, float $fallback = 1): float
-    {
-        if ($currency === 'GNF') {
-            return 1;
-        }
+        $last = Payment::withTrashed()
+            ->where('tenant_id', $tenantId)
+            ->where('receipt_number', 'like', $prefix . '%')
+            ->pluck('receipt_number')
+            ->map(fn ($number) => (int) substr($number, strlen($prefix)))
+            ->max() ?? 0;
 
-        if ($request->filled('exchange_rate')) {
-            return round((float) $request->exchange_rate, 4);
-        }
-
-        $currencyModel = Currency::query()
-            ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
-            ->where('code', $currency)
-            ->first();
-
-        return round((float) ($currencyModel?->exchange_rate ?? $fallback ?: 1), 4);
-    }
-
-    private function resolveAmountGnf(Request $request, string $currency, float $exchangeRate, ?float $fallbackAmount = null): float
-    {
-        $amount = (float) ($request->amount ?? $fallbackAmount ?? 0);
-
-        if ($currency === 'GNF') {
-            return round($amount, 2);
-        }
-
-        if ($request->filled('amount_gnf')) {
-            return round((float) $request->amount_gnf, 2);
-        }
-
-        return round($amount * $exchangeRate, 2);
+        return $prefix . str_pad((string) ($last + 1), 4, '0', STR_PAD_LEFT);
     }
 
     private function invoiceTotalGnf(Invoice $invoice): float
@@ -1501,7 +1467,8 @@ class PaymentController extends BaseController
             ->each(function (Invoice $invoice) use (&$balances, $ensure) {
                 $currency = strtoupper((string) ($invoice->currency ?? 'GNF'));
                 $ensure($currency);
-                $balances[$currency]['total_invoiced'] += (float) $invoice->total_amount;
+                // Montant propre : le solde anterieur reporte est deja porte par les factures precedentes
+                $balances[$currency]['total_invoiced'] += AccountBalanceService::invoiceOwnAmount($invoice);
                 $balances[$currency]['total_paid'] += (float) $invoice->paid_amount;
             });
 
@@ -1532,19 +1499,25 @@ class PaymentController extends BaseController
                 $balances[$currency]['return_credits'] += (float) $return->client_credit_amount;
             });
 
-        foreach ($balances as &$balance) {
+        // Reste a payer et avance : situation reelle du compte dans chaque devise
+        // (factures, ventes conteneurs, versements, avances, retours, interets).
+        $accounts = AccountBalanceService::clientTotals($clientId, $tenantId);
+        foreach (array_keys($accounts) as $currency) {
+            $ensure($currency);
+        }
+
+        foreach ($balances as $currency => &$balance) {
+            $net = (float) ($accounts[$currency]['balance'] ?? 0);
             $balance['total_invoiced'] = round((float) $balance['total_invoiced'], 2);
             $balance['total_paid'] = round((float) $balance['total_paid'], 2);
             $balance['available_credit'] = round((float) $balance['available_credit'], 2);
             $balance['return_credits'] = round((float) $balance['return_credits'], 2);
-            $balance['total_remaining'] = max(0, round(
-                $balance['total_invoiced']
-                - $balance['total_paid']
-                - $balance['available_credit']
-                - $balance['return_credits'],
-                2
-            ));
+            $balance['total_debit'] = (float) ($accounts[$currency]['debit'] ?? 0);
+            $balance['total_credit'] = (float) ($accounts[$currency]['credit'] ?? 0);
+            $balance['total_remaining'] = max(0, round($net, 2));
+            $balance['credit_balance'] = max(0, round(-$net, 2));
         }
+        unset($balance);
 
         return array_values($balances);
     }

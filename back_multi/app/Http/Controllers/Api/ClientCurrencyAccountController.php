@@ -26,7 +26,9 @@ class ClientCurrencyAccountController extends BaseController
 
         // S'assurer que le client a au moins un compte GNF (principal) initialise
         $client->getAccount('GNF');
-
+        // Soldes realignes sur les ecritures (factures, ventes conteneurs,
+        // versements, avances, retours, interets) : situation en temps reel.
+        \App\Services\AccountBalanceService::syncClient((int) $client->id, (int) $client->tenant_id);
         $accounts = ClientCurrencyAccount::where('client_id', $client->id)
             ->orderByDesc('is_primary')
             ->orderBy('currency')
@@ -105,6 +107,8 @@ class ClientCurrencyAccountController extends BaseController
         if ($account->is_primary) {
             return $this->sendError('Le compte principal ne peut etre supprime', [], 400);
         }
+        \App\Services\AccountBalanceService::syncClient((int) $account->client_id, (int) $account->tenant_id);
+        $account->refresh();
         if (abs((float) $account->current_balance) > 0.01) {
             return $this->sendError('Solder le compte avant suppression', [], 400);
         }

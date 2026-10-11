@@ -56,27 +56,21 @@ class SupplierPurchase extends Model
     }
 
     /**
-     * Porte l'achat au debit du compte-devise du fournisseur.
+     * Realigne le compte-devise du fournisseur sur ses ecritures.
      *
-     * Appele a la creation ; en cas de modification ou de suppression, l'appelant
-     * annule d'abord l'ancien montant pour ne pas compter deux fois.
+     * Le compte n'est plus tenu par increments : il est recalcule depuis les
+     * achats, arrivages et versements (AccountBalanceService), automatiquement
+     * a chaque enregistrement ou suppression. Ces deux methodes restent pour
+     * les appelants existants et font simplement ce recalcul.
      */
     public function postToAccount(): void
     {
-        SupplierCurrencyAccount::getOrCreate(
-            (int) $this->supplier_id,
-            (int) $this->tenant_id,
-            strtoupper($this->currency ?: 'GNF')
-        )->applyDebit((float) $this->total_amount);
+        \App\Services\AccountBalanceService::syncSupplier((int) $this->supplier_id, (int) $this->tenant_id);
     }
 
-    /** Retire l'achat du compte (modification ou suppression). */
     public function unpostFromAccount(): void
     {
-        SupplierCurrencyAccount::getOrCreate(
-            (int) $this->supplier_id,
-            (int) $this->tenant_id,
-            strtoupper($this->currency ?: 'GNF')
-        )->applyDebit(-(float) $this->total_amount);
+        \App\Services\AccountBalanceService::syncSupplier((int) $this->supplier_id, (int) $this->tenant_id);
     }
+
 }

@@ -11,6 +11,8 @@ use App\Models\ContainerSalePayment;
 use App\Models\ClientAdvance;
 use App\Models\ProductReturn;
 use App\Models\ClientInterestCharge;
+use App\Services\AccountBalanceService;
+use App\Support\GnfRate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -542,6 +544,8 @@ class ClientController extends BaseController
             'container_payment_count'=> $containerPayments->count(),
             'advance_count'          => $advances->count(),
             'product_consumption'    => $productConsumption,
+            // Situation reelle par devise (source unique des soldes)
+            'balances_by_currency'   => AccountBalanceService::clientTotals((int) $client->id, (int) $tid),
         ];
 
         return $this->sendResponse([
@@ -626,10 +630,13 @@ class ClientController extends BaseController
                     $designation = "Facture #{$inv->invoice_number} ({$items->count()} articles{$sampleSuffix})";
                 }
                 $currency = $this->normalizeCurrency($inv->currency ?? 'GNF');
-                // Montant dans la devise native de la facture (USD ou GNF)
-                $nativeAmount = $currency === 'USD'
-                    ? (float) $inv->total_amount
-                    : (float) ($inv->total_amount_gnf ?? $inv->total_amount);
+                // Montant propre de la facture, dans sa devise. Le solde anterieur
+                // reporte n'est pas redebite : il figure deja sur les lignes des
+                // factures precedentes.
+                $nativeAmount = AccountBalanceService::invoiceOwnAmount($inv);
+                $nativeGnf = $currency === 'GNF'
+                    ? $nativeAmount
+                    : round($nativeAmount * (float) ($inv->exchange_rate ?: 0), 2);
                 $qty = (float) $items->sum('quantity');
 
                 return [
@@ -642,7 +649,7 @@ class ClientController extends BaseController
                     'currency'    => $currency,
                     'debit'       => $nativeAmount,
                     'credit'      => 0.0,
-                    'amount_gnf'   => $this->amountToGnf($nativeAmount, $currency, $inv->total_amount_gnf, $inv->exchange_rate),
+                    'amount_gnf'   => $nativeGnf,
                     'exchange_rate'=> $inv->exchange_rate !== null ? (float) $inv->exchange_rate : null,
                     'reference'   => $inv->invoice_number,
                     'meta_id'     => $inv->id,
@@ -653,8 +660,11 @@ class ClientController extends BaseController
         // ── 2. Paiements finance (CREDIT) ───────────────────────────────────
         $payments = collect();
         if (!$typeFilter || $typeFilter === 'payment') {
+            // Versements du client uniquement : une restitution (RETRAIT) ou un
+            // depot n'est pas un encaissement et ne reduit pas sa dette.
             $paymentQuery = Payment::where('client_id', $id)->where('tenant_id', $tid)
                 ->where('status', 'COMPLETED')
+                ->where('type', 'CLIENT')
                 ->with('paidByClient:id,name');
             $applyDateRange($paymentQuery, 'payment_date');
 
@@ -671,7 +681,7 @@ class ClientController extends BaseController
                 $ledgerCurrency = $targetCurrency;
                 $ledgerAmount = $p->converted_amount !== null
                     ? (float) $p->converted_amount
-                    : ($paymentCurrency === 'USD' ? (float) $p->amount : (float) ($p->amount_gnf ?? $p->amount));
+                    : (float) $p->amount;
                 return [
                     'date'        => $p->payment_date->format('Y-m-d'),
                     'sort_key'    => $p->payment_date->format('Y-m-d') . ' 23:59:59_p_' . $p->id,
@@ -699,7 +709,9 @@ class ClientController extends BaseController
         // ── 3. Ventes conteneurs (DEBIT) ────────────────────────────────────
         $containerSales = collect();
         if (!$typeFilter || $typeFilter === 'invoice') {
+            // Une vente annulee ne pese plus sur le compte
             $containerSaleQuery = ContainerSale::where('client_id', $id)->where('tenant_id', $tid)
+                ->where('status', '!=', 'ANNULE')
                 ->with('containerArrival:id,product_type,description');
             $applyDateRange($containerSaleQuery, 'sale_date');
 
@@ -707,8 +719,8 @@ class ClientController extends BaseController
                 $arr = $s->containerArrival;
                 $label = $arr ? ($arr->product_type ?? $arr->description ?? "Arrivage #{$s->container_arrival_id}") : "Arrivage #{$s->container_arrival_id}";
                 return [
-                    'date'        => $s->sale_date,
-                    'sort_key'    => $s->sale_date . '_b_' . $s->id,
+                    'date'        => $s->sale_date?->format('Y-m-d'),
+                    'sort_key'    => $s->sale_date?->format('Y-m-d') . ' 00:00:00_b_' . $s->id,
                     'type'        => 'container_sale',
                     'type_label'  => 'Vente conteneur',
                     'designation' => $label,
@@ -729,26 +741,35 @@ class ClientController extends BaseController
         if (!$typeFilter || $typeFilter === 'payment') {
             $cspQuery = ContainerSalePayment::where('client_id', $id)
                 ->where('tenant_id', $tid)
+                ->whereHas('containerSale', fn ($sale) => $sale->where('status', '!=', 'ANNULE'))
+                ->with('containerSale:id,currency,exchange_rate')
                 ->where(function ($query) {
                     $query->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE');
                 });
             $applyDateRange($cspQuery, 'payment_date');
-
-            $containerPayments = $cspQuery->get()->map(fn ($p) => [
-                'date'        => $p->payment_date,
-                'sort_key'    => $p->payment_date . ' 23:59:58_p_' . $p->id,
-                'type'        => 'container_payment',
-                'type_label'  => 'Versement conteneur',
-                'designation' => $p->notes ?: 'Versement conteneur',
-                'quantity'    => null,
-                'currency'    => $this->normalizeCurrency($p->currency ?? 'GNF'),
-                'debit'       => 0.0,
-                'credit'      => (float) $p->amount,
-                'amount_gnf'   => $this->amountToGnf((float) $p->amount, $p->currency ?? 'GNF', $p->amount_gnf, $p->exchange_rate),
-                'exchange_rate'=> $p->exchange_rate !== null ? (float) $p->exchange_rate : null,
-                'reference'   => $p->reference,
-                'meta_id'     => $p->id,
-            ]);
+            $containerPayments = $cspQuery->get()->map(function ($p) {
+                // Credit porte dans la devise de la vente reglee (un versement GNF
+                // sur une vente USD reduit la dette USD, au taux de la vente).
+                [$currency, $credit] = AccountBalanceService::containerPaymentCredit($p, $p->containerSale);
+                $nativeCurrency = $this->normalizeCurrency($p->currency ?? 'GNF');
+                return [
+                    'date'        => $p->payment_date?->format('Y-m-d'),
+                    'sort_key'    => $p->payment_date?->format('Y-m-d') . ' 23:59:58_p_' . $p->id,
+                    'type'        => 'container_payment',
+                    'type_label'  => 'Versement conteneur',
+                    'designation' => $p->notes ?: 'Versement conteneur',
+                    'quantity'    => null,
+                    'currency'    => $currency,
+                    'debit'       => 0.0,
+                    'credit'      => $credit,
+                    'amount_gnf'   => $this->amountToGnf((float) $p->amount, $nativeCurrency, $p->amount_gnf, $p->exchange_rate),
+                    'exchange_rate'=> $p->exchange_rate !== null ? (float) $p->exchange_rate : null,
+                    'native_amount'   => (float) $p->amount,
+                    'native_currency' => $nativeCurrency,
+                    'reference'   => $p->reference,
+                    'meta_id'     => $p->id,
+                ];
+            });
         }
 
         // ── 5. Avances (CREDIT — réduit la dette ou crée un crédit) ─────────
@@ -758,8 +779,8 @@ class ClientController extends BaseController
             $applyDateRange($advQuery, 'payment_date');
 
             $advances = $advQuery->get()->map(fn ($a) => [
-                'date'        => $a->payment_date,
-                'sort_key'    => $a->payment_date . ' 23:59:57_p_' . $a->id,
+                'date'        => $a->payment_date?->format('Y-m-d'),
+                'sort_key'    => $a->payment_date?->format('Y-m-d') . ' 23:59:57_p_' . $a->id,
                 'type'        => 'advance',
                 'type_label'  => 'Avance',
                 'designation' => $a->description ?: 'Avance client',
@@ -851,7 +872,26 @@ class ClientController extends BaseController
 
         // Deuxième passage : solde courant par devise, avec toutes les devises présentes
         // sur chaque ligne (0 pour celles non impactées).
+        // Solde d'ouverture : sur une periode, le releve repart de la situation
+        // reelle du compte a la date de debut, et non de zero (sinon le solde
+        // affiche ignorait toute la dette anterieure).
+        $opening = [];
+        if ($from && !$typeFilter) {
+            foreach (AccountBalanceService::clientTotals((int) $client->id, (int) $tid, null, $from) as $cur => $row) {
+                if (abs($row['balance']) > 0.004) {
+                    $opening[$cur] = $row['balance'];
+                    if (!in_array($cur, $currencies, true)) {
+                        $currencies[] = $cur;
+                    }
+                }
+            }
+            sort($currencies);
+        }
+
         $running = array_fill_keys($currencies, 0.0);
+        foreach ($opening as $cur => $balance) {
+            $running[$cur] = $balance;
+        }
         $summaryByCurrency = array_fill_keys($currencies, ['total_debit' => 0.0, 'total_credit' => 0.0, 'final_balance' => 0.0]);
 
         $rows = $rows->map(function ($row) use (&$running, &$summaryByCurrency, $currencies) {
@@ -885,8 +925,9 @@ class ClientController extends BaseController
         });
 
         foreach ($currencies as $c) {
+            $summaryByCurrency[$c]['opening_balance'] = round((float) ($opening[$c] ?? 0), 2);
             $summaryByCurrency[$c]['final_balance'] = round(
-                $summaryByCurrency[$c]['total_debit'] - $summaryByCurrency[$c]['total_credit'], 2
+                (float) ($opening[$c] ?? 0) + $summaryByCurrency[$c]['total_debit'] - $summaryByCurrency[$c]['total_credit'], 2
             );
             $summaryByCurrency[$c]['total_debit']  = round($summaryByCurrency[$c]['total_debit'], 2);
             $summaryByCurrency[$c]['total_credit'] = round($summaryByCurrency[$c]['total_credit'], 2);
@@ -899,6 +940,33 @@ class ClientController extends BaseController
         $hasUsd = isset($summaryByCurrency['USD']);
 
         // Versements encaisses mais pas encore affectes a une facture.
+        $openingGnf = (float) ($opening['GNF'] ?? 0);
+        $openingUsd = (float) ($opening['USD'] ?? 0);
+
+        // Ligne de report en tete de releve, pour que le solde courant se lise seul
+        if (!empty($opening)) {
+            $openingRow = [
+                'date'        => $from,
+                'sort_key'    => '',
+                'type'        => 'opening',
+                'type_label'  => 'Report',
+                'designation' => 'Solde antérieur au ' . \Carbon\Carbon::parse($from)->format('d/m/Y'),
+                'quantity'    => null,
+                'currency'    => 'GNF',
+                'debit'       => 0.0,
+                'credit'      => 0.0,
+                'reference'   => null,
+                'meta_id'     => 0,
+                'by_currency' => collect($currencies)->mapWithKeys(fn ($c) => [$c => [
+                    'debit' => 0.0, 'credit' => 0.0, 'balance' => round((float) ($opening[$c] ?? 0), 2),
+                ]])->all(),
+                'debit_gnf' => 0.0, 'credit_gnf' => 0.0, 'balance_gnf' => round($openingGnf, 2),
+                'debit_usd' => 0.0, 'credit_usd' => 0.0, 'balance_usd' => round($openingUsd, 2),
+                'balance'   => round($openingGnf, 2),
+            ];
+            $rows = collect([$openingRow])->concat($rows);
+        }
+
         $availableCreditGnf = (float) \App\Models\Payment::where('tenant_id', $client->tenant_id)
             ->where('client_id', $client->id)
             ->where('status', 'COMPLETED')
@@ -921,14 +989,16 @@ class ClientController extends BaseController
                 // Compat ancien format (GNF par défaut)
                 'total_debit'        => round($totalDebitGnf, 2),
                 'total_credit'       => round($totalCreditGnf, 2),
-                'final_balance'      => round($totalDebitGnf - $totalCreditGnf, 2),
+                'final_balance'      => round($openingGnf + $totalDebitGnf - $totalCreditGnf, 2),
                 // Compat GNF/USD explicites
                 'total_debit_gnf'    => round($totalDebitGnf, 2),
                 'total_credit_gnf'   => round($totalCreditGnf, 2),
-                'final_balance_gnf'  => round($totalDebitGnf - $totalCreditGnf, 2),
+                'final_balance_gnf'  => round($openingGnf + $totalDebitGnf - $totalCreditGnf, 2),
                 'total_debit_usd'    => round($totalDebitUsd, 2),
                 'total_credit_usd'   => round($totalCreditUsd, 2),
-                'final_balance_usd'  => round($totalDebitUsd - $totalCreditUsd, 2),
+                'final_balance_usd'  => round($openingUsd + $totalDebitUsd - $totalCreditUsd, 2),
+                'opening_balance_gnf' => round($openingGnf, 2),
+                'opening_balance_usd' => round($openingUsd, 2),
                 'has_usd'            => $hasUsd,
                 'rows_count'         => $rows->count(),
                 // Solde disponible : versements du client non encore imputes a une
@@ -1020,10 +1090,14 @@ class ClientController extends BaseController
         $containerRemainingColumn = Schema::hasColumn('container_sales', 'remaining_amount_gnf') ? 'remaining_amount_gnf' : 'remaining_amount';
         $containerPaymentAmountColumn = Schema::hasColumn('container_sale_payments', 'amount_gnf') ? 'amount_gnf' : 'amount';
 
+        // Montant propre des factures (hors solde anterieur reporte), en GNF
         $invoiceTotals = Invoice::query()
             ->where('tenant_id', $tenantId)
             ->tap($byCreated)
-            ->select('client_id', DB::raw("COALESCE(SUM({$invoiceAmountColumn}), 0) as total"))
+            ->select('client_id', DB::raw(
+                "COALESCE(SUM(GREATEST(total_amount - COALESCE(previous_balance_amount, 0), 0)"
+                . " * CASE WHEN COALESCE(currency, 'GNF') = 'GNF' THEN 1 ELSE COALESCE(exchange_rate, 0) END), 0) as total"
+            ))
             ->groupBy('client_id')
             ->pluck('total', 'client_id');
 
@@ -1031,6 +1105,7 @@ class ClientController extends BaseController
             ->where('tenant_id', $tenantId)
             ->tap($byPayment)
             ->where('status', 'COMPLETED')
+            ->where('type', 'CLIENT')
             ->whereNotNull('invoice_id')
             ->select('client_id', DB::raw("COALESCE(SUM({$paymentAmountColumn}), 0) as total"))
             ->groupBy('client_id')
@@ -1040,6 +1115,7 @@ class ClientController extends BaseController
             ->where('tenant_id', $tenantId)
             ->tap($byPayment)
             ->where('status', 'COMPLETED')
+            ->where('type', 'CLIENT')
             ->whereNull('invoice_id')
             ->select('client_id', DB::raw("COALESCE(SUM({$paymentAmountColumn}), 0) as total"))
             ->groupBy('client_id')
@@ -1047,6 +1123,7 @@ class ClientController extends BaseController
 
         $containerSales = ContainerSale::query()
             ->where('tenant_id', $tenantId)
+            ->where('status', '!=', 'ANNULE')
             ->tap($bySale)
             ->select(
                 'client_id',
@@ -1058,8 +1135,10 @@ class ClientController extends BaseController
             ->get()
             ->keyBy('client_id');
 
+        $activeSale = fn ($sale) => $sale->where('status', '!=', 'ANNULE');
         $containerPayments = ContainerSalePayment::query()
             ->where('tenant_id', $tenantId)
+            ->whereHas('containerSale', $activeSale)
             ->tap($byPayment)
             ->where(function ($query) {
                 $query->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE');
@@ -1105,30 +1184,40 @@ class ClientController extends BaseController
         $invoiceCurrencyRows = Invoice::query()
             ->where('tenant_id', $tenantId)
             ->tap($byCreated)
-            ->get(['client_id', 'total_amount', 'total_amount_gnf', 'currency', 'exchange_rate'])
+            ->get(['client_id', 'total_amount', 'previous_balance_amount', 'total_amount_gnf', 'currency', 'exchange_rate'])
             ->groupBy('client_id');
 
         $paymentCurrencyRows = Payment::query()
             ->where('tenant_id', $tenantId)
             ->tap($byPayment)
             ->where('status', 'COMPLETED')
+            ->where('type', 'CLIENT')
             ->get(['client_id', 'amount', 'currency', 'target_currency', 'converted_amount', 'amount_gnf', 'exchange_rate'])
             ->groupBy('client_id');
 
         $containerCurrencyRows = ContainerSale::query()
             ->where('tenant_id', $tenantId)
+            ->where('status', '!=', 'ANNULE')
             ->tap($bySale)
             ->get(['client_id', 'quantity_sold', 'sale_price', 'sale_price_gnf', 'currency', 'exchange_rate'])
             ->groupBy('client_id');
 
         $containerPaymentCurrencyRows = ContainerSalePayment::query()
             ->where('tenant_id', $tenantId)
+            ->whereHas('containerSale', $activeSale)
+            ->with('containerSale:id,currency,exchange_rate')
             ->tap($byPayment)
             ->where(function ($query) {
                 $query->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE');
             })
-            ->get(['client_id', 'amount', 'amount_gnf', 'currency', 'exchange_rate'])
+            ->get(['id', 'client_id', 'container_sale_id', 'amount', 'amount_gnf', 'currency', 'exchange_rate'])
             ->groupBy('client_id');
+
+        // Equivalent GNF des avances, interets et retours : au taux configure de la devise
+        $rateCache = [];
+        $gnfRate = function (string $currency) use (&$rateCache, $tenantId): ?float {
+            return $rateCache[$currency] ??= (GnfRate::resolve($tenantId, $currency) ?? 0.0);
+        };
 
         $advanceCurrencyRows = ClientAdvance::query()
             ->where('tenant_id', $tenantId)
@@ -1164,7 +1253,8 @@ class ClientController extends BaseController
             $containerPaymentCurrencyRows,
             $advanceCurrencyRows,
             $interestCurrencyRows,
-            $returnCurrencyRows
+            $returnCurrencyRows,
+            $gnfRate
         ) {
             $invoiceInvoiced = (float) ($invoiceTotals[$client->id] ?? 0);
             $invoicePaid = (float) ($invoicePayments[$client->id] ?? 0);
@@ -1192,23 +1282,18 @@ class ClientController extends BaseController
 
             $grossDebt    = $invoiceRemaining + $containerRemaining + $interestRemaining;
             $totalCredits = $advanceRemaining + $returnCreditAmount + $clientAccountPaid;
-            $restToPay    = max(0, $grossDebt - $totalCredits);
-            $creditBalance = max(0, $totalCredits - $grossDebt);
-            $status = $restToPay > 0.009 ? 'DEBITEUR' : ($creditBalance > 0.009 ? 'AVANCE' : 'SOLDE');
-
             $byCurrency = [];
 
             foreach (($invoiceCurrencyRows->get($client->id) ?? collect()) as $inv) {
                 $currency = $this->normalizeCurrency($inv->currency ?? 'GNF');
-                $nativeAmount = $currency === 'GNF'
-                    ? (float) ($inv->total_amount_gnf ?? $inv->total_amount)
-                    : (float) $inv->total_amount;
+                // Montant propre : sans le solde anterieur reporte sur la facture
+                $nativeAmount = AccountBalanceService::invoiceOwnAmount($inv);
                 $this->addCurrencyMovement(
                     $byCurrency,
                     $currency,
                     $nativeAmount,
                     0.0,
-                    $this->amountToGnf($nativeAmount, $currency, $inv->total_amount_gnf, $inv->exchange_rate),
+                    $this->amountToGnf($nativeAmount, $currency, null, $inv->exchange_rate),
                     0.0
                 );
             }
@@ -1244,22 +1329,22 @@ class ClientController extends BaseController
             }
 
             foreach (($containerPaymentCurrencyRows->get($client->id) ?? collect()) as $payment) {
-                $currency = $this->normalizeCurrency($payment->currency ?? 'GNF');
-                $amount = (float) $payment->amount;
+                // Credit dans la devise de la vente reglee
+                [$currency, $amount] = AccountBalanceService::containerPaymentCredit($payment, $payment->containerSale);
                 $this->addCurrencyMovement(
                     $byCurrency,
                     $currency,
                     0.0,
                     $amount,
                     0.0,
-                    $this->amountToGnf($amount, $currency, $payment->amount_gnf, $payment->exchange_rate)
+                    $this->amountToGnf((float) $payment->amount, $payment->currency ?? 'GNF', $payment->amount_gnf, $payment->exchange_rate)
                 );
             }
 
             foreach (($advanceCurrencyRows->get($client->id) ?? collect()) as $advance) {
                 $currency = $this->normalizeCurrency($advance->currency ?? 'GNF');
                 $amount = (float) $advance->amount;
-                $this->addCurrencyMovement($byCurrency, $currency, 0.0, $amount, 0.0, $this->amountToGnf($amount, $currency));
+                $this->addCurrencyMovement($byCurrency, $currency, 0.0, $amount, 0.0, $this->amountToGnf($amount, $currency, null, $gnfRate($currency)));
             }
 
             foreach (($interestCurrencyRows->get($client->id) ?? collect()) as $interest) {
@@ -1269,8 +1354,8 @@ class ClientController extends BaseController
                     $currency,
                     (float) $interest->amount,
                     (float) ($interest->paid_amount ?? 0),
-                    $this->amountToGnf((float) $interest->amount, $currency),
-                    $this->amountToGnf((float) ($interest->paid_amount ?? 0), $currency)
+                    $this->amountToGnf((float) $interest->amount, $currency, null, $gnfRate($currency)),
+                    $this->amountToGnf((float) ($interest->paid_amount ?? 0), $currency, null, $gnfRate($currency))
                 );
             }
 
@@ -1282,6 +1367,24 @@ class ClientController extends BaseController
 
             $byCurrency = $this->finalizeCurrencyBucket($byCurrency);
             $balanceGnfEquivalent = round(array_sum(array_map(fn ($row) => (float) $row['final_balance_gnf'], $byCurrency)), 2);
+
+            // Chaque devise est un compte a part : une avance en USD ne solde pas
+            // une dette en GNF. Le statut et les montants suivent donc les soldes
+            // par devise, exprimes ici en equivalent GNF.
+            $restToPay = 0.0;
+            $creditBalance = 0.0;
+            $owes = false;
+            $ahead = false;
+            foreach ($byCurrency as $row) {
+                if ($row['final_balance'] > 0.009) {
+                    $owes = true;
+                    $restToPay += max(0, (float) $row['final_balance_gnf']);
+                } elseif ($row['final_balance'] < -0.009) {
+                    $ahead = true;
+                    $creditBalance += max(0, -(float) $row['final_balance_gnf']);
+                }
+            }
+            $status = $owes ? 'DEBITEUR' : ($ahead ? 'AVANCE' : 'SOLDE');
 
             return [
                 'id' => $client->id,

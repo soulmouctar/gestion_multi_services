@@ -9,6 +9,8 @@ use App\Models\Product;
 use App\Models\Payment;
 use App\Models\ProductReturn;
 use App\Models\Supplier;
+use App\Services\AccountBalanceService;
+use App\Support\GnfRate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +75,9 @@ class InvoiceController extends BaseController
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
+        if ($rateError = $this->missingRateError($request, (int) $tenantId)) {
+            return $this->sendError($rateError, ['exchange_rate' => [$rateError]], 422);
+        }
 
         DB::beginTransaction();
 
@@ -114,6 +119,10 @@ class InvoiceController extends BaseController
                 'Invoice created successfully',
                 201
             );
+        } catch (\RuntimeException $e) {
+            // Regle metier (stock insuffisant…) : message lisible, pas une erreur serveur
+            DB::rollBack();
+            return $this->sendError($e->getMessage(), ['line_items' => [$e->getMessage()]], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('InvoiceController@store: ' . $e->getMessage());
@@ -159,11 +168,14 @@ class InvoiceController extends BaseController
         if ($businessError) {
             return $this->sendError(...$businessError);
         }
+        if ($rateError = $this->missingRateError($request, (int) $invoice->tenant_id, $invoice)) {
+            return $this->sendError($rateError, ['exchange_rate' => [$rateError]], 422);
+        }
 
         DB::beginTransaction();
 
         try {
-            $payload = $this->buildInvoicePayload($request, $invoice->tenant_id, $invoice->id);
+            $payload = $this->buildInvoicePayload($request, $invoice->tenant_id, $invoice->id, (float) $invoice->exchange_rate);
 
             $invoice->update([
                 'client_id'                => $request->client_id,
@@ -192,6 +204,9 @@ class InvoiceController extends BaseController
                 $invoice->fresh()->load(['client:id,name,phone1', 'items.product:id,name', 'items.supplier:id,name']),
                 'Invoice updated successfully'
             );
+        } catch (\RuntimeException $e) {
+            DB::rollBack();
+            return $this->sendError($e->getMessage(), ['line_items' => [$e->getMessage()]], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('InvoiceController@update: ' . $e->getMessage());
@@ -246,12 +261,15 @@ class InvoiceController extends BaseController
         }
 
         $excludeId = $request->get('exclude_invoice_id') ? (int) $request->get('exclude_invoice_id') : null;
-        $balance   = $this->getOutstandingClientBalance($client->id, $client->tenant_id, $excludeId);
-
+        // Un solde par devise : le compte GNF et le compte USD sont independants.
+        $currency = strtoupper((string) $request->get('currency', 'GNF'));
+        $totals   = AccountBalanceService::clientTotals($client->id, $client->tenant_id, $excludeId);
+        $balance  = max(0, (float) ($totals[$currency]['balance'] ?? 0));
         return $this->sendResponse([
             'client_id' => $client->id,
             'balance'   => round($balance, 2),
-            'currency'  => 'GNF',
+            'currency'  => $currency,
+            'by_currency' => collect($totals)->map(fn ($row) => max(0, $row['balance']))->all(),
             'as_of'     => now()->format('Y-m-d H:i:s'),
         ], 'Outstanding balance computed');
     }
@@ -311,23 +329,26 @@ class InvoiceController extends BaseController
             foreach ($inv->items as $it) {
                 $itemsCount++;
                 if ($it->is_sample) { $sampleCount++; continue; }
-                $cost = $this->unitCost($it) * (float) $it->quantity;
-                $rev  = (float) $it->line_total;
+                // Les prix d'achat des produits sont en GNF : pour une facture
+                // en devise, le cout est ramene dans la devise de la facture.
+                $rate    = $this->invoiceRate($inv);
+                $costGnf = $this->unitCost($it) * (float) $it->quantity;
+                $rev     = (float) $it->line_total;
                 $totalRevenueNative += $rev;
-                $totalCostNative    += $cost;
-                $rate = (float) ($inv->exchange_rate ?: 1);
-                $totalRevenueGnf += ($inv->currency === 'GNF') ? $rev : $rev * $rate;
-                $totalCostGnf    += ($inv->currency === 'GNF') ? $cost : $cost * $rate;
+                $totalCostNative    += $costGnf / $rate;
+                $totalRevenueGnf    += $rev * $rate;
+                $totalCostGnf       += $costGnf;
             }
         }
 
         // Enrichir les lignes paginées avec marge calculée
         $items = collect($paginated->items())->map(function (Invoice $inv) {
             $revenue = 0.0; $cost = 0.0; $samples = 0;
-            $itemRows = $inv->items->map(function ($it) use (&$revenue, &$cost, &$samples) {
+            $rate = $this->invoiceRate($inv);
+            $itemRows = $inv->items->map(function ($it) use (&$revenue, &$cost, &$samples, $rate) {
                 $isSample = (bool) $it->is_sample;
                 if ($isSample) $samples++;
-                $unitCost = $this->unitCost($it);
+                $unitCost = $this->unitCost($it) / $rate;
                 $lineCost = $isSample ? 0.0 : $unitCost * (float) $it->quantity;
                 $lineRev  = (float) $it->line_total;
                 $margin   = $lineRev - $lineCost;
@@ -407,6 +428,17 @@ class InvoiceController extends BaseController
     /**
      * Coût unitaire d'un item selon le sale_type et les prix du produit.
      */
+    /** Taux GNF d'une facture (1 pour une facture en GNF). */
+    private function invoiceRate(Invoice $invoice): float
+    {
+        if (strtoupper((string) ($invoice->currency ?? 'GNF')) === 'GNF') {
+            return 1.0;
+        }
+        $rate = (float) ($invoice->exchange_rate ?: 0);
+        return $rate > 0 ? $rate : 1.0;
+    }
+
+    /** Cout d'achat d'une ligne, en GNF, selon le conditionnement vendu. */
     private function unitCost($item): float
     {
         $p = $item->product ?? null;
@@ -475,17 +507,23 @@ class InvoiceController extends BaseController
         return null;
     }
 
-    private function buildInvoicePayload(Request $request, int $tenantId, ?int $invoiceId = null): array
+    /** Facture en devise sans taux exploitable : message d'erreur, sinon null. */
+    private function missingRateError(Request $request, int $tenantId, ?Invoice $invoice = null): ?string
+    {
+        $currency = strtoupper((string) ($request->currency ?? 'GNF'));
+        $known    = $invoice && strtoupper((string) $invoice->currency) === $currency ? (float) $invoice->exchange_rate : null;
+        $rate     = GnfRate::resolve($tenantId, $currency, $request->exchange_rate)
+            ?? GnfRate::resolve($tenantId, $currency, $known);
+
+        return $rate === null ? GnfRate::missingMessage($currency) : null;
+    }
+
+    private function buildInvoicePayload(Request $request, int $tenantId, ?int $invoiceId = null, ?float $knownRate = null): array
     {
         $currency     = strtoupper((string) ($request->currency ?? 'GNF'));
-        $exchangeRate = $request->exchange_rate ?? 1;
-
-        if ($currency !== 'GNF' && (float) $exchangeRate === 1.0) {
-            $cur = Currency::where('tenant_id', $tenantId)->where('code', $currency)->first();
-            if ($cur) {
-                $exchangeRate = $cur->exchange_rate;
-            }
-        }
+        $exchangeRate = GnfRate::resolve($tenantId, $currency, $request->exchange_rate)
+            ?? GnfRate::resolve($tenantId, $currency, $knownRate)
+            ?? 1.0;
 
         $lineItems = collect($request->get('line_items', []))
             ->filter(fn ($item) => filled($item['description'] ?? null))
@@ -530,7 +568,8 @@ class InvoiceController extends BaseController
         if ($request->filled('previous_balance_amount')) {
             $previousBalance = round((float) $request->previous_balance_amount, 2);
         } elseif ($includePrevious && $request->filled('client_id')) {
-            $previousBalance = $this->getOutstandingClientBalanceForCurrency(
+            // Dette reelle du compte dans la devise de la facture (hors cette facture)
+            $previousBalance = AccountBalanceService::clientDebt(
                 (int) $request->client_id,
                 $tenantId,
                 $currency,
@@ -595,9 +634,10 @@ class InvoiceController extends BaseController
                 continue;
             }
 
-            $product = Product::where('tenant_id', $invoice->tenant_id)->find($item->product_id);
+            $product = Product::where('tenant_id', $invoice->tenant_id)->lockForUpdate()->find($item->product_id);
             if ($product) {
-                $product->stock_quantity = (int) ($product->stock_quantity ?? 0) + (float) $item->quantity;
+                $product->stock_quantity = (int) ($product->stock_quantity ?? 0)
+                    + $this->stockUnits($product, $item->sale_type, (float) $item->quantity);
                 $product->save();
             }
         }
@@ -610,139 +650,53 @@ class InvoiceController extends BaseController
         }
 
         $product = Product::where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($item['product_id']);
-        $quantity = (float) ($item['quantity'] ?? 0);
-        $currentStock = (float) ($product->stock_quantity ?? 0);
-
-        if ($currentStock < $quantity) {
-            throw new \RuntimeException("Stock insuffisant pour le produit {$product->name}");
+        $units = $this->stockUnits($product, $item['sale_type'] ?? 'UNITE', (float) ($item['quantity'] ?? 0));
+        $currentStock = (int) ($product->stock_quantity ?? 0);
+        if ($currentStock < $units) {
+            throw new \RuntimeException(
+                "Stock insuffisant pour le produit {$product->name} : {$currentStock} unité(s) disponible(s), {$units} demandée(s)."
+            );
         }
-
-        $product->stock_quantity = $currentStock - $quantity;
+        $product->stock_quantity = $currentStock - $units;
         $product->save();
     }
 
-    private function getOutstandingClientBalance(int $clientId, int $tenantId, ?int $excludeInvoiceId = null): float
+    /**
+     * Nombre d'unites de stock que represente une ligne.
+     * Le stock est tenu a l'unite : 2 cartons de 24 sortent 48 unites, pas 2.
+     */
+    private function stockUnits(Product $product, ?string $saleType, float $quantity): int
     {
-        $invoiceQuery = Invoice::where('tenant_id', $tenantId)
-            ->where('client_id', $clientId)
-            ->whereIn('status', ['IMPAYE', 'PARTIEL']);
-
-        if ($excludeInvoiceId) {
-            $invoiceQuery->where('id', '!=', $excludeInvoiceId);
-        }
-
-        $invoiceBalance = (float) $invoiceQuery
-            ->get()
-            ->sum(fn (Invoice $invoice) => $this->invoiceRemainingGnf($invoice));
-
-        $returnCredits = (float) ProductReturn::where('tenant_id', $tenantId)
-            ->where('client_id', $clientId)
-            ->whereNull('invoice_id')
-            ->where('status', 'APPROVED')
-            ->whereNull('client_advance_id')
-            ->get()
-            ->sum(function (ProductReturn $return) {
-                if ($return->total_amount_gnf !== null) {
-                    return (float) $return->total_amount_gnf;
-                }
-
-                $currency = strtoupper((string) ($return->currency ?? 'GNF'));
-                $amount = (float) $return->client_credit_amount;
-                $rate = (float) ($return->exchange_rate ?: 1);
-
-                return $currency === 'GNF' ? $amount : $amount * $rate;
-            });
-
-        $paymentCredits = (float) Payment::where('tenant_id', $tenantId)
-            ->where('client_id', $clientId)
-            ->where('status', 'COMPLETED')
-            ->where('type', 'CLIENT')
-            ->whereNull('invoice_id')
-            ->get()
-            ->sum(fn ($payment) => $payment->amount_gnf);
-
-        return max(0, round($invoiceBalance - $returnCredits - $paymentCredits, 2));
+        $unitsPerCarton = max(1, (int) ($product->units_per_carton ?: 1));
+        $factor = match ($saleType) {
+            'CARTON'      => $unitsPerCarton,
+            'DEMI_CARTON' => $unitsPerCarton / 2,
+            'DOUZAINE'    => 12,
+            default       => 1,
+        };
+        return (int) ceil($quantity * $factor);
     }
 
-    private function invoiceRemainingGnf(Invoice $invoice): float
-    {
-        $remaining = max(0, (float) $invoice->total_amount - (float) $invoice->paid_amount);
-        $currency = strtoupper((string) ($invoice->currency ?? 'GNF'));
-
-        if ($currency === 'GNF') {
-            return round($remaining, 2);
-        }
-
-        $rate = (float) ($invoice->exchange_rate ?: 1);
-        return round($remaining * $rate, 2);
-    }
-
-    private function getOutstandingClientBalanceForCurrency(int $clientId, int $tenantId, string $currency, ?int $excludeInvoiceId = null): float
-    {
-        $currency = strtoupper($currency);
-
-        $invoiceQuery = Invoice::where('tenant_id', $tenantId)
-            ->where('client_id', $clientId)
-            ->where('currency', $currency)
-            ->whereIn('status', ['IMPAYE', 'PARTIEL']);
-
-        if ($excludeInvoiceId) {
-            $invoiceQuery->where('id', '!=', $excludeInvoiceId);
-        }
-
-        $invoiceBalance = (float) $invoiceQuery
-            ->get()
-            ->sum(fn (Invoice $invoice) => $invoice->remaining_balance);
-
-        $returnCredits = (float) ProductReturn::where('tenant_id', $tenantId)
-            ->where('client_id', $clientId)
-            ->where('currency', $currency)
-            ->whereNull('invoice_id')
-            ->where('status', 'APPROVED')
-            ->whereNull('client_advance_id')
-            ->sum('client_credit_amount');
-
-        $paymentCredits = (float) Payment::where('tenant_id', $tenantId)
-            ->where('client_id', $clientId)
-            ->where('status', 'COMPLETED')
-            ->where('type', 'CLIENT')
-            ->whereNull('invoice_id')
-            ->where(function ($query) use ($currency) {
-                $query->where('target_currency', $currency)
-                    ->orWhere(function ($fallback) use ($currency) {
-                        $fallback->whereNull('target_currency')->where('currency', $currency);
-                    });
-            })
-            ->get()
-            ->sum(function (Payment $payment) use ($currency) {
-                if (strtoupper((string) $payment->target_currency) === $currency && $payment->converted_amount !== null) {
-                    return (float) $payment->converted_amount;
-                }
-
-                return (float) $payment->amount;
-            });
-
-        return max(0, round($invoiceBalance - $returnCredits - $paymentCredits, 2));
-    }
-
+    /**
+     * Numero de facture unique : dernier numero attribue + 1, factures
+     * supprimees comprises (sinon le numero d'une facture mise a la corbeille
+     * etait redonne a la suivante).
+     */
     private function generateInvoiceNumber(int $tenantId, ?int $excludeInvoiceId = null): string
     {
         $prefix = 'FACT-' . now()->format('Y') . '-';
 
-        $query = Invoice::where('tenant_id', $tenantId)
-            ->where('invoice_number', 'like', $prefix . '%');
+        DB::table('tenants')->where('id', $tenantId)->lockForUpdate()->first();
 
-        if ($excludeInvoiceId) {
-            $query->where('id', '!=', $excludeInvoiceId);
-        }
+        $last = Invoice::withTrashed()
+            ->where('tenant_id', $tenantId)
+            ->where('invoice_number', 'like', $prefix . '%')
+            ->when($excludeInvoiceId, fn ($q) => $q->where('id', '!=', $excludeInvoiceId))
+            ->pluck('invoice_number')
+            ->map(fn ($number) => preg_match('/(\d+)$/', $number, $m) ? (int) $m[1] : 0)
+            ->max() ?? 0;
 
-        $lastInvoice = $query->orderByDesc('id')->first();
-        $next = 1;
-
-        if ($lastInvoice && preg_match('/(\d+)$/', $lastInvoice->invoice_number, $matches)) {
-            $next = ((int) $matches[1]) + 1;
-        }
-
-        return $prefix . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+        return $prefix . str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT);
     }
+
 }

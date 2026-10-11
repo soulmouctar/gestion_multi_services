@@ -26,6 +26,7 @@ use App\Models\Unit;
 use App\Models\VehicleExpense;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Controleur unifie pour la gestion de la corbeille des entites en SoftDeletes.
@@ -258,7 +259,10 @@ class TrashController extends BaseController
             return $this->sendError('Accès refusé', [], 403);
         }
 
-        $item->restore();
+        DB::transaction(function () use ($item) {
+            $item->restore();
+            $this->afterRestore($item);
+        });
         return $this->sendResponse(['id' => $id], 'Restauré avec succès');
     }
 
@@ -293,6 +297,39 @@ class TrashController extends BaseController
         $q->forceDelete();
 
         return $this->sendResponse(['deleted' => $count], "$count élément(s) supprimé(s) définitivement");
+    }
+
+    /**
+     * Remet en coherence ce que la suppression avait defait.
+     * Les comptes-devises, eux, sont recalcules automatiquement a la restauration.
+     */
+    private function afterRestore($item): void
+    {
+        // Versement restaure : la facture qu'il regle retrouve son montant paye
+        if ($item instanceof Payment && $item->invoice_id) {
+            \App\Models\Invoice::find($item->invoice_id)?->recalculatePaidAmount();
+        }
+
+        // Facture restauree : sa suppression avait rendu la marchandise au stock,
+        // elle en ressort (sans passer sous zero).
+        if ($item instanceof \App\Models\Invoice) {
+            foreach ($item->items()->with('product')->get() as $line) {
+                $product = $line->product;
+                if (!$product) {
+                    continue;
+                }
+                $unitsPerCarton = max(1, (int) ($product->units_per_carton ?: 1));
+                $factor = match ($line->sale_type) {
+                    'CARTON'      => $unitsPerCarton,
+                    'DEMI_CARTON' => $unitsPerCarton / 2,
+                    'DOUZAINE'    => 12,
+                    default       => 1,
+                };
+                $product->stock_quantity = max(0, (int) $product->stock_quantity - (int) ceil((float) $line->quantity * $factor));
+                $product->save();
+            }
+            $item->recalculatePaidAmount();
+        }
     }
 
     private function resolveEntity(string $key): array

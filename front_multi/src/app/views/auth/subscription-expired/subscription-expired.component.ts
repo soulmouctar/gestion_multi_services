@@ -21,11 +21,10 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrls: ['./subscription-expired.component.scss']
 })
 export class SubscriptionExpiredComponent implements OnInit {
-  tenantInfo: any = {
-    name: 'Entreprise Demo',
-    plan: 'Professional',
-    expiryDate: new Date('2024-12-31'),
-    daysExpired: 15
+  tenantInfo: { name: string; plan: string; daysExpired: number | null } = {
+    name: '—',
+    plan: '—',
+    daysExpired: null
   };
   
   availablePlans = [
@@ -63,23 +62,35 @@ export class SubscriptionExpiredComponent implements OnInit {
     this.loadTenantInfo();
   }
   
+  /** Organisation et abonnement réels de l'utilisateur connecté (plus de données de démonstration). */
   loadTenantInfo(): void {
-    // In real app, this would come from the auth service
+    const tenant: any = this.authService.currentTenant || (this.authService.currentUser as any)?.tenant;
+    if (!tenant) {
+      return;
+    }
+    const subscription = tenant.subscription;
+    const endDate = subscription?.end_date || subscription?.endDate;
+    const daysExpired = endDate
+      ? Math.max(0, Math.floor((Date.now() - new Date(endDate).getTime()) / 86_400_000))
+      : null;
+
     this.tenantInfo = {
-      name: 'Entreprise Demo',
-      plan: 'Professional',
-      expiryDate: new Date('2024-12-31'),
-      daysExpired: 15
+      name: tenant.name || '—',
+      plan: subscription?.plan?.name || '—',
+      daysExpired
     };
   }
-  
+
+  /**
+   * Le renouvellement se fait auprès du support : il n'existe pas de paiement
+   * en ligne (l'ancien lien menait à une page inexistante).
+   */
   selectPlan(plan: any): void {
-    // Redirect to payment page with selected plan
-    this.router.navigate(['/subscription/renew'], { 
-      queryParams: { planId: plan.id } 
-    });
+    const subject = `Renouvellement d'abonnement — ${this.tenantInfo.name}`;
+    const body = `Bonjour,\n\nNous souhaitons renouveler notre abonnement avec la formule ${plan.name}.\n\nOrganisation : ${this.tenantInfo.name}`;
+    window.location.href = `mailto:support@saas-management.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
-  
+
   contactSupport(): void {
     // Open support contact modal or redirect to support page
     window.location.href = 'mailto:support@saas-management.com?subject=Problème d\'abonnement';

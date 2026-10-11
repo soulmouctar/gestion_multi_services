@@ -14,7 +14,7 @@ import { AlertService } from '../../../core/services/alert.service';
     IconDirective,CommonModule, ReactiveFormsModule, FormsModule],
   styles: [`
     .page-header {
-      background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       border-radius: 16px;
       padding: 28px 32px;
       margin-bottom: 24px;
@@ -53,7 +53,7 @@ import { AlertService } from '../../../core/services/alert.service';
       color: var(--app-text-muted); font-size: 0.85rem;
     }
     .btn-create {
-      background: linear-gradient(135deg, #1a237e, #3949ab);
+      background: linear-gradient(135deg, #1a1a2e, #0f3460);
       color: white; border: none; border-radius: 8px;
       padding: 8px 20px; font-size: 0.875rem; font-weight: 600; cursor: pointer;
       white-space: nowrap;
@@ -82,7 +82,7 @@ import { AlertService } from '../../../core/services/alert.service';
     .btn-icon.btn-role:hover { border-color: #0891b2; color: #0891b2; }
     .role-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 2px solid var(--app-border); border-radius: 10px; cursor: pointer; margin-bottom: 10px; transition: all 0.15s; }
     .role-option:hover { border-color: var(--app-indigo-border); background: var(--app-indigo-bg); }
-    .role-option.selected { border-color: #3949ab; background: var(--app-indigo-bg); }
+    .role-option.selected { border-color: #0f3460; background: var(--app-indigo-bg); }
     .role-option input { display: none; }
     .role-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
     .role-title { font-weight: 700; font-size: 0.9rem; color: var(--app-text-strong); }
@@ -106,11 +106,11 @@ import { AlertService } from '../../../core/services/alert.service';
       width: 100%; padding: 9px 12px; border: 1px solid var(--app-border);
       border-radius: 8px; font-size: 0.875rem; box-sizing: border-box;
     }
-    .form-control:focus { outline: none; border-color: #3949ab; box-shadow: 0 0 0 3px rgba(57,73,171,0.1); }
+    .form-control:focus { outline: none; border-color: #0f3460; box-shadow: 0 0 0 3px rgba(57,73,171,0.1); }
     .form-group { margin-bottom: 16px; }
     .error-text { font-size: 0.75rem; color: #dc3545; margin-top: 3px; }
     .btn-cancel { background: var(--app-surface-2); border: 1px solid var(--app-border); border-radius: 8px; padding: 9px 20px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
-    .btn-save { background: linear-gradient(135deg, #1a237e, #3949ab); color: white; border: none; border-radius: 8px; padding: 9px 24px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-save { background: linear-gradient(135deg, #1a1a2e, #0f3460); color: white; border: none; border-radius: 8px; padding: 9px 24px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
     .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
     .section-title { font-size: 0.8rem; font-weight: 700; color: var(--app-text); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--app-border-soft); }
     .module-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--app-surface-2); border-radius: 8px; margin-bottom: 8px; }
@@ -119,7 +119,7 @@ import { AlertService } from '../../../core/services/alert.service';
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
     .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--app-surface-4); border-radius: 22px; transition: 0.3s; }
     .toggle-slider:before { position: absolute; content: ''; width: 16px; height: 16px; left: 3px; bottom: 3px; background: var(--app-surface); border-radius: 50%; transition: 0.3s; }
-    .toggle-switch input:checked + .toggle-slider { background: #3949ab; }
+    .toggle-switch input:checked + .toggle-slider { background: #0f3460; }
     .toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); }
     .perm-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .perm-pill { padding: 3px 10px; border-radius: 50px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid; }
@@ -326,7 +326,7 @@ import { AlertService } from '../../../core/services/alert.service';
 
       <!-- KPIs -->
       <div class="kpi-row">
-        <div class="kpi-card" style="border-color:#3949ab">
+        <div class="kpi-card" style="border-color:#0f3460">
           <div class="kpi-label">Total Utilisateurs</div>
           <div class="kpi-value" style="color:var(--app-blue-fg-strong)">{{ users.length }}</div>
         </div>
@@ -354,7 +354,7 @@ import { AlertService } from '../../../core/services/alert.service';
         </div>
 
         <div *ngIf="loading" class="loading-state">
-          <div style="display:inline-block;width:24px;height:24px;border:3px solid var(--app-border);border-top-color:#3949ab;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+          <div style="display:inline-block;width:24px;height:24px;border:3px solid var(--app-border);border-top-color:#0f3460;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
           <span style="margin-left:10px;">Chargement...</span>
         </div>
 
@@ -1111,7 +1111,7 @@ export class OrganisationUsersComponent implements OnInit {
   }
 
   avatarBg(user: UserProfile): string {
-    const colors = ['#3949ab','#1565c0','#283593','#6a1b9a','#00695c','#e53935'];
+    const colors = ['#0f3460','#1565c0','#16213e','#6a1b9a','#00695c','#e53935'];
     return colors[user.id % colors.length];
   }
 

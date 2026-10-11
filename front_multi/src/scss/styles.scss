@@ -22,6 +22,9 @@ $app-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 // Custom styles for this theme
 @use "theme";
 
+// Harmonisation des pages et des listes (bandeaux, tableaux, formulaires, fenetres)
+@use "harmony";
+
 // Mode sombre : complements globaux
 @use "dark";
 

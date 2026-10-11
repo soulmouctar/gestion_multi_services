@@ -1,7 +1,7 @@
 <div class="container-fluid">
 
   <!-- Page Header -->
-  <div style="background:linear-gradient(135deg,#1a237e 0%,#283593 50%,#3949ab 100%);border-radius:16px;padding:24px 28px;margin-bottom:24px;color:white">
+  <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;padding:24px 28px;margin-bottom:24px;color:white">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div>
         <h4 class="mb-1 fw-bold" style="font-size:1.4rem"><svg cIcon name="cilPeople" class="ic"></svg> Gestion des Utilisateurs</h4>
@@ -258,7 +258,7 @@
   <c-modal-footer style="border-top:1px solid var(--app-border-soft)">
     <button cButton color="secondary" (click)="closeUserModal()" [disabled]="loading">Annuler</button>
     <button *ngIf="editMode ? canEditUsers : canCreateUsers" cButton color="primary" (click)="onSubmitUser()" [disabled]="loading"
-      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
+      style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       {{ editMode ? 'Enregistrer' : 'Créer' }}
     </button>
@@ -297,7 +297,7 @@
   <c-modal-footer style="border-top:1px solid var(--app-border-soft)">
     <button cButton color="secondary" (click)="closePasswordModal()" [disabled]="loading">Annuler</button>
     <button *ngIf="canChangePasswords" cButton color="primary" (click)="onSubmitPassword()" [disabled]="loading"
-      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
+      style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       Enregistrer
     </button>
@@ -358,7 +358,7 @@
   <c-modal-footer>
     <button cButton color="secondary" (click)="closePermissionModal()" [disabled]="loading">Fermer</button>
     <button *ngIf="canManagePermissions" cButton color="primary" (click)="savePermissions()" [disabled]="loading"
-      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;font-weight:600">
+      style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;border-radius:8px;font-weight:600">
       <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
       Sauvegarder
     </button>
@@ -389,7 +389,7 @@
   <c-modal-footer>
     <button cButton color="secondary" (click)="closeRoleModal()" [disabled]="loading">Annuler</button>
     <button cButton color="primary" (click)="saveRolePermissions()" [disabled]="loading"
-      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;font-weight:600">
+      style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;border-radius:8px;font-weight:600">
       Appliquer
     </button>
   </c-modal-footer>

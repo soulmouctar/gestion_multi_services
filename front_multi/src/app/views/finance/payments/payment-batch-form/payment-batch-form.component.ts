@@ -204,6 +204,18 @@ export class PaymentBatchFormComponent implements OnChanges {
     return currency !== target;
   }
 
+  /** Une devise étrangère entre en jeu : le taux sert aussi à l'équivalent GNF du versement. */
+  involvesForeignCurrency(entry: FormGroup): boolean {
+    const currency = String(entry.get('currency')?.value || 'GNF');
+    const target = String(entry.get('target_currency')?.value || currency);
+    return currency !== 'GNF' || target !== 'GNF';
+  }
+
+  ratePlaceholder(entry: FormGroup): string {
+    if (this.needsExchangeRate(entry)) return 'Obligatoire';
+    return this.involvesForeignCurrency(entry) ? 'Taux du jour' : '—';
+  }
+
   close(): void {
     if (this.submitting) return;
     this.visible = false;
@@ -216,8 +228,14 @@ export class PaymentBatchFormComponent implements OnChanges {
       return;
     }
     for (const grp of this.entries.controls) {
-      if (this.needsExchangeRate(grp) && !Number(grp.get('exchange_rate')?.value)) {
+      const rate = Number(grp.get('exchange_rate')?.value);
+      if (this.needsExchangeRate(grp) && !rate) {
         this.alert.showWarning('Taux de change requis', 'Renseigne un taux de change pour chaque ligne convertie.');
+        return;
+      }
+      // Le taux s'exprime en GNF pour 1 unité de devise (ex. 8 600 pour 1 USD) : 1 ou moins est une erreur de saisie.
+      if (rate && rate <= 1 && this.involvesForeignCurrency(grp)) {
+        this.alert.showWarning('Taux de change invalide', 'Indique combien de GNF vaut 1 unité de la devise (ex. 8 600 pour 1 USD).');
         return;
       }
     }

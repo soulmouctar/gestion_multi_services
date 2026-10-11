@@ -10,6 +10,8 @@ use App\Models\Client;
 use App\Models\ClientAdvance;
 use App\Models\Currency;
 use App\Models\ExchangeRate;
+use App\Services\AccountBalanceService;
+use App\Support\GnfRate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -111,22 +113,16 @@ class ContainerSalesController extends BaseController
                     DB::table('tenants')->where('id', $tenantId)->lockForUpdate()->first();
                 }
                 $data['arrival_number'] = $this->generateNextArrivalNumber($tenantId, $data['arrival_date'] ?? null);
-                $created = ContainerArrival::create($data);
-
                 // L'arrivage est un achat : il augmente ce que nous devons au
-                // fournisseur, dans la devise de la transaction.
-                if ($created->supplier_id && $tenantId) {
-                    \App\Models\SupplierCurrencyAccount::getOrCreate(
-                        (int) $created->supplier_id,
-                        (int) $tenantId,
-                        strtoupper($created->currency ?: 'GNF')
-                    )->applyDebit((float) $created->purchase_price);
-                }
-
-                return $created;
+                // fournisseur. Son compte-devise est recalcule automatiquement
+                // (AccountBalanceService), y compris si l'arrivage est modifie
+                // ou supprime ensuite.
+                return ContainerArrival::create($data);
             });
 
             return $this->sendResponse($arrival->load($this->arrivalRelations()), 'Arrival created successfully', 201);
+        } catch (\DomainException $e) {
+            return $this->sendError($e->getMessage(), ['exchange_rate' => [$e->getMessage()]], 422);
         } catch (\Exception $e) {
             \Log::error('Error creating arrival: ' . $e->getMessage());
             return $this->sendError('Error creating arrival', ['error' => $e->getMessage()], 500);
@@ -135,7 +131,8 @@ class ContainerSalesController extends BaseController
 
     public function updateArrival(Request $request, $id)
     {
-        $arrival = ContainerArrival::find($id);
+        $tenantId = $this->tenantId($request);
+        $arrival = ContainerArrival::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))->find($id);
         if (!$arrival) {
             return $this->sendError('Arrival not found', [], 404);
         }
@@ -162,9 +159,33 @@ class ContainerSalesController extends BaseController
         if (array_key_exists('product_type', $data) && !$data['product_type']) {
             $data['product_type'] = 'DIVERS';
         }
+        // Quantite totale modifiee : le restant suit, sans jamais passer sous
+        // ce qui est deja vendu (il restait fige a l'ancienne valeur).
+        if (array_key_exists('total_quantity', $data)) {
+            $sold = (int) $arrival->total_quantity - (int) $arrival->remaining_quantity;
+            if ((int) $data['total_quantity'] < $sold) {
+                return $this->sendError(
+                    "Quantité invalide : {$sold} unité(s) de cet arrivage sont déjà vendues.",
+                    ['total_quantity' => ["La quantité totale ne peut pas être inférieure aux {$sold} déjà vendues."]],
+                    422
+                );
+            }
+            $data['remaining_quantity'] = (int) $data['total_quantity'] - $sold;
+            if (!array_key_exists('status', $data) && $arrival->status !== 'CLOTURE') {
+                $data['status'] = $data['remaining_quantity'] <= 0 ? 'VENDU_TOTAL' : ($sold > 0 ? 'VENDU_PARTIEL' : 'EN_COURS');
+            }
+        }
         if (array_key_exists('purchase_price', $data) || array_key_exists('currency', $data) || array_key_exists('exchange_rate', $data)) {
             $currency = strtoupper((string) ($data['currency'] ?? $arrival->currency ?? 'GNF'));
-            $exchangeRate = $this->resolveExchangeRateForCurrency($arrival->tenant_id, $currency, $data['exchange_rate'] ?? null);
+            try {
+                $exchangeRate = $this->resolveExchangeRateForCurrency(
+                    $arrival->tenant_id,
+                    $currency,
+                    $data['exchange_rate'] ?? ($currency === strtoupper((string) $arrival->currency) ? $arrival->exchange_rate : null)
+                );
+            } catch (\DomainException $e) {
+                return $this->sendError($e->getMessage(), ['exchange_rate' => [$e->getMessage()]], 422);
+            }
             $data['currency'] = $currency;
             $data['exchange_rate'] = $exchangeRate;
             $data['purchase_price_gnf'] = $this->convertToGnf(
@@ -202,16 +223,20 @@ class ContainerSalesController extends BaseController
             // ON DELETE des cles etrangeres ne se declenche donc jamais. Sans ce
             // nettoyage explicite, les ventes de l'arrivage resteraient actives et
             // continueraient a peser dans les soldes clients et les statistiques.
-            $saleIds = ContainerSale::where('container_arrival_id', $arrival->id)
-                ->pluck('id');
-
+            $sales = ContainerSale::where('container_arrival_id', $arrival->id)->get(['id', 'client_id', 'tenant_id']);
+            $saleIds = $sales->pluck('id');
             $deletedPayments = 0;
             if ($saleIds->isNotEmpty()) {
+                // Les avances consommees par ces ventes redeviennent disponibles
+                $this->releaseAdvances(ContainerSalePayment::whereIn('container_sale_id', $saleIds)->get());
                 $deletedPayments = ContainerSalePayment::whereIn('container_sale_id', $saleIds)->delete();
                 ContainerSale::whereIn('id', $saleIds)->delete();
             }
-
             $arrival->delete();
+            // Suppressions par requete : pas d'evenement Eloquent, on resynchronise a la main
+            foreach ($sales->unique('client_id') as $sale) {
+                AccountBalanceService::syncClient((int) $sale->client_id, (int) $sale->tenant_id);
+            }
             DB::commit();
 
             return $this->sendResponse([
@@ -327,16 +352,26 @@ class ContainerSalesController extends BaseController
                 return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
             }
 
-            // Vérifier la quantité disponible
-            $arrival = ContainerArrival::find($request->container_arrival_id);
+            $tenantId = $this->tenantId($request);
+            // L'arrivage et le client doivent appartenir a l'organisation courante
+            if ($tenantId && !\App\Models\Client::where('tenant_id', $tenantId)->whereKey($request->client_id)->exists()) {
+                return $this->sendError('Client introuvable pour cette organisation.', [], 422);
+            }
+            DB::beginTransaction();
+            // Verrou sur l'arrivage : deux ventes simultanees ne peuvent pas vendre la meme marchandise
+            $arrival = ContainerArrival::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+                ->lockForUpdate()
+                ->find($request->container_arrival_id);
+            if (!$arrival) {
+                DB::rollBack();
+                return $this->sendError('Arrivage introuvable pour cette organisation.', [], 404);
+            }
             if ($request->quantity_sold > $arrival->remaining_quantity) {
+                DB::rollBack();
                 return $this->sendError('Quantité insuffisante', ['error' => 'La quantité demandée dépasse le stock disponible'], 422);
             }
-
-            DB::beginTransaction();
-
             $data = $request->all();
-            $tenantId = $this->tenantId($request);
+            $tenantId = $tenantId ?: (int) $arrival->tenant_id;
             $currency = strtoupper((string) ($data['currency'] ?? 'GNF'));
             $exchangeRate = $this->resolveExchangeRateForCurrency($tenantId, $currency, $request->input('exchange_rate'));
             $salePriceGnf = $this->convertToGnf((float) $data['sale_price'], $currency, $exchangeRate);
@@ -371,6 +406,9 @@ class ContainerSalesController extends BaseController
             DB::commit();
 
             return $this->sendResponse($sale->fresh()->load(['containerArrival.container', 'client', 'payments']), 'Sale created successfully', 201);
+        } catch (\DomainException $e) {
+            DB::rollBack();
+            return $this->sendError($e->getMessage(), ['exchange_rate' => [$e->getMessage()]], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error creating sale: ' . $e->getMessage());
@@ -380,7 +418,8 @@ class ContainerSalesController extends BaseController
 
     public function updateSale(Request $request, $id)
     {
-        $sale = ContainerSale::find($id);
+        $tenantId = $this->tenantId($request);
+        $sale = ContainerSale::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))->find($id);
         if (!$sale) {
             return $this->sendError('Sale not found', [], 404);
         }
@@ -398,20 +437,58 @@ class ContainerSalesController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $sale->update($request->only(['sale_price', 'is_installment', 'installment_count', 'due_date', 'notes', 'status']));
+        $wasCancelled = $sale->status === 'ANNULE';
+        $cancelling   = $request->input('status') === 'ANNULE' && !$wasCancelled;
+        $reactivating = $wasCancelled && $request->filled('status') && $request->input('status') !== 'ANNULE';
 
-        // Recalculer le reste à payer si le prix change
-        if ($request->has('sale_price')) {
-            $sale->remaining_amount = $sale->sale_price - $sale->amount_paid;
-            if ($this->hasSaleConversionColumns()) {
-                $exchangeRate = (float) ($sale->exchange_rate ?: 1);
-                $sale->sale_price_gnf = $this->convertToGnf((float) $sale->sale_price, $sale->currency ?? 'GNF', $exchangeRate);
-                $sale->remaining_amount_gnf = max(0, (float) $sale->sale_price_gnf - (float) ($sale->amount_paid_gnf ?? 0));
-            }
-            $sale->save();
+        if ($cancelling && $sale->payments()->exists()) {
+            return $this->sendError(
+                'Annulation impossible : des versements sont enregistrés sur cette vente. Supprimez-les d\'abord.',
+                [],
+                422
+            );
         }
 
-        return $this->sendResponse($sale->load(['containerArrival.container', 'client', 'payments']), 'Sale updated successfully');
+        try {
+            DB::transaction(function () use ($request, $sale, $cancelling, $reactivating) {
+            $arrival = ContainerArrival::lockForUpdate()->find($sale->container_arrival_id);
+
+            // Une vente annulee rend sa marchandise a l'arrivage ; la reactiver la reprend
+            if ($reactivating && $arrival && (int) $sale->quantity_sold > (int) $arrival->remaining_quantity) {
+                throw new \DomainException('Réactivation impossible : la marchandise de cet arrivage a été revendue.');
+            }
+
+            $sale->update($request->only(['sale_price', 'is_installment', 'installment_count', 'due_date', 'notes', 'status']));
+
+            if ($request->has('sale_price') && $this->hasSaleConversionColumns()) {
+                $exchangeRate = (float) ($sale->exchange_rate ?: 1);
+                $sale->sale_price_gnf = $this->convertToGnf((float) $sale->sale_price, $sale->currency ?? 'GNF', $exchangeRate);
+                $sale->save();
+            }
+
+            if ($arrival && ($cancelling || $reactivating)) {
+                $arrival->remaining_quantity += $cancelling ? (int) $sale->quantity_sold : -(int) $sale->quantity_sold;
+                if ($arrival->status !== 'CLOTURE') {
+                    $sold = (int) $arrival->total_quantity - (int) $arrival->remaining_quantity;
+                    $arrival->status = $arrival->remaining_quantity <= 0 ? 'VENDU_TOTAL' : ($sold > 0 ? 'VENDU_PARTIEL' : 'EN_COURS');
+                }
+                $arrival->save();
+            }
+
+            // Reste a payer et statut recalcules depuis les versements reels
+            // (un changement de prix laissait l'ancien statut en place).
+            if ($sale->status !== 'ANNULE') {
+                if ($reactivating || $request->has('sale_price')) {
+                    $sale->status = 'EN_COURS';
+                }
+                $sale->updatePaymentStatus();
+            }
+            });
+        } catch (\DomainException $e) {
+            return $this->sendError($e->getMessage(), [], 422);
+        }
+
+        return $this->sendResponse($sale->fresh()->load(['containerArrival.container', 'client', 'payments']), 'Sale updated successfully');
     }
 
     // ==================== VERSEMENTS ====================
@@ -460,15 +537,37 @@ class ContainerSalesController extends BaseController
                 return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
             }
 
-            $sale = ContainerSale::findOrFail($request->container_sale_id);
-
+            $tenantId = $this->tenantId($request);
             DB::beginTransaction();
-
+            $sale = ContainerSale::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+                ->lockForUpdate()
+                ->find($request->container_sale_id);
+            if (!$sale) {
+                DB::rollBack();
+                return $this->sendError('Vente introuvable pour cette organisation.', [], 404);
+            }
+            if ($sale->status === 'ANNULE') {
+                DB::rollBack();
+                return $this->sendError('Cette vente est annulée : aucun versement ne peut y être enregistré.', [], 422);
+            }
             $data = $request->all();
             $currency = strtoupper((string) ($data['currency'] ?? 'GNF'));
-            $exchangeRate = $this->resolveExchangeRateForCurrency($this->tenantId($request), $currency, $request->input('exchange_rate'));
+            $exchangeRate = $this->resolveExchangeRateForCurrency($sale->tenant_id, $currency, $request->input('exchange_rate'));
             $amountGnf = $this->convertToGnf((float) $data['amount'], $currency, $exchangeRate);
-            $data['tenant_id']    = $this->tenantId($request);
+
+            // Pas de versement au-dela du reste a payer : l'excedent disparaissait
+            // (la vente etait soldee et le trop-percu n'etait trace nulle part).
+            $remainingGnf = $this->getSaleRemainingAmountGnf($sale);
+            if ($amountGnf > $remainingGnf + 1) {
+                DB::rollBack();
+                $remainingLabel = number_format($remainingGnf, 0, ',', ' ');
+                return $this->sendError(
+                    "Montant supérieur au reste à payer ({$remainingLabel} GNF). Utilisez le versement global du client pour enregistrer l'excédent en avance.",
+                    ['amount' => ['Le versement dépasse le reste à payer de cette vente.']],
+                    422
+                );
+            }
+            $data['tenant_id']    = $sale->tenant_id;
             $data['client_id']    = $sale->client_id;
             $data['payment_type'] = 'VERSEMENT';
             $data['currency'] = $currency;
@@ -491,6 +590,9 @@ class ContainerSalesController extends BaseController
                 'Payment recorded successfully',
                 201
             );
+        } catch (\DomainException $e) {
+            DB::rollBack();
+            return $this->sendError($e->getMessage(), ['exchange_rate' => [$e->getMessage()]], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error recording payment: ' . $e->getMessage());
@@ -507,17 +609,19 @@ class ContainerSalesController extends BaseController
             return $this->sendError('Payment not found', [], 404);
         }
 
-        DB::beginTransaction();
-
-        $saleId = $payment->container_sale_id;
-        $payment->delete();
-
-        $sale = ContainerSale::find($saleId);
-        if ($sale) {
-            $sale->updatePaymentStatus();
-        }
-
-        DB::commit();
+        DB::transaction(function () use ($payment) {
+            $saleId = $payment->container_sale_id;
+            // Une imputation d'avance supprimee rend l'avance au client
+            $this->releaseAdvances(collect([$payment]));
+            $payment->delete();
+            $sale = ContainerSale::find($saleId);
+            if ($sale) {
+                if ($sale->status !== 'ANNULE') {
+                    $sale->status = 'EN_COURS';
+                }
+                $sale->updatePaymentStatus();
+            }
+        });
 
         return $this->sendResponse([], 'Payment deleted successfully');
     }
@@ -555,20 +659,24 @@ class ContainerSalesController extends BaseController
         try {
             $validator = Validator::make($request->all(), [
                 'client_id' => 'required|exists:clients,id',
-                'amount' => 'required|numeric|min:0',
+                'amount' => 'required|numeric|min:0.01',
                 'currency' => 'required|string|max:10',
                 'payment_method' => 'required|string|max:50',
                 'payment_date' => 'required|date',
                 'reference' => 'nullable|string|max:100',
                 'description' => 'nullable|string|max:500'
             ]);
-
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
             }
-
-            $data = $request->all();
-            $data['tenant_id'] = $this->tenantId($request);
+            $client = \App\Models\Client::when($this->tenantId($request), fn ($q, $tid) => $q->where('tenant_id', $tid))
+                ->find($request->client_id);
+            if (!$client) {
+                return $this->sendError('Client introuvable pour cette organisation.', [], 422);
+            }
+            $data = $request->only(['client_id', 'amount', 'currency', 'payment_method', 'payment_date', 'reference', 'description']);
+            $data['currency'] = strtoupper((string) $data['currency']);
+            $data['tenant_id'] = $client->tenant_id;
             $data['used_amount'] = 0;
             $data['remaining_amount'] = $data['amount'];
             $data['status'] = 'DISPONIBLE';
@@ -664,10 +772,20 @@ class ContainerSalesController extends BaseController
                 ->orderBy('name')
                 ->get(['id', 'name', 'phone1', 'email', 'client_type', 'photo']);
 
-            $rows = $clients->map(function ($client) use ($tenantId) {
-                $sales = ContainerSale::where('tenant_id', $tenantId)->where('client_id', $client->id)->get();
-                $payments = ContainerSalePayment::where('tenant_id', $tenantId)->where('client_id', $client->id)->get();
-                $advances = ClientAdvance::where('tenant_id', $tenantId)->where('client_id', $client->id)->where('status', '!=', 'UTILISE_TOTAL')->get();
+            // Chargement groupe : 3 requetes pour tous les clients, au lieu de 3 par client
+            $clientIds = $clients->pluck('id');
+            $none = collect();
+            $salesByClient = ContainerSale::where('tenant_id', $tenantId)->whereIn('client_id', $clientIds)
+                ->where('status', '!=', 'ANNULE')->get()->groupBy('client_id');
+            $paymentsByClient = ContainerSalePayment::where('tenant_id', $tenantId)->whereIn('client_id', $clientIds)
+                ->get()->groupBy('client_id');
+            $advancesByClient = ClientAdvance::where('tenant_id', $tenantId)->whereIn('client_id', $clientIds)
+                ->where('status', '!=', 'UTILISE_TOTAL')->get()->groupBy('client_id');
+
+            $rows = $clients->map(function ($client) use ($tenantId, $salesByClient, $paymentsByClient, $advancesByClient, $none) {
+                $sales = $salesByClient->get($client->id, $none);
+                $payments = $paymentsByClient->get($client->id, $none);
+                $advances = $advancesByClient->get($client->id, $none);
 
                 $totalSales = $sales->sum(fn (ContainerSale $sale) => $this->getSaleGrossAmountGnf($sale));
                 $totalPaid = $payments->sum(fn (ContainerSalePayment $payment) => $this->getPaymentAmountGnf($payment));
@@ -731,8 +849,17 @@ class ContainerSalesController extends BaseController
             }
 
             $tenantId = $this->tenantId($request);
+            $client = \App\Models\Client::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))->find($request->client_id);
+            if (!$client) {
+                return $this->sendError('Client introuvable pour cette organisation.', [], 422);
+            }
+            $tenantId = (int) $client->tenant_id;
             $currency = strtoupper((string) $request->input('currency', 'GNF'));
-            $exchangeRate = $this->resolveExchangeRateForCurrency($tenantId, $currency, $request->input('exchange_rate'));
+            try {
+                $exchangeRate = $this->resolveExchangeRateForCurrency($tenantId, $currency, $request->input('exchange_rate'));
+            } catch (\DomainException $e) {
+                return $this->sendError($e->getMessage(), ['exchange_rate' => [$e->getMessage()]], 422);
+            }
             $remainingPaymentGnf = $this->convertToGnf((float) $request->amount, $currency, $exchangeRate);
 
             DB::beginTransaction();
@@ -1051,45 +1178,39 @@ class ContainerSalesController extends BaseController
             && Schema::hasColumn('container_sale_payments', 'amount_gnf');
     }
 
+    /**
+     * Taux devise -> GNF. Leve une DomainException (traduite en erreur 422) si
+     * aucun taux exploitable n'est saisi ni configure : un taux de 1 ferait
+     * enregistrer 1 USD = 1 GNF.
+     */
     private function resolveExchangeRateForCurrency(?int $tenantId, string $currency, $requestedRate = null): float
     {
-        if ($currency === 'GNF') {
-            return 1.0;
+        $rate = GnfRate::resolve($tenantId, $currency, $requestedRate);
+        if ($rate === null) {
+            throw new \DomainException(GnfRate::missingMessage($currency));
         }
+        return $rate;
+    }
 
-        if ($requestedRate !== null && (float) $requestedRate > 0) {
-            return (float) $requestedRate;
-        }
-
-        if ($tenantId && Schema::hasColumn('currencies', 'tenant_id') && Schema::hasColumn('currencies', 'exchange_rate')) {
-            $currencyQuery = Currency::query()
-                ->where('tenant_id', $tenantId)
-                ->where('code', strtoupper($currency));
-
-            if (Schema::hasColumn('currencies', 'is_active')) {
-                $currencyQuery->where('is_active', true);
+    /**
+     * Rend au client les avances consommees par des imputations automatiques
+     * (versements de type AVANCE) sur le point d'etre supprimees.
+     */
+    private function releaseAdvances($payments): void
+    {
+        foreach ($payments as $payment) {
+            if ($payment->payment_type !== 'AVANCE' || !preg_match('/avance #(\d+)/i', (string) $payment->notes, $m)) {
+                continue;
             }
-
-            $currencyRow = $currencyQuery->first();
-
-            if ($currencyRow && (float) $currencyRow->exchange_rate > 0) {
-                return (float) $currencyRow->exchange_rate;
+            $advance = ClientAdvance::where('client_id', $payment->client_id)->find((int) $m[1]);
+            if (!$advance) {
+                continue;
             }
+            $advance->used_amount = max(0, (float) $advance->used_amount - (float) $payment->amount);
+            $advance->remaining_amount = max(0, (float) $advance->amount - (float) $advance->used_amount);
+            $advance->status = $advance->used_amount <= 0 ? 'DISPONIBLE' : 'UTILISE_PARTIEL';
+            $advance->save();
         }
-
-        $latestRate = ExchangeRate::query()
-            ->whereHas('currency', function ($query) use ($currency) {
-                $query->where('code', strtoupper($currency));
-            })
-            ->orderByDesc('rate_date')
-            ->orderByDesc('id')
-            ->first();
-
-        if ($latestRate && (float) $latestRate->rate > 0) {
-            return (float) $latestRate->rate;
-        }
-
-        throw new \RuntimeException("Aucun taux de change disponible pour la devise {$currency}.");
     }
 
     private function convertToGnf(float $amount, string $currency, float $exchangeRate): float

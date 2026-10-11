@@ -1,11 +1,12 @@
 <c-container>
   <c-row>
     <c-col xs="12">
+      <!-- En-tête de page (modèle commun : voir _harmony.scss) -->
+      <div class="app-page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div><h1>Unités de Logement</h1><p>{{ totalItems }} unité(s)</p></div>
+        <button *ngIf="canCreateUnits" cButton color="primary" size="sm" (click)="openCreateModal()"><svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle unité</button>
+      </div>
       <c-card class="mb-4">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div><strong>Unités de Logement</strong><small class="text-medium-emphasis ms-2">{{ totalItems }} unité(s)</small></div>
-          <button *ngIf="canCreateUnits" cButton color="primary" size="sm" (click)="openCreateModal()"><svg cIcon name="cilPlus" class="me-1"></svg> Nouvelle unité</button>
-        </c-card-header>
         <c-card-body>
           <c-alert *ngIf="successMessage" color="success" dismissible (dismissed)="successMessage = null">{{ successMessage }}</c-alert>
           <c-alert *ngIf="error" color="danger" dismissible (dismissed)="error = null">{{ error }}</c-alert>
@@ -198,7 +199,7 @@
 
         <!-- Config summary -->
         <div class="col-12" *ngIf="unitForm.get('unit_configuration_id')?.value">
-          <div class="p-3 rounded" style="background:var(--app-surface-3);border:1px solid #3949ab22">
+          <div class="p-3 rounded" style="background:var(--app-surface-3);border:1px solid #0f346022">
             <strong style="color:var(--app-blue-fg-strong)">Configuration sélectionnée :</strong>
             {{ getConfigName(unitForm.get('unit_configuration_id')?.value) }}
             <span class="text-muted ms-2 small">{{ getConfigDetails(unitForm.get('unit_configuration_id')?.value) }}</span>
@@ -210,7 +211,7 @@
   <c-modal-footer>
     <button cButton color="secondary" (click)="showFormModal = false">Annuler</button>
     <button *ngIf="editMode ? canEditUnits : canCreateUnits" cButton color="primary" (click)="save()"
-      style="background:linear-gradient(135deg,#1a237e,#3949ab);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
+      style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border:none;border-radius:8px;padding:9px 24px;font-weight:600">
       {{ editMode ? 'Mettre à jour' : 'Créer l\'unité' }}
     </button>
   </c-modal-footer>

@@ -654,9 +654,9 @@ export class UsersComponent implements OnInit, AfterViewInit {
   getUserAvatarBg(user: any): string {
     const role = this.getUserRoleName(user);
     const map: Record<string, string> = {
-      SUPER_ADMIN: '#dc3545', ADMIN: '#f39c12', USER: '#3949ab'
+      SUPER_ADMIN: '#dc3545', ADMIN: '#f39c12', USER: '#0f3460'
     };
-    return map[role] || '#3949ab';
+    return map[role] || '#0f3460';
   }
 
   /** Extract role name from user object — handles both user.role (string) and user.roles (Spatie array) */

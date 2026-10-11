@@ -26,7 +26,7 @@
               <strong>Plan actuel:</strong> {{ tenantInfo.plan }}
             </div>
             <div class="d-flex justify-content-between align-items-center">
-              <strong>Expiré depuis:</strong> {{ tenantInfo.daysExpired }} jours
+              <strong>Expiré depuis:</strong> {{ tenantInfo.daysExpired !== null ? tenantInfo.daysExpired + ' jour(s)' : '—' }}
             </div>
           </div>
           

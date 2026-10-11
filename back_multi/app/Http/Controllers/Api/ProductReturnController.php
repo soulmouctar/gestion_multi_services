@@ -93,8 +93,18 @@ class ProductReturnController extends BaseController
             $quantity = (float) $request->quantity;
             $unitPrice = (float) ($request->unit_price ?? ($product->selling_price ?? 0));
             $totalAmount = round($quantity * $unitPrice, 2);
-            $currency = strtoupper((string) ($request->get('currency') ?: 'GNF'));
-            $exchangeRate = $currency === 'GNF' ? 1.0 : (float) ($request->get('exchange_rate') ?: 1);
+            // Un retour sur facture suit la devise et le taux de cette facture
+            $currency = strtoupper((string) ($invoice?->currency ?: ($request->get('currency') ?: 'GNF')));
+            $exchangeRate = \App\Support\GnfRate::resolve(
+                $tenantId,
+                $currency,
+                $request->get('exchange_rate') ?: ($invoice ? (float) $invoice->exchange_rate : null)
+            );
+            if ($exchangeRate === null) {
+                DB::rollBack();
+                $message = \App\Support\GnfRate::missingMessage($currency);
+                return $this->sendError($message, ['exchange_rate' => [$message]], 422);
+            }
             $totalAmountGnf = $currency === 'GNF' ? $totalAmount : round($totalAmount * $exchangeRate, 2);
             $productReceived = $request->boolean('product_received', true);
             $reintegrate = $productReceived && $request->boolean('reintegrate_to_stock', true);
@@ -112,9 +122,16 @@ class ProductReturnController extends BaseController
 
             if ($invoice) {
                 $appliedToInvoice = min($totalAmount, (float) $invoice->total_amount);
+                // Le retour ne peut annuler que les lignes de la facture, pas le
+                // solde anterieur qui y est reporte.
+                $ownAmount = \App\Services\AccountBalanceService::invoiceOwnAmount($invoice);
+                $appliedToInvoice = min($totalAmount, $ownAmount);
+                $invoice->items_subtotal_amount = max(0, (float) ($invoice->items_subtotal_amount ?? $ownAmount) - $appliedToInvoice);
                 $invoice->total_amount = max(0, (float) $invoice->total_amount - $appliedToInvoice);
-                $invoice->total_amount_gnf = max(0, (float) ($invoice->total_amount_gnf ?? $invoice->total_amount) - $appliedToInvoice);
-                $invoice->items_subtotal_amount = max(0, (float) ($invoice->items_subtotal_amount ?? $invoice->total_amount) - $appliedToInvoice);
+                // Equivalent GNF recalcule au taux de la facture (on retranchait
+                // un montant en devise d'un total en GNF).
+                $invoiceRate = strtoupper((string) ($invoice->currency ?? 'GNF')) === 'GNF' ? 1.0 : (float) ($invoice->exchange_rate ?: 1);
+                $invoice->total_amount_gnf = round((float) $invoice->total_amount * $invoiceRate, 2);
 
                 if ((float) $invoice->paid_amount <= 0) {
                     $invoice->status = 'IMPAYE';
@@ -147,6 +164,8 @@ class ProductReturnController extends BaseController
                     'client_id' => $request->client_id,
                     'invoice_id' => null,
                     'receipt_number' => null,
+                    // RETRAIT : sortie de caisse. N'est jamais compte comme un
+                    // encaissement du client (voir AccountBalanceService).
                     'type' => 'RETRAIT',
                     'method' => 'ESPECES',
                     'amount' => $totalAmount,

@@ -129,7 +129,9 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   sidebarId = input('sidebar1');
 
   loadManagedTenants(): void {
-    if (this.loadingTenants) {
+    // Une seule fois : l'état d'authentification est réémis à chaque mise à jour
+    // du profil ou de l'organisation, ce qui rechargeait la liste à chaque page.
+    if (this.loadingTenants || this.managedTenants.length > 0) {
       return;
     }
 
