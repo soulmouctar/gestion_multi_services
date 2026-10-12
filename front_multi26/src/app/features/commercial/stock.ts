@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { Avatar } from '../../shared/avatar';
 import { apiError, DayPipe, formatNumber, NumberPipe, today } from '../../shared/format';
 import { Modal } from '../../shared/modal';
 import { PageHeader } from '../../shared/page-header';
@@ -24,7 +25,7 @@ const ADJUSTMENTS: { value: AdjustmentType; label: string; help: string }[] = [
 /** État du stock par produit — entré, vendu, avarié, perdu, reste — et fiche de mouvements. */
 @Component({
   selector: 'app-commercial-stock',
-  imports: [ReactiveFormsModule, PageHeader, Modal, FamilyTabs, NumberPipe, DayPipe, Pager, ButtonIcon],
+  imports: [ReactiveFormsModule, PageHeader, Modal, FamilyTabs, NumberPipe, DayPipe, Pager, ButtonIcon, Avatar],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stock.html',
 })
@@ -52,6 +53,7 @@ export class Stock {
           ]
         : [],
       columns: [
+        { header: 'N°', width: 26 },
         { header: cartons ? 'Désignation' : 'Dimension' },
         { header: 'Entrés', align: 'right' },
         { header: 'Vendus', align: 'right' },
@@ -61,9 +63,10 @@ export class Stock {
         ...(cartons ? [{ header: 'Reste en cartons', align: 'right' as const }] : []),
         { header: 'État', width: 70 },
       ],
-      rows: this.rows().map(({ product, level }) => {
+      rows: this.rows().map(({ product, level }, index) => {
         const split = cartonsOf(product.stock, product.units_per_carton);
         return [
+          index + 1,
           product.name,
           formatNumber(product.received),
           formatNumber(product.sold),

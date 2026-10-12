@@ -242,10 +242,8 @@ class SupplierController extends BaseController
             return $this->sendError('Accès refusé', [], 403);
         }
 
-        if ($supplier->photo) {
-            $this->deleteUploadedFile($supplier->photo);
-        }
-
+        // Mise en corbeille : la photo est gardee, pour que la restauration rende la fiche intacte.
+        // Elle n'est effacee qu'a la suppression definitive (TrashController).
         $supplier->delete();
         return $this->sendResponse([], 'Supplier deleted successfully');
     }

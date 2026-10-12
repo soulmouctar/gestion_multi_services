@@ -213,10 +213,8 @@ class ClientController extends BaseController
             return $this->sendError('Accès refusé', [], 403);
         }
 
-        if ($client->photo) {
-            $this->deleteUploadedFile($client->photo);
-        }
-
+        // Mise en corbeille : la photo est gardee, pour que la restauration rende la fiche intacte.
+        // Elle n'est effacee qu'a la suppression definitive (TrashController).
         $client->delete();
         return $this->sendResponse([], 'Client deleted successfully');
     }

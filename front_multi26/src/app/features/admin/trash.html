@@ -1,0 +1,88 @@
+<app-page-header eyebrow="Administration" title="Corbeille" description="Ce qui est supprimé arrive ici. Rien n'est perdu tant que la corbeille n'est pas vidée : un élément restauré retrouve sa place, avec ses données.">
+  <span class="badge num">{{ total() | num }} élément(s) en corbeille</span>
+</app-page-header>
+
+@if (loading()) {
+  <div class="card empty">Chargement…</div>
+} @else {
+  <div class="layout">
+    <nav class="card groups" aria-label="Corbeilles">
+      @for (group of ordered(); track group.key) {
+        <button type="button" [class.active]="group.key === selected()?.key" [class.empty-group]="!group.count" (click)="open(group)">
+          <span>{{ label(group) }}</span>
+          <span class="count num" [class.has]="group.count > 0">{{ group.count | num }}</span>
+        </button>
+      }
+    </nav>
+
+    <section class="card">
+      @if (selected(); as group) {
+        <div class="toolbar">
+          <div class="field">
+            <label for="trash-search">Rechercher dans {{ label(group).toLowerCase() }}</label>
+            <input id="trash-search" class="input" type="search" #term [value]="search()" (input)="search.set(term.value)" />
+          </div>
+          <span class="spacer"></span>
+          @if (items().length) {
+            <button class="btn btn-danger" icon="trash" type="button" (click)="emptying.set(true)">Vider cette corbeille</button>
+          }
+        </div>
+
+        @if (itemsLoading()) {
+          <div class="empty">Chargement…</div>
+        } @else if (!visible().length) {
+          <div class="empty"><strong>Corbeille vide</strong>Aucun élément supprimé ici.</div>
+        } @else {
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th class="narrow">N°</th><th>Élément</th><th>Supprimé le</th><th></th></tr>
+              </thead>
+              <tbody>
+                @for (item of pager.rows(); track item.id; let index = $index) {
+                  <tr>
+                    <td class="muted num">{{ (pager.current() - 1) * pager.size() + index + 1 }}</td>
+                    <td>
+                      <div class="strong">{{ item.title || 'Sans nom' }}</div>
+                      @if (item.subtitle) {
+                        <div class="muted">{{ item.subtitle }}</div>
+                      }
+                    </td>
+                    <td>{{ item.deleted_at | day }}</td>
+                    <td class="actions">
+                      <button class="btn btn-sm btn-primary" icon="check" type="button" [disabled]="busy()" (click)="restore(item)">Restaurer</button>
+                      <button class="btn btn-sm btn-danger" type="button" [disabled]="busy()" (click)="erasing.set(item)">Supprimer définitivement</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pager [state]="pager" />
+        }
+      } @else {
+        <div class="empty"><strong>Corbeille vide</strong>Rien n'a été supprimé.</div>
+      }
+    </section>
+  </div>
+}
+
+@if (erasing(); as item) {
+  <app-modal title="Supprimer définitivement ?" (closed)="erasing.set(null)">
+    <p>« {{ item.title || 'Cet élément' }} » sera effacé pour de bon. Cette action ne peut pas être annulée.</p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="erasing.set(null)">Garder en corbeille</button>
+      <button class="btn btn-danger" type="button" [disabled]="busy()" (click)="confirmErase()">Supprimer définitivement</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (emptying()) {
+  <app-modal title="Supprimer tout le contenu de cette corbeille ?" (closed)="emptying.set(false)">
+    <p>Les {{ items().length | num }} élément(s) de « {{ label(selected()!) }} » seront effacés pour de bon. Cette action ne peut pas être annulée.</p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="emptying.set(false)">Garder</button>
+      <button class="btn btn-danger" icon="trash" type="button" [disabled]="busy()" (click)="confirmEmpty()">Vider la corbeille</button>
+    </ng-container>
+  </app-modal>
+}

@@ -37,6 +37,7 @@ const SCREENS: Record<string, Loader> = {
   'admin/tenants': () => import('./features/admin/tenants').then((m) => m.Tenants),
   'admin/organisation': () => import('./features/admin/organisation').then((m) => m.Organisation),
   'admin/users': () => import('./features/admin/users').then((m) => m.Users),
+  'admin/trash': () => import('./features/admin/trash').then((m) => m.Trash),
   'admin/settings': () => import('./features/admin/settings').then((m) => m.Settings),
 };
 

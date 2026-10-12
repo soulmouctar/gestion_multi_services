@@ -19,6 +19,17 @@
       <label for="search">Rechercher un client</label>
       <input id="search" class="input" type="search" #term placeholder="Nom du client" (input)="search.set(term.value)" />
     </div>
+    @if (types().length > 1) {
+      <div class="field">
+        <label for="client-type-filter">Activité</label>
+        <select id="client-type-filter" class="input" #typePick [value]="typeFilter()" (change)="typeFilter.set(typePick.value)">
+          <option value="">Toutes</option>
+          @for (type of types(); track type) {
+            <option [value]="type">{{ typeLabels[type] ?? type }}</option>
+          }
+        </select>
+      </div>
+    }
     <label class="check"><input type="checkbox" #debtors (change)="debtorsOnly.set(debtors.checked)" /> Seulement ceux qui doivent</label>
   </div>
 
@@ -75,6 +86,7 @@
                   <input #picker type="file" accept="image/*" hidden (change)="setPhoto(client, picker)" />
                 </label>
                 <button class="btn btn-sm" type="button" (click)="open(client)">Relevé</button>
+                <button class="btn btn-sm btn-danger" type="button" (click)="deleting.set(client)">Supprimer</button>
               </td>
             </tr>
           }
@@ -217,6 +229,16 @@
     <ng-container modal-footer>
       <button class="btn" type="button" (click)="creating.set(false)">Annuler</button>
       <button class="btn btn-primary" type="submit" form="client-form" [disabled]="savingClient()">Enregistrer</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (deleting(); as target) {
+  <app-modal title="Supprimer ce client ?" (closed)="deleting.set(null)">
+    <p>« {{ target.name }} » part à la corbeille. Son compte et son historique sont conservés. Vous pourrez le restaurer depuis Administration › Corbeille.</p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="deleting.set(null)">Garder</button>
+      <button class="btn btn-danger" type="button" [disabled]="saving()" (click)="confirmDelete()">Supprimer</button>
     </ng-container>
   </app-modal>
 }

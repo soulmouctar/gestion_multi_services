@@ -367,3 +367,13 @@ td.actions > :first-child { margin-left: 0; }
 
 .toolbar { gap: 14px; padding: 16px 18px; }
 .toolbar .input { height: 38px; }
+
+// Colonne de numérotation des lignes
+.table th.narrow, .table td.narrow { width: 1%; white-space: nowrap; }
+
+// Photo dans un formulaire : aperçu et bouton de choix
+.photo-field { display: flex; align-items: center; gap: 16px; }
+.photo-field .hint { margin-top: 6px; }
+
+// Dans un tableau, le nom précédé de sa photo garde une largeur lisible
+.table td .with-photo { min-width: 220px; }

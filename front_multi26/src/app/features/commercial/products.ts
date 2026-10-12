@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { of, switchMap } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Avatar } from '../../shared/avatar';
@@ -41,6 +42,10 @@ export class Products {
 
   protected readonly pager = paginate(this.products);
   protected readonly editing = signal<Product | 'new' | null>(null);
+  protected readonly deleting = signal<Product | null>(null);
+  /** Photo choisie dans la fiche, envoyée après l'enregistrement. */
+  protected readonly photo = signal<File | null>(null);
+  protected readonly photoPreview = signal<string | null>(null);
   protected readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
     selling_price: [null as number | null, Validators.min(0)],
@@ -100,7 +105,40 @@ export class Products {
             low_stock_threshold: product.low_stock_threshold,
           },
     );
+    this.photo.set(null);
+    this.photoPreview.set(product === 'new' ? null : product.image_url);
     this.editing.set(product);
+  }
+
+  protected async pickPhoto(input: HTMLInputElement): Promise<void> {
+    const picked = input.files?.[0];
+    input.value = '';
+    if (!picked) {
+      return;
+    }
+    const photo = await compressImage(picked);
+    this.photo.set(photo);
+    this.photoPreview.set(URL.createObjectURL(photo));
+  }
+
+  protected confirmDelete(): void {
+    const product = this.deleting();
+    if (!product || this.saving()) {
+      return;
+    }
+    this.saving.set(true);
+    this.#api.deleteProduct(product.id).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.deleting.set(null);
+        this.#toast.success(`${product.name} est dans la corbeille.`);
+        this.load();
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.#toast.error(apiError(error));
+      },
+    });
   }
 
   /** Photo du produit : allégée, puis envoyée aussitôt. */
@@ -141,7 +179,12 @@ export class Products {
     }
 
     this.saving.set(true);
-    this.#api.saveProduct(target === 'new' ? null : target.id, body).subscribe({
+    const photo = this.photo();
+    this.#api
+      .saveProduct(target === 'new' ? null : target.id, body)
+      // La photo choisie dans la fiche part une fois le produit enregistré
+      .pipe(switchMap((saved) => (photo ? this.#api.uploadPhoto(`products/${saved.id}/image`, 'image', photo) : of(null))))
+      .subscribe({
       next: () => {
         this.saving.set(false);
         this.editing.set(null);

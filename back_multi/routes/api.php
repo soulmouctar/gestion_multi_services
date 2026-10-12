@@ -335,8 +335,9 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::get('trash/{entity}',               [TrashController::class, 'index']);
             Route::post('trash/{entity}/{id}/restore', [TrashController::class, 'restore']);
             Route::delete('trash/{entity}/{id}/force', [TrashController::class, 'forceDestroy']);
+            // Vider une corbeille est definitif : reserve aux administrateurs, comme le reste
+            Route::delete('trash/{entity}/empty',      [TrashController::class, 'emptyAll']);
         });
-        Route::delete('trash/{entity}/empty',      [TrashController::class, 'emptyAll']);
 
         Route::middleware('tenant.module:FINANCE')->group(function () {
             // Taux de change

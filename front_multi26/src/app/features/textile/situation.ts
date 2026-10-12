@@ -29,6 +29,32 @@ export class Situation {
   protected readonly loading = signal(true);
   protected readonly search = signal('');
   protected readonly debtorsOnly = signal(false);
+  /** Activité du client (pneus, cosmétique…) ; vide pour toutes. */
+  protected readonly typeFilter = signal('');
+  protected readonly types = computed(() => [...new Set(this.#clients().map((client) => client.client_type))].sort());
+  protected readonly typeLabels: Record<string, string | undefined> = { PNEUS: 'Pneus', COSMETIQUES: 'Cosmétique', TEXTILE: 'Textile', MACHINE_A_COUDRE: 'Machines à coudre', GENERAL: 'Général' };
+  protected readonly deleting = signal<ClientSituation | null>(null);
+  protected readonly saving = signal(false);
+
+  protected confirmDelete(): void {
+    const client = this.deleting();
+    if (!client || this.saving()) {
+      return;
+    }
+    this.saving.set(true);
+    this.#api.deleteClient(client.id).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.deleting.set(null);
+        this.#toast.success(`${client.name} est dans la corbeille.`);
+        this.reload();
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.#toast.error(apiError(error));
+      },
+    });
+  }
   readonly #all = signal<ClientSituation[]>([]);
   readonly #clients = computed(() =>
     this.#all().filter((client) => {
@@ -52,6 +78,7 @@ export class Situation {
     return this.#clients().filter(
       (client) =>
         (!term || client.name.toLowerCase().includes(term)) &&
+        (!this.typeFilter() || client.client_type === this.typeFilter()) &&
         (!debtorsOnly || this.currencies().some((currency) => this.balance(client, currency) > 0)),
     );
   });

@@ -72,15 +72,14 @@ class TrashController extends BaseController
     ];
 
     /** Liste tous les types disponibles avec leur compteur de corbeille. */
-    public function summary()
+    public function summary(Request $request)
     {
-        $user     = Auth::user();
-        $tenantId = $user->tenant_id;
+        $tenantId = $this->scopeTenant($request);
 
         $rows = [];
         foreach (self::ENTITIES as $key => [$class, $label]) {
             $q = $class::onlyTrashed();
-            if ($this->modelHasTenant($class)) {
+            if ($tenantId && $this->modelHasTenant($class)) {
                 $q->where('tenant_id', $tenantId);
             }
             $rows[] = [
@@ -102,8 +101,8 @@ class TrashController extends BaseController
             ->with($this->relationsFor($entity))
             ->orderByDesc('deleted_at');
 
-        if ($this->modelHasTenant($class) && !$user->hasRole('SUPER_ADMIN')) {
-            $query->where('tenant_id', $user->tenant_id);
+        if (($tenantId = $this->scopeTenant($request)) && $this->modelHasTenant($class)) {
+            $query->where('tenant_id', $tenantId);
         }
         if ($request->filled('search')) {
             $query->where($titleField, 'like', '%' . $request->search . '%');
@@ -247,15 +246,14 @@ class TrashController extends BaseController
     }
 
     /** Restaure un element supprime. */
-    public function restore(string $entity, int $id)
+    public function restore(Request $request, string $entity, int $id)
     {
         [$class] = $this->resolveEntity($entity);
-        $user = Auth::user();
 
         $item = $class::onlyTrashed()->find($id);
         if (!$item) return $this->sendError('Element introuvable', [], 404);
-        if ($this->modelHasTenant($class) && !$user->hasRole('SUPER_ADMIN')
-            && $item->tenant_id !== $user->tenant_id) {
+        if (($tenantId = $this->scopeTenant($request)) && $this->modelHasTenant($class)
+            && (int) $item->tenant_id !== $tenantId) {
             return $this->sendError('Accès refusé', [], 403);
         }
 
@@ -267,31 +265,33 @@ class TrashController extends BaseController
     }
 
     /** Supprime definitivement (force delete). */
-    public function forceDestroy(string $entity, int $id)
+    public function forceDestroy(Request $request, string $entity, int $id)
     {
         [$class] = $this->resolveEntity($entity);
-        $user = Auth::user();
 
         $item = $class::onlyTrashed()->find($id);
         if (!$item) return $this->sendError('Element introuvable', [], 404);
-        if ($this->modelHasTenant($class) && !$user->hasRole('SUPER_ADMIN')
-            && $item->tenant_id !== $user->tenant_id) {
+        if (($tenantId = $this->scopeTenant($request)) && $this->modelHasTenant($class)
+            && (int) $item->tenant_id !== $tenantId) {
             return $this->sendError('Accès refusé', [], 403);
         }
 
+        // La photo d'une fiche n'est effacee qu'ici : tant qu'elle est en corbeille, on peut la restaurer intacte
+        if (($item instanceof Client || $item instanceof Supplier) && $item->photo) {
+            $this->deleteUploadedFile($item->photo);
+        }
         $item->forceDelete();
         return $this->sendResponse(['id' => $id], 'Supprimé définitivement');
     }
 
     /** Vide entierement une corbeille (force delete sur tout). */
-    public function emptyAll(string $entity)
+    public function emptyAll(Request $request, string $entity)
     {
         [$class] = $this->resolveEntity($entity);
-        $user = Auth::user();
 
         $q = $class::onlyTrashed();
-        if ($this->modelHasTenant($class) && !$user->hasRole('SUPER_ADMIN')) {
-            $q->where('tenant_id', $user->tenant_id);
+        if (($tenantId = $this->scopeTenant($request)) && $this->modelHasTenant($class)) {
+            $q->where('tenant_id', $tenantId);
         }
         $count = $q->count();
         $q->forceDelete();
@@ -338,6 +338,19 @@ class TrashController extends BaseController
             abort(response()->json(['success' => false, 'message' => "Entité {$key} inconnue"], 422));
         }
         return self::ENTITIES[$key];
+    }
+
+    /**
+     * Organisation dont on regarde la corbeille : celle de l'utilisateur, ou celle
+     * que gere le super administrateur. Null : toutes (super administrateur sans organisation choisie).
+     */
+    private function scopeTenant(Request $request): ?int
+    {
+        $user = Auth::user();
+        if ($user->hasRole('SUPER_ADMIN')) {
+            return $request->filled('tenant_id') ? (int) $request->tenant_id : ($user->tenant_id ?: null);
+        }
+        return (int) $user->tenant_id;
     }
 
     private function modelHasTenant(string $class): bool

@@ -38,7 +38,7 @@ class StockController extends BaseController
         $products = Product::where('tenant_id', $tenantId)
             ->when($request->filled('category_id'), fn ($q) => $q->where('product_category_id', $request->category_id))
             ->orderBy('name')
-            ->get(['id', 'name', 'product_category_id', 'units_per_carton', 'purchase_price', 'selling_price',
+            ->get(['id', 'name', 'image', 'product_category_id', 'units_per_carton', 'purchase_price', 'selling_price',
                 'carton_selling_price', 'stock_quantity', 'damaged_quantity', 'low_stock_threshold']);
         $ids = $products->pluck('id');
 
@@ -72,6 +72,7 @@ class StockController extends BaseController
             return [
                 'id' => $product->id,
                 'name' => $product->name,
+                'image_url' => $product->image_url,
                 'units_per_carton' => max(1, (int) ($product->units_per_carton ?: 1)),
                 'purchase_price' => (float) $product->purchase_price,
                 'selling_price' => (float) $product->selling_price,

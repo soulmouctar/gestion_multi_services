@@ -118,7 +118,10 @@
           @for (product of matches(); track product.id) {
             <li>
               <button type="button" (click)="add(product)">
-                <span class="strong">{{ product.name }}</span>
+                <span class="with-photo">
+                  <app-avatar [name]="product.name" [src]="product.image_url" [size]="32" [square]="true" />
+                  <span class="strong">{{ product.name }}</span>
+                </span>
                 <span class="muted num">{{ product.stock_quantity | num }} en stock{{ product.damaged_quantity ? ' · ' + product.damaged_quantity + ' avariés' : '' }}</span>
               </button>
             </li>
@@ -146,7 +149,10 @@
             @for (line of lines(); track $index; let index = $index) {
               <tr>
                 <td>
-                  <div class="strong">{{ line.product.name }}</div>
+                  <div class="with-photo">
+                    <app-avatar [name]="line.product.name" [src]="line.product.image_url" [size]="36" [square]="true" />
+                    <span class="strong">{{ line.product.name }}</span>
+                  </div>
                   <div class="muted" [class.over]="pieces(line) > available(line)">
                     {{ pieces(line) | num }} pièce(s) sur {{ available(line) | num }} {{ line.damaged ? 'avariées' : 'en stock' }}
                   </div>

@@ -38,6 +38,7 @@ export interface Product {
 export interface StockRow {
   id: number;
   name: string;
+  image_url: string | null;
   units_per_carton: number;
   purchase_price: number;
   selling_price: number;
@@ -74,6 +75,8 @@ export interface StockCard {
 export interface SupplierBalance {
   id: number;
   name: string;
+  /** Activité du fournisseur : pneus, cosmétique, textile… */
+  category: string | null;
   phone1: string | null;
   by_currency: Record<string, CurrencyTotals>;
 }
@@ -180,6 +183,14 @@ export class CommercialApi {
     const body = new FormData();
     body.append(field, photo);
     return this.#api.post(endpoint, body);
+  }
+
+  deleteProduct(id: number): Observable<unknown> {
+    return this.#api.delete(`products/${id}`);
+  }
+
+  deleteSupplier(id: number): Observable<unknown> {
+    return this.#api.delete(`suppliers/${id}`);
   }
 
   stockSummary(categoryId: number): Observable<StockSummary> {

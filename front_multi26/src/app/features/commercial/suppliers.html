@@ -203,6 +203,17 @@
       <label for="supplier-search">Rechercher</label>
       <input id="supplier-search" class="input" type="search" #suppliersearch placeholder="Nom ou téléphone" (input)="search.set(suppliersearch.value)" />
     </div>
+    @if (categories().length > 1) {
+      <div class="field">
+        <label for="supplier-category">Activité</label>
+        <select id="supplier-category" class="input" #categoryPick [value]="categoryFilter()" (change)="categoryFilter.set(categoryPick.value)">
+          <option value="">Toutes</option>
+          @for (category of categories(); track category) {
+            <option [value]="category">{{ category }}</option>
+          }
+        </select>
+      </div>
+    }
     </div>
     @if (loading()) {
       <div class="empty">Chargement…</div>
@@ -251,7 +262,10 @@
                     }
                   </td>
                 }
-                <td class="actions"><button class="btn btn-sm" type="button" (click)="open(supplier)">Ouvrir</button></td>
+                <td class="actions">
+                  <button class="btn btn-sm" type="button" (click)="open(supplier)">Ouvrir</button>
+                  <button class="btn btn-sm btn-danger" type="button" (click)="deleting.set(supplier)">Supprimer</button>
+                </td>
               </tr>
             }
           </tbody>
@@ -434,4 +448,14 @@
 
 @if (receipt(); as payment) {
   <app-receipt title="Reçu de paiement" [number]="payment.id" [date]="payment.date" [lines]="receiptLines(payment)" leftSignature="Signature du fournisseur" (closed)="receipt.set(null)" />
+}
+
+@if (deleting(); as target) {
+  <app-modal title="Supprimer ce fournisseur ?" (closed)="deleting.set(null)">
+    <p>« {{ target.name }} » part à la corbeille. Son compte et son historique sont conservés. Vous pourrez le restaurer depuis Administration › Corbeille.</p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="deleting.set(null)">Garder</button>
+      <button class="btn btn-danger" type="button" [disabled]="saving()" (click)="confirmDelete()">Supprimer</button>
+    </ng-container>
+  </app-modal>
 }

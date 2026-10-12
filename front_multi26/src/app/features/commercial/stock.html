@@ -40,6 +40,7 @@
       <table class="table">
         <thead>
           <tr>
+            <th class="narrow">N°</th>
             <th>{{ familyKey() === 'pneus' ? 'Dimension' : 'Désignation' }}</th>
             <th class="right">Entrés</th>
             <th class="right">Vendus</th>
@@ -51,9 +52,15 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of pager.rows(); track row.product.id) {
+          @for (row of pager.rows(); track row.product.id; let index = $index) {
             <tr>
-              <td class="strong">{{ row.product.name }}</td>
+              <td class="muted num">{{ (pager.current() - 1) * pager.size() + index + 1 }}</td>
+              <td>
+                <div class="with-photo">
+                  <app-avatar [name]="row.product.name" [src]="row.product.image_url" [size]="40" [square]="true" />
+                  <span class="strong">{{ row.product.name }}</span>
+                </div>
+              </td>
               <td class="right num">{{ row.product.received | num }}</td>
               <td class="right num">{{ row.product.sold | num }}</td>
               <td class="right num">
@@ -88,6 +95,13 @@
 @if (viewing(); as product) {
   <app-modal [title]="'Fiche de stock — ' + product.name" subtitle="Chaque entrée, sortie, avarie et écart d'inventaire, en pièces." [wide]="true" (closed)="viewing.set(null)">
     @if (card(); as data) {
+      <div class="with-photo identity">
+        <app-avatar [name]="product.name" [src]="product.image_url" [size]="64" [square]="true" />
+        <div>
+          <div class="strong">{{ product.name }}</div>
+          <div class="muted">{{ data.rows.length | num }} mouvement(s) enregistré(s)</div>
+        </div>
+      </div>
       <div class="stats">
         <div class="card stat"><span>Stock de départ</span><strong class="num">{{ data.opening_stock | num }}</strong><small>avant le premier mouvement connu</small></div>
         <div class="card stat"><span>Entrées</span><strong class="num">{{ data.total_in | num }}</strong></div>
@@ -106,6 +120,7 @@
           <table class="table">
             <thead>
               <tr>
+                <th class="narrow">N°</th>
                 <th>Date</th>
                 <th>Mouvement</th>
                 <th class="right">Entrée</th>
@@ -115,8 +130,9 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of data.rows; track $index) {
+              @for (row of data.rows; track $index; let index = $index) {
                 <tr>
+                  <td class="muted num">{{ index + 1 }}</td>
                   <td>{{ row.date | day }}</td>
                   <td>
                     <div class="strong">{{ row.party }}</div>

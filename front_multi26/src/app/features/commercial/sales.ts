@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 
+import { Avatar } from '../../shared/avatar';
 import { apiError, DayPipe, formatMoney, formatNumber, MoneyPipe, NumberPipe, today } from '../../shared/format';
 import { Modal } from '../../shared/modal';
 import { PageHeader } from '../../shared/page-header';
@@ -35,7 +36,7 @@ const STATUS: Record<Invoice['status'], { label: string; tone: string }> = {
 /** Ventes de pneus et de cosmétique : on choisit la famille, puis les produits. */
 @Component({
   selector: 'app-commercial-sales',
-  imports: [ReactiveFormsModule, PageHeader, Modal, FamilyTabs, MoneyPipe, NumberPipe, DayPipe, Pager, ButtonIcon],
+  imports: [ReactiveFormsModule, PageHeader, Modal, FamilyTabs, MoneyPipe, NumberPipe, DayPipe, Pager, ButtonIcon, Avatar],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sales.html',
   styleUrl: './sales.scss',

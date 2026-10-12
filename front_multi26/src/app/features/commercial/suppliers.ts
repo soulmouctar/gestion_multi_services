@@ -42,8 +42,36 @@ export class Suppliers {
   protected readonly search = signal('');
   protected readonly visibleSuppliers = computed(() => {
     const term = this.search().trim().toLowerCase();
-    return term ? this.suppliers().filter((supplier) => `${supplier.name} ${supplier.phone1 ?? ''}`.toLowerCase().includes(term)) : this.suppliers();
+    const category = this.categoryFilter();
+    return this.suppliers().filter(
+      (supplier) =>
+        (!term || `${supplier.name} ${supplier.phone1 ?? ''}`.toLowerCase().includes(term)) && (!category || (supplier.category ?? '') === category),
+    );
   });
+  /** Activité du fournisseur ; vide pour toutes. */
+  protected readonly categoryFilter = signal('');
+  protected readonly categories = computed(() => [...new Set(this.suppliers().map((supplier) => supplier.category ?? '').filter(Boolean))].sort());
+  protected readonly deleting = signal<SupplierBalance | null>(null);
+
+  protected confirmDelete(): void {
+    const supplier = this.deleting();
+    if (!supplier || this.saving()) {
+      return;
+    }
+    this.saving.set(true);
+    this.#api.deleteSupplier(supplier.id).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.deleting.set(null);
+        this.#toast.success(`${supplier.name} est dans la corbeille.`);
+        this.load();
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.#toast.error(apiError(error));
+      },
+    });
+  }
   protected readonly pager = paginate(this.visibleSuppliers);
   /** Devises présentes dans les comptes des fournisseurs, le GNF en premier. */
   protected readonly listCurrencies = computed(() => {

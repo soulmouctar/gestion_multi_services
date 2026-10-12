@@ -154,6 +154,7 @@ export const MODULES: AppModule[] = [
       platform('admin/roles', 'roles', 'Rôles', 'shield', 'Consulter les rôles de la plateforme.'),
       { path: 'admin/organisation', title: 'Mon organisation', icon: 'home', purpose: 'Tenir l\'identité de l\'entreprise : nom, logo, coordonnées.', adminOnly: true },
       { path: 'admin/users', title: 'Utilisateurs', icon: 'idcard', purpose: 'Gérer les comptes et leurs droits.', adminOnly: true },
+      { path: 'admin/trash', title: 'Corbeille', icon: 'trash', purpose: 'Restaurer ce qui a été supprimé par erreur, ou l\'effacer pour de bon.', adminOnly: true },
       { path: 'admin/settings', title: 'Paramètres', icon: 'sliders', purpose: 'Régler la déconnexion automatique, le thème et la couleur.', adminOnly: true },
     ],
   },

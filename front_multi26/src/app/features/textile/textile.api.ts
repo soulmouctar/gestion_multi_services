@@ -282,6 +282,10 @@ export class TextileApi {
     return this.#api.get<{ clients: ClientSituation[] }>('clients/financial-overview').pipe(map((data) => data.clients));
   }
 
+  deleteClient(id: number): Observable<unknown> {
+    return this.#api.delete(`clients/${id}`);
+  }
+
   uploadClientPhoto(clientId: number, photo: File): Observable<unknown> {
     const body = new FormData();
     body.append('photo', photo);
