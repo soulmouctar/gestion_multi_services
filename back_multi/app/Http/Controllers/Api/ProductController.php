@@ -697,6 +697,101 @@ class ProductController extends BaseController
         return $this->sendError('PDF export not implemented yet', [], 501);
     }
 
+    /**
+     * Fiche de stock d'un produit : entrees (achats fournisseurs) et sorties (ventes),
+     * en unites, avec le reste apres chaque mouvement.
+     *
+     * Le stock de depart est deduit du stock actuel : il absorbe le stock initial
+     * et les ajustements manuels, qui ne sont pas historises.
+     */
+    public function movements(Request $request, $id)
+    {
+        $product = $this->productQuery($request)->find($id);
+        if (!$product) {
+            return $this->sendError('Product not found', [], 404);
+        }
+        $unitsPerCarton = max(1, (int) ($product->units_per_carton ?: 1));
+
+        $entries = \DB::table('supplier_purchases')
+            ->leftJoin('suppliers', 'supplier_purchases.supplier_id', '=', 'suppliers.id')
+            ->where('supplier_purchases.product_id', $product->id)
+            ->whereNull('supplier_purchases.deleted_at')
+            ->get(['supplier_purchases.purchase_date as date', 'supplier_purchases.created_at as stamp', 'supplier_purchases.id', 'suppliers.name as party',
+                'supplier_purchases.quantity', 'supplier_purchases.purchase_number as reference'])
+            ->map(fn ($row) => [
+                'date' => substr((string) $row->date, 0, 10),
+                // Dans une meme journee, les mouvements suivent l'heure de leur saisie
+                'sort' => substr((string) $row->date, 0, 10) . ' ' . substr((string) $row->stamp, 11, 8) . str_pad((string) $row->id, 10, '0', STR_PAD_LEFT),
+                'party' => $row->party ?: 'Fournisseur',
+                'reference' => $row->reference,
+                'in' => (int) round((float) $row->quantity),
+                'out' => 0,
+            ]);
+
+        $exits = \DB::table('invoice_items')
+            ->join('invoices', 'invoice_items.invoice_id', '=', 'invoices.id')
+            ->leftJoin('clients', 'invoices.client_id', '=', 'clients.id')
+            ->where('invoice_items.product_id', $product->id)
+            ->whereNull('invoices.deleted_at')
+            ->get(['invoices.created_at as date', 'invoice_items.id', 'clients.name as party',
+                'invoice_items.quantity', 'invoice_items.sale_type', 'invoice_items.from_damaged', 'invoices.invoice_number as reference'])
+            ->map(function ($row) use ($unitsPerCarton) {
+                $factor = match ($row->sale_type) {
+                    'CARTON' => $unitsPerCarton,
+                    'DEMI_CARTON' => $unitsPerCarton / 2,
+                    'DOUZAINE' => 12,
+                    default => 1,
+                };
+                $units = (int) ceil((float) $row->quantity * $factor);
+                return [
+                    'date' => substr((string) $row->date, 0, 10),
+                    'sort' => substr((string) $row->date, 0, 10) . ' ' . substr((string) $row->date, 11, 8) . str_pad((string) $row->id, 10, '0', STR_PAD_LEFT),
+                    'party' => ($row->party ?: 'Vente au comptant') . ($row->from_damaged ? ' (avarié)' : ''),
+                    'reference' => $row->reference,
+                    // Une vente d'avarie sort du stock avarie, pas du stock sain
+                    'in' => 0,
+                    'out' => $row->from_damaged ? 0 : $units,
+                    'damaged' => $row->from_damaged ? -$units : 0,
+                ];
+            });
+
+        $labels = ['AVARIE' => 'Avarie constatée', 'PERTE' => 'Perte', 'REMISE' => 'Remise en état', 'INVENTAIRE' => 'Écart d\'inventaire'];
+        $adjustments = \App\Models\StockAdjustment::where('product_id', $product->id)->get()
+            ->map(fn ($row) => [
+                'date' => $row->adjustment_date->toDateString(),
+                'sort' => $row->adjustment_date->toDateString() . ' ' . $row->created_at->format('H:i:s') . str_pad((string) $row->id, 10, '0', STR_PAD_LEFT),
+                'party' => $labels[$row->type] ?? $row->type,
+                'reference' => $row->reason,
+                'in' => max(0, $row->stock_delta),
+                'out' => max(0, -$row->stock_delta),
+                'damaged' => $row->damaged_delta,
+            ]);
+
+        $rows = $entries->map(fn ($row) => $row + ['damaged' => 0])->concat($exits)->concat($adjustments)->sortBy('sort')->values();
+        $current = (int) $product->stock_quantity;
+        $opening = $current - $rows->sum('in') + $rows->sum('out');
+        $currentDamaged = (int) $product->damaged_quantity;
+
+        $balance = $opening;
+        $damagedBalance = $currentDamaged - $rows->sum('damaged');
+        $rows = $rows->map(function ($row) use (&$balance, &$damagedBalance) {
+            $balance += $row['in'] - $row['out'];
+            $damagedBalance += $row['damaged'];
+            unset($row['sort']);
+            return $row + ['balance' => $balance, 'damaged_balance' => $damagedBalance];
+        });
+
+        return $this->sendResponse([
+            'product' => ['id' => $product->id, 'name' => $product->name, 'units_per_carton' => $unitsPerCarton],
+            'opening_stock' => $opening,
+            'current_stock' => $current,
+            'current_damaged' => $currentDamaged,
+            'total_in' => $rows->sum('in'),
+            'total_out' => $rows->sum('out'),
+            'rows' => $rows,
+        ], 'Fiche de stock');
+    }
+
     public function salesHistory(Request $request, $id)
     {
         try {

@@ -52,10 +52,11 @@ class SupplierPurchaseController extends BaseController
             return $this->sendError('tenant_id requis.', [], 400);
         }
 
-        $query = SupplierPurchase::with(['supplier:id,name,category', 'productCategory:id,name'])
+        $query = SupplierPurchase::with(['supplier:id,name,category', 'productCategory:id,name', 'product:id,name,units_per_carton'])
             ->where('tenant_id', $tenantId)
             ->when($request->filled('supplier_id'), fn ($q) => $q->where('supplier_id', $request->supplier_id))
             ->when($request->filled('category'), fn ($q) => $q->where('category', $request->category))
+            ->when($request->filled('product_id'), fn ($q) => $q->where('product_id', $request->product_id))
             ->when($request->filled('from'), fn ($q) => $q->whereDate('purchase_date', '>=', $request->from))
             ->when($request->filled('to'), fn ($q) => $q->whereDate('purchase_date', '<=', $request->to))
             ->when($request->filled('search'), function ($q) use ($request) {
@@ -83,6 +84,7 @@ class SupplierPurchaseController extends BaseController
             'designation'         => 'required|string|max:255',
             'category'            => 'nullable|in:' . implode(',', SupplierPurchase::CATEGORIES),
             'product_category_id' => 'nullable|exists:product_categories,id',
+            'product_id'          => 'nullable|exists:products,id',
             'quantity'            => 'required|numeric|min:0.01',
             'unit_price'          => 'required|numeric|min:0',
             'currency'            => 'required|string|max:10',
@@ -94,6 +96,11 @@ class SupplierPurchaseController extends BaseController
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
+        }
+
+        if ($request->filled('product_id')
+            && !\App\Models\Product::where('tenant_id', $supplier->tenant_id)->whereKey($request->product_id)->exists()) {
+            return $this->sendError('Produit introuvable pour cette organisation.', [], 422);
         }
 
         $currency = strtoupper($request->currency);
@@ -116,6 +123,7 @@ class SupplierPurchaseController extends BaseController
                 'purchase_number'     => $this->nextNumber((int) $supplier->tenant_id),
                 'category'            => $request->category ?: $this->guessCategory($supplier),
                 'product_category_id' => $request->product_category_id,
+                'product_id'          => $request->product_id,
                 'designation'         => $request->designation,
                 'quantity'            => $request->quantity,
                 'unit_price'          => $request->unit_price,
@@ -129,6 +137,8 @@ class SupplierPurchaseController extends BaseController
             ]);
 
             $purchase->postToAccount();
+            // Les unites achetees entrent dans le stock du produit designe
+            $purchase->moveStock((float) $purchase->quantity);
 
             return $purchase;
         });
@@ -170,6 +180,7 @@ class SupplierPurchaseController extends BaseController
             $rate     = $this->gnfRate((int) $purchase->tenant_id, $currency, $request->exchange_rate ? (float) $request->exchange_rate : null)
                 ?? (float) $purchase->exchange_rate;
 
+            $previousQty = (float) $purchase->quantity;
             $qty   = (float) $request->get('quantity', $purchase->quantity);
             $price = (float) $request->get('unit_price', $purchase->unit_price);
             $total = round($qty * $price, 2);
@@ -191,6 +202,8 @@ class SupplierPurchaseController extends BaseController
             $purchase->save();
 
             $purchase->postToAccount();
+            // Seul l'ecart de quantite corrige le stock
+            $purchase->moveStock($qty - $previousQty);
         });
 
         return $this->sendResponse($purchase->fresh(), 'Achat mis a jour');
@@ -207,6 +220,8 @@ class SupplierPurchaseController extends BaseController
 
         DB::transaction(function () use ($purchase) {
             $purchase->unpostFromAccount();
+            // L'achat annule ressort du stock
+            $purchase->moveStock(-(float) $purchase->quantity);
             $purchase->delete();
         });
 

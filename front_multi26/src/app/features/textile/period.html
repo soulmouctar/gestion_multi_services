@@ -1,0 +1,95 @@
+<app-page-header eyebrow="Textile" title="Versements par période" description="Tout ce que les clients ont versé entre deux dates, devise par devise." />
+
+@if (summary(); as totals) {
+  <div class="stats">
+    @for (line of totals.by_currency; track line.currency) {
+      <div class="card stat">
+        <span>Encaissé en {{ line.currency }}</span>
+        <strong class="num">{{ line.total_amount | money: line.currency }}</strong>
+        <small>{{ line.payments_count | num }} versement(s)</small>
+      </div>
+    } @empty {
+      <div class="card stat"><span>Encaissé sur la période</span><strong>Aucun versement</strong></div>
+    }
+  </div>
+}
+
+<section class="card">
+  <form class="toolbar" [formGroup]="filters" (ngSubmit)="search()">
+    <div class="field">
+      <label for="from">Du</label>
+      <input id="from" class="input" type="date" formControlName="date_from" />
+    </div>
+    <div class="field">
+      <label for="to">Au</label>
+      <input id="to" class="input" type="date" formControlName="date_to" />
+    </div>
+    <div class="field">
+      <label for="client">Client</label>
+      <select id="client" class="input" formControlName="client_id">
+        <option [ngValue]="null">Tous les clients</option>
+        @for (client of clients(); track client.id) {
+          <option [ngValue]="client.id">{{ client.name }}</option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label for="currency">Devise versée</label>
+      <select id="currency" class="input" formControlName="currency">
+        <option value="">Toutes</option>
+        @for (currency of currencies; track currency) {
+          <option [value]="currency">{{ currency }}</option>
+        }
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit" [disabled]="loading()">Afficher</button>
+  </form>
+
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (!payments().length) {
+    <div class="empty"><strong>Aucun versement</strong>Aucun client n'a versé sur cette période.</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Client</th>
+            <th>Conteneur</th>
+            <th class="right">Montant versé</th>
+            <th class="right">Taux</th>
+            <th>Mode</th>
+            <th>Référence</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (payment of payments(); track payment.id) {
+            <tr>
+              <td>{{ payment.payment_date | day }}</td>
+              <td class="strong">{{ payment.client?.name }}</td>
+              <td>{{ payment.container_sale?.container_arrival?.container?.container_number }}</td>
+              <td class="right num strong">
+                {{ payment.amount | money: payment.currency }}
+                @if (payment.payment_type === 'AVANCE') {
+                  <div class="muted">imputation d'avance, non comptée dans le total</div>
+                }
+              </td>
+              <td class="right num">{{ +payment.exchange_rate > 1 ? (payment.exchange_rate | num) : '—' }}</td>
+              <td>{{ methodLabel(payment.payment_method) }}</td>
+              <td>{{ payment.reference || '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (lastPage() > 1) {
+      <div class="toolbar pager">
+        <span class="spacer muted">Page {{ page() }} sur {{ lastPage() }}</span>
+        <button class="btn btn-sm" type="button" [disabled]="page() <= 1" (click)="search(page() - 1)">Précédent</button>
+        <button class="btn btn-sm" type="button" [disabled]="page() >= lastPage()" (click)="search(page() + 1)">Suivant</button>
+      </div>
+    }
+  }
+</section>

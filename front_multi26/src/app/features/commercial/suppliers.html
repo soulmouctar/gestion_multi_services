@@ -1,0 +1,437 @@
+@if (selected(); as supplier) {
+  <app-page-header eyebrow="Clients et fournisseurs › Fournisseurs" [title]="supplier.name" description="Les produits pris chez ce fournisseur s'ajoutent à la dette ; les paiements la réduisent.">
+    <button class="btn" type="button" (click)="selected.set(null)">Tous les fournisseurs</button>
+    <label class="btn">
+      Photo
+      <input #picker type="file" accept="image/*" hidden (change)="setPhoto(supplier, picker)" />
+    </label>
+    <button class="btn" type="button" [disabled]="!history()" (click)="printStatement()">Imprimer le relevé</button>
+    <button class="btn" type="button" (click)="openPurchase()">Produit pris</button>
+    <button class="btn btn-primary" type="button" (click)="openPayment()">Paiement</button>
+  </app-page-header>
+
+  @if (history(); as data) {
+    <div class="with-photo identity">
+      <app-avatar [name]="supplier.name" [src]="data.supplier.photo_url" [size]="56" />
+      <div>
+        <div class="strong">{{ supplier.name }}</div>
+        <div class="muted">{{ supplier.phone1 || 'Téléphone non renseigné' }}</div>
+      </div>
+    </div>
+    <div class="stats">
+      @for (currency of data.summary.currencies; track currency) {
+        <div class="card stat">
+          <span>{{ data.summary.by_currency[currency].final_balance < 0 ? 'Avance versée en ' : 'Reste à payer en ' }}{{ currency }}</span>
+          <strong class="num">{{ (data.summary.by_currency[currency].final_balance < 0 ? -data.summary.by_currency[currency].final_balance : data.summary.by_currency[currency].final_balance) | money: currency }}</strong>
+          <small>pris {{ data.summary.by_currency[currency].total_debit | num }} · payé {{ data.summary.by_currency[currency].total_credit | num }}</small>
+        </div>
+      } @empty {
+        <div class="card stat"><span>Compte</span><strong>Aucune opération</strong></div>
+      }
+    </div>
+
+    <section class="card" style="margin-bottom: 20px">
+      <div class="toolbar"><h2 class="section-title">Relevé du compte</h2></div>
+      @if (statement().length) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Opération</th>
+                <th>Compte</th>
+                <th class="right">Taux</th>
+                <th class="right">Pris (débit)</th>
+                <th class="right">Payé (crédit)</th>
+                <th class="right">Solde du compte</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of statement(); track $index) {
+                <tr>
+                  <td>{{ row.date | day }}</td>
+                  <td>
+                    <div class="strong">{{ row.label }}</div>
+                    @if (row.reference) {
+                      <div class="muted">{{ row.reference }}</div>
+                    }
+                  </td>
+                  <td><span class="badge">{{ row.currency }}</span></td>
+                  <td class="right num">{{ row.rate > 1 ? (row.rate | num) : '—' }}</td>
+                  <td class="right num">{{ row.debit ? (row.debit | num) : '—' }}</td>
+                  <td class="right num">{{ row.credit ? (row.credit | num) : '—' }}</td>
+                  <td class="right num strong">
+                    {{ row.balance | money: row.currency }}
+                    @if (row.balance < 0) {
+                      <div class="muted">avance versée</div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty">Aucune opération avec ce fournisseur.</div>
+      }
+    </section>
+
+    <section class="card" style="margin-bottom: 20px">
+      <div class="toolbar"><h2 class="section-title">Produits pris</h2></div>
+      @if (purchases().length || data.arrivals.length) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Produit</th>
+                <th class="right">Quantité</th>
+                <th class="right">Prix unitaire</th>
+                <th class="right">Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (purchase of purchases(); track purchase.id) {
+                <tr>
+                  <td>{{ purchase.purchase_date | day }}</td>
+                  <td>
+                    <div class="strong">{{ purchase.designation }}</div>
+                    <div class="muted">{{ purchase.purchase_number }}{{ purchase.product ? ' · entré en stock' : '' }}</div>
+                  </td>
+                  <td class="right num">{{ purchase.quantity | num }}</td>
+                  <td class="right num">{{ purchase.unit_price | money: purchase.currency }}</td>
+                  <td class="right num strong">
+                    {{ purchase.total_amount | money: purchase.currency }}
+                    @if (purchase.currency !== 'GNF') {
+                      <div class="muted">taux {{ purchase.exchange_rate | num }}</div>
+                    }
+                  </td>
+                  <td class="actions">
+                    @if (!purchase.tyre_container_id) {
+                      <button class="btn btn-sm btn-danger" type="button" (click)="deletePurchase(purchase)">Supprimer</button>
+                    }
+                  </td>
+                </tr>
+              }
+              @for (arrival of data.arrivals; track arrival.id) {
+                <tr>
+                  <td>{{ arrival.arrival_date | day }}</td>
+                  <td>
+                    <div class="strong">Conteneur {{ arrival.container_number }}</div>
+                    <div class="muted">arrivage textile</div>
+                  </td>
+                  <td class="right num">{{ arrival.total_quantity | num }}</td>
+                  <td class="right muted">—</td>
+                  <td class="right num strong">{{ arrival.purchase_price | money: arrival.currency }}</td>
+                  <td></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty">Aucun produit pris chez ce fournisseur.</div>
+      }
+    </section>
+
+    <section class="card">
+      <div class="toolbar"><h2 class="section-title">Paiements versés</h2></div>
+      @if (data.payments.length) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th class="right">Montant versé</th>
+                <th class="right">Taux</th>
+                <th class="right">Imputé au compte</th>
+                <th>Mode</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (payment of data.payments; track payment.id) {
+                <tr>
+                  <td>{{ payment.date | day }}</td>
+                  <td class="right num strong">{{ payment.amount | money: payment.currency }}</td>
+                  <td class="right num">{{ payment.currency !== payment.target_currency ? (payment.exchange_rate | num) : '—' }}</td>
+                  <td class="right num">{{ payment.converted_amount | money: payment.target_currency }}</td>
+                  <td>
+                    {{ methodLabel(payment.payment_method) }}
+                    @if (payment.reference) {
+                      <div class="muted">{{ payment.reference }}</div>
+                    }
+                  </td>
+                  <td class="actions">
+                    <button class="btn btn-sm" type="button" (click)="receipt.set(payment)">Reçu</button>
+                    <button class="btn btn-sm btn-danger" type="button" (click)="deletePayment(payment.id)">Supprimer</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty">Aucun paiement versé à ce fournisseur.</div>
+      }
+    </section>
+  } @else {
+    <div class="card empty">Chargement…</div>
+  }
+} @else {
+  <app-page-header eyebrow="Clients et fournisseurs" title="Fournisseurs" description="Pour chaque fournisseur : les produits pris, les paiements versés et ce qu'il reste à lui payer, devise par devise.">
+    <button class="btn" type="button" [disabled]="loading()" (click)="printList()">Imprimer la situation</button>
+    <button class="btn btn-primary" type="button" (click)="supplierForm.reset(); creating.set(true)">Nouveau fournisseur</button>
+  </app-page-header>
+
+  <div class="stats">
+    @for (line of listTotals(); track line.currency) {
+      <div class="card stat">
+        <span>Nous devons en {{ line.currency }}</span>
+        <strong class="num">{{ line.due | money: line.currency }}</strong>
+        @if (line.advance) {
+          <small>avances versées : {{ line.advance | money: line.currency }}</small>
+        }
+      </div>
+    }
+  </div>
+
+  <section class="card">
+    <div class="toolbar">
+    <div class="field">
+      <label for="supplier-search">Rechercher</label>
+      <input id="supplier-search" class="input" type="search" #suppliersearch placeholder="Nom ou téléphone" (input)="search.set(suppliersearch.value)" />
+    </div>
+    </div>
+    @if (loading()) {
+      <div class="empty">Chargement…</div>
+    } @else if (!visibleSuppliers().length) {
+      <div class="empty"><strong>Aucun fournisseur</strong>Ajoutez le premier fournisseur.</div>
+    } @else {
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th rowspan="2">Fournisseur</th>
+              @for (currency of listCurrencies(); track currency) {
+                <th class="right" colspan="3">Compte {{ currency }}</th>
+              }
+              <th rowspan="2"></th>
+            </tr>
+            <tr>
+              @for (currency of listCurrencies(); track currency) {
+                <th class="right">Pris</th>
+                <th class="right">Payé</th>
+                <th class="right">Solde</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (supplier of pager.rows(); track supplier.id) {
+              <tr>
+                <td>
+                  <div class="with-photo">
+                    <app-avatar [name]="supplier.name" [size]="36" />
+                    <div>
+                      <div class="strong">{{ supplier.name }}</div>
+                      @if (supplier.phone1) {
+                        <div class="muted">{{ supplier.phone1 }}</div>
+                      }
+                    </div>
+                  </div>
+                </td>
+                @for (currency of listCurrencies(); track currency) {
+                  <td class="right num">{{ total(supplier, currency, 'total_debit') | num }}</td>
+                  <td class="right num">{{ total(supplier, currency, 'total_credit') | num }}</td>
+                  <td class="right num strong">
+                    {{ total(supplier, currency, 'final_balance') | num }}
+                    @if (total(supplier, currency, 'final_balance') < 0) {
+                      <div class="muted">avance versée</div>
+                    }
+                  </td>
+                }
+                <td class="actions"><button class="btn btn-sm" type="button" (click)="open(supplier)">Ouvrir</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    <app-pager [state]="pager" />
+    }
+  </section>
+}
+
+@if (creating()) {
+  <app-modal title="Nouveau fournisseur" (closed)="creating.set(false)">
+    <form id="supplier-form" class="form-grid" [formGroup]="supplierForm" (ngSubmit)="saveSupplier()">
+      <div class="field">
+        <label for="supplier-name">Nom *</label>
+        <input id="supplier-name" class="input" formControlName="name" />
+      </div>
+      <div class="field">
+        <label for="supplier-phone">Téléphone</label>
+        <input id="supplier-phone" class="input" formControlName="phone" />
+      </div>
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="creating.set(false)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="supplier-form" [disabled]="saving()">Enregistrer</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (buying()) {
+  <app-modal title="Produit pris chez le fournisseur" subtitle="Le montant s'ajoute à la dette. Un produit du catalogue entre aussi en stock." (closed)="buying.set(false)">
+    <form id="purchase-form" class="form-grid" [formGroup]="purchaseForm" (ngSubmit)="savePurchase()">
+      <div class="field">
+        <label for="family">Famille</label>
+        <select id="family" class="input" formControlName="family">
+          @for (family of families(); track family.key) {
+            <option [value]="family.key">{{ family.label }}</option>
+          }
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="product">Produit du catalogue</label>
+        <select id="product" class="input" formControlName="product_id">
+          <option [ngValue]="null">— Hors catalogue —</option>
+          @for (product of familyProducts(); track product.id) {
+            <option [ngValue]="product.id">{{ product.name }}</option>
+          }
+        </select>
+      </div>
+      @if (!purchaseProduct()) {
+        <div class="field full">
+          <label for="designation">Désignation *</label>
+          <input id="designation" class="input" formControlName="designation" />
+          <span class="hint">Hors catalogue : l'achat compte dans la dette, sans entrer en stock.</span>
+        </div>
+      }
+
+      <div class="field">
+        <label for="quantity">Quantité *</label>
+        <input id="quantity" class="input num" type="number" min="0" step="any" formControlName="quantity" />
+      </div>
+      <div class="field">
+        <label for="unit">Unité</label>
+        <select id="unit" class="input" formControlName="unit">
+          <option value="piece">Pièces</option>
+          @if (perCarton() > 1) {
+            <option value="carton">Cartons de {{ perCarton() | num }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="unit-price">Prix {{ byCarton() ? 'par carton' : 'par pièce' }} *</label>
+        <input id="unit-price" class="input num" type="number" min="0" step="any" formControlName="unit_price" />
+      </div>
+      <div class="field">
+        <label for="purchase-currency">Devise</label>
+        <select id="purchase-currency" class="input" formControlName="currency">
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">{{ currency }}</option>
+          }
+        </select>
+      </div>
+
+      @if (purchaseForeign(); as code) {
+        <div class="field full">
+          <label for="purchase-rate">Taux du jour : 1 {{ code }} en GNF *</label>
+          <input id="purchase-rate" class="input num" type="number" min="1" step="any" formControlName="rate" />
+        </div>
+      }
+
+      <div class="result full">
+        <span>Dette ajoutée</span>
+        <strong class="num">{{ purchaseTotal() | money: purchaseForm.controls.currency.value }}</strong>
+      </div>
+      @if (purchaseProduct() && purchasePieces()) {
+        <p class="hint full">{{ purchasePieces() | num }} pièce(s) entreront dans le stock de {{ purchaseProduct()!.name }}.</p>
+      }
+
+      <div class="field">
+        <label for="purchase-date">Date *</label>
+        <input id="purchase-date" class="input" type="date" formControlName="purchase_date" />
+      </div>
+      <div class="field">
+        <label for="purchase-ref">Référence</label>
+        <input id="purchase-ref" class="input" formControlName="reference" placeholder="Numéro de facture" />
+      </div>
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="buying.set(false)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="purchase-form" [disabled]="saving()">Enregistrer l'achat</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (paying()) {
+  <app-modal title="Paiement au fournisseur" (closed)="paying.set(false)">
+    <form id="supplier-payment-form" class="form-grid" [formGroup]="paymentForm" (ngSubmit)="savePayment()">
+      <div class="field">
+        <label for="pay-amount">Montant versé *</label>
+        <input id="pay-amount" class="input num" type="number" min="0" step="any" formControlName="amount" />
+      </div>
+      <div class="field">
+        <label for="pay-currency">Devise versée</label>
+        <select id="pay-currency" class="input" formControlName="currency">
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">{{ currency }}</option>
+          }
+        </select>
+      </div>
+      <div class="field full">
+        <label for="pay-target">Compte du fournisseur à régler</label>
+        <select id="pay-target" class="input" formControlName="target_currency">
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">Compte {{ currency }}</option>
+          }
+        </select>
+      </div>
+
+      @if (paymentRateFor(); as code) {
+        <div class="field full">
+          <label for="pay-rate">Taux du jour : 1 {{ code }} en GNF *</label>
+          <input id="pay-rate" class="input num" type="number" min="1" step="any" formControlName="rate" />
+          <span class="hint">Ce taux est enregistré avec le paiement.</span>
+        </div>
+      } @else if (paymentRateFor() === undefined) {
+        <div class="alert is-danger full">La conversion directe entre deux devises étrangères n'est pas gérée : passez par le GNF.</div>
+      }
+
+      @if (paymentConverts() && paymentRateFor()) {
+        <div class="result full">
+          <span>Imputé au compte {{ paymentForm.controls.target_currency.value }}</span>
+          <strong class="num">{{ paymentConverted() | money: paymentForm.controls.target_currency.value }}</strong>
+        </div>
+      }
+
+      <div class="field">
+        <label for="pay-date">Date *</label>
+        <input id="pay-date" class="input" type="date" formControlName="payment_date" />
+      </div>
+      <div class="field">
+        <label for="pay-method">Mode de paiement</label>
+        <select id="pay-method" class="input" formControlName="payment_method">
+          @for (method of methods; track method.value) {
+            <option [value]="method.value">{{ method.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field full">
+        <label for="pay-ref">Référence</label>
+        <input id="pay-ref" class="input" formControlName="reference" />
+      </div>
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="paying.set(false)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="supplier-payment-form" [disabled]="saving()">Enregistrer le paiement</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (receipt(); as payment) {
+  <app-receipt title="Reçu de paiement" [number]="payment.id" [date]="payment.date" [lines]="receiptLines(payment)" leftSignature="Signature du fournisseur" (closed)="receipt.set(null)" />
+}

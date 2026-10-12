@@ -1,0 +1,105 @@
+<app-page-header eyebrow="Administration" title="Organisations" description="Les entreprises qui utilisent la plateforme, leur état et les modules qui leur sont ouverts.">
+  <button class="btn btn-primary" type="button" (click)="open('new')">Nouvelle organisation</button>
+</app-page-header>
+
+<section class="card">
+      <div class="toolbar">
+        <div class="field">
+          <label for="tenant-search">Rechercher</label>
+          <input id="tenant-search" class="input" type="search" #term placeholder="Nom, téléphone ou e-mail" (input)="search.set(term.value)" />
+        </div>
+      </div>
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Organisation</th><th>Contact</th><th>État</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (tenant of pager.rows(); track tenant.id) {
+            <tr>
+              <td class="strong">{{ tenant.name }}</td>
+              <td>
+                {{ tenant.phone || '—' }}
+                @if (tenant.email) {
+                  <div class="muted">{{ tenant.email }}</div>
+                }
+              </td>
+              <td>
+                <span class="badge" [class.is-success]="tenant.subscription_status === 'ACTIVE'" [class.is-danger]="tenant.subscription_status !== 'ACTIVE'">
+                  {{ tenant.subscription_status === 'ACTIVE' ? 'Active' : 'Suspendue' }}
+                </span>
+              </td>
+              <td class="actions">
+                @if (auth.managedTenant()?.id === tenant.id) {
+                  <span class="badge is-info">Organisation gérée</span>
+                } @else {
+                  <button class="btn btn-sm btn-primary" type="button" (click)="manage(tenant)">Gérer</button>
+                }
+                <button class="btn btn-sm" type="button" (click)="openModules(tenant)">Modules</button>
+                <button class="btn btn-sm" type="button" (click)="open(tenant)">Modifier</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+        <app-pager [state]="pager" />
+  }
+</section>
+
+@if (editing(); as target) {
+  <app-modal [title]="target === 'new' ? 'Nouvelle organisation' : 'Modifier ' + target.name" (closed)="editing.set(null)">
+    <form id="tenant-form" class="form-grid" [formGroup]="form" (ngSubmit)="save()">
+      <div class="field full">
+        <label for="tenant-name">Nom *</label>
+        <input id="tenant-name" class="input" formControlName="name" />
+      </div>
+      <div class="field">
+        <label for="tenant-phone">Téléphone</label>
+        <input id="tenant-phone" class="input" formControlName="phone" />
+      </div>
+      <div class="field">
+        <label for="tenant-email">Adresse e-mail</label>
+        <input id="tenant-email" class="input" type="email" formControlName="email" />
+      </div>
+      <div class="field full">
+        <label for="tenant-address">Adresse</label>
+        <input id="tenant-address" class="input" formControlName="address" />
+      </div>
+      @if (target === 'new') {
+        <div class="field">
+          <label for="tenant-status">État</label>
+          <select id="tenant-status" class="input" formControlName="subscription_status">
+            <option value="ACTIVE">Active</option>
+            <option value="SUSPENDED">Suspendue</option>
+          </select>
+        </div>
+      }
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="editing.set(null)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="tenant-form" [disabled]="saving()">Enregistrer</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (modulesFor(); as tenant) {
+  <app-modal [title]="'Modules de ' + tenant.name" subtitle="Chaque case s'enregistre aussitôt." (closed)="modulesFor.set(null)">
+    <div style="display: grid; gap: 12px">
+      @for (state of moduleStates(); track state.module.id) {
+        <label class="check" style="font-size: 14px; color: var(--text)">
+          <input type="checkbox" [checked]="state.active" [disabled]="state.busy" (change)="toggleModule(state.module.id, $any($event.target).checked)" />
+          {{ state.module.name }}
+        </label>
+      } @empty {
+        <div class="empty">Chargement…</div>
+      }
+    </div>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="modulesFor.set(null)">Fermer</button>
+    </ng-container>
+  </app-modal>
+}

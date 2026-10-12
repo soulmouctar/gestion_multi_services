@@ -40,6 +40,7 @@ class BaseController extends Controller
         }
         $filename = \Illuminate\Support\Str::random(40) . '.' . $file->getClientOriginalExtension();
         $file->move($dir, $filename);
+        \App\Support\ImageOptimizer::shrink($dir . '/' . $filename);
         return 'uploads/' . $subfolder . '/' . $filename;
     }
 

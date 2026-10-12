@@ -1,0 +1,93 @@
+// Jetons de conception : toute couleur, tout espacement de l'application en découle.
+:root {
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  // Couleur d'accent, choisie dans les paramètres : les trois teintes de marque en découlent
+  --accent: #0f3460;
+  --brand: var(--accent);
+  --brand-strong: color-mix(in srgb, var(--accent) 80%, #000);
+  --brand-soft: color-mix(in srgb, var(--accent) 10%, #fff);
+  --on-brand: #ffffff;
+
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+  --surface-3: #eef0f4;
+  --border: #e3e6ec;
+  --border-strong: #cdd2dc;
+
+  --text: #1c2433;
+  --text-soft: #4b5567;
+  --text-muted: #7a8496;
+
+  --success: #12805c;
+  --success-soft: #e3f4ed;
+  --warning: #a55f00;
+  --warning-soft: #fdf1dc;
+  --danger: #b42318;
+  --danger-soft: #fdeceb;
+  --info: #175cd3;
+  --info-soft: #e7f0fd;
+
+  // Séries des graphiques : la première suit la couleur de l'application
+  --chart-1: var(--brand);
+  --chart-2: #12a37a;
+  --chart-3: #e08a00;
+  --chart-4: #7c5cff;
+  --chart-5: #e2507a;
+  --chart-6: #1aa3c4;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .06);
+  --shadow: 0 8px 24px rgba(16, 24, 40, .1);
+
+  // Menu latéral : toujours foncé, teinté par la couleur de l'application
+  --sidebar-bg: color-mix(in srgb, var(--accent) 88%, #000);
+  --sidebar-bg-2: color-mix(in srgb, var(--accent) 70%, #000);
+  --sidebar-text: rgba(255, 255, 255, .72);
+  --sidebar-strong: #ffffff;
+  --sidebar-muted: rgba(255, 255, 255, .5);
+  --sidebar-hover: rgba(255, 255, 255, .08);
+  --sidebar-active: rgba(255, 255, 255, .16);
+  --sidebar-border: rgba(255, 255, 255, .1);
+
+  --sidebar-width: 272px;
+  --topbar-height: 64px;
+}
+
+[data-theme='dark'] {
+  // En sombre, l'accent est éclairci pour rester lisible sur les surfaces foncées
+  --brand: color-mix(in srgb, var(--accent) 45%, #fff);
+  --brand-strong: color-mix(in srgb, var(--accent) 30%, #fff);
+  --brand-soft: color-mix(in srgb, var(--accent) 30%, #161c25);
+  --on-brand: #0c1522;
+
+  --bg: #0f141b;
+  --surface: #161c25;
+  --surface-2: #1b222d;
+  --surface-3: #232c39;
+  --border: #29323f;
+  --border-strong: #3a4556;
+
+  --text: #e6eaf0;
+  --text-soft: #b3bccb;
+  --text-muted: #8691a3;
+
+  --success: #4cc79a;
+  --success-soft: #13302a;
+  --warning: #f0b25a;
+  --warning-soft: #33280f;
+  --danger: #f1857b;
+  --danger-soft: #3a1b1a;
+  --info: #7fb0f5;
+  --info-soft: #172a45;
+
+  --sidebar-bg: color-mix(in srgb, var(--accent) 42%, #0a0e14);
+  --sidebar-bg-2: color-mix(in srgb, var(--accent) 28%, #0a0e14);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow: 0 6px 20px rgba(0, 0, 0, .45);
+  color-scheme: dark;
+}

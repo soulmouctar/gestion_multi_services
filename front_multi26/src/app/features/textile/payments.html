@@ -1,0 +1,176 @@
+<app-page-header eyebrow="Textile" title="Encaissements" description="Encaissez un client en GNF ou en devise. Si la devise versée diffère de celle de la vente, la conversion se fait au taux du jour, qui est conservé.">
+  <button class="btn btn-primary" type="button" [disabled]="!openSales().length" (click)="open()">Nouvel encaissement</button>
+</app-page-header>
+
+<section class="card">
+  <div class="toolbar">
+    <div class="field">
+      <label for="payment-search">Rechercher</label>
+      <input id="payment-search" class="input" type="search" #paymentsearch placeholder="Client ou référence" (input)="search.set(paymentsearch.value)" />
+    </div>
+    <div class="field">
+      <label for="payment-currency">Devise versée</label>
+      <select id="payment-currency" class="input" #currencyPick [value]="currencyFilter()" (change)="currencyFilter.set(currencyPick.value)">
+        <option value="">Toutes</option>
+        @for (currency of currencies; track currency) {
+          <option [value]="currency">{{ currency }}</option>
+        }
+      </select>
+    </div>
+  </div>
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (!visiblePayments().length) {
+    <div class="empty"><strong>Aucun encaissement</strong>Les versements des clients apparaîtront ici.</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Client</th>
+            <th>Conteneur</th>
+            <th class="right">Montant versé</th>
+            <th class="right">Taux du jour</th>
+            <th class="right">Crédité sur la vente</th>
+            <th>Mode</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (payment of pager.rows(); track payment.id) {
+            <tr>
+              <td>{{ payment.payment_date | day }}</td>
+              <td class="strong">{{ payment.client?.name }}</td>
+              <td>{{ payment.container_sale?.container_arrival?.container?.container_number }}</td>
+              <td class="right num strong">
+                {{ payment.amount | money: payment.currency }}
+                @if (payment.payment_type === 'AVANCE') {
+                  <div class="muted">imputation d'avance</div>
+                }
+              </td>
+              @if (creditOf(payment); as credit) {
+                <td class="right num">{{ payment.exchange_rate | num }}</td>
+                <td class="right num">{{ credit.amount | money: credit.currency }}</td>
+              } @else {
+                <td class="right muted">—</td>
+                <td class="right num">{{ payment.amount | money: payment.currency }}</td>
+              }
+              <td>
+                {{ methodLabel(payment.payment_method) }}
+                @if (payment.reference) {
+                  <div class="muted">{{ payment.reference }}</div>
+                }
+              </td>
+              <td class="actions">
+                <button class="btn btn-sm" type="button" (click)="receipt.set(payment)">Reçu</button>
+                <button class="btn btn-sm btn-danger" type="button" (click)="deleting.set(payment)">Supprimer</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [state]="pager" />
+  }
+</section>
+
+@if (creating()) {
+  <app-modal title="Nouvel encaissement" (closed)="creating.set(false)">
+    <form id="payment-form" class="form-grid" [formGroup]="form" (ngSubmit)="save()">
+      <div class="field full">
+        <label for="client">Client *</label>
+        <select id="client" class="input" formControlName="client_id">
+          <option [ngValue]="null">— Choisir —</option>
+          @for (client of debtors(); track client.id) {
+            <option [ngValue]="client.id">{{ client.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field full">
+        <label for="sale">Vente à régler *</label>
+        <select id="sale" class="input" formControlName="sale_id">
+          <option [ngValue]="null">— Choisir —</option>
+          @for (item of clientSales(); track item.id) {
+            <option [ngValue]="item.id">
+              {{ item.sale_date | day }} · {{ item.container_arrival?.container?.container_number }} · {{ item.quantity_sold | num }} balles — reste {{ item.remaining_amount | money: item.currency }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="amount">Montant versé *</label>
+        <input id="amount" class="input num" type="number" min="1" step="any" formControlName="amount" />
+      </div>
+      <div class="field">
+        <label for="currency">Devise versée</label>
+        <select id="currency" class="input" formControlName="currency">
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">{{ currency }}</option>
+          }
+        </select>
+      </div>
+
+      @if (rateFor(); as code) {
+        <div class="field full">
+          <label for="rate">Taux du jour : 1 {{ code }} en GNF *</label>
+          <input id="rate" class="input num" type="number" min="1" step="any" formControlName="rate" />
+          <span class="hint">Ce taux est enregistré avec l'encaissement.</span>
+        </div>
+      }
+
+      @if (sale(); as selected) {
+        <div class="result full">
+          <span>Crédité au compte {{ selected.currency }} du client</span>
+          <strong class="num">{{ credited() | money: selected.currency }}</strong>
+        </div>
+        <p class="hint full" [class.over]="remainingAfter() < -0.01">
+          @if (remainingAfter() < -0.01) {
+            Le montant dépasse le reste à payer ({{ selected.remaining_amount | money: selected.currency }}).
+          } @else {
+            Reste à payer après cet encaissement : {{ remainingAfter() | money: selected.currency }}.
+          }
+        </p>
+      }
+
+      <div class="field">
+        <label for="date">Date *</label>
+        <input id="date" class="input" type="date" formControlName="payment_date" />
+      </div>
+      <div class="field">
+        <label for="method">Mode de paiement</label>
+        <select id="method" class="input" formControlName="payment_method">
+          @for (method of methods; track method.value) {
+            <option [value]="method.value">{{ method.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field full">
+        <label for="reference">Référence</label>
+        <input id="reference" class="input" formControlName="reference" placeholder="Numéro de reçu, de chèque…" />
+      </div>
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="creating.set(false)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="payment-form" [disabled]="saving()">Encaisser</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (deleting(); as payment) {
+  <app-modal title="Supprimer cet encaissement ?" (closed)="deleting.set(null)">
+    <p>
+      Versement de {{ payment.amount | money: payment.currency }} par {{ payment.client?.name }} le {{ payment.payment_date | day }}.
+      Le reste à payer de la vente sera rétabli.
+    </p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="deleting.set(null)">Garder</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="confirmDelete()">Supprimer</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (receipt(); as payment) {
+  <app-receipt title="Reçu d'encaissement" [number]="payment.id" [date]="payment.payment_date" [lines]="receiptLines(payment)" (closed)="receipt.set(null)" />
+}

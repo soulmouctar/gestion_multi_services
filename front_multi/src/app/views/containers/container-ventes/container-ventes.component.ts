@@ -141,6 +141,8 @@ export class ContainerVentesComponent implements OnInit {
       arrival_date:   [this.today(), Validators.required],
       purchase_price: [null, [Validators.required, Validators.min(0)]],
       currency:       ['GNF', Validators.required],
+      // Devise dans laquelle la dette est portée au compte du fournisseur (peut différer de celle du prix)
+      debt_currency:  ['GNF', Validators.required],
       exchange_rate:  [1, [Validators.min(0.0001)]],
       product_category_id: [null, Validators.required],
       product_type:   ['DIVERS'],
@@ -169,6 +171,7 @@ export class ContainerVentesComponent implements OnInit {
       container_sale_id: [null, Validators.required],
       amount:            [null, Validators.required],
       currency:          ['GNF', Validators.required],
+      exchange_rate:     [null, [Validators.min(0.0001)]],
       payment_method:    ['ESPECES', Validators.required],
       payment_date:      [this.today(), Validators.required],
       reference:         [''],
@@ -208,6 +211,7 @@ export class ContainerVentesComponent implements OnInit {
     this.setupSaleRateWatcher();
     this.setupSaleTotalWatcher();
     this.setupGlobalPaymentRateWatcher();
+    this.setupPaymentRateWatcher();
     this.loadArrivals();
     this.loadSales();
     this.loadPayments();
@@ -366,7 +370,7 @@ export class ContainerVentesComponent implements OnInit {
     this.selectedArrival = null;
     this.arrivalForm.reset({
       container_id: null, supplier_id: null, arrival_date: this.today(),
-      purchase_price: null, currency: 'GNF', exchange_rate: 1, product_category_id: null, product_type: 'DIVERS',
+      purchase_price: null, currency: 'GNF', debt_currency: 'GNF', exchange_rate: 1, product_category_id: null, product_type: 'DIVERS',
       total_quantity: null, bale_quantity: null, description: ''
     });
     this.selectedArrivalPhotos = [];
@@ -382,9 +386,13 @@ export class ContainerVentesComponent implements OnInit {
       container_id:   arrival.container_id,
       supplier_id:    arrival.supplier_id,
       arrival_date:   arrival.arrival_date?.split('T')[0],
-      purchase_price: arrival.purchase_price,
-      currency:       arrival.currency,
-      exchange_rate:  arrival.exchange_rate ?? this.getExchangeRateForCurrency(arrival.currency),
+      // Le formulaire saisit un prix par balle : on le retrouve à partir du total enregistré
+      // On rouvre le formulaire tel qu'il a été saisi : prix d'origine, devise du prix et devise de la dette
+      purchase_price: this.hasEnteredPrice(arrival) ? Number(arrival.unit_price) : this.unitPriceFromTotal(arrival),
+      currency:       this.hasEnteredPrice(arrival) ? arrival.price_currency : arrival.currency,
+      debt_currency:  arrival.currency,
+      exchange_rate:  (this.hasEnteredPrice(arrival) && Number(arrival.price_rate) > 1 ? Number(arrival.price_rate) : null)
+        ?? arrival.exchange_rate ?? this.getExchangeRateForCurrency(arrival.currency),
       product_category_id: arrival.product_category_id ?? null,
       product_type:   arrival.product_type,
       total_quantity: arrival.total_quantity,
@@ -424,9 +432,41 @@ export class ContainerVentesComponent implements OnInit {
     this.submitted = true;
     if (this.arrivalForm.invalid) return;
 
+    if (this.arrivalConversionUnsupported) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Conversion non prise en charge',
+        text: 'Une conversion entre deux devises étrangères n\'est pas possible directement : passez par le GNF.'
+      });
+      return;
+    }
+    if (this.showArrivalExchangeRate && !(Number(this.arrivalForm.get('exchange_rate')?.value) > 1)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Taux de change requis',
+        text: `Indiquez combien de GNF vaut 1 ${this.arrivalRateCurrency} aujourd'hui (ex. 8 600 pour 1 USD).`
+      });
+      return;
+    }
+
+    // Le prix saisi est un prix par balle : le total (prix × nombre de balles) est converti
+    // si besoin, puis enregistré comme dette dans la devise du compte fournisseur choisie.
+    const { debt_currency, ...formValue } = this.arrivalForm.value;
+    const payload = {
+      ...formValue,
+      purchase_price: this.arrivalDebtAmount,
+      currency: this.arrivalDebtCurrency,
+      exchange_rate: this.arrivalDebtCurrency === 'GNF' ? 1 : Number(this.arrivalForm.get('exchange_rate')?.value),
+      // Prix tel que saisi, gardé comme référence (affiché dans le tableau des arrivages)
+      price_currency: this.arrivalPriceCurrency,
+      unit_price: this.parseAmount(this.arrivalForm.get('purchase_price')?.value || 0),
+      price_total: this.arrivalTotalPrice,
+      price_rate: this.showArrivalExchangeRate ? Number(this.arrivalForm.get('exchange_rate')?.value) : null,
+    };
+
     const obs = this.editMode && this.selectedArrival
-      ? this.apiService.put<any>(`container-arrivals/${this.selectedArrival.id}`, this.arrivalForm.value)
-      : this.apiService.post<any>('container-arrivals', this.arrivalForm.value);
+      ? this.apiService.put<any>(`container-arrivals/${this.selectedArrival.id}`, payload)
+      : this.apiService.post<any>('container-arrivals', payload);
 
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
@@ -529,6 +569,7 @@ export class ContainerVentesComponent implements OnInit {
       container_sale_id: sale.id,
       amount:         sale.remaining_amount || null,
       currency:       sale.currency || 'GNF',
+      exchange_rate:  this.configuredRate(sale.currency),
       payment_method: 'ESPECES',
       payment_date:   this.today(),
       reference: '', notes: ''
@@ -539,6 +580,17 @@ export class ContainerVentesComponent implements OnInit {
   savePayment(): void {
     this.submitted = true;
     if (this.paymentForm.invalid) return;
+
+    // Versement en devise : il faut le taux du jour pour le convertir
+    if (this.showPaymentExchangeRate && !(Number(this.paymentForm.get('exchange_rate')?.value) > 1)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Taux de change requis',
+        text: `Indiquez combien de GNF vaut 1 ${this.paymentCurrency} aujourd'hui (ex. 8 600 pour 1 USD).`
+      });
+      return;
+    }
+
     const payload = this.buildAmountPayload(this.paymentForm);
     if (!payload) return;
 
@@ -912,15 +964,140 @@ export class ContainerVentesComponent implements OnInit {
     return String(this.saleForm.get('currency')?.value || 'GNF').toUpperCase() !== 'GNF';
   }
 
-  get arrivalEquivalentGnf(): number {
-    const amount = this.parseAmount(this.arrivalForm.get('purchase_price')?.value || 0);
-    const currency = String(this.arrivalForm.get('currency')?.value || 'GNF').toUpperCase();
-    const rate = Number(this.arrivalForm.get('exchange_rate')?.value || 1);
-    return currency === 'GNF' ? amount : Math.round(amount * rate);
+  /** Nombre de balles de l'arrivage (ou d'unités, pour une marchandise qui n'est pas en balles). */
+  get arrivalUnitCount(): number {
+    const bales = Number(this.arrivalForm.get('bale_quantity')?.value || 0);
+    const total = Number(this.arrivalForm.get('total_quantity')?.value || 0);
+    return this.isTextileArrival && bales > 0 ? bales : total;
   }
 
+  /** Prix d'achat total = prix par balle × nombre de balles. */
+  get arrivalTotalPrice(): number {
+    const unitPrice = this.parseAmount(this.arrivalForm.get('purchase_price')?.value || 0);
+    return Math.round(unitPrice * this.arrivalUnitCount * 100) / 100;
+  }
+
+  /** L'arrivage garde-t-il le prix tel qu'il a été saisi (devise, prix par balle) ? */
+  hasEnteredPrice(arrival: any): boolean {
+    return !!arrival?.price_currency && arrival?.unit_price != null;
+  }
+
+  /** Le prix a été saisi dans une autre devise que celle de la dette enregistrée (ex. saisi en USD, dette en GNF). */
+  enteredInOtherCurrency(arrival: any): boolean {
+    return this.hasEnteredPrice(arrival)
+      && String(arrival.price_currency).toUpperCase() !== String(arrival.currency || 'GNF').toUpperCase();
+  }
+
+  /** « balle » pour un arrivage en balles, « unité » sinon. */
+  arrivalUnitLabel(arrival: any): string {
+    return arrival?.bale_quantity ? 'balle' : 'unité';
+  }
+
+  /** Prix par balle d'un arrivage enregistré (son total divisé par son nombre de balles). */
+  unitPriceFromTotal(arrival: any): number {
+    const count = Number(arrival?.bale_quantity || arrival?.total_quantity || 0);
+    const total = Number(arrival?.purchase_price || 0);
+    return count > 0 ? Math.round((total / count) * 100) / 100 : total;
+  }
+
+  /** Devise dans laquelle le prix est saisi. */
+  get arrivalPriceCurrency(): string {
+    return String(this.arrivalForm.get('currency')?.value || 'GNF').toUpperCase();
+  }
+
+  /** Devise du compte fournisseur où la dette est enregistrée. */
+  get arrivalDebtCurrency(): string {
+    return String(this.arrivalForm.get('debt_currency')?.value || this.arrivalPriceCurrency).toUpperCase();
+  }
+
+  /** Devise étrangère de l'opération : c'est son taux vers le GNF qu'il faut saisir. */
+  get arrivalRateCurrency(): string {
+    return this.arrivalDebtCurrency !== 'GNF' ? this.arrivalDebtCurrency : this.arrivalPriceCurrency;
+  }
+
+  get arrivalNeedsConversion(): boolean {
+    return this.arrivalPriceCurrency !== this.arrivalDebtCurrency;
+  }
+
+  /** Deux devises étrangères différentes (USD ↔ EUR) : pas de conversion directe avec un seul taux. */
+  get arrivalConversionUnsupported(): boolean {
+    return this.arrivalNeedsConversion && this.arrivalPriceCurrency !== 'GNF' && this.arrivalDebtCurrency !== 'GNF';
+  }
+
+  get arrivalEquivalentGnf(): number {
+    const amount = this.arrivalTotalPrice;
+    const rate = Number(this.arrivalForm.get('exchange_rate')?.value || 0);
+    return this.arrivalPriceCurrency === 'GNF' ? amount : Math.round(amount * rate);
+  }
+
+  /** Dette portée au compte du fournisseur, dans la devise choisie pour ce compte. */
+  get arrivalDebtAmount(): number {
+    const total = this.arrivalTotalPrice;
+    if (!this.arrivalNeedsConversion) return total;
+    const rate = Number(this.arrivalForm.get('exchange_rate')?.value || 0);
+    if (!(rate > 0) || this.arrivalConversionUnsupported) return 0;
+    // Prix en GNF, dette en devise : on divise par le taux. L'inverse : on multiplie.
+    return this.arrivalPriceCurrency === 'GNF'
+      ? Math.round((total / rate) * 100) / 100
+      : Math.round(total * rate);
+  }
+
+  /** Le taux est demandé dès qu'une devise étrangère intervient (prix ou dette). */
   get showArrivalExchangeRate(): boolean {
-    return String(this.arrivalForm.get('currency')?.value || 'GNF').toUpperCase() !== 'GNF';
+    return this.arrivalPriceCurrency !== 'GNF' || this.arrivalDebtCurrency !== 'GNF';
+  }
+
+  // ── Versement sur une vente : devise reçue, conversion, compte crédité ──
+
+  /** Devise dans laquelle le client paie (GNF, USD ou EUR). */
+  get paymentCurrency(): string {
+    return String(this.paymentForm.get('currency')?.value || 'GNF').toUpperCase();
+  }
+
+  /** Devise de la vente réglée : c'est le compte-devise du client qui sera crédité. */
+  get paymentSaleCurrency(): string {
+    return String(this.selectedSale?.currency || 'GNF').toUpperCase();
+  }
+
+  get showPaymentExchangeRate(): boolean {
+    return this.paymentCurrency !== 'GNF';
+  }
+
+  /** Le versement n'est pas dans la devise de la vente : il est converti automatiquement. */
+  get paymentNeedsConversion(): boolean {
+    return this.paymentCurrency !== this.paymentSaleCurrency;
+  }
+
+  get paymentEquivalentGnf(): number {
+    const amount = this.parseAmount(this.paymentForm.get('amount')?.value || 0);
+    const rate = Number(this.paymentForm.get('exchange_rate')?.value || 0);
+    return this.paymentCurrency === 'GNF' ? amount : Math.round(amount * rate);
+  }
+
+  /** Montant porté au compte-devise du client, dans la devise de la vente. */
+  get paymentCreditedAmount(): number {
+    const amount = this.parseAmount(this.paymentForm.get('amount')?.value || 0);
+    if (!this.paymentNeedsConversion) return amount;
+    if (this.paymentSaleCurrency === 'GNF') return this.paymentEquivalentGnf;
+    // Vente en devise réglée dans une autre monnaie : conversion au taux fixé à la vente
+    const saleRate = Number(this.selectedSale?.exchange_rate || 0);
+    return saleRate > 0 ? Math.round((this.paymentEquivalentGnf / saleRate) * 100) / 100 : 0;
+  }
+
+  /** Taux configuré d'une devise (Finance › Devises), ou vide s'il n'est pas renseigné. */
+  private configuredRate(currency: string | null | undefined): number | null {
+    const code = String(currency || 'GNF').toUpperCase();
+    if (code === 'GNF') return 1;
+    const rate = Number(this.currencyRates[code] || 0);
+    return rate > 1 ? rate : null;
+  }
+
+  private setupPaymentRateWatcher(): void {
+    this.paymentForm.get('currency')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((currency) => {
+        this.paymentForm.get('exchange_rate')?.setValue(this.configuredRate(currency), { emitEvent: false });
+      });
   }
 
   get showGlobalPaymentExchangeRate(): boolean {
@@ -1008,9 +1185,15 @@ export class ContainerVentesComponent implements OnInit {
     this.arrivalForm.get('currency')?.valueChanges
       .pipe(startWith(this.arrivalForm.get('currency')?.value), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        const currency = String(this.arrivalForm.get('currency')?.value || 'GNF').toUpperCase();
-        const rate = this.getExchangeRateForCurrency(currency);
-        this.arrivalForm.get('exchange_rate')?.setValue(rate, { emitEvent: false });
+        // Par défaut la dette est enregistrée dans la devise du prix ; on peut ensuite en choisir une autre
+        this.arrivalForm.get('debt_currency')?.setValue(this.arrivalPriceCurrency, { emitEvent: false });
+        this.arrivalForm.get('exchange_rate')?.setValue(this.configuredRate(this.arrivalRateCurrency), { emitEvent: false });
+      });
+
+    this.arrivalForm.get('debt_currency')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.arrivalForm.get('exchange_rate')?.setValue(this.configuredRate(this.arrivalRateCurrency), { emitEvent: false });
       });
   }
 

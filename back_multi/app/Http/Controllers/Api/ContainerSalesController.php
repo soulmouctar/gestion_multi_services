@@ -74,6 +74,10 @@ class ContainerSalesController extends BaseController
                 'purchase_price' => 'required|numeric|min:0',
                 'currency' => 'required|string|max:10',
                 'exchange_rate' => 'nullable|numeric|min:0.0001',
+                'price_currency' => 'nullable|string|max:10',
+                'unit_price' => 'nullable|numeric|min:0',
+                'price_total' => 'nullable|numeric|min:0',
+                'price_rate' => 'nullable|numeric|min:0',
                 'product_category_id' => 'nullable|exists:product_categories,id',
                 'product_type' => 'nullable|in:TEXTILE,HABITS,COSMETIQUES,PNEUS,ELECTRONIQUE,MACHINE_A_COUDRE,DIVERS,MIXTE',
                 'total_quantity' => 'required|integer|min:1',
@@ -143,6 +147,10 @@ class ContainerSalesController extends BaseController
             'purchase_price' => 'sometimes|numeric|min:0',
             'currency' => 'sometimes|string|max:10',
             'exchange_rate' => 'nullable|numeric|min:0.0001',
+            'price_currency' => 'nullable|string|max:10',
+            'unit_price' => 'nullable|numeric|min:0',
+            'price_total' => 'nullable|numeric|min:0',
+            'price_rate' => 'nullable|numeric|min:0',
             'product_category_id' => 'nullable|exists:product_categories,id',
             'product_type' => 'nullable|in:TEXTILE,HABITS,COSMETIQUES,PNEUS,ELECTRONIQUE,MACHINE_A_COUDRE,DIVERS,MIXTE',
             'total_quantity' => 'sometimes|integer|min:1',
@@ -155,7 +163,7 @@ class ContainerSalesController extends BaseController
             return $this->sendError('Validation Error', $validator->errors()->toArray(), 422);
         }
 
-        $data = $request->only(['supplier_id', 'arrival_date', 'purchase_price', 'currency', 'exchange_rate', 'product_category_id', 'product_type', 'total_quantity', 'bale_quantity', 'description', 'status']);
+        $data = $request->only(['supplier_id', 'arrival_date', 'purchase_price', 'currency', 'exchange_rate', 'price_currency', 'unit_price', 'price_total', 'price_rate', 'product_category_id', 'product_type', 'total_quantity', 'bale_quantity', 'description', 'status']);
         if (array_key_exists('product_type', $data) && !$data['product_type']) {
             $data['product_type'] = 'DIVERS';
         }
@@ -509,7 +517,9 @@ class ContainerSalesController extends BaseController
                 $query->where('container_sale_id', $request->get('container_sale_id'));
             }
 
-            $query->orderBy('payment_date', 'desc');
+            $this->applyPaymentPeriodFilters($query, $request);
+
+            $query->orderBy('payment_date', 'desc')->orderBy('id', 'desc');
             $perPage = $request->get('per_page', 15);
             $payments = $query->paginate($perPage);
 
@@ -517,6 +527,53 @@ class ContainerSalesController extends BaseController
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
         }
+    }
+
+    /** Filtres de periode et de devise communs a la liste des versements et a son total. */
+    private function applyPaymentPeriodFilters($query, Request $request): void
+    {
+        if ($request->filled('date_from')) {
+            $query->whereDate('payment_date', '>=', $request->get('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('payment_date', '<=', $request->get('date_to'));
+        }
+        if ($request->filled('currency')) {
+            $query->where('currency', strtoupper((string) $request->get('currency')));
+        }
+    }
+
+    /**
+     * Total des versements d'une periode, par devise encaissee.
+     * Les imputations d'avances sont exclues : l'argent a ete compte a la reception de l'avance.
+     */
+    public function getPaymentsSummary(Request $request)
+    {
+        $tenantId = $this->tenantId($request);
+
+        $query = ContainerSalePayment::where('tenant_id', $tenantId)
+            ->where(fn ($q) => $q->whereNull('payment_type')->orWhere('payment_type', '!=', 'AVANCE'));
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->get('client_id'));
+        }
+        $this->applyPaymentPeriodFilters($query, $request);
+
+        $byCurrency = $query
+            ->selectRaw('currency, COUNT(*) as payments_count, SUM(amount) as total_amount')
+            ->groupBy('currency')
+            ->orderBy('currency')
+            ->get()
+            ->map(fn ($row) => [
+                'currency' => strtoupper((string) $row->currency),
+                'payments_count' => (int) $row->payments_count,
+                'total_amount' => round((float) $row->total_amount, 2),
+            ])
+            ->values();
+
+        return $this->sendResponse([
+            'by_currency' => $byCurrency,
+            'payments_count' => $byCurrency->sum('payments_count'),
+        ], 'Payments summary retrieved successfully');
     }
 
     public function storePayment(Request $request)
@@ -552,8 +609,26 @@ class ContainerSalesController extends BaseController
             }
             $data = $request->all();
             $currency = strtoupper((string) ($data['currency'] ?? 'GNF'));
-            $exchangeRate = $this->resolveExchangeRateForCurrency($sale->tenant_id, $currency, $request->input('exchange_rate'));
-            $amountGnf = $this->convertToGnf((float) $data['amount'], $currency, $exchangeRate);
+            // Le reste d'une vente en devise est suivi en GNF au taux de la vente.
+            $saleCurrency = strtoupper((string) ($sale->currency ?? 'GNF'));
+            $saleRate = (float) ($sale->exchange_rate ?: 0);
+            $dayRate = (float) $request->input('exchange_rate');
+            $foreignSale = $saleCurrency !== 'GNF' && $saleRate > 0;
+
+            if ($foreignSale && $currency === $saleCurrency) {
+                // Meme devise que la vente : aucune conversion, donc aucun taux a fournir.
+                // 100 USD soldent 100 USD quel que soit le taux du jour.
+                $exchangeRate = $saleRate;
+                $amountGnf = round((float) $data['amount'] * $saleRate, 2);
+            } elseif ($foreignSale && $currency === 'GNF' && GnfRate::usable($dayRate)) {
+                // GNF verses sur une vente en devise : convertis au taux du jour saisi,
+                // qui est conserve sur le versement.
+                $exchangeRate = round($dayRate, 4);
+                $amountGnf = round((float) $data['amount'] / $exchangeRate * $saleRate, 2);
+            } else {
+                $exchangeRate = $this->resolveExchangeRateForCurrency($sale->tenant_id, $currency, $request->input('exchange_rate'));
+                $amountGnf = $this->convertToGnf((float) $data['amount'], $currency, $exchangeRate);
+            }
 
             // Pas de versement au-dela du reste a payer : l'excedent disparaissait
             // (la vente etait soldee et le trop-percu n'etait trace nulle part).

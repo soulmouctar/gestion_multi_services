@@ -60,7 +60,7 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Déconnexion automatique après 5 minutes d'inactivité, sur tout l'espace connecté
+    // Déconnexion automatique pour inactivité (délai réglé dans Paramètres), sur tout l'espace connecté
     this.idleLogout.start();
 
     this.navigationService.getNavigationItems().pipe(

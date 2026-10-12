@@ -1,0 +1,211 @@
+<app-page-header [eyebrow]="family()?.label ?? ''" title="Conteneurs" description="La rentabilité de chaque conteneur : son prix, les ventes de la famille faites depuis son arrivée jusqu'à celle du conteneur suivant, et ses dépenses.">
+  <button class="btn btn-primary" type="button" (click)="open()">Nouveau conteneur</button>
+</app-page-header>
+
+@if (!lockedFamily()) {
+  <app-family-tabs [families]="families()" [(selected)]="familyKey" />
+}
+
+@if (loading()) {
+  <div class="card empty">Chargement…</div>
+} @else if (!containers().length) {
+  <div class="card empty"><strong>Aucun conteneur</strong>Enregistrez un conteneur pour suivre sa rentabilité.</div>
+} @else {
+  @for (container of containers(); track container.id) {
+    <section class="card container">
+      <header>
+        <div>
+          <h2>{{ container.reference }}</h2>
+          <p>
+            {{ container.supplier?.name }} · arrivé le {{ container.arrival_date | day }} ·
+            @if (container.period_end) {
+              ventes comptées jusqu'au {{ container.period_end | day }}
+            } @else {
+              en cours de vente
+            }
+          </p>
+        </div>
+        <div class="head-actions">
+          <button class="btn btn-sm" type="button" (click)="openExpense(container)">Ajouter une dépense</button>
+          <button class="btn btn-sm btn-danger" type="button" (click)="deleting.set(container)">Supprimer</button>
+        </div>
+      </header>
+
+      <div class="figures">
+        <div>
+          <span>Prix du conteneur</span>
+          <strong class="num">{{ container.price_gnf | money }}</strong>
+          @if (container.currency !== 'GNF') {
+            <small class="num">{{ container.purchase_price | money: container.currency }} · taux {{ container.exchange_rate | num }}</small>
+          }
+        </div>
+        <div>
+          <span>Ventes</span>
+          <strong class="num">{{ container.sales_gnf | money }}</strong>
+          <small class="num">{{ container.tyres_sold | num }} {{ cartons() ? 'pièces vendues' : 'pneus vendus' }}</small>
+        </div>
+        <div>
+          <span>Dépenses effectuées</span>
+          <strong class="num">{{ container.expenses_gnf | money }}</strong>
+        </div>
+        <div>
+          <span>Reste après dépenses</span>
+          <strong class="num">{{ container.after_expenses_gnf | money }}</strong>
+        </div>
+        <div class="result" [class.loss]="container.result_gnf < 0">
+          <span>{{ container.result_gnf < 0 ? 'Reste à couvrir' : 'Bénéfice' }}</span>
+          <strong class="num">{{ (container.result_gnf < 0 ? -container.result_gnf : container.result_gnf) | money }}</strong>
+          <small>une fois le prix du conteneur déduit</small>
+        </div>
+      </div>
+
+      @if (container.expenses.length) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Date</th><th>Dépense</th><th class="right">Montant</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (expense of container.expenses; track expense.id) {
+                <tr>
+                  <td>{{ expense.expense_date | day }}</td>
+                  <td>{{ expense.label }}</td>
+                  <td class="right num strong">{{ expense.amount | money }}</td>
+                  <td class="actions"><button class="btn btn-sm btn-danger" type="button" (click)="removeExpense(expense)">Supprimer</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+}
+
+@if (creating()) {
+  <app-modal [title]="'Nouveau conteneur — ' + family()?.label" subtitle="Le prix devient la dette envers le fournisseur ; les produits listés entrent en stock." [wide]="true" (closed)="creating.set(false)">
+    <form id="tyre-container-form" class="form-grid" [formGroup]="form" (ngSubmit)="save()">
+      <div class="field">
+        <label for="tc-reference">Référence du conteneur *</label>
+        <input id="tc-reference" class="input" formControlName="reference" />
+      </div>
+      <div class="field">
+        <label for="tc-supplier">Fournisseur *</label>
+        <select id="tc-supplier" class="input" formControlName="supplier_id">
+          <option [ngValue]="null">— Choisir —</option>
+          @for (supplier of suppliers(); track supplier.id) {
+            <option [ngValue]="supplier.id">{{ supplier.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="tc-date">Date d'arrivée *</label>
+        <input id="tc-date" class="input" type="date" formControlName="arrival_date" />
+        <span class="hint">Les ventes de cette famille lui sont attribuées à partir de cette date.</span>
+      </div>
+      <div class="field">
+        <label for="tc-price">Prix du conteneur *</label>
+        <input id="tc-price" class="input num" type="number" min="0" step="any" formControlName="purchase_price" />
+      </div>
+      <div class="field">
+        <label for="tc-currency">Devise</label>
+        <select id="tc-currency" class="input" formControlName="currency">
+          @for (code of currencies; track code) {
+            <option [value]="code">{{ code }}</option>
+          }
+        </select>
+      </div>
+      @if (foreign(); as code) {
+        <div class="field">
+          <label for="tc-rate">Taux du jour : 1 {{ code }} en GNF *</label>
+          <input id="tc-rate" class="input num" type="number" min="1" step="any" formControlName="rate" />
+          @if (priceGnf()) {
+            <span class="hint">Soit {{ priceGnf() | money }}.</span>
+          }
+        </div>
+      }
+    </form>
+
+    <div class="picker">
+      <div class="field">
+        <label for="tc-search">{{ cartons() ? 'Contenu : ajouter un produit' : 'Contenu : ajouter une dimension' }}</label>
+        <input id="tc-search" class="input" type="search" #term [value]="search()" [placeholder]="cartons() ? 'COCO PAA…' : '185-70R14'" (input)="search.set(term.value)" autocomplete="off" />
+        <span class="hint">Un produit absent se crée d'abord dans Produits.</span>
+      </div>
+      @if (matches().length) {
+        <ul class="matches">
+          @for (tyre of matches(); track tyre.id) {
+            <li><button type="button" (click)="add(tyre)"><span class="strong">{{ tyre.name }}</span><span class="muted num">{{ tyre.stock_quantity | num }} en stock</span></button></li>
+          }
+        </ul>
+      }
+    </div>
+
+    @if (lines().length) {
+      <div class="table-wrap">
+        <table class="table lines">
+          <thead><tr><th>{{ cartons() ? 'Produit' : 'Dimension' }}</th><th class="right">{{ cartons() ? 'Cartons' : 'Quantité' }}</th><th></th></tr></thead>
+          <tbody>
+            @for (line of lines(); track line.product.id; let index = $index) {
+              <tr>
+                <td>
+                  <div class="strong">{{ line.product.name }}</div>
+                  @if (cartons()) {
+                    <div class="muted">{{ pieces(line) | num }} pièces ({{ line.product.units_per_carton ?? 1 | num }} par carton)</div>
+                  }
+                </td>
+                <td class="right"><input class="input num" type="number" min="1" #quantity [value]="line.quantity" (input)="setQuantity(index, +quantity.value)" aria-label="Quantité" /></td>
+                <td class="actions"><button class="btn btn-sm btn-danger" type="button" (click)="remove(index)">Retirer</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="hint">{{ totalTyres() | num }} pièces entreront en stock.</p>
+    }
+
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="creating.set(false)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="tyre-container-form" [disabled]="saving()">Enregistrer le conteneur</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (expenseFor(); as container) {
+  <app-modal [title]="'Dépense du conteneur ' + container.reference" subtitle="Transport, dédouanement, manutention… en GNF." (closed)="expenseFor.set(null)">
+    <form id="tyre-expense-form" class="form-grid" [formGroup]="expenseForm" (ngSubmit)="saveExpense()">
+      <div class="field full">
+        <label for="te-label">Nature de la dépense *</label>
+        <input id="te-label" class="input" formControlName="label" placeholder="Dédouanement" />
+      </div>
+      <div class="field">
+        <label for="te-amount">Montant en GNF *</label>
+        <input id="te-amount" class="input num" type="number" min="0" step="any" formControlName="amount" />
+      </div>
+      <div class="field">
+        <label for="te-date">Date *</label>
+        <input id="te-date" class="input" type="date" formControlName="expense_date" />
+      </div>
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="expenseFor.set(null)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="tyre-expense-form" [disabled]="saving()">Ajouter la dépense</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (deleting(); as container) {
+  <app-modal title="Supprimer ce conteneur ?" (closed)="deleting.set(null)">
+    <p>
+      Le conteneur {{ container.reference }} sera retiré avec ses dépenses. Sa dette de {{ container.purchase_price | money: container.currency }}
+      sera enlevée du compte du fournisseur, et les produits entrés avec lui sortiront du stock.
+      @if (container.tyres_sold) {
+        Des ventes ont eu lieu depuis : le stock peut devenir négatif.
+      }
+    </p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="deleting.set(null)">Garder</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="confirmDelete()">Supprimer le conteneur</button>
+    </ng-container>
+  </app-modal>
+}

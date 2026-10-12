@@ -1,0 +1,47 @@
+<app-page-header eyebrow="Textile" title="Arrivages et photos" description="Joignez les photos de la marchandise à chaque conteneur livré." />
+
+@if (loading()) {
+  <div class="card empty">Chargement…</div>
+} @else if (!arrivals().length) {
+  <div class="card empty"><strong>Aucun arrivage</strong>Les arrivages apparaissent ici dès qu'un conteneur est marqué livré.</div>
+} @else {
+  @for (arrival of arrivals(); track arrival.id) {
+    <section class="card arrival">
+      <header>
+        <div>
+          <h2>{{ arrival.container?.container_number }} <span class="muted">· {{ arrival.arrival_number }}</span></h2>
+          <p>
+            Arrivé le {{ arrival.arrival_date | day }} · {{ arrival.bale_quantity ?? arrival.total_quantity | num }} balles
+            @if (arrival.supplier) { · {{ arrival.supplier.name }} }
+          </p>
+        </div>
+        <label class="btn" [class.disabled]="uploadingFor() === arrival.id">
+          {{ uploadingFor() === arrival.id ? 'Envoi…' : 'Ajouter des photos' }}
+          <input #picker type="file" accept="image/*" multiple hidden [disabled]="uploadingFor() !== null" (change)="addPhotos(arrival, picker)" />
+        </label>
+      </header>
+
+      @if (arrival.photos?.length) {
+        <div class="gallery">
+          @for (photo of arrival.photos; track photo.id) {
+            <button class="thumb" type="button" (click)="viewing.set(photo)" aria-label="Agrandir la photo">
+              <img [src]="photo.image_url" alt="" loading="lazy" />
+            </button>
+          }
+        </div>
+      } @else {
+        <p class="none">Aucune photo pour cet arrivage.</p>
+      }
+    </section>
+  }
+}
+
+@if (viewing(); as photo) {
+  <app-modal title="Photo de l'arrivage" [wide]="true" (closed)="viewing.set(null)">
+    <img class="full-photo" [src]="photo.image_url" alt="" />
+    <ng-container modal-footer>
+      <button class="btn btn-danger" type="button" (click)="remove(photo)">Supprimer la photo</button>
+      <button class="btn" type="button" (click)="viewing.set(null)">Fermer</button>
+    </ng-container>
+  </app-modal>
+}

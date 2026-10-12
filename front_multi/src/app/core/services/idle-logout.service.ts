@@ -1,19 +1,25 @@
 import { DOCUMENT } from '@angular/common';
-import { inject, Injectable, NgZone } from '@angular/core';
+import { inject, Injectable, NgZone, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { Observable, map, tap } from 'rxjs';
 import Swal from 'sweetalert2';
 
+import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 
-/** Durée d'inactivité avant déconnexion automatique. */
-export const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+/** Délais d'inactivité proposés dans les paramètres (minutes). */
+export const IDLE_TIMEOUT_CHOICES = [2, 3, 5, 10, 15, 30];
+/** Délai appliqué tant que l'organisation n'a rien choisi. */
+export const DEFAULT_IDLE_TIMEOUT_MINUTES = 5;
 /** Délai de prévenance : l'utilisateur est averti avant d'être déconnecté. */
 const WARNING_MS = 30 * 1000;
 const ACTIVITY_KEY = 'last_activity_at';
+const TIMEOUT_KEY = 'idle_timeout_minutes';
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'wheel'];
 
 /**
- * Déconnecte l'utilisateur après 5 minutes sans activité.
+ * Déconnecte l'utilisateur après un délai sans activité, réglé par
+ * l'organisation dans les paramètres (5 minutes par défaut).
  *
  * La dernière activité est horodatée dans localStorage : tous les onglets de
  * l'application partagent donc le même compte à rebours (travailler dans un
@@ -26,6 +32,10 @@ export class IdleLogoutService {
   readonly #zone = inject(NgZone);
   readonly #auth = inject(AuthService);
   readonly #router = inject(Router);
+  readonly #api = inject(ApiService);
+
+  /** Délai en vigueur, en minutes. */
+  readonly timeoutMinutes = signal(this.#storedTimeout());
 
   #ticker?: ReturnType<typeof setInterval>;
   #lastWrite = 0;
@@ -48,6 +58,7 @@ export class IdleLogoutService {
   start(): void {
     this.stop();
     this.#touch(Date.now());
+    this.#loadTimeout();
 
     // Hors zone Angular : ces événements très fréquents ne doivent pas relancer la détection de changements
     this.#zone.runOutsideAngular(() => {
@@ -55,6 +66,7 @@ export class IdleLogoutService {
         this.#document.addEventListener(event, this.#onActivity, { passive: true, capture: true });
       }
       this.#document.addEventListener('visibilitychange', this.#check);
+      this.#document.defaultView?.addEventListener('storage', this.#onStorage);
       this.#ticker = setInterval(this.#check, 5000);
     });
   }
@@ -65,23 +77,40 @@ export class IdleLogoutService {
       this.#document.removeEventListener(event, this.#onActivity, { capture: true });
     }
     this.#document.removeEventListener('visibilitychange', this.#check);
+    this.#document.defaultView?.removeEventListener('storage', this.#onStorage);
     clearInterval(this.#ticker);
     this.#ticker = undefined;
     this.#closeWarning();
   }
+
+  /** Enregistre le délai choisi pour l'organisation et l'applique aussitôt. */
+  saveTimeout(minutes: number): Observable<number> {
+    return this.#api.put<{ minutes: number }>('session-timeout', { minutes }).pipe(
+      map((response) => Number(response.data?.minutes) || minutes),
+      tap((saved) => this.#applyTimeout(saved)),
+    );
+  }
+
+  /** Un autre onglet a changé le délai : celui-ci s'aligne. */
+  readonly #onStorage = (event: StorageEvent) => {
+    if (event.key === TIMEOUT_KEY) {
+      this.#zone.run(() => this.timeoutMinutes.set(this.#storedTimeout()));
+    }
+  };
 
   readonly #check = () => {
     if (!this.#auth.isAuthenticated) {
       this.stop();
       return;
     }
+    const timeoutMs = this.timeoutMinutes() * 60 * 1000;
     const idle = Date.now() - this.#lastActivity();
 
-    if (idle >= IDLE_TIMEOUT_MS) {
+    if (idle >= timeoutMs) {
       this.#zone.run(() => this.#expire());
-    } else if (idle >= IDLE_TIMEOUT_MS - WARNING_MS) {
+    } else if (idle >= timeoutMs - WARNING_MS) {
       if (!this.#warningOpen) {
-        this.#zone.run(() => this.#warn(IDLE_TIMEOUT_MS - idle));
+        this.#zone.run(() => this.#warn(timeoutMs - idle));
       }
     } else if (this.#warningOpen) {
       // Activité reprise dans un autre onglet : l'avertissement n'a plus lieu d'être
@@ -138,8 +167,37 @@ export class IdleLogoutService {
     Swal.close();
     this.#auth.logout();
     this.#router.navigate(['/auth/login'], {
-      queryParams: { message: 'Vous avez été déconnecté après 5 minutes d\'inactivité.' },
+      queryParams: { message: `Vous avez été déconnecté après ${this.timeoutMinutes()} minutes d'inactivité.` },
     });
+  }
+
+  /** Le délai de l'organisation fait foi ; la copie locale évite d'attendre le serveur au rechargement. */
+  #loadTimeout(): void {
+    this.#api.get<{ minutes: number }>('session-timeout', { params: {} }).subscribe({
+      next: (response) => this.#applyTimeout(Number(response.data?.minutes)),
+      error: () => undefined,
+    });
+  }
+
+  #applyTimeout(minutes: number): void {
+    if (!IDLE_TIMEOUT_CHOICES.includes(minutes)) {
+      return;
+    }
+    this.timeoutMinutes.set(minutes);
+    try {
+      localStorage.setItem(TIMEOUT_KEY, String(minutes));
+    } catch {
+      // Stockage indisponible : le délai reste en mémoire
+    }
+  }
+
+  #storedTimeout(): number {
+    try {
+      const stored = Number(localStorage.getItem(TIMEOUT_KEY));
+      return IDLE_TIMEOUT_CHOICES.includes(stored) ? stored : DEFAULT_IDLE_TIMEOUT_MINUTES;
+    } catch {
+      return DEFAULT_IDLE_TIMEOUT_MINUTES;
+    }
   }
 
   #lastActivity(): number {

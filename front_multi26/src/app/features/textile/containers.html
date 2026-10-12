@@ -1,0 +1,213 @@
+<app-page-header eyebrow="Textile" title="Conteneurs" description="Enregistrez un conteneur à son envoi, puis marquez-le livré à son arrivée pour ouvrir les ventes.">
+  <button class="btn btn-primary" type="button" (click)="openContainer('new')">Nouveau conteneur</button>
+</app-page-header>
+
+<div class="stats">
+  <div class="card stat"><span>En route</span><strong class="num">{{ sentCount() }}</strong></div>
+  <div class="card stat"><span>Livrés</span><strong class="num">{{ deliveredCount() }}</strong></div>
+  <div class="card stat"><span>Balles restant à vendre</span><strong class="num">{{ balesLeft() | num }}</strong></div>
+</div>
+
+<section class="card">
+  <div class="toolbar">
+    <div class="field">
+      <label for="container-search">Rechercher</label>
+      <input id="container-search" class="input" type="search" #containersearch placeholder="Numéro de conteneur ou de BL" (input)="search.set(containersearch.value)" />
+    </div>
+    <div class="field">
+      <label for="container-status">Statut</label>
+      <select id="container-status" class="input" #statusPick [value]="statusFilter()" (change)="statusFilter.set(statusPick.value)">
+        <option value="">Tous</option>
+        <option value="NON_LIVRE">Envoyés</option>
+        <option value="LIVRE">Livrés</option>
+      </select>
+    </div>
+  </div>
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (!rows().length) {
+    <div class="empty"><strong>Aucun conteneur</strong>Enregistrez le premier conteneur envoyé.</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Conteneur</th>
+            <th>Envoi</th>
+            <th class="right">Balles</th>
+            <th>Fournisseur</th>
+            <th class="right">Dette fournisseur</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of pager.rows(); track row.container.id) {
+            <tr>
+              <td>
+                <div class="strong">{{ row.container.container_number }}</div>
+                <div class="muted">Expédition {{ row.container.shipping_number }}@if (row.container.bl_number) { · BL {{ row.container.bl_number }} }</div>
+              </td>
+              <td>
+                <div>{{ row.container.entry_date | day }}</div>
+                @if (row.container.entry_port) {
+                  <div class="muted">{{ row.container.entry_port }}</div>
+                }
+              </td>
+              <td class="right num">
+                @if (row.arrival; as arrival) {
+                  <div class="strong">{{ arrival.bale_quantity ?? arrival.total_quantity | num }}</div>
+                  <div class="muted">reste {{ arrival.remaining_quantity | num }}</div>
+                } @else {
+                  {{ row.container.capacity ? (row.container.capacity | num) : '—' }}
+                }
+              </td>
+              <td>{{ row.arrival?.supplier?.name ?? '—' }}</td>
+              <td class="right num">
+                @if (row.arrival; as arrival) {
+                  <div class="strong">{{ arrival.purchase_price | money: arrival.currency }}</div>
+                  @if (arrival.price_currency && arrival.price_currency !== arrival.currency) {
+                    <div class="muted">saisi {{ arrival.price_total | money: arrival.price_currency }} · taux {{ arrival.price_rate | num }}</div>
+                  } @else if (arrival.unit_price) {
+                    <div class="muted">{{ arrival.unit_price | money: arrival.currency }} / balle</div>
+                  }
+                } @else {
+                  —
+                }
+              </td>
+              <td>
+                @if (row.container.delivery_status === 'LIVRE') {
+                  <span class="badge is-success">Livré</span>
+                  @if (row.arrival) {
+                    <div class="muted">le {{ row.arrival.arrival_date | day }}</div>
+                  }
+                } @else {
+                  <span class="badge is-warning">Envoyé</span>
+                  @if (row.container.expected_delivery_date) {
+                    <div class="muted">prévu le {{ row.container.expected_delivery_date | day }}</div>
+                  }
+                }
+              </td>
+              <td class="actions">
+                @if (!row.arrival) {
+                  <button class="btn btn-sm btn-primary" type="button" (click)="openDelivery(row.container)">
+                    {{ row.container.delivery_status === 'LIVRE' ? 'Enregistrer l\'arrivage' : 'Marquer livré' }}
+                  </button>
+                  <button class="btn btn-sm" type="button" (click)="openContainer(row.container)">Modifier</button>
+                } @else {
+                  <button class="btn btn-sm" type="button" (click)="openCorrection(row.container, row.arrival)">Corriger</button>
+                  <a class="btn btn-sm" routerLink="/textile/arrivals"><app-icon name="image" [size]="15" /> Photos</a>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [state]="pager" />
+  }
+</section>
+
+@if (editing(); as target) {
+  <app-modal [title]="target === 'new' ? 'Nouveau conteneur' : 'Modifier le conteneur'" subtitle="Le conteneur est enregistré comme envoyé." (closed)="editing.set(null)">
+    <form id="container-form" class="form-grid" [formGroup]="containerForm" (ngSubmit)="saveContainer()">
+      <div class="field">
+        <label for="shipping">Numéro d'expédition *</label>
+        <input id="shipping" class="input" formControlName="shipping_number" />
+      </div>
+      <div class="field">
+        <label for="bl">Numéro de BL</label>
+        <input id="bl" class="input" formControlName="bl_number" />
+      </div>
+      <div class="field">
+        <label for="capacity">Nombre de balles</label>
+        <input id="capacity" class="input num" type="number" min="1" formControlName="capacity" />
+      </div>
+      <div class="field">
+        <label for="port">Port d'arrivée</label>
+        <input id="port" class="input" formControlName="entry_port" placeholder="Conakry" />
+      </div>
+      <div class="field">
+        <label for="sent">Date d'envoi</label>
+        <input id="sent" class="input" type="date" formControlName="entry_date" />
+      </div>
+      <div class="field">
+        <label for="expected">Arrivée prévue</label>
+        <input id="expected" class="input" type="date" formControlName="expected_delivery_date" />
+      </div>
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="editing.set(null)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="container-form" [disabled]="saving()">Enregistrer</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (delivering(); as container) {
+  <app-modal [title]="(correcting() ? 'Corriger l\'arrivage du conteneur ' : 'Livraison du conteneur ') + container.container_number" subtitle="Le prix par balle, multiplié par le nombre de balles, donne la dette envers le fournisseur." (closed)="delivering.set(null)">
+    <form id="delivery-form" class="form-grid" [formGroup]="deliveryForm" (ngSubmit)="saveDelivery()">
+      <div class="field">
+        <label for="arrival-date">Date d'arrivée *</label>
+        <input id="arrival-date" class="input" type="date" formControlName="arrival_date" />
+      </div>
+      <div class="field">
+        <label for="supplier">Fournisseur</label>
+        <select id="supplier" class="input" formControlName="supplier_id">
+          <option [ngValue]="null">— Aucun —</option>
+          @for (supplier of suppliers(); track supplier.id) {
+            <option [ngValue]="supplier.id">{{ supplier.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="bales">Nombre de balles *</label>
+        <input id="bales" class="input num" type="number" min="1" formControlName="bales" />
+      </div>
+      <div class="field">
+        <label for="unit-price">Prix par balle *</label>
+        <input id="unit-price" class="input num" type="number" min="0" step="any" formControlName="unit_price" />
+      </div>
+      <div class="field">
+        <label for="price-currency">Devise du prix</label>
+        <select id="price-currency" class="input" formControlName="price_currency">
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">{{ currency }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="debt-currency">Devise de la dette fournisseur</label>
+        <select id="debt-currency" class="input" formControlName="debt_currency">
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">{{ currency }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="result full">
+        <span>Prix d'achat total</span>
+        <strong class="num">{{ total() | money: deliveryForm.controls.price_currency.value }}</strong>
+      </div>
+
+      @if (rateFor(); as foreign) {
+        <div class="field full">
+          <label for="rate">Taux du jour : 1 {{ foreign }} en GNF *</label>
+          <input id="rate" class="input num" type="number" min="1" step="any" formControlName="rate" />
+        </div>
+      } @else if (rateFor() === undefined) {
+        <div class="alert is-danger full">La conversion directe entre deux devises étrangères n'est pas gérée : passez par le GNF.</div>
+      }
+
+      @if (converted() && rateFor()) {
+        <div class="result full">
+          <span>Dette à payer au fournisseur</span>
+          <strong class="num">{{ debt() | money: deliveryForm.controls.debt_currency.value }}</strong>
+        </div>
+      }
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="delivering.set(null)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="delivery-form" [disabled]="saving()">{{ correcting() ? 'Enregistrer la correction' : 'Marquer livré' }}</button>
+    </ng-container>
+  </app-modal>
+}

@@ -20,6 +20,11 @@ class ContainerArrival extends Model
         'currency',
         'exchange_rate',
         'purchase_price_gnf',
+        // Prix tel que saisi (reference) : devise, prix par balle, total et taux utilise
+        'price_currency',
+        'unit_price',
+        'price_total',
+        'price_rate',
         'product_type',
         'product_category_id',
         'total_quantity',
@@ -33,6 +38,9 @@ class ContainerArrival extends Model
         'purchase_price'     => 'float',
         'exchange_rate'      => 'float',
         'purchase_price_gnf' => 'float',
+        'unit_price'         => 'float',
+        'price_total'        => 'float',
+        'price_rate'         => 'float',
         'arrival_date'       => 'date',
         'bale_quantity'      => 'integer',
     ];

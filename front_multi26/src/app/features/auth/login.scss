@@ -1,0 +1,72 @@
+:host {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+  background:
+    radial-gradient(900px 500px at 15% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    radial-gradient(800px 500px at 100% 100%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%),
+    var(--bg);
+}
+
+.login {
+  width: min(400px, 100%);
+  padding: 40px 36px 36px;
+  box-shadow: var(--shadow);
+}
+
+.logo {
+  display: block;
+  margin: 0 auto 28px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  background: #fff;
+  object-fit: contain;
+}
+
+h1 {
+  margin-bottom: 24px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  text-align: center;
+}
+
+form {
+  display: grid;
+  gap: 18px;
+}
+
+.input { height: 44px; }
+
+.password {
+  position: relative;
+
+  .input { padding-right: 84px; }
+}
+
+.reveal {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 13px;
+
+  &:hover { background: var(--surface-3); color: var(--text); }
+}
+
+.btn {
+  height: 46px;
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+@media (max-width: 480px) {
+  .login { padding: 32px 22px 26px; }
+}

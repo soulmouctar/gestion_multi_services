@@ -233,6 +233,17 @@
                 </td>
                 <td class="text-end">
                   <div class="fw-semibold" style="color:var(--app-text-strong)">{{ formatAmount(a.purchase_price, a.currency) }}</div>
+                  <div class="small" style="color:var(--app-text-muted)">
+                    {{ formatAmount(unitPriceFromTotal(a), a.currency) }} / {{ arrivalUnitLabel(a) }}
+                  </div>
+                  <!-- Référence : prix tel que saisi, quand il l'a été dans une autre devise -->
+                  <div *ngIf="enteredInOtherCurrency(a)" class="small fw-semibold mt-1" style="color:var(--app-brand-fg)"
+                       [title]="'Prix saisi en ' + a.price_currency + ' au taux de ' + (a.price_rate || '—')">
+                    {{ formatAmount(a.price_total, a.price_currency) }}
+                    <span class="fw-normal" style="color:var(--app-text-muted)">
+                      · {{ formatAmount(a.unit_price, a.price_currency) }} / {{ arrivalUnitLabel(a) }}
+                    </span>
+                  </div>
                   <div class="small text-muted" *ngIf="a.currency && a.currency !== 'GNF'">
                     Taux: {{ a.exchange_rate || 1 }} • {{ formatAmount(a.purchase_price_gnf || 0, 'GNF') }}
                   </div>
@@ -692,8 +703,22 @@
           <div class="fw-semibold mt-1" style="color:var(--app-text-strong)">{{ arrival.remaining_quantity }} unités</div>
         </div>
         <div class="col-md-3">
-          <div class="small text-muted text-uppercase fw-semibold">Prix d'achat</div>
+          <div class="small text-muted text-uppercase fw-semibold">Prix par {{ arrivalUnitLabel(arrival) }}</div>
+          <div class="fw-semibold mt-1" style="color:var(--app-text-strong)">{{ formatAmount(unitPriceFromTotal(arrival), arrival.currency) }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="small text-muted text-uppercase fw-semibold">Prix d'achat total</div>
           <div class="fw-semibold mt-1" style="color:var(--app-text-strong)">{{ formatAmount(arrival.purchase_price, arrival.currency) }}</div>
+        </div>
+        <div class="col-md-6" *ngIf="enteredInOtherCurrency(arrival)">
+          <div class="small text-muted text-uppercase fw-semibold">Prix saisi (référence)</div>
+          <div class="fw-semibold mt-1" style="color:var(--app-brand-fg)">
+            {{ formatAmount(arrival.price_total, arrival.price_currency) }}
+            <span class="fw-normal small" style="color:var(--app-text-muted)">
+              · {{ formatAmount(arrival.unit_price, arrival.price_currency) }} / {{ arrivalUnitLabel(arrival) }}
+              · taux {{ arrival.price_rate || '—' }}
+            </span>
+          </div>
         </div>
         <div class="col-md-3" *ngIf="arrival.currency && arrival.currency !== 'GNF'">
           <div class="small text-muted text-uppercase fw-semibold">Taux du jour</div>
@@ -856,36 +881,72 @@
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:var(--app-text)">
-            Prix d'Achat Total <span class="text-danger">*</span>
+            {{ isTextileArrival ? 'Prix par balle' : 'Prix unitaire' }} <span class="text-danger">*</span>
           </label>
-          <input type="number" class="form-control" formControlName="purchase_price" min="0" placeholder="Montant total payé"
+          <input type="number" class="form-control" formControlName="purchase_price" min="0"
+            [placeholder]="isTextileArrival ? 'Prix d\'achat d\'une balle' : 'Prix d\'achat d\'une unité'"
             style="border-radius:8px" [class.is-invalid]="submitted && arrivalForm.get('purchase_price')?.invalid">
           <div class="invalid-feedback">Prix requis</div>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:var(--app-text)">
-            Devise <span class="text-danger">*</span>
+            Prix d'achat total <span class="fw-normal" style="color:var(--app-text-muted)">(calculé automatiquement)</span>
+          </label>
+          <!-- Champ non modifiable : rempli tout seul à partir du prix par balle et du nombre de balles -->
+          <input type="text" class="form-control fw-bold" readonly tabindex="-1"
+            [value]="formatAmount(arrivalTotalPrice, arrivalForm.get('currency')?.value)"
+            style="border-radius:8px;background:var(--app-surface-2);color:var(--app-heading);cursor:default">
+          <div class="form-text">
+            {{ arrivalUnitCount || 0 }} {{ isTextileArrival ? 'balle(s)' : 'unité(s)' }}
+            × {{ formatAmount(arrivalForm.get('purchase_price')?.value || 0, arrivalForm.get('currency')?.value) }}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:var(--app-text)">
+            Devise du prix <span class="text-danger">*</span>
           </label>
           <select class="form-select" formControlName="currency" style="border-radius:8px">
             <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.value">{{ c.label }}</option>
           </select>
         </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:var(--app-text)">
+            Devise de la dette fournisseur <span class="text-danger">*</span>
+          </label>
+          <select class="form-select" formControlName="debt_currency" style="border-radius:8px">
+            <option *ngFor="let c of currencies; trackBy: trackById" [value]="c.value">{{ c.label }}</option>
+          </select>
+          <div class="form-text">Compte du fournisseur sur lequel la dette à payer est enregistrée.</div>
+        </div>
         <div class="col-md-6" *ngIf="showArrivalExchangeRate">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:var(--app-text)">
-            Taux du jour vers GNF <span class="text-danger">*</span>
+            Taux du jour : 1 {{ arrivalRateCurrency }} en GNF <span class="text-danger">*</span>
           </label>
           <input type="number" class="form-control" formControlName="exchange_rate" min="0.0001" step="0.0001"
-            style="border-radius:8px" [class.is-invalid]="submitted && arrivalForm.get('exchange_rate')?.invalid">
+            placeholder="ex. 8600" style="border-radius:8px"
+            [class.is-invalid]="submitted && arrivalForm.get('exchange_rate')?.invalid">
           <div class="invalid-feedback">Taux requis</div>
         </div>
-        <div class="col-md-6" *ngIf="showArrivalExchangeRate && arrivalForm.get('purchase_price')?.value">
-          <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:var(--app-text)">Équivalent en GNF</label>
-          <div class="p-3 rounded-3" style="background:var(--app-blue-bg);border:1px solid var(--app-blue-border);min-height:46px;">
-            <div class="small" style="color:var(--app-text-2)">
-              {{ formatAmount(arrivalForm.get('purchase_price')?.value, arrivalForm.get('currency')?.value) }}
-              × {{ arrivalForm.get('exchange_rate')?.value || 1 }}
-              = <span class="fw-bold" style="color:var(--app-brand-fg)">{{ formatAmount(arrivalEquivalentGnf, 'GNF') }}</span>
+        <!-- Dette enregistrée : total converti automatiquement dans la devise du compte fournisseur -->
+        <div class="col-12" *ngIf="arrivalForm.get('purchase_price')?.value && arrivalUnitCount">
+          <div class="p-3 rounded-3" style="background:var(--app-blue-bg);border:1px solid var(--app-blue-border)">
+            <div class="small" style="color:var(--app-text-2)" *ngIf="arrivalNeedsConversion && !arrivalConversionUnsupported">
+              {{ formatAmount(arrivalTotalPrice, arrivalPriceCurrency) }}
+              {{ arrivalPriceCurrency === 'GNF' ? '÷' : '×' }} {{ arrivalForm.get('exchange_rate')?.value || '?' }}
+              = <span class="fw-bold">{{ formatAmount(arrivalDebtAmount, arrivalDebtCurrency) }}</span>
             </div>
+            <div class="small" style="color:var(--app-text-2)" *ngIf="!arrivalNeedsConversion && arrivalPriceCurrency !== 'GNF'">
+              Équivalent : {{ formatAmount(arrivalEquivalentGnf, 'GNF') }}
+            </div>
+            <div class="fw-semibold mt-1" style="color:var(--app-brand-fg)" *ngIf="!arrivalConversionUnsupported; else unsupportedConversion">
+              Dette à payer au fournisseur : {{ formatAmount(arrivalDebtAmount, arrivalDebtCurrency) }}
+              <span class="fw-normal">(compte {{ arrivalDebtCurrency }})</span>
+            </div>
+            <ng-template #unsupportedConversion>
+              <div class="fw-semibold mt-1 text-danger">
+                Conversion {{ arrivalPriceCurrency }} → {{ arrivalDebtCurrency }} impossible directement : choisissez le GNF d'un côté.
+              </div>
+            </ng-template>
           </div>
         </div>
         <div class="col-12">
@@ -963,7 +1024,11 @@
           <div class="fw-bold mt-1" style="color:#6366F1">{{ selectedArrival.remaining_quantity }} unités</div>
         </div>
         <div class="col">
-          <div style="font-size:0.7rem;color:var(--app-text-muted);text-transform:uppercase;font-weight:600">Prix d'Achat</div>
+          <div style="font-size:0.7rem;color:var(--app-text-muted);text-transform:uppercase;font-weight:600">Prix par {{ arrivalUnitLabel(selectedArrival) }}</div>
+          <div class="fw-semibold mt-1" style="color:var(--app-text-strong)">{{ formatAmount(unitPriceFromTotal(selectedArrival), selectedArrival.currency) }}</div>
+        </div>
+        <div class="col">
+          <div style="font-size:0.7rem;color:var(--app-text-muted);text-transform:uppercase;font-weight:600">Prix d'Achat Total</div>
           <div class="fw-semibold mt-1" style="color:var(--app-text-strong)">{{ formatAmount(selectedArrival.purchase_price, selectedArrival.currency) }}</div>
         </div>
       </div>
@@ -1216,6 +1281,33 @@
           </label>
           <input type="date" class="form-control" formControlName="payment_date" style="border-radius:8px"
             [class.is-invalid]="submitted && paymentForm.get('payment_date')?.invalid">
+        </div>
+        <div class="col-md-6" *ngIf="showPaymentExchangeRate">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:var(--app-text)">
+            Taux du jour : 1 {{ paymentCurrency }} en GNF <span class="text-danger">*</span>
+          </label>
+          <input type="number" class="form-control" formControlName="exchange_rate" min="0.0001" step="0.0001"
+            placeholder="ex. 8600" style="border-radius:8px">
+        </div>
+        <!-- Conversion automatique et compte-devise crédité -->
+        <div class="col-12" *ngIf="paymentForm.get('amount')?.value && (showPaymentExchangeRate || paymentNeedsConversion)">
+          <div class="p-3 rounded-3" style="background:var(--app-green-bg);border:1px solid var(--app-green-border)">
+            <div class="small" style="color:var(--app-text-2)" *ngIf="showPaymentExchangeRate">
+              {{ formatAmount(paymentForm.get('amount')?.value, paymentCurrency) }}
+              × {{ paymentForm.get('exchange_rate')?.value || '?' }}
+              = <span class="fw-bold">{{ formatAmount(paymentEquivalentGnf, 'GNF') }}</span>
+            </div>
+            <div class="fw-semibold mt-1" style="color:var(--app-green-fg-strong)">
+              <ng-container *ngIf="paymentNeedsConversion; else sameCurrency">
+                Converti automatiquement : {{ formatAmount(paymentCreditedAmount, paymentSaleCurrency) }}
+                encaissés sur le compte {{ paymentSaleCurrency }} du client
+              </ng-container>
+              <ng-template #sameCurrency>
+                Encaissé directement sur le compte {{ paymentSaleCurrency }} du client :
+                {{ formatAmount(paymentCreditedAmount, paymentSaleCurrency) }}
+              </ng-template>
+            </div>
+          </div>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold mb-1" style="font-size:0.85rem;color:var(--app-text)">

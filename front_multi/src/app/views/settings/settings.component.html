@@ -69,6 +69,46 @@
             </c-card-body>
           </c-card>
         </c-col>
+
+        <c-col xs="12">
+          <c-card class="setting-card">
+            <c-card-body>
+              <div class="section-head">
+                <div class="section-icon tone-danger">
+                  <svg cIcon name="cilLockLocked" size="lg"></svg>
+                </div>
+                <div class="flex-grow-1">
+                  <h3 class="section-title mb-1">Déconnexion automatique</h3>
+                  <p class="section-subtitle mb-0">
+                    Délai d'inactivité au bout duquel chaque utilisateur de l'organisation est déconnecté.
+                  </p>
+                </div>
+              </div>
+
+              <div class="idle-choices" role="radiogroup" aria-label="Délai de déconnexion automatique">
+                <button *ngFor="let minutes of idleChoices"
+                        type="button"
+                        role="radio"
+                        class="idle-choice"
+                        [class.active]="minutes === idleTimeout()"
+                        [attr.aria-checked]="minutes === idleTimeout()"
+                        [disabled]="!canEditIdleTimeout || savingIdleTimeout !== null"
+                        (click)="chooseIdleTimeout(minutes)">
+                  <span class="idle-value">{{ minutes }}</span>
+                  <span class="idle-unit">minutes</span>
+                </button>
+              </div>
+
+              <p class="idle-note mb-0">
+                <ng-container *ngIf="canEditIdleTimeout; else idleReadOnly">
+                  Un avertissement s'affiche 30 secondes avant la déconnexion. Les postes déjà ouverts
+                  appliquent le nouveau délai à leur prochain chargement.
+                </ng-container>
+                <ng-template #idleReadOnly>Ce délai est réglé par l'administrateur de l'organisation.</ng-template>
+              </p>
+            </c-card-body>
+          </c-card>
+        </c-col>
       </c-row>
     </c-col>
 

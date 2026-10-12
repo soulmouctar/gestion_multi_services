@@ -1,0 +1,194 @@
+<app-page-header eyebrow="Textile" title="Ventes" description="Vendez les balles des conteneurs livrés. Chaque vente est portée au compte du client, dans sa devise.">
+  <button class="btn btn-primary" type="button" [disabled]="!sellable().length" (click)="open()">Nouvelle vente</button>
+</app-page-header>
+
+<section class="card">
+  <div class="toolbar">
+    <div class="field">
+      <label for="sale-search">Rechercher</label>
+      <input id="sale-search" class="input" type="search" #salesearch placeholder="Client ou conteneur" (input)="search.set(salesearch.value)" />
+    </div>
+    <div class="field">
+      <label for="status">Statut</label>
+      <select id="status" class="input" #status [value]="statusFilter()" (change)="statusFilter.set(status.value)">
+        <option value="">Toutes les ventes</option>
+        <option value="EN_COURS">Non payées</option>
+        <option value="PAYE_PARTIEL">Payées en partie</option>
+        <option value="PAYE_TOTAL">Soldées</option>
+        <option value="ANNULE">Annulées</option>
+      </select>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (!visibleSales().length) {
+    <div class="empty">
+      <strong>Aucune vente</strong>
+      {{ sellable().length ? 'Enregistrez la première vente.' : 'Aucun conteneur livré n\'a de balles à vendre.' }}
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Client</th>
+            <th>Conteneur</th>
+            <th class="right">Balles</th>
+            <th class="right">Prix par balle</th>
+            <th class="right">Total</th>
+            <th class="right">Payé</th>
+            <th class="right">Reste</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (sale of pager.rows(); track sale.id) {
+            <tr>
+              <td>{{ sale.sale_date | day }}</td>
+              <td class="strong">{{ sale.client?.name }}</td>
+              <td>{{ sale.container_arrival?.container?.container_number }}</td>
+              <td class="right num">{{ sale.quantity_sold | num }}</td>
+              <td class="right num">{{ unitPrice(sale) | money: sale.currency }}</td>
+              <td class="right num strong">
+                {{ sale.sale_price | money: sale.currency }}
+                @if (sale.currency !== 'GNF') {
+                  <div class="muted">taux {{ sale.exchange_rate | num }}</div>
+                }
+              </td>
+              <td class="right num">{{ sale.amount_paid | money: sale.currency }}</td>
+              <td class="right num strong">{{ sale.remaining_amount | money: sale.currency }}</td>
+              <td><span class="badge" [class]="statuses[sale.status].tone">{{ statuses[sale.status].label }}</span></td>
+              <td class="actions">
+                <button class="btn btn-sm" type="button" (click)="printInvoice(sale)">Facture</button>
+                @if (sale.status !== 'ANNULE') {
+                  <button class="btn btn-sm" type="button" (click)="openReprice(sale)">Corriger le prix</button>
+                }
+                @if (sale.status === 'EN_COURS') {
+                  <button class="btn btn-sm btn-danger" type="button" (click)="cancelling.set(sale)">Annuler</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [state]="pager" />
+  }
+</section>
+
+@if (creating()) {
+  <app-modal title="Nouvelle vente" subtitle="Le prix par balle, multiplié par le nombre de balles, donne le total." (closed)="creating.set(false)">
+    <form id="sale-form" class="form-grid" [formGroup]="form" (ngSubmit)="save()">
+      <div class="field full">
+        <label for="arrival">Conteneur *</label>
+        <select id="arrival" class="input" formControlName="arrival_id">
+          <option [ngValue]="null">— Choisir —</option>
+          @for (item of sellable(); track item.id) {
+            <option [ngValue]="item.id">{{ item.container?.container_number }} — reste {{ item.remaining_quantity | num }} balles</option>
+          }
+        </select>
+      </div>
+
+      @if (newClient()) {
+        <div class="field">
+          <label for="client-name">Nom du nouveau client *</label>
+          <input id="client-name" class="input" formControlName="client_name" />
+        </div>
+        <div class="field">
+          <label for="client-phone">Téléphone</label>
+          <input id="client-phone" class="input" formControlName="client_phone" />
+        </div>
+      } @else {
+        <div class="field full">
+          <label for="client">Client *</label>
+          <select id="client" class="input" formControlName="client_id">
+            <option [ngValue]="null">— Choisir —</option>
+            @for (client of clients(); track client.id) {
+              <option [ngValue]="client.id">{{ client.name }}</option>
+            }
+          </select>
+        </div>
+      }
+      <label class="check full"><input type="checkbox" formControlName="new_client" /> Nouveau client</label>
+
+      <div class="field">
+        <label for="quantity">Nombre de balles *</label>
+        <input id="quantity" class="input num" type="number" min="1" formControlName="quantity" />
+        @if (arrival(); as selected) {
+          <span class="hint">{{ selected.remaining_quantity | num }} disponibles</span>
+        }
+      </div>
+      <div class="field">
+        <label for="price">Prix par balle *</label>
+        <input id="price" class="input num" type="number" min="0" step="any" formControlName="unit_price" />
+      </div>
+      <div class="field">
+        <label for="currency">Devise de la vente</label>
+        <select id="currency" class="input" formControlName="currency">
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">{{ currency }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="date">Date *</label>
+        <input id="date" class="input" type="date" formControlName="sale_date" />
+      </div>
+
+      @if (foreign(); as code) {
+        <div class="field full">
+          <label for="rate">Taux du jour : 1 {{ code }} en GNF *</label>
+          <input id="rate" class="input num" type="number" min="1" step="any" formControlName="rate" />
+        </div>
+      }
+
+      <div class="result full">
+        <span>Total de la vente</span>
+        <strong class="num">{{ total() | money: form.controls.currency.value }}</strong>
+      </div>
+      @if (foreign() && totalGnf()) {
+        <p class="hint full">Soit {{ totalGnf() | money }} au taux saisi. Le client doit le montant en {{ foreign() }}.</p>
+      }
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="creating.set(false)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="sale-form" [disabled]="saving()">Enregistrer la vente</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (cancelling(); as sale) {
+  <app-modal title="Annuler cette vente ?" (closed)="cancelling.set(null)">
+    <p>
+      Vente de {{ sale.quantity_sold | num }} balles à {{ sale.client?.name }} pour {{ sale.sale_price | money: sale.currency }}.
+      Les balles seront remises en stock et la dette retirée du compte du client.
+    </p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="cancelling.set(null)">Garder la vente</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="confirmCancel()">Annuler la vente</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (repricing(); as sale) {
+  <app-modal title="Corriger le prix de la vente" [subtitle]="sale.client?.name + ' — ' + sale.quantity_sold + ' balles'" (closed)="repricing.set(null)">
+    <div class="form-grid">
+      <div class="field full">
+        <label for="new-price">Prix par balle ({{ sale.currency }}) *</label>
+        <input id="new-price" class="input num" type="number" min="0" step="any" #price [value]="newUnitPrice()" (input)="newUnitPrice.set(+price.value)" />
+      </div>
+      <div class="result full">
+        <span>Nouveau total de la vente</span>
+        <strong class="num">{{ newTotal() | money: sale.currency }}</strong>
+      </div>
+      <p class="hint full">Ancien total : {{ sale.sale_price | money: sale.currency }}. Déjà payé : {{ sale.amount_paid | money: sale.currency }}.</p>
+    </div>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="repricing.set(null)">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="saveReprice()">Enregistrer la correction</button>
+    </ng-container>
+  </app-modal>
+}

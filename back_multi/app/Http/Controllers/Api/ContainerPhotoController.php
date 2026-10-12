@@ -245,6 +245,7 @@ class ContainerPhotoController extends BaseController
         }
         $filename = uniqid() . '.' . $file->getClientOriginalExtension();
         $file->move($dir, $filename);
+        \App\Support\ImageOptimizer::shrink($dir . '/' . $filename);
         return 'uploads/' . $subfolder . '/' . $filename;
     }
 

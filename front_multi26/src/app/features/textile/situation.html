@@ -1,0 +1,222 @@
+<app-page-header [eyebrow]="scope() === 'textile' ? 'Textile' : 'Clients et fournisseurs'" [title]="scope() === 'textile' ? 'Situation des clients' : 'Clients'" description="Ce que chaque client doit, compte par compte. Un montant en devise n'est jamais additionné à un montant en GNF.">
+  <button class="btn" type="button" [disabled]="loading()" (click)="printList()">Imprimer la situation</button>
+  <button class="btn btn-primary" type="button" (click)="openClient()">Nouveau client</button>
+</app-page-header>
+
+<div class="stats">
+  @for (total of totals(); track total.currency) {
+    <div class="card stat">
+      <span>Reste à payer en {{ total.currency }}</span>
+      <strong class="num">{{ total.due | money: total.currency }}</strong>
+      <small>{{ total.debtors | num }} client(s) débiteur(s)</small>
+    </div>
+  }
+</div>
+
+<section class="card">
+  <div class="toolbar">
+    <div class="field">
+      <label for="search">Rechercher un client</label>
+      <input id="search" class="input" type="search" #term placeholder="Nom du client" (input)="search.set(term.value)" />
+    </div>
+    <label class="check"><input type="checkbox" #debtors (change)="debtorsOnly.set(debtors.checked)" /> Seulement ceux qui doivent</label>
+  </div>
+
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (!clients().length) {
+    <div class="empty"><strong>Aucun client</strong>Les clients apparaissent ici dès leur première vente.</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th rowspan="2">Client</th>
+            @for (currency of currencies(); track currency) {
+              <th class="right" colspan="3">Compte {{ currency }}</th>
+            }
+            <th rowspan="2"></th>
+          </tr>
+          <tr>
+            @for (currency of currencies(); track currency) {
+              <th class="right">Débit</th>
+              <th class="right">Crédit</th>
+              <th class="right">Solde</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (client of pager.rows(); track client.id) {
+            <tr>
+              <td>
+                <div class="with-photo">
+                  <app-avatar [name]="client.name" [src]="client.photo_url" [size]="36" />
+                  <div>
+                    <div class="strong">{{ client.name }}</div>
+                    @if (client.phone1) {
+                      <div class="muted">{{ client.phone1 }}</div>
+                    }
+                  </div>
+                </div>
+              </td>
+              @for (currency of currencies(); track currency) {
+                <td class="right num">{{ value(client, currency, 'total_debit') | num }}</td>
+                <td class="right num">{{ value(client, currency, 'total_credit') | num }}</td>
+                <td class="right num strong">
+                  {{ balance(client, currency) | num }}
+                  @if (balance(client, currency) < 0) {
+                    <div class="muted">en avance</div>
+                  }
+                </td>
+              }
+              <td class="actions">
+                <label class="btn btn-sm">
+                  Photo
+                  <input #picker type="file" accept="image/*" hidden (change)="setPhoto(client, picker)" />
+                </label>
+                <button class="btn btn-sm" type="button" (click)="open(client)">Relevé</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [state]="pager" />
+  }
+</section>
+
+@if (viewing(); as client) {
+  <app-modal [title]="'Relevé de ' + client.name" subtitle="Ventes au débit, versements au crédit, solde après chaque ligne." [wide]="true" (closed)="close()">
+    <form class="toolbar inline" [formGroup]="period" (ngSubmit)="loadLedger()">
+      <div class="field">
+        <label for="ledger-from">Du</label>
+        <input id="ledger-from" class="input" type="date" formControlName="from" />
+      </div>
+      <div class="field">
+        <label for="ledger-to">Au</label>
+        <input id="ledger-to" class="input" type="date" formControlName="to" />
+      </div>
+      <button class="btn" type="submit" [disabled]="ledgerLoading()">Afficher</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" (click)="addingInterest.set(!addingInterest())">Ajouter un intérêt</button>
+    </form>
+
+    @if (addingInterest()) {
+      <form class="form-grid interest" [formGroup]="interestForm" (ngSubmit)="saveInterest()">
+        <div class="field">
+          <label for="interest-amount">Montant de l'intérêt *</label>
+          <input id="interest-amount" class="input num" type="number" min="0" step="any" formControlName="amount" />
+        </div>
+        <div class="field">
+          <label for="interest-currency">Devise</label>
+          <select id="interest-currency" class="input" formControlName="currency">
+            @for (code of allCurrencies; track code) {
+              <option [value]="code">{{ code }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="interest-date">Date *</label>
+          <input id="interest-date" class="input" type="date" formControlName="date" />
+        </div>
+        <div class="field">
+          <label for="interest-notes">Motif</label>
+          <input id="interest-notes" class="input" formControlName="notes" />
+        </div>
+        <div class="full"><button class="btn btn-primary" type="submit" [disabled]="savingInterest()">Porter au débit du compte</button></div>
+      </form>
+    }
+
+    @if (ledgerLoading()) {
+      <div class="empty">Chargement…</div>
+    } @else if (ledger(); as data) {
+      <div class="stats">
+        @for (currency of data.summary.currencies; track currency) {
+          <div class="card stat">
+            <span>Solde {{ currency }}</span>
+            <strong class="num">{{ data.summary.by_currency[currency].final_balance | money: currency }}</strong>
+            <small>
+              débit {{ data.summary.by_currency[currency].total_debit | num }} · crédit {{ data.summary.by_currency[currency].total_credit | num }}
+            </small>
+          </div>
+        }
+      </div>
+
+      @if (data.rows.length) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Opération</th>
+                <th class="right">Qté</th>
+                <th>Devise</th>
+                <th class="right">Taux</th>
+                <th class="right">Débit</th>
+                <th class="right">Crédit</th>
+                <th class="right">Solde</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of data.rows; track $index) {
+                <tr>
+                  <td>{{ row.date | day }}</td>
+                  <td>
+                    <div class="strong">{{ row.type_label }}</div>
+                    @if (row.designation || row.reference) {
+                      <div class="muted">{{ row.designation }} {{ row.reference }}</div>
+                    }
+                  </td>
+                  <td class="right num">{{ row.quantity ? (row.quantity | num) : '—' }}</td>
+                  <td>{{ row.currency }}</td>
+                  <td class="right num">{{ row.exchange_rate && row.exchange_rate > 1 ? (row.exchange_rate | num) : '—' }}</td>
+                  <td class="right num">{{ row.debit ? (row.debit | num) : '—' }}</td>
+                  <td class="right num">{{ row.credit ? (row.credit | num) : '—' }}</td>
+                  <td class="right num strong">{{ row.balance | num }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty">Aucune opération sur cette période.</div>
+      }
+    }
+    <ng-container modal-footer>
+      <button class="btn" type="button" [disabled]="!ledger()" (click)="print()">Imprimer le relevé</button>
+      <button class="btn" type="button" (click)="close()">Fermer</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (creating()) {
+  <app-modal title="Nouveau client" (closed)="creating.set(false)">
+    <form id="client-form" class="form-grid" [formGroup]="clientForm" (ngSubmit)="saveClient()">
+      <div class="field full">
+        <label for="client-name">Nom *</label>
+        <input id="client-name" class="input" formControlName="name" />
+      </div>
+      <div class="field">
+        <label for="client-phone">Téléphone</label>
+        <input id="client-phone" class="input" formControlName="phone" />
+      </div>
+      @if (scope() !== 'textile') {
+        <div class="field">
+          <label for="client-type">Activité</label>
+          <select id="client-type" class="input" formControlName="type">
+            <option value="PNEUS">Pneus</option>
+            <option value="COSMETIQUES">Cosmétique</option>
+          </select>
+        </div>
+      }
+      <div class="field full">
+        <label for="client-address">Adresse</label>
+        <input id="client-address" class="input" formControlName="address" />
+      </div>
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="creating.set(false)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="client-form" [disabled]="savingClient()">Enregistrer</button>
+    </ng-container>
+  </app-modal>
+}

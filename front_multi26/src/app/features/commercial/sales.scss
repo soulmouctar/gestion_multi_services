@@ -1,0 +1,40 @@
+.picker {
+  margin: 18px 0 14px;
+}
+
+.matches {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+
+  li + li { border-top: 1px solid var(--border); }
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 0;
+    background: var(--surface);
+    text-align: left;
+
+    &:hover { background: var(--surface-2); }
+  }
+
+  .strong { font-weight: 600; }
+  .muted { color: var(--text-muted); font-size: 12.5px; }
+  .none { padding: 12px; color: var(--text-muted); }
+}
+
+.lines {
+  margin-bottom: 14px;
+
+  .input { height: 34px; min-width: 96px; }
+  .over { color: var(--danger); }
+}
+
+.lines .check { margin-top: 4px; font-size: 12.5px; }
+.lines .below { color: var(--warning); }

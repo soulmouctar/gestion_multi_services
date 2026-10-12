@@ -9,6 +9,10 @@ class OrganisationSetting extends Model
 {
     use HasFactory;
 
+    /** Delais de deconnexion automatique proposes (minutes d'inactivite). */
+    public const SESSION_TIMEOUT_CHOICES = [2, 3, 5, 10, 15, 30];
+    public const DEFAULT_SESSION_TIMEOUT = 5;
+
     protected $fillable = [
         'tenant_id',
         'timezone',
@@ -145,7 +149,7 @@ class OrganisationSetting extends Model
             'email_notifications' => true,
             'sms_notifications' => false,
             'browser_notifications' => true,
-            'session_timeout' => 30,
+            'session_timeout' => self::DEFAULT_SESSION_TIMEOUT,
             'password_expiry' => 90,
             'two_factor_auth' => false,
             'auto_archive_invoices' => true,

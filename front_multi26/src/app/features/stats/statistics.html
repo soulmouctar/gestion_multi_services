@@ -1,0 +1,142 @@
+<app-page-header eyebrow="Finance" title="Statistiques" description="Les marges, la trésorerie et l'activité de chaque module. Tout est exprimé en GNF pour pouvoir comparer." />
+
+@if (overview(); as view) {
+  <section class="card chart-card">
+    <header>
+      <div>
+        <h2 class="section-title">Ventes, encaissements et dépenses par mois</h2>
+        <p class="muted">Toutes activités confondues, en GNF.</p>
+      </div>
+      <select class="input" #span [value]="months()" (change)="loadOverview(+span.value)" aria-label="Période">
+        <option value="6">6 derniers mois</option>
+        <option value="12">12 derniers mois</option>
+        <option value="24">24 derniers mois</option>
+      </select>
+    </header>
+    <div class="stats tight">
+      <div class="stat"><span>Ventes</span><strong class="num">{{ view.totals.sales | money }}</strong></div>
+      <div class="stat"><span>Encaissé</span><strong class="num">{{ view.totals.collected | money }}</strong></div>
+      <div class="stat"><span>Dépenses</span><strong class="num">{{ view.totals.expenses | money }}</strong></div>
+    </div>
+    <app-bar-chart [labels]="monthLabels()" [series]="monthSeries()" label="Ventes, encaissements et dépenses par mois" />
+  </section>
+
+  <div class="chart-grid">
+    <section class="card chart-card">
+      <header><h2 class="section-title">Ventes par activité</h2></header>
+      @if (familySlices().length) {
+        <app-donut-chart [slices]="familySlices()" label="Ventes par activité" />
+      } @else {
+        <p class="muted">Aucune vente sur la période.</p>
+      }
+    </section>
+    <section class="card chart-card">
+      <header><h2 class="section-title">Produits les plus vendus</h2></header>
+      <app-rank-list [items]="topProducts()" />
+    </section>
+    <section class="card chart-card">
+      <header><h2 class="section-title">Meilleurs clients</h2></header>
+      <app-rank-list [items]="topClients()" color="var(--chart-2)" />
+    </section>
+    <section class="card chart-card">
+      <header><h2 class="section-title">Plus gros soldes dus</h2></header>
+      <app-rank-list [items]="topDebtors()" color="var(--chart-5)" />
+    </section>
+  </div>
+}
+
+@if (margins(); as data) {
+  <section class="card" style="margin-bottom: 20px">
+    <form class="toolbar" [formGroup]="period" (ngSubmit)="loadMargins()">
+      <h2 class="section-title">Marges sur les ventes</h2>
+      <span class="spacer"></span>
+      <div class="field"><label for="stat-from">Du</label><input id="stat-from" class="input" type="date" formControlName="from" /></div>
+      <div class="field"><label for="stat-to">Au</label><input id="stat-to" class="input" type="date" formControlName="to" /></div>
+      <button class="btn" type="submit" [disabled]="loadingMargins()">Afficher</button>
+    </form>
+    <div class="stats" style="padding: 16px; margin: 0">
+      <div class="card stat"><span>Ventes</span><strong class="num">{{ data.summary.total_revenue_gnf | money }}</strong><small>commercial {{ data.summary.invoices.revenue | num }} · textile {{ data.summary.containers.revenue | num }}</small></div>
+      <div class="card stat"><span>Coût d'achat de ce qui est vendu</span><strong class="num">{{ data.summary.total_cost_gnf | money }}</strong></div>
+      <div class="card stat"><span>Marge</span><strong class="num">{{ data.summary.total_margin_gnf | money }}</strong><small>{{ data.summary.margin_pct !== null ? (data.summary.margin_pct | num) + ' % des ventes' : '—' }}</small></div>
+    </div>
+    @if (data.containers.length) {
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>Conteneur textile</th><th>Arrivé le</th><th class="right">Balles vendues</th><th class="right">Ventes</th><th class="right">Coût</th><th class="right">Marge</th></tr>
+          </thead>
+          <tbody>
+            @for (row of data.containers; track row.arrival_id) {
+              <tr>
+                <td class="strong">{{ row.container_number }}</td>
+                <td>{{ row.arrival_date | day }}</td>
+                <td class="right num">{{ row.quantity_sold | num }}</td>
+                <td class="right num">{{ row.revenue_gnf | money }}</td>
+                <td class="right num">{{ row.cost_gnf | money }}</td>
+                <td class="right num strong">{{ row.margin_gnf | money }}@if (row.margin_pct !== null) { <div class="muted">{{ row.margin_pct | num }} %</div> }</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}
+
+@if (finance(); as data) {
+  <h2 class="section-title" style="margin-bottom: 12px">Trésorerie</h2>
+  <div class="stats">
+    <div class="card stat"><span>Encaissé des clients</span><strong class="num">{{ data.cashflow.income_total | money }}</strong></div>
+    <div class="card stat"><span>Sorties</span><strong class="num">{{ data.cashflow.outgoing_total | money }}</strong><small>dépenses {{ data.cashflow.expense_total | num }} · fournisseurs {{ data.cashflow.supplier_out_total | num }}</small></div>
+    <div class="card stat"><span>Solde des mouvements</span><strong class="num">{{ data.cashflow.net_cashflow | money }}</strong></div>
+    <div class="card stat"><span>Ventes non soldées</span><strong class="num">{{ data.invoices.impaye + data.invoices.partiel | num }}</strong><small>reste {{ data.invoices.total_remaining | num }} GNF, devises converties</small></div>
+  </div>
+}
+
+@if (taxi(); as data) {
+  <h2 class="section-title" style="margin-bottom: 12px">Taxi — mois en cours</h2>
+  <div class="stats">
+    <div class="card stat"><span>Véhicules en service</span><strong class="num">{{ data.fleet.active | num }} / {{ data.fleet.total | num }}</strong></div>
+    <div class="card stat"><span>Versements reçus</span><strong class="num">{{ data.month.collected | money }}</strong><small>attendu {{ data.month.expected | num }} · {{ data.month.collection_rate | num }} %</small></div>
+    <div class="card stat"><span>Dépenses des véhicules</span><strong class="num">{{ data.month.expenses | money }}</strong></div>
+    <div class="card stat"><span>Net</span><strong class="num">{{ data.month.net | money }}</strong></div>
+    <div class="card stat"><span>Véhicules aux papiers à renouveler</span><strong class="num">{{ data.document_alerts.length | num }}</strong></div>
+  </div>
+  @if (data.monthly_revenue.length) {
+    @let chart = series('Versements reçus', data.monthly_revenue);
+    <section class="card chart-card"><header><h2 class="section-title">Versements des conducteurs par mois</h2></header><app-bar-chart [labels]="chart.labels" [series]="chart.series" label="Versements des conducteurs par mois" /></section>
+  }
+}
+
+@if (rental(); as data) {
+  <h2 class="section-title" style="margin-bottom: 12px">Location — mois en cours</h2>
+  <div class="stats">
+    <div class="card stat"><span>Logements occupés</span><strong class="num">{{ data.occupancy.occupied | num }} / {{ data.occupancy.total_units | num }}</strong><small>{{ data.occupancy.occupancy_rate | num }} % d'occupation</small></div>
+    <div class="card stat"><span>Loyers attendus</span><strong class="num">{{ data.revenue.expected_monthly | money }}</strong></div>
+    <div class="card stat"><span>Loyers encaissés</span><strong class="num">{{ data.revenue.collected_month | money }}</strong><small>{{ data.revenue.collection_rate | num }} % des loyers attendus</small></div>
+  </div>
+  @if (data.monthly_revenue.length) {
+    @let chart = series('Loyers encaissés', data.monthly_revenue);
+    <section class="card chart-card"><header><h2 class="section-title">Loyers encaissés par mois</h2></header><app-bar-chart [labels]="chart.labels" [series]="chart.series" label="Loyers encaissés par mois" /></section>
+  }
+  @if (data.by_building.length) {
+    <section class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Bâtiment</th><th>Emplacement</th><th class="right">Logements</th><th class="right">Occupés</th><th class="right">Occupation</th></tr></thead>
+          <tbody>
+            @for (row of data.by_building; track row.id) {
+              <tr>
+                <td class="strong">{{ row.building_name }}</td>
+                <td>{{ row.location_name }}</td>
+                <td class="right num">{{ row.total_units | num }}</td>
+                <td class="right num">{{ row.occupied | num }}</td>
+                <td class="right num">{{ row.occupancy_rate | num }} %</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

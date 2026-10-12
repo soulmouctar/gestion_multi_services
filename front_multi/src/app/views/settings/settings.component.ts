@@ -1,8 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { BadgeModule, ButtonModule, CardModule, GridModule } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
+import Swal from 'sweetalert2';
+
+import { AuthService } from '../../core/services/auth.service';
+import { IDLE_TIMEOUT_CHOICES, IdleLogoutService } from '../../core/services/idle-logout.service';
 
 interface SettingsShortcut {
   title: string;
@@ -41,6 +45,15 @@ interface SettingsSection {
   styleUrls: ['./settings.component.scss']
 })
 export class SettingsComponent {
+  private readonly idleLogout = inject(IdleLogoutService);
+  private readonly auth = inject(AuthService);
+
+  /** Déconnexion automatique : délais proposés et délai en vigueur. */
+  readonly idleChoices = IDLE_TIMEOUT_CHOICES;
+  readonly idleTimeout = this.idleLogout.timeoutMinutes;
+  readonly canEditIdleTimeout = this.auth.isSuperAdmin || this.auth.isTenantAdmin;
+  savingIdleTimeout: number | null = null;
+
   readonly heroCounters = [
     { label: 'Organisation', value: '1 centre' },
     { label: 'Paramètres clés', value: '4 blocs' },
@@ -98,6 +111,29 @@ export class SettingsComponent {
     'Valider les devises et les taux de change.',
     'Contrôler les accès utilisateurs du tenant.'
   ];
+
+  chooseIdleTimeout(minutes: number): void {
+    if (!this.canEditIdleTimeout || this.savingIdleTimeout !== null || minutes === this.idleTimeout()) {
+      return;
+    }
+    this.savingIdleTimeout = minutes;
+    this.idleLogout.saveTimeout(minutes).subscribe({
+      next: (saved) => {
+        this.savingIdleTimeout = null;
+        Swal.fire({
+          toast: true, position: 'top-end', icon: 'success', timer: 2500, showConfirmButton: false,
+          title: `Déconnexion automatique après ${saved} minutes d'inactivité`,
+        });
+      },
+      error: (err) => {
+        this.savingIdleTimeout = null;
+        Swal.fire({
+          icon: 'error', title: 'Délai non enregistré', confirmButtonColor: '#0f3460',
+          text: err?.error?.message || err?.message || 'Le délai n\'a pas pu être enregistré.',
+        });
+      },
+    });
+  }
 
   getToneClass(tone: SettingsShortcut['tone']): string {
     const map: Record<SettingsShortcut['tone'], string> = {

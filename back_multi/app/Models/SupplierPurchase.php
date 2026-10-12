@@ -22,6 +22,8 @@ class SupplierPurchase extends Model
         'purchase_number',
         'category',
         'product_category_id',
+        'product_id',
+        'tyre_container_id',
         'designation',
         'quantity',
         'unit_price',
@@ -44,6 +46,27 @@ class SupplierPurchase extends Model
     ];
 
     public const CATEGORIES = ['TEXTILE', 'COSMETIQUES', 'PNEUS', 'MACHINE_A_COUDRE', 'AUTRE'];
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Fait entrer (ou ressortir, si negatif) des unites dans le stock du produit achete.
+     * Sans produit designe, l'achat ne touche pas au stock.
+     */
+    public function moveStock(float $units): void
+    {
+        if (!$this->product_id || !$units) {
+            return;
+        }
+        $product = Product::where('tenant_id', $this->tenant_id)->lockForUpdate()->find($this->product_id);
+        if ($product) {
+            $product->stock_quantity = (int) $product->stock_quantity + (int) round($units);
+            $product->save();
+        }
+    }
 
     public function supplier()
     {

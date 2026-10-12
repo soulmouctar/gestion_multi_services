@@ -58,6 +58,7 @@ class TenantController extends BaseController
         }
         $name = 'tenant_' . uniqid() . '.' . $file->getClientOriginalExtension();
         $file->move($dir, $name);
+        \App\Support\ImageOptimizer::shrink($dir . '/' . $name);
         return 'uploads/tenants/' . $name;
     }
 

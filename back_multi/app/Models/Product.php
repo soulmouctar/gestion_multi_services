@@ -85,6 +85,7 @@ class Product extends Model
     }
 
     protected $casts = [
+        'damaged_quantity'      => 'integer',
         'purchase_price'        => 'decimal:2',
         'carton_purchase_price' => 'decimal:2',
         'selling_price'         => 'decimal:2',

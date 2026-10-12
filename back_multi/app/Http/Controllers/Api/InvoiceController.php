@@ -112,6 +112,12 @@ class InvoiceController extends BaseController
 
             $this->syncItems($invoice, $payload['line_items']);
 
+            // Vente au comptant (sans client) reglee sur place : elle est soldee,
+            // au lieu d'afficher « payee » avec la totalite en reste a payer.
+            if (!$request->filled('client_id') && $request->status === 'PAYE') {
+                $this->applyManualStatus($invoice, 'PAYE');
+            }
+
             DB::commit();
 
             return $this->sendResponse(
@@ -472,6 +478,7 @@ class InvoiceController extends BaseController
             'line_items.*.supplier_id'      => 'nullable|exists:suppliers,id',
             'line_items.*.sale_type'        => 'nullable|in:UNITE,CARTON,DEMI_CARTON,DOUZAINE',
             'line_items.*.is_sample'        => 'nullable|boolean',
+            'line_items.*.from_damaged'     => 'nullable|boolean',
             'line_items.*.description'      => 'required_with:line_items|string|max:255',
             'line_items.*.quantity'         => 'nullable|numeric|min:0.01',
             'line_items.*.unit_price'       => 'nullable|numeric|min:0',
@@ -547,6 +554,8 @@ class InvoiceController extends BaseController
                     'supplier_id'     => $item['supplier_id'] ?? null,
                     'sale_type'       => $saleType,
                     'is_sample'       => $isSample,
+                    // Ligne prelevee sur le stock avarie, vendue a prix libre
+                    'from_damaged'    => (bool) ($item['from_damaged'] ?? false),
                     'description'     => $item['description'],
                     'quantity'        => $quantity,
                     'unit_price'      => $unitPrice,
@@ -636,9 +645,14 @@ class InvoiceController extends BaseController
 
             $product = Product::where('tenant_id', $invoice->tenant_id)->lockForUpdate()->find($item->product_id);
             if ($product) {
-                $product->stock_quantity = (int) ($product->stock_quantity ?? 0)
-                    + $this->stockUnits($product, $item->sale_type, (float) $item->quantity);
-                $product->save();
+                $units = $this->stockUnits($product, $item->sale_type, (float) $item->quantity);
+                // Une vente annulee rend les pieces au stock d'ou elles sortaient
+                if ($item->from_damaged) {
+                    $product->forceFill(['damaged_quantity' => (int) $product->damaged_quantity + $units])->save();
+                } else {
+                    $product->stock_quantity = (int) ($product->stock_quantity ?? 0) + $units;
+                    $product->save();
+                }
             }
         }
     }
@@ -651,6 +665,17 @@ class InvoiceController extends BaseController
 
         $product = Product::where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($item['product_id']);
         $units = $this->stockUnits($product, $item['sale_type'] ?? 'UNITE', (float) ($item['quantity'] ?? 0));
+        if (!empty($item['from_damaged'])) {
+            $damaged = (int) ($product->damaged_quantity ?? 0);
+            if ($damaged < $units) {
+                throw new \RuntimeException(
+                    "Stock avarié insuffisant pour le produit {$product->name} : {$damaged} unité(s) avariée(s), {$units} demandée(s)."
+                );
+            }
+            $product->forceFill(['damaged_quantity' => $damaged - $units])->save();
+            return;
+        }
+
         $currentStock = (int) ($product->stock_quantity ?? 0);
         if ($currentStock < $units) {
             throw new \RuntimeException(

@@ -1,0 +1,212 @@
+<app-page-header [eyebrow]="family()?.label ?? ''" title="Stock" [description]="familyKey() === 'pneus' ? 'Pour chaque dimension : combien sont entrés, vendus, avariés, et combien il en reste.' : 'Pour chaque produit : combien sont entrés, vendus, avariés, et combien il en reste, en pièces et en cartons.'">
+  <button class="btn" type="button" [disabled]="loading()" (click)="print()">Imprimer l'état du stock</button>
+</app-page-header>
+
+@if (!lockedFamily()) {
+  <app-family-tabs [families]="families()" [(selected)]="familyKey" />
+}
+
+@if (summary(); as data) {
+  <div class="stats">
+    <div class="card stat"><span>Reste en stock sain</span><strong class="num">{{ data.totals.stock | num }}</strong><small>pièces</small></div>
+    <div class="card stat"><span>Vendus</span><strong class="num">{{ data.totals.sold | num }}</strong><small>sur {{ data.totals.received | num }} entrés</small></div>
+    <div class="card stat"><span>Avariés en stock</span><strong class="num">{{ data.totals.damaged | num }}</strong><small>{{ data.totals.sold_damaged | num }} avariés déjà vendus · {{ data.totals.lost | num }} perdus</small></div>
+    <div class="card stat"><span>À surveiller</span><strong class="num">{{ alerts() | num }}</strong><small>épuisés ou sous le seuil</small></div>
+  </div>
+}
+
+<section class="card">
+  <div class="toolbar">
+    <div class="field">
+      <label for="search">Rechercher</label>
+      <input id="search" class="input" type="search" #term [placeholder]="familyKey() === 'pneus' ? 'Dimension, ex. 185-70' : 'Nom du produit'" (input)="search.set(term.value)" />
+    </div>
+    <div class="field">
+      <label for="filter">Afficher</label>
+      <select id="filter" class="input" #pick [value]="filter()" (change)="filter.set($any(pick.value))">
+        <option value="tous">Tous les produits</option>
+        <option value="surveiller">Épuisés ou sous le seuil</option>
+        <option value="avaries">Avec des avariés</option>
+      </select>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (!rows().length) {
+    <div class="empty"><strong>Aucun produit</strong>Rien ne correspond dans cette famille.</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>{{ familyKey() === 'pneus' ? 'Dimension' : 'Désignation' }}</th>
+            <th class="right">Entrés</th>
+            <th class="right">Vendus</th>
+            <th class="right">Avariés</th>
+            <th class="right">Perdus</th>
+            <th class="right">Reste</th>
+            <th>État</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of pager.rows(); track row.product.id) {
+            <tr>
+              <td class="strong">{{ row.product.name }}</td>
+              <td class="right num">{{ row.product.received | num }}</td>
+              <td class="right num">{{ row.product.sold | num }}</td>
+              <td class="right num">
+                {{ row.product.damaged | num }}
+                @if (row.product.sold_damaged) {
+                  <div class="muted">+ {{ row.product.sold_damaged | num }} vendus</div>
+                }
+              </td>
+              <td class="right num">{{ row.product.lost | num }}</td>
+              <td class="right num strong">
+                {{ row.product.stock | num }}
+                @if (family()?.cartons) {
+                  @if (cartonsOf(row.product.stock, row.product.units_per_carton); as split) {
+                    <div class="muted">{{ split.cartons | num }} cartons{{ split.pieces ? ' + ' + split.pieces : '' }}</div>
+                  }
+                }
+              </td>
+              <td><span class="badge" [class]="levels[row.level].tone">{{ levels[row.level].label }}</span></td>
+              <td class="actions">
+                <button class="btn btn-sm" type="button" (click)="open(row.product)">Fiche</button>
+                <button class="btn btn-sm" type="button" (click)="openAdjustment(row.product)">Ajuster</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [state]="pager" />
+  }
+</section>
+
+@if (viewing(); as product) {
+  <app-modal [title]="'Fiche de stock — ' + product.name" subtitle="Chaque entrée, sortie, avarie et écart d'inventaire, en pièces." [wide]="true" (closed)="viewing.set(null)">
+    @if (card(); as data) {
+      <div class="stats">
+        <div class="card stat"><span>Stock de départ</span><strong class="num">{{ data.opening_stock | num }}</strong><small>avant le premier mouvement connu</small></div>
+        <div class="card stat"><span>Entrées</span><strong class="num">{{ data.total_in | num }}</strong></div>
+        <div class="card stat"><span>Sorties</span><strong class="num">{{ data.total_out | num }}</strong></div>
+        <div class="card stat">
+          <span>Reste sain</span><strong class="num">{{ data.current_stock | num }}</strong>
+          @if (cartonsOf(data.current_stock, data.product.units_per_carton); as split) {
+            <small>{{ split.cartons | num }} cartons{{ split.pieces ? ' + ' + split.pieces + ' pièces' : '' }}</small>
+          }
+        </div>
+        <div class="card stat"><span>Avariés</span><strong class="num">{{ data.current_damaged | num }}</strong></div>
+      </div>
+
+      @if (data.rows.length) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Mouvement</th>
+                <th class="right">Entrée</th>
+                <th class="right">Sortie</th>
+                <th class="right">Reste sain</th>
+                <th class="right">Avariés</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of data.rows; track $index) {
+                <tr>
+                  <td>{{ row.date | day }}</td>
+                  <td>
+                    <div class="strong">{{ row.party }}</div>
+                    @if (row.reference) {
+                      <div class="muted">{{ row.reference }}</div>
+                    }
+                  </td>
+                  <td class="right num">{{ row.in ? (row.in | num) : '—' }}</td>
+                  <td class="right num">{{ row.out ? (row.out | num) : '—' }}</td>
+                  <td class="right num strong">{{ row.balance | num }}</td>
+                  <td class="right num">
+                    {{ row.damaged_balance | num }}
+                    @if (row.damaged) {
+                      <div class="muted">{{ row.damaged > 0 ? '+' : '' }}{{ row.damaged | num }}</div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty">Aucun mouvement enregistré pour ce produit.</div>
+      }
+    } @else {
+      <div class="empty">Chargement…</div>
+    }
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="viewing.set(null)">Fermer</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (adjusting(); as product) {
+  <app-modal [title]="'Ajuster le stock — ' + product.name" [subtitle]="'Stock sain : ' + product.stock + ' · avariés : ' + product.damaged" (closed)="adjusting.set(null)">
+    <form id="adjust-form" class="form-grid" [formGroup]="form" (ngSubmit)="saveAdjustment()">
+      <div class="field full">
+        <label for="adj-type">Que s'est-il passé ?</label>
+        <select id="adj-type" class="input" formControlName="type">
+          @for (item of adjustments; track item.value) {
+            <option [value]="item.value">{{ item.label }}</option>
+          }
+        </select>
+        <span class="hint">{{ help() }}</span>
+      </div>
+
+      @if (type() === 'INVENTAIRE') {
+        <div class="field">
+          <label for="adj-counted">Pièces saines comptées *</label>
+          <input id="adj-counted" class="input num" type="number" min="0" formControlName="counted_stock" />
+          @if (gap() !== null) {
+            <span class="hint">{{ gap() === 0 ? 'Aucun écart.' : (gap()! > 0 ? '+' : '') + gap() + ' pièce(s) par rapport au stock théorique.' }}</span>
+          }
+        </div>
+        <div class="field">
+          <label for="adj-counted-damaged">Pièces avariées comptées</label>
+          <input id="adj-counted-damaged" class="input num" type="number" min="0" formControlName="counted_damaged" />
+          <span class="hint">Laissez vide pour ne pas toucher aux avariés.</span>
+        </div>
+      } @else {
+        <div class="field">
+          <label for="adj-quantity">Nombre de pièces *</label>
+          <input id="adj-quantity" class="input num" type="number" min="1" formControlName="quantity" />
+          @if (family()?.cartons && product.units_per_carton > 1) {
+            <span class="hint">Un carton = {{ product.units_per_carton | num }} pièces.</span>
+          }
+        </div>
+        @if (type() === 'PERTE') {
+          <div class="field">
+            <label for="adj-source">Pièces prises sur</label>
+            <select id="adj-source" class="input" formControlName="source">
+              <option value="AVARIE">Le stock avarié</option>
+              <option value="SAIN">Le stock sain</option>
+            </select>
+          </div>
+        }
+      }
+
+      <div class="field">
+        <label for="adj-date">Date *</label>
+        <input id="adj-date" class="input" type="date" formControlName="adjustment_date" />
+      </div>
+      <div class="field full">
+        <label for="adj-reason">Motif</label>
+        <input id="adj-reason" class="input" formControlName="reason" placeholder="Cartons mouillés, pneu déformé, comptage du mois…" />
+      </div>
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="adjusting.set(null)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="adjust-form" [disabled]="saving()">Enregistrer</button>
+    </ng-container>
+  </app-modal>
+}

@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class OrganisationSettingController extends BaseController
 {
@@ -36,7 +37,7 @@ class OrganisationSettingController extends BaseController
                     'email_notifications' => true,
                     'sms_notifications' => false,
                     'browser_notifications' => true,
-                    'session_timeout' => 30,
+                    'session_timeout' => OrganisationSetting::DEFAULT_SESSION_TIMEOUT,
                     'password_expiry' => 90,
                     'two_factor_auth' => false,
                     'auto_archive_invoices' => true,
@@ -88,7 +89,7 @@ class OrganisationSettingController extends BaseController
             'browser_notifications' => 'sometimes|boolean',
             
             // Paramètres de sécurité
-            'session_timeout' => 'sometimes|integer|min:5|max:480',
+            'session_timeout' => ['sometimes', 'integer', Rule::in(OrganisationSetting::SESSION_TIMEOUT_CHOICES)],
             'password_expiry' => 'sometimes|integer|min:30|max:365',
             'two_factor_auth' => 'sometimes|boolean',
             
@@ -134,7 +135,7 @@ class OrganisationSettingController extends BaseController
             'email_notifications' => true,
             'sms_notifications' => false,
             'browser_notifications' => true,
-            'session_timeout' => 30,
+            'session_timeout' => OrganisationSetting::DEFAULT_SESSION_TIMEOUT,
             'password_expiry' => 90,
             'two_factor_auth' => false,
             'auto_archive_invoices' => true,
@@ -300,6 +301,57 @@ class OrganisationSettingController extends BaseController
             \Log::error('Erreur lors du test de notification: ' . $e->getMessage());
             return $this->sendError('Erreur lors du test de notification', [], 500);
         }
+    }
+
+    /**
+     * Delai de deconnexion automatique de l'organisation.
+     * Lisible par tout utilisateur connecte : chaque poste en a besoin.
+     */
+    public function sessionTimeout(Request $request)
+    {
+        $tenantId = $this->resolveTenantId($request);
+        $minutes = $tenantId
+            ? OrganisationSetting::where('tenant_id', $tenantId)->value('session_timeout')
+            : null;
+
+        if (!in_array((int) $minutes, OrganisationSetting::SESSION_TIMEOUT_CHOICES, true)) {
+            $minutes = OrganisationSetting::DEFAULT_SESSION_TIMEOUT;
+        }
+
+        return $this->sendResponse([
+            'minutes' => (int) $minutes,
+            'choices' => OrganisationSetting::SESSION_TIMEOUT_CHOICES,
+        ], 'Délai de déconnexion automatique');
+    }
+
+    public function updateSessionTimeout(Request $request)
+    {
+        $tenantId = $this->resolveTenantId($request);
+
+        if (!$tenantId) {
+            return $this->sendError('Aucune organisation sélectionnée', [], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'minutes' => ['required', 'integer', Rule::in(OrganisationSetting::SESSION_TIMEOUT_CHOICES)],
+        ], [
+            'minutes.in' => 'Le délai doit être de 2, 3, 5, 10, 15 ou 30 minutes.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError($validator->errors()->first(), $validator->errors()->toArray(), 422);
+        }
+
+        $settings = OrganisationSetting::firstOrCreate(
+            ['tenant_id' => $tenantId],
+            OrganisationSetting::getDefaultSettings()
+        );
+        $settings->update(['session_timeout' => (int) $request->input('minutes')]);
+
+        return $this->sendResponse([
+            'minutes' => $settings->session_timeout,
+            'choices' => OrganisationSetting::SESSION_TIMEOUT_CHOICES,
+        ], 'Délai de déconnexion automatique mis à jour');
     }
 
     private function resolveTenantId(Request $request, $tenantId = null): ?int

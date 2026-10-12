@@ -77,6 +77,14 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
         Route::post('/me/avatar', [AuthController::class, 'updateAvatar']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
 
+        // Vue d'ensemble chiffree, pour les graphiques du tableau de bord et des statistiques
+        Route::get('statistics/overview', [\App\Http\Controllers\Api\StatisticsOverviewController::class, 'overview']);
+
+        // Délai de déconnexion automatique : lu par tous, réglé par les administrateurs
+        Route::get('session-timeout', [OrganisationSettingController::class, 'sessionTimeout']);
+        Route::put('session-timeout', [OrganisationSettingController::class, 'updateSessionTimeout'])
+            ->middleware('role:SUPER_ADMIN|ADMIN');
+
         // Tenants CRUD - création, suppression, listing : Super Admin uniquement
         Route::middleware('role:SUPER_ADMIN')->group(function () {
             Route::apiResource('tenants', TenantController::class)->except(['update']);
@@ -198,12 +206,22 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::apiResource('units', UnitController::class);
 
             // Produits
+            // Conteneurs de pneus : prix, depenses et rentabilite par periode
+            Route::get('tyre-containers', [\App\Http\Controllers\Api\TyreContainerController::class, 'index']);
+            Route::post('tyre-containers', [\App\Http\Controllers\Api\TyreContainerController::class, 'store']);
+            Route::delete('tyre-containers/{id}', [\App\Http\Controllers\Api\TyreContainerController::class, 'destroy']);
+            Route::post('tyre-containers/{id}/expenses', [\App\Http\Controllers\Api\TyreContainerController::class, 'storeExpense']);
+            Route::delete('tyre-container-expenses/{id}', [\App\Http\Controllers\Api\TyreContainerController::class, 'destroyExpense']);
+
             Route::get('products/low-stock', [ProductController::class, 'getLowStockProducts']);
             Route::get('products/statistics', [ProductController::class, 'getStatistics']);
             Route::get('products/search/barcode', [ProductController::class, 'searchByBarcode']);
             Route::get('products/export', [ProductController::class, 'export']);
             Route::post('products/bulk-delete', [ProductController::class, 'bulkDelete']);
             Route::post('products/bulk-update-status', [ProductController::class, 'bulkUpdateStatus']);
+            Route::get('stock/summary', [\App\Http\Controllers\Api\StockController::class, 'summary']);
+            Route::post('products/{id}/adjustments', [\App\Http\Controllers\Api\StockController::class, 'adjust']);
+            Route::get('products/{id}/movements', [ProductController::class, 'movements']);
             Route::get('products/{id}/sales-history', [ProductController::class, 'salesHistory']);
             Route::apiResource('products', ProductController::class);
             Route::post('products/{id}/update-stock', [ProductController::class, 'updateStock']);
@@ -250,6 +268,7 @@ Route::middleware(['App\Http\Middleware\HandleCorsMiddleware'])->group(function 
             Route::post('container-sales/global-payment', [ContainerSalesController::class, 'storeGlobalClientPayment']);
             Route::put('container-sales/{id}', [ContainerSalesController::class, 'updateSale']);
 
+            Route::get('container-sale-payments/summary', [ContainerSalesController::class, 'getPaymentsSummary']);
             Route::get('container-sale-payments', [ContainerSalesController::class, 'getPayments']);
             Route::post('container-sale-payments', [ContainerSalesController::class, 'storePayment']);
             Route::delete('container-sale-payments/{id}', [ContainerSalesController::class, 'deletePayment']);

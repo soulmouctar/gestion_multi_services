@@ -1,0 +1,61 @@
+<app-page-header eyebrow="Finance" title="Taux du jour" description="Le taux saisi ici est proposé dans les ventes, les achats et les encaissements. Il reste modifiable à chaque opération, et celui qui a servi est conservé." />
+
+@if (loading()) {
+  <div class="card empty">Chargement…</div>
+} @else {
+  <div class="stats">
+    @for (currency of currencies(); track currency.id) {
+      <form class="card stat" (ngSubmit)="save(currency)">
+        <span>1 {{ currency.code }} en GNF</span>
+        @if (canEdit()) {
+          <div class="rate-row">
+            <input class="input num" type="number" min="1" step="any" [name]="'rate-' + currency.code" [(ngModel)]="drafts[currency.code]" [attr.aria-label]="'Taux ' + currency.code" />
+            <button class="btn btn-primary" type="submit" [disabled]="savingCode() === currency.code">Enregistrer</button>
+          </div>
+        } @else {
+          <strong class="num">{{ configured(currency) ? (configured(currency) | num) : '—' }}</strong>
+        }
+        @if (!configured(currency)) {
+          <small class="warn">Taux non réglé : les opérations en {{ currency.code }} le demanderont à chaque fois.</small>
+        }
+      </form>
+    }
+    @if (canEdit()) {
+      @for (currency of missing(); track currency.code) {
+        <div class="card stat">
+          <span>{{ currency.name }}</span>
+          <button class="btn" type="button" (click)="add(currency)">Suivre le {{ currency.code }}</button>
+        </div>
+      }
+    }
+  </div>
+
+  <section class="card">
+    <div class="toolbar"><h2 class="section-title">Historique des taux</h2></div>
+    @if (history().length) {
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Devise</th>
+              <th class="right">Taux en GNF</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (entry of pager.rows(); track entry.id) {
+              <tr>
+                <td>{{ entry.rate_date | day }}</td>
+                <td class="strong">{{ entry.currency?.code }}</td>
+                <td class="right num">{{ entry.rate | num }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    <app-pager [state]="pager" />
+    } @else {
+      <div class="empty">Aucun taux enregistré pour l'instant.</div>
+    }
+  </section>
+}

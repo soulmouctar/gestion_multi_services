@@ -1,0 +1,105 @@
+<app-page-header eyebrow="Finance" title="Encaissements" description="Le journal des versements des clients du commercial : chaque encaissement, son taux et son reçu. Les versements du textile sont dans Textile › Encaissements." />
+
+<section class="card">
+  <form class="toolbar" [formGroup]="filters" (ngSubmit)="search()">
+    <div class="field">
+      <label for="from">Du</label>
+      <input id="from" class="input" type="date" formControlName="date_from" />
+    </div>
+    <div class="field">
+      <label for="to">Au</label>
+      <input id="to" class="input" type="date" formControlName="date_to" />
+    </div>
+    <div class="field">
+      <label for="currency">Devise versée</label>
+      <select id="currency" class="input" formControlName="currency">
+        <option value="">Toutes</option>
+        @for (code of currencies; track code) {
+          <option [value]="code">{{ code }}</option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label for="search">Client ou référence</label>
+      <input id="search" class="input" type="search" formControlName="search" />
+    </div>
+    <button class="btn btn-primary" type="submit" [disabled]="loading()">Afficher</button>
+    <span class="spacer"></span>
+    <span class="muted num">{{ total() | num }} encaissement(s)</span>
+  </form>
+
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (!payments().length) {
+    <div class="empty"><strong>Aucun encaissement</strong>Aucun client n'a versé sur cette période.</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Reçu</th>
+            <th>Client</th>
+            <th class="right">Montant versé</th>
+            <th class="right">Taux</th>
+            <th class="right">Crédité au compte</th>
+            <th>Mode</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (payment of payments(); track payment.id) {
+            <tr>
+              <td>{{ payment.payment_date | day }}</td>
+              <td class="muted">{{ payment.receipt_number || '—' }}</td>
+              <td class="strong">{{ payment.client?.name ?? '—' }}</td>
+              <td class="right num strong">{{ payment.amount | money: payment.currency }}</td>
+              @if (converted(payment)) {
+                <td class="right num">{{ payment.exchange_rate | num }}</td>
+                <td class="right num">{{ payment.converted_amount | money: payment.target_currency! }}</td>
+              } @else {
+                <td class="right muted">—</td>
+                <td class="right num">{{ payment.amount | money: payment.currency }}</td>
+              }
+              <td>
+                {{ methodLabel(payment.method) }}
+                @if (payment.reference) {
+                  <div class="muted">{{ payment.reference }}</div>
+                }
+              </td>
+              <td class="actions">
+                <button class="btn btn-sm" type="button" (click)="receipt.set(payment)">Reçu</button>
+                <button class="btn btn-sm btn-danger" type="button" (click)="deleting.set(payment)">Supprimer</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (lastPage() > 1) {
+      <div class="toolbar pager">
+        <span class="spacer muted">Page {{ page() }} sur {{ lastPage() }}</span>
+        <button class="btn btn-sm" type="button" [disabled]="page() <= 1" (click)="search(page() - 1)">Précédent</button>
+        <button class="btn btn-sm" type="button" [disabled]="page() >= lastPage()" (click)="search(page() + 1)">Suivant</button>
+      </div>
+    }
+  }
+</section>
+
+@if (receipt(); as payment) {
+  <app-receipt title="Reçu d'encaissement" [number]="payment.receipt_number || payment.id" [date]="payment.payment_date" [lines]="receiptLines(payment)" (closed)="receipt.set(null)" />
+}
+
+@if (deleting(); as payment) {
+  <app-modal title="Supprimer cet encaissement ?" (closed)="deleting.set(null)">
+    <p>
+      Versement de {{ payment.amount | money: payment.currency }} par {{ payment.client?.name }} le {{ payment.payment_date | day }}.
+      Le compte du client et le reste à payer de sa vente seront rétablis.
+    </p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="deleting.set(null)">Garder</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="confirmDelete()">Supprimer</button>
+    </ng-container>
+  </app-modal>
+}

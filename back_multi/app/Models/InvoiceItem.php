@@ -15,6 +15,7 @@ class InvoiceItem extends Model
         'supplier_id',
         'sale_type',
         'is_sample',
+        'from_damaged',
         'description',
         'quantity',
         'unit_price',
@@ -24,6 +25,7 @@ class InvoiceItem extends Model
     ];
 
     protected $casts = [
+        'from_damaged'    => 'boolean',
         'quantity'        => 'decimal:2',
         'unit_price'      => 'decimal:2',
         'discount_amount' => 'decimal:2',

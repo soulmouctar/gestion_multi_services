@@ -1,0 +1,147 @@
+@let cfg = config();
+
+<app-page-header [eyebrow]="cfg.eyebrow" [title]="cfg.title" [description]="cfg.description">
+  <button class="btn" type="button" [disabled]="loading() || !rows().length" (click)="print()">Imprimer</button>
+  @if (cfg.creatable !== false) {
+    <button class="btn btn-primary" type="button" (click)="open('new')">{{ cfg.addLabel }}</button>
+  }
+</app-page-header>
+
+<section class="card">
+  <div class="toolbar">
+    <div class="field">
+      <label for="resource-search">Rechercher</label>
+      <input id="resource-search" class="input" type="search" #term [value]="search()" (input)="search.set(term.value)" />
+    </div>
+    @for (column of filterColumns(); track column.label) {
+      <div class="field">
+        <label [for]="'filter-' + $index">{{ column.label }}</label>
+        <select [id]="'filter-' + $index" class="input" #pick [value]="filterValue(column.label)" (change)="setFilter(column.label, pick.value)">
+          <option value="">Tous</option>
+          @for (entry of badgeOptions(column); track entry.value) {
+            <option [value]="entry.value">{{ entry.label }}</option>
+          }
+        </select>
+      </div>
+    }
+    <span class="spacer"></span>
+    <span class="muted num">{{ rows().length | num }} ligne(s)</span>
+  </div>
+
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (!rows().length) {
+    <div class="empty"><strong>Rien à afficher</strong>{{ search() ? 'Aucune ligne ne correspond à la recherche.' : 'Aucun enregistrement pour l\'instant.' }}</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            @for (column of cfg.columns; track column.label) {
+              <th [class.right]="column.kind === 'money' || column.kind === 'num'">{{ column.label }}</th>
+            }
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of pager.rows(); track row['id']) {
+            <tr>
+              @for (column of cfg.columns; track column.label; let first = $first) {
+                <td [class.right]="column.kind === 'money' || column.kind === 'num'" [class.num]="column.kind === 'money' || column.kind === 'num'" [class.strong]="first">
+                  @switch (column.kind) {
+                    @case ('money') { {{ column.value(row) | money: (column.currency ? column.currency(row) : 'GNF') }} }
+                    @case ('num') { {{ column.value(row) | num }} }
+                    @case ('day') { {{ $any(column.value(row)) | day }} }
+                    @case ('badge') {
+                      @let badge = column.badges?.[$any(column.value(row))];
+                      <span class="badge" [class]="badge?.tone ?? ''">{{ badge?.label ?? column.value(row) ?? '—' }}</span>
+                    }
+                    @default { {{ column.value(row) ?? '—' }} }
+                  }
+                  @if (column.sub && column.sub(row)) {
+                    <div class="muted">{{ column.sub(row) }}</div>
+                  }
+                </td>
+              }
+              <td class="actions">
+                @if (cfg.attachment; as attachment) {
+                  @if (attachment.url(row); as link) {
+                    <a class="btn btn-sm" [href]="link" target="_blank" rel="noopener">Voir le {{ attachment.label.toLowerCase() }}</a>
+                  }
+                  <label class="btn btn-sm">
+                    {{ attachment.url(row) ? 'Remplacer' : 'Joindre le ' + attachment.label.toLowerCase() }}
+                    <input #picker type="file" [accept]="attachment.accept" hidden [disabled]="saving()" (change)="attach(row, picker)" />
+                  </label>
+                }
+                @if (cfg.receipt) {
+                  <button class="btn btn-sm" type="button" (click)="receipt.set(row)">Reçu</button>
+                }
+                @if (cfg.editable !== false) {
+                  <button class="btn btn-sm" type="button" (click)="open(row)">Modifier</button>
+                }
+                @if (cfg.deletable !== false) {
+                  <button class="btn btn-sm btn-danger" type="button" (click)="deleting.set(row)">Supprimer</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [state]="pager" />
+  }
+</section>
+
+@if (editing(); as target) {
+  <app-modal [title]="target === 'new' ? cfg.addLabel : 'Modifier ' + cfg.name(target)" (closed)="editing.set(null)">
+    <form id="resource-form" class="form-grid" [formGroup]="form" (ngSubmit)="save()">
+      @for (field of visibleFields(); track field.key) {
+        <div class="field" [class.full]="field.full || field.type === 'textarea'">
+          <label [for]="'f-' + field.key">{{ field.label }}{{ field.required ? ' *' : '' }}</label>
+          @switch (field.type) {
+            @case ('select') {
+              <select [id]="'f-' + field.key" class="input" [formControlName]="field.key">
+                <option [ngValue]="null">— Choisir —</option>
+                @for (option of optionsFor(field); track option.value) {
+                  <option [ngValue]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            }
+            @case ('textarea') {
+              <textarea [id]="'f-' + field.key" class="input" rows="3" [formControlName]="field.key"></textarea>
+            }
+            @case ('number') {
+              <input [id]="'f-' + field.key" class="input num" type="number" step="any" [formControlName]="field.key" />
+            }
+            @default {
+              <input [id]="'f-' + field.key" class="input" [type]="field.type" [formControlName]="field.key" />
+            }
+          }
+          @if (field.hint) {
+            <span class="hint">{{ field.hint }}</span>
+          }
+        </div>
+      }
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="editing.set(null)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="resource-form" [disabled]="saving()">Enregistrer</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (deleting(); as row) {
+  <app-modal title="Confirmer la suppression" (closed)="deleting.set(null)">
+    <p>Supprimer {{ cfg.name(row) }} ? L'enregistrement part à la corbeille.</p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="deleting.set(null)">Garder</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="confirmDelete()">Supprimer</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (receipt(); as row) {
+  @if (cfg.receipt; as model) {
+    <app-receipt [title]="model.title" [number]="model.number(row)" [date]="model.date(row)" [lines]="model.lines(row)" (closed)="receipt.set(null)" />
+  }
+}

@@ -383,6 +383,17 @@ class SupplierController extends BaseController
         $targetCurrency = $this->normalizeCurrency($request->target_currency ?: $currency);
         $exchangeRate = $this->resolveExchangeRateForTenant($supplier->tenant_id, $currency, $request->exchange_rate ? (float) $request->exchange_rate : null);
 
+        // GNF verses sur un compte en devise : c'est le taux de la devise du compte
+        // qui convertit (8 700 000 GNF a 8 700 = 1 000 USD). Le GNF valant 1, le
+        // versement etait impute tel quel : 8 700 000 « USD ».
+        if ($currency === 'GNF' && $targetCurrency !== 'GNF') {
+            $exchangeRate = \App\Support\GnfRate::resolve((int) $supplier->tenant_id, $targetCurrency, $request->exchange_rate);
+            if (!$exchangeRate) {
+                $message = \App\Support\GnfRate::missingMessage($targetCurrency);
+                return $this->sendError($message, ['exchange_rate' => [$message]], 422);
+            }
+        }
+
         if ($currency !== 'GNF' && !$exchangeRate) {
             return $this->sendError('Taux de change introuvable pour ce versement fournisseur.', [
                 'exchange_rate' => ['Renseignez un taux de change ou configurez la devise du tenant.'],

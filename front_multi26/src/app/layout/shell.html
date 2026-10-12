@@ -1,0 +1,120 @@
+<aside class="sidebar" [class.open]="menuOpen()">
+  <a class="brand" routerLink="/dashboard" (click)="menuOpen.set(false)">
+    <img [src]="logoUrl()" alt="" height="38" />
+    <span>
+      <strong>{{ auth.tenantName() || 'Mat Kolla' }}</strong>
+      <small>Gestion multi-services</small>
+    </span>
+  </a>
+
+  <nav aria-label="Menu principal">
+    <a class="nav-link" routerLink="/dashboard" routerLinkActive="active" (click)="menuOpen.set(false)">
+      <app-icon name="gauge" /> Tableau de bord
+    </a>
+
+    @for (module of modules(); track module.id) {
+      <div class="nav-group">
+        <button class="group-toggle" type="button" [attr.aria-expanded]="!!expanded()[module.id]" [attr.aria-controls]="'menu-' + module.id" (click)="toggleGroup(module.id)">
+          <span class="group-title"><app-icon [name]="module.icon" [size]="17" /> {{ module.title }}</span>
+          <svg class="chevron" [class.open]="expanded()[module.id]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+        </button>
+        @if (expanded()[module.id]) {
+          <div class="group-links" [id]="'menu-' + module.id">
+            @for (window of module.windows; track window.path) {
+              <a class="nav-link" [routerLink]="'/' + window.path" routerLinkActive="active" (click)="menuOpen.set(false)">
+                <app-icon [name]="window.icon" /> {{ window.title }}
+              </a>
+            }
+          </div>
+        }
+      </div>
+    }
+  </nav>
+</aside>
+
+@if (menuOpen()) {
+  <button class="scrim" type="button" aria-label="Fermer le menu" (click)="menuOpen.set(false)"></button>
+}
+
+<div class="main">
+  <header class="topbar">
+    <button class="btn btn-ghost btn-icon menu-toggle" type="button" aria-label="Ouvrir le menu" (click)="menuOpen.set(true)">
+      <app-icon name="menu" />
+    </button>
+
+    @if (auth.isSuperAdmin()) {
+      <label class="tenant-pick">
+        <span>Organisation</span>
+        <select class="input" #pick [disabled]="switching()" (change)="manage(pick.value)" aria-label="Organisation gérée">
+          <option value="" [selected]="!auth.managedTenant()">— Plateforme —</option>
+          @for (tenant of tenants(); track tenant.id) {
+            <option [value]="tenant.id" [selected]="tenant.id === auth.managedTenant()?.id">{{ tenant.name }}</option>
+          }
+        </select>
+      </label>
+    } @else {
+      <span class="tenant">{{ auth.tenantName() }}</span>
+    }
+
+    <div class="topbar-end">
+      <button
+        class="btn btn-ghost btn-icon" type="button"
+        [attr.aria-label]="theme.isDark() ? 'Passer au mode clair' : 'Passer au mode sombre'"
+        (click)="theme.toggle()"
+      >
+        <app-icon [name]="theme.isDark() ? 'sun' : 'moon'" />
+      </button>
+
+      <div class="user">
+        <app-avatar [name]="auth.user()?.name ?? ''" [src]="auth.user()?.avatar_url" [size]="32" />
+        <span class="user-text">
+          <strong>{{ auth.user()?.name }}</strong>
+          <small>{{ auth.roleLabel() }}</small>
+        </span>
+      </div>
+
+      <button class="btn btn-ghost btn-icon" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="auth.logout()">
+        <app-icon name="logout" />
+      </button>
+    </div>
+  </header>
+
+  <main class="content">
+    @if (needsTenant()) {
+      <section class="card choose">
+        <h1>Choisissez une organisation</h1>
+        <p>Les ventes, les stocks, les comptes et tous les enregistrements appartiennent à une organisation. Choisissez celle que vous voulez gérer.</p>
+        <div class="choose-list">
+          @for (tenant of tenants(); track tenant.id) {
+            <button class="btn" icon="building" type="button" [disabled]="switching()" (click)="manage('' + tenant.id)">{{ tenant.name }}</button>
+          } @empty {
+            <span class="muted">Chargement des organisations…</span>
+          }
+        </div>
+        <a class="link" routerLink="/admin/tenants">Gérer les organisations de la plateforme</a>
+      </section>
+    } @else {
+      <router-outlet />
+    }
+  </main>
+</div>
+
+@if (idle.warningSeconds(); as seconds) {
+  <div class="idle-backdrop">
+    <div class="idle-dialog card" role="alertdialog" aria-modal="true" aria-labelledby="idle-title">
+      <span class="idle-icon"><app-icon name="clock" [size]="22" /></span>
+      <h2 id="idle-title">Toujours là ?</h2>
+      <p>Vous serez déconnecté pour inactivité dans <strong class="num">{{ seconds }}</strong> seconde(s).</p>
+      <button class="btn btn-primary" type="button" (click)="idle.stayConnected()">Rester connecté</button>
+    </div>
+  </div>
+}
+
+<div class="toasts" aria-live="polite">
+  @for (toast of toasts.toasts(); track toast.id) {
+    <button class="toast" type="button" [class.is-error]="toast.kind === 'error'" (click)="toasts.dismiss(toast.id)">
+      <span class="toast-icon"><app-icon [name]="toast.kind === 'error' ? 'alert' : 'check'" [size]="16" /></span>
+      <span>{{ toast.text }}</span>
+    </button>
+  }
+</div>

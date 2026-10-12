@@ -1,0 +1,96 @@
+<app-page-header [title]="'Bonjour ' + firstName()" description="La situation du jour, puis chaque activité et ses fenêtres." />
+
+<div class="stats">
+  @if (clientDue(); as lines) {
+    <a class="card stat" routerLink="/commercial/clients">
+      <span>Les clients nous doivent</span>
+      @for (line of lines; track line.currency) {
+        <strong class="num">{{ line.amount | money: line.currency }}</strong>
+      } @empty {
+        <strong>Rien</strong>
+      }
+    </a>
+  }
+  @if (supplierDue(); as lines) {
+    <a class="card stat" routerLink="/commercial/suppliers">
+      <span>Nous devons aux fournisseurs</span>
+      @for (line of lines; track line.currency) {
+        <strong class="num">{{ line.amount | money: line.currency }}</strong>
+      } @empty {
+        <strong>Rien</strong>
+      }
+    </a>
+  }
+  @if (stockAlerts() !== null) {
+    <a class="card stat" routerLink="/tyres/stock">
+      <span>Produits épuisés ou sous le seuil</span>
+      <strong class="num">{{ stockAlerts() | num }}</strong>
+    </a>
+  }
+  @if (containersOnTheWay() !== null) {
+    <a class="card stat" routerLink="/textile/containers">
+      <span>Conteneurs textile en route</span>
+      <strong class="num">{{ containersOnTheWay() | num }}</strong>
+    </a>
+  }
+</div>
+
+@if (overview(); as view) {
+  <div class="chart-grid wide-first">
+    <section class="card chart-card">
+      <header>
+        <div>
+          <h2 class="section-title">Ventes et encaissements</h2>
+          <p class="muted">Six derniers mois, toutes activités, en GNF.</p>
+        </div>
+        <a class="btn btn-sm" routerLink="/finance/statistics">Statistiques</a>
+      </header>
+      <app-bar-chart [labels]="monthLabels()" [series]="monthSeries()" label="Ventes et encaissements des six derniers mois" />
+    </section>
+    <section class="card chart-card">
+      <header><h2 class="section-title">Plus gros soldes dus</h2></header>
+      <app-rank-list [items]="topDebtors()" color="var(--chart-5)" />
+    </section>
+    @if (familySlices().length) {
+      <section class="card chart-card">
+        <header><h2 class="section-title">Ventes par activité</h2></header>
+        <app-donut-chart [slices]="familySlices()" label="Ventes par activité" />
+      </section>
+    }
+  </div>
+}
+
+@for (module of modules(); track module.id) {
+  <section class="module">
+    <header class="module-head">
+      <span class="module-icon"><app-icon [name]="module.icon" [size]="20" /></span>
+      <div>
+        <h2>{{ module.title }}</h2>
+        <p>{{ module.summary }}</p>
+      </div>
+    </header>
+
+    @if (module.flow.length) {
+      <ol class="flow card" aria-label="Parcours {{ module.title }}">
+        @for (step of module.flow; track step; let index = $index) {
+          <li>
+            <span class="step-number num">{{ index + 1 }}</span>
+            <span>{{ step }}</span>
+          </li>
+        }
+      </ol>
+    }
+
+    <div class="windows">
+      @for (window of module.windows; track window.path) {
+        <a class="window card" [routerLink]="'/' + window.path">
+          <span class="window-icon"><app-icon [name]="window.icon" [size]="20" /></span>
+          <span class="window-text">
+            <strong>{{ window.title }}</strong>
+            <span>{{ window.purpose }}</span>
+          </span>
+        </a>
+      }
+    </div>
+  </section>
+}

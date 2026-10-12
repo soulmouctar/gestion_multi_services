@@ -1,0 +1,268 @@
+<app-page-header [eyebrow]="family()?.label ?? ''" title="Ventes" description="Chaque vente sort le stock et, pour un client en compte, s'ajoute à ce qu'il doit.">
+  <button class="btn btn-primary" type="button" (click)="open()">Nouvelle vente</button>
+</app-page-header>
+
+<section class="card">
+  <div class="toolbar">
+    <div class="field">
+      <label for="sales-search">Rechercher</label>
+      <input id="sales-search" class="input" type="search" #salessearch placeholder="Client ou numéro" (input)="listSearch.set(salessearch.value)" />
+    </div>
+    <div class="field">
+      <label for="sales-status">Statut</label>
+      <select id="sales-status" class="input" #statusPick [value]="statusFilter()" (change)="statusFilter.set(statusPick.value)">
+        <option value="">Tous</option>
+        <option value="IMPAYE">Non payées</option>
+        <option value="PARTIEL">Payées en partie</option>
+        <option value="PAYE">Soldées</option>
+      </select>
+    </div>
+    @if (openingCount()) {
+      <div class="field">
+        <label for="sales-view">Afficher</label>
+        <select id="sales-view" class="input" #viewPick [value]="view()" (change)="view.set($any(viewPick.value))">
+          <option value="ventes">Les ventes</option>
+          <option value="ouvertures">Les soldes d'ouverture ({{ openingCount() }})</option>
+        </select>
+      </div>
+    }
+  </div>
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (!invoices().length) {
+    <div class="empty"><strong>Rien à afficher</strong>{{ view() === 'ventes' ? 'Enregistrez la première vente.' : 'Aucun solde d\'ouverture.' }}</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Numéro</th>
+            <th>Client</th>
+            <th>Produits</th>
+            <th class="right">Total</th>
+            <th class="right">Reste</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (invoice of pager.rows(); track invoice.id) {
+            <tr>
+              <td>{{ invoice.created_at | day }}</td>
+              <td class="muted">{{ invoice.invoice_number }}</td>
+              <td class="strong">{{ invoice.client?.name ?? 'Vente au comptant' }}</td>
+              <td>{{ summary(invoice) }}</td>
+              <td class="right num strong">{{ invoice.total_amount | money: invoice.currency }}</td>
+              <td class="right num">{{ invoice.remaining_balance | money: invoice.currency }}</td>
+              <td><span class="badge" [class]="statuses[invoice.status].tone">{{ statuses[invoice.status].label }}</span></td>
+              <td class="actions">
+                <button class="btn btn-sm" type="button" (click)="printInvoice(invoice)">Facture</button>
+                @if (invoice.client && invoice.status !== 'PAYE') {
+                  <button class="btn btn-sm btn-primary" type="button" (click)="openPayment(invoice)">Encaisser</button>
+                }
+                @if (invoice.items.length && (+invoice.paid_amount === 0 || !invoice.client)) {
+                  <button class="btn btn-sm btn-danger" type="button" (click)="cancelling.set(invoice)">Annuler</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [state]="pager" />
+  }
+</section>
+
+@if (creating()) {
+  <app-modal title="Nouvelle vente" subtitle="Ajoutez les produits, à la pièce, au demi-carton ou au carton." [wide]="true" (closed)="creating.set(false)">
+    @if (!lockedFamily()) {
+  <app-family-tabs [families]="families()" [(selected)]="familyKey" />
+}
+
+    <form id="commercial-sale-form" [formGroup]="form" (ngSubmit)="save()">
+      <div class="form-grid">
+        <div class="field">
+          <label for="client">Client</label>
+          <select id="client" class="input" formControlName="client_id">
+            <option [ngValue]="null">Vente au comptant</option>
+            @for (client of clients(); track client.id) {
+              <option [ngValue]="client.id">{{ client.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="currency">Devise de la vente</label>
+          <select id="currency" class="input" formControlName="currency">
+            @for (code of currencies; track code) {
+              <option [value]="code">{{ code }}</option>
+            }
+          </select>
+        </div>
+        @if (foreign(); as code) {
+          <div class="field full">
+            <label for="rate">Taux du jour : 1 {{ code }} en GNF *</label>
+            <input id="rate" class="input num" type="number" min="1" step="any" formControlName="rate" />
+          </div>
+        }
+      </div>
+    </form>
+
+    <div class="picker">
+      <div class="field">
+        <label for="product-search">{{ familyKey() === 'pneus' ? 'Ajouter un pneu par sa dimension' : 'Ajouter un produit' }}</label>
+        <input id="product-search" class="input" type="search" #term [value]="search()" [placeholder]="familyKey() === 'pneus' ? '185-70R14' : 'COCO PAA…'" (input)="search.set(term.value)" autocomplete="off" />
+      </div>
+      @if (search() || !lines().length) {
+        <ul class="matches">
+          @for (product of matches(); track product.id) {
+            <li>
+              <button type="button" (click)="add(product)">
+                <span class="strong">{{ product.name }}</span>
+                <span class="muted num">{{ product.stock_quantity | num }} en stock{{ product.damaged_quantity ? ' · ' + product.damaged_quantity + ' avariés' : '' }}</span>
+              </button>
+            </li>
+          } @empty {
+            <li class="none">Aucun produit de cette famille ne correspond.</li>
+          }
+        </ul>
+      }
+    </div>
+
+    @if (lines().length) {
+      <div class="table-wrap">
+        <table class="table lines">
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>Unité</th>
+              <th class="right">Quantité</th>
+              <th class="right">Prix unitaire</th>
+              <th class="right">Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines(); track $index; let index = $index) {
+              <tr>
+                <td>
+                  <div class="strong">{{ line.product.name }}</div>
+                  <div class="muted" [class.over]="pieces(line) > available(line)">
+                    {{ pieces(line) | num }} pièce(s) sur {{ available(line) | num }} {{ line.damaged ? 'avariées' : 'en stock' }}
+                  </div>
+                  @if (line.product.damaged_quantity > 0) {
+                    <label class="check"><input type="checkbox" #damaged [checked]="line.damaged" (change)="patch(index, { damaged: damaged.checked })" /> Avarié ({{ line.product.damaged_quantity | num }})</label>
+                  }
+                </td>
+                <td>
+                  @if (family()?.cartons && (line.product.units_per_carton ?? 1) > 1) {
+                    <select class="input" #unit [value]="line.unit" (change)="patch(index, { unit: $any(unit.value) })">
+                      <option value="UNITE">Pièce</option>
+                      <option value="DEMI_CARTON">Demi-carton ({{ (line.product.units_per_carton ?? 1) / 2 | num }})</option>
+                      <option value="CARTON">Carton ({{ line.product.units_per_carton | num }})</option>
+                    </select>
+                  } @else {
+                    Pièce
+                  }
+                </td>
+                <td class="right"><input class="input num" type="number" min="1" #quantity [value]="line.quantity" (input)="patch(index, { quantity: +quantity.value })" aria-label="Quantité" /></td>
+                <td class="right">
+                  <input class="input num" type="number" min="0" step="any" #price [value]="line.unitPrice" (input)="patch(index, { unitPrice: +price.value })" aria-label="Prix unitaire" />
+                  @if (belowCost(line)) {
+                    <div class="muted below">sous le prix d'achat</div>
+                  }
+                </td>
+                <td class="right num strong">{{ line.quantity * line.unitPrice | money: currency() }}</td>
+                <td class="actions"><button class="btn btn-sm btn-danger" type="button" (click)="remove(index)">Retirer</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="result">
+        <span>Total de la vente</span>
+        <strong class="num">{{ total() | money: currency() }}</strong>
+      </div>
+    }
+
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="creating.set(false)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="commercial-sale-form" [disabled]="saving()">Enregistrer la vente</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (paying(); as invoice) {
+  <app-modal [title]="'Encaisser la vente ' + invoice.invoice_number" [subtitle]="invoice.client?.name + ' — reste ' + (invoice.remaining_balance | money: invoice.currency)" (closed)="paying.set(null)">
+    <form id="invoice-payment-form" class="form-grid" [formGroup]="payForm" (ngSubmit)="savePayment()">
+      <div class="field">
+        <label for="pay-amount">Montant versé *</label>
+        <input id="pay-amount" class="input num" type="number" min="0" step="any" formControlName="amount" />
+      </div>
+      <div class="field">
+        <label for="pay-currency">Devise versée</label>
+        <select id="pay-currency" class="input" formControlName="currency">
+          @for (code of currencies; track code) {
+            <option [value]="code">{{ code }}</option>
+          }
+        </select>
+      </div>
+
+      @if (payRateFor(); as code) {
+        <div class="field full">
+          <label for="pay-rate">Taux du jour : 1 {{ code }} en GNF *</label>
+          <input id="pay-rate" class="input num" type="number" min="1" step="any" formControlName="rate" />
+          <span class="hint">Ce taux est enregistré avec l'encaissement.</span>
+        </div>
+        <div class="result full">
+          <span>Crédité au compte {{ invoice.currency }} du client</span>
+          <strong class="num">{{ payCredited() | money: invoice.currency }}</strong>
+        </div>
+      } @else if (payRateFor() === undefined) {
+        <div class="alert is-danger full">La conversion directe entre deux devises étrangères n'est pas gérée : passez par le GNF.</div>
+      }
+      <p class="hint full" [class.over]="payRemaining() < -0.01">
+        @if (payRemaining() < -0.01) {
+          Le montant dépasse le reste à payer.
+        } @else {
+          Reste à payer après cet encaissement : {{ payRemaining() | money: invoice.currency }}.
+        }
+      </p>
+
+      <div class="field">
+        <label for="pay-date">Date *</label>
+        <input id="pay-date" class="input" type="date" formControlName="payment_date" />
+      </div>
+      <div class="field">
+        <label for="pay-method">Mode de paiement</label>
+        <select id="pay-method" class="input" formControlName="method">
+          @for (method of methods; track method.value) {
+            <option [value]="method.value">{{ method.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field full">
+        <label for="pay-ref">Référence</label>
+        <input id="pay-ref" class="input" formControlName="reference" />
+      </div>
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="paying.set(null)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="invoice-payment-form" [disabled]="saving()">Encaisser</button>
+    </ng-container>
+  </app-modal>
+}
+
+@if (cancelling(); as invoice) {
+  <app-modal title="Annuler cette vente ?" (closed)="cancelling.set(null)">
+    <p>
+      Vente {{ invoice.invoice_number }} de {{ invoice.total_amount | money: invoice.currency }} à {{ invoice.client?.name ?? 'un client au comptant' }}.
+      Les produits seront remis en stock et la vente retirée du compte du client.
+    </p>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="cancelling.set(null)">Garder la vente</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="confirmCancel()">Annuler la vente</button>
+    </ng-container>
+  </app-modal>
+}

@@ -1,0 +1,115 @@
+<app-page-header [eyebrow]="family()?.label ?? ''" [title]="familyKey() === 'pneus' ? 'Dimensions' : 'Produits'" [description]="familyKey() === 'pneus' ? 'Chaque dimension de pneu, son prix et sa photo.' : 'Chaque produit, son prix à la pièce et au carton, et sa photo.'">
+  <button class="btn btn-primary" type="button" [disabled]="!family()?.categoryId" (click)="open('new')">{{ familyKey() === 'pneus' ? 'Nouvelle dimension' : 'Nouveau produit' }}</button>
+</app-page-header>
+
+@if (!lockedFamily()) {
+  <app-family-tabs [families]="families()" [(selected)]="familyKey" />
+}
+
+<section class="card">
+  <div class="toolbar">
+    <div class="field">
+      <label for="search">Rechercher</label>
+      <input id="search" class="input" type="search" #term [placeholder]="familyKey() === 'pneus' ? 'Dimension, ex. 185-70R14' : 'Nom du produit'" (input)="search.set(term.value)" />
+    </div>
+    <span class="spacer"></span>
+    <span class="muted num">{{ products().length | num }} produit(s)</span>
+  </div>
+
+  @if (loading()) {
+    <div class="empty">Chargement…</div>
+  } @else if (family() && !family()!.categoryId) {
+    <div class="empty"><strong>Famille non configurée</strong>La catégorie « {{ family()!.label }} » n'existe pas encore sur le serveur.</div>
+  } @else if (!products().length) {
+    <div class="empty"><strong>Aucun produit</strong>Ajoutez le premier produit de cette famille.</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>{{ familyKey() === 'pneus' ? 'Dimension' : 'Désignation' }}</th>
+            <th class="right">Prix de vente / pièce</th>
+            @if (family()?.cartons) {
+              <th class="right">Pièces / carton</th>
+              <th class="right">Prix de vente / carton</th>
+            }
+            <th class="right">Prix d'achat / pièce</th>
+            <th class="right">Stock (pièces)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (product of pager.rows(); track product.id) {
+            <tr>
+              <td>
+                <div class="with-photo">
+                  <app-avatar [name]="product.name" [src]="product.image_url" [size]="40" [square]="true" />
+                  <span class="strong">{{ product.name }}</span>
+                </div>
+              </td>
+              <td class="right num">{{ +product.selling_price! ? (product.selling_price | money) : '—' }}</td>
+              @if (family()?.cartons) {
+                <td class="right num">{{ product.units_per_carton ?? 1 | num }}</td>
+                <td class="right num">{{ +product.carton_selling_price! ? (product.carton_selling_price | money) : '—' }}</td>
+              }
+              <td class="right num">{{ +product.purchase_price! ? (product.purchase_price | money) : '—' }}</td>
+              <td class="right num strong">{{ product.stock_quantity | num }}</td>
+              <td class="actions">
+                <label class="btn btn-sm">
+                  Photo
+                  <input #picker type="file" accept="image/*" hidden (change)="setPhoto(product, picker)" />
+                </label>
+                <button class="btn btn-sm" type="button" (click)="open(product)">Modifier</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [state]="pager" />
+  }
+</section>
+
+@if (editing(); as target) {
+  <app-modal [title]="target === 'new' ? 'Nouveau produit — ' + family()?.label : 'Modifier le produit'" (closed)="editing.set(null)">
+    <form id="product-form" class="form-grid" [formGroup]="form" (ngSubmit)="save()">
+      <div class="field full">
+        <label for="name">{{ familyKey() === 'pneus' ? 'Dimension *' : 'Désignation *' }}</label>
+        <input id="name" class="input" formControlName="name" [placeholder]="familyKey() === 'pneus' ? '185-70R14' : 'COCO PAA PRINCESS CRÈME 460G'" />
+      </div>
+      <div class="field">
+        <label for="selling">Prix de vente par pièce (GNF)</label>
+        <input id="selling" class="input num" type="number" min="0" step="any" formControlName="selling_price" />
+      </div>
+      <div class="field">
+        <label for="purchase">Prix d'achat par pièce (GNF)</label>
+        <input id="purchase" class="input num" type="number" min="0" step="any" formControlName="purchase_price" />
+      </div>
+      @if (family()?.cartons) {
+        <div class="field">
+          <label for="per-carton">Pièces par carton</label>
+          <input id="per-carton" class="input num" type="number" min="1" formControlName="units_per_carton" />
+        </div>
+        <div class="field">
+          <label for="carton-price">Prix de vente par carton (GNF)</label>
+          <input id="carton-price" class="input num" type="number" min="0" step="any" formControlName="carton_selling_price" />
+        </div>
+      }
+      <div class="field">
+        <label for="threshold">Seuil d'alerte (pièces)</label>
+        <input id="threshold" class="input num" type="number" min="0" formControlName="low_stock_threshold" />
+      </div>
+      @if (target === 'new') {
+        <div class="field">
+          <label for="initial">Stock de départ (pièces)</label>
+          <input id="initial" class="input num" type="number" min="0" formControlName="stock_quantity" />
+          <span class="hint">Ensuite, le stock bouge avec les achats et les ventes.</span>
+        </div>
+      }
+    </form>
+    <ng-container modal-footer>
+      <button class="btn" type="button" (click)="editing.set(null)">Annuler</button>
+      <button class="btn btn-primary" type="submit" form="product-form" [disabled]="saving()">Enregistrer</button>
+    </ng-container>
+  </app-modal>
+}
